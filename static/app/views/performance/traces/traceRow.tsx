@@ -1,13 +1,14 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
+import {FieldDateTime} from 'sentry/utils/discover/styles';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
@@ -35,46 +36,80 @@ export function TraceRow({traceId, spans}: TraceRowProps) {
           <TraceIdRenderer traceId={traceId} timestamp={timestamp} />
         </TraceInfoHeader>
       </TraceInfo>
-      <SpansHeader lightText>
-        <SpanRowLayout>
-          <Container>{t('Span ID')}</Container>
-          <Container>{t('Span Op')}</Container>
-          <Container>{t('Span Description')}</Container>
-          <NumberContainer>{t('Span Duration')}</NumberContainer>
-          <NumberContainer>{t('Span Self Time')}</NumberContainer>
-          <NumberContainer>{t('Timestamp')}</NumberContainer>
-        </SpanRowLayout>
-      </SpansHeader>
-      {spans.map(span => {
-        return (
-          <SpanItem key={span[SpanIndexedField.ID]}>
-            <SpanRowLayout>
-              <SpanIdRenderer
-                projectSlug={span[SpanIndexedField.PROJECT]}
-                spanId={span[SpanIndexedField.ID]}
-                transactionId={span[SpanIndexedField.TRANSACTION_ID]}
-              />
-              <Container>{span[SpanIndexedField.SPAN_OP]}</Container>
-              <Container>{span[SpanIndexedField.SPAN_DESCRIPTION]}</Container>
-              <NumberContainer>
+      <SpanRowLayout>
+        <SpansHeader lightText align="left">
+          {t('Span ID')}
+        </SpansHeader>
+        <SpansHeader lightText align="left">
+          {t('Span Op')}
+        </SpansHeader>
+        <SpansHeader lightText align="left">
+          {t('Span Description')}
+        </SpansHeader>
+        <SpansHeader lightText align="right">
+          {t('Span Duration')}
+        </SpansHeader>
+        <SpansHeader lightText align="right">
+          {t('Span Self Time')}
+        </SpansHeader>
+        <SpansHeader lightText align="right">
+          {t('Timestamp')}
+        </SpansHeader>
+        {spans.map(span => {
+          return (
+            <Fragment key={span[SpanIndexedField.ID]}>
+              <SpanItem align="left">
+                <SpanIdRenderer
+                  projectSlug={span[SpanIndexedField.PROJECT]}
+                  spanId={span[SpanIndexedField.ID]}
+                  transactionId={span[SpanIndexedField.TRANSACTION_ID]}
+                />
+              </SpanItem>
+              <SpanItem align="left">
+                {span[SpanIndexedField.SPAN_OP] ? (
+                  <Tooltip
+                    containerDisplayMode="inline"
+                    showOnlyOnOverflow
+                    title={span[SpanIndexedField.SPAN_OP]}
+                  >
+                    {span[SpanIndexedField.SPAN_OP]}
+                  </Tooltip>
+                ) : (
+                  <EmptyValue>{t('No Op Available')}</EmptyValue>
+                )}
+              </SpanItem>
+              <SpanItem align="left">
+                {span[SpanIndexedField.SPAN_DESCRIPTION] ? (
+                  <Tooltip
+                    containerDisplayMode="inline"
+                    showOnlyOnOverflow
+                    title={span[SpanIndexedField.SPAN_DESCRIPTION]}
+                  >
+                    {span[SpanIndexedField.SPAN_DESCRIPTION]}
+                  </Tooltip>
+                ) : (
+                  <EmptyValue>{t('No Description Available')}</EmptyValue>
+                )}
+              </SpanItem>
+              <SpanItem align="right">
                 <PerformanceDuration
                   milliseconds={span[SpanIndexedField.SPAN_DURATION]}
                   abbreviation
                 />
-              </NumberContainer>
-              <NumberContainer>
+              </SpanItem>
+              <SpanItem align="right">
                 <PerformanceDuration
                   milliseconds={span[SpanIndexedField.SPAN_SELF_TIME]}
                   abbreviation
                 />
-              </NumberContainer>
-              <NumberContainer>
+              </SpanItem>
+              <SpanItem align="right">
                 <FieldDateTime date={timestamp} year seconds timeZone utc={utc} />
-              </NumberContainer>
-            </SpanRowLayout>
-          </SpanItem>
-        );
-      })}
+              </SpanItem>
+            </Fragment>
+          );
+        })}
+      </SpanRowLayout>
     </TracePanel>
   );
 }
@@ -93,19 +128,39 @@ const TraceInfoHeader = styled('div')`
 
 const SpanRowLayout = styled('div')`
   display: grid;
-  grid-template-columns: 80px repeat(5, 1fr);
-  grid-column-gap: ${space(1)};
+  grid-template-columns: min-content 1fr 2fr repeat(3, min-content);
   align-items: center;
   width: 100%;
 `;
 
-const SpansHeader = styled(PanelHeader)`
+const SpansHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   border-top: 1px solid ${p => p.theme.border};
   border-top-left-radius: 0;
+  border-top-right-radius: 0;
   padding: ${space(1.5)} ${space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
+  ${p => p.theme.overflowEllipsis};
+  ${p =>
+    p.align === 'right'
+      ? `
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  `
+      : ''}
 `;
 
-const SpanItem = styled(PanelItem)`
+const SpanItem = styled(PanelItem)<{align: 'left' | 'right'}>`
   padding: ${space(1)} ${space(2)};
+  ${p => p.theme.overflowEllipsis};
+  ${p =>
+    p.align === 'right'
+      ? `
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  `
+      : ''}
+`;
+
+const EmptyValue = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
