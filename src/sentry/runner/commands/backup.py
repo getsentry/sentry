@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from io import BytesIO
 from threading import Event, Thread
 from time import sleep, time
-from typing import IO
+from typing import IO, Any
 
 import click
 
@@ -375,7 +375,7 @@ def compare(
     # the way.
     def load_data(
         side: Side, src: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes]
-    ) -> json.JSONData:
+    ) -> dict[str, Any]:
         decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the
@@ -455,10 +455,11 @@ def decrypt(
 
     try:
         decrypted = decrypt_encrypted_tarball(src, decryptor)
-        with dest:
-            dest.write(decrypted)
     except DecryptionError as e:
         click.echo(f"Invalid tarball: {str(e)}", err=True)
+    else:
+        with dest:
+            dest.write(decrypted)
 
 
 @backup.command(name="encrypt")
@@ -497,11 +498,12 @@ def encrypt(
 
     try:
         data = json.load(src)
+    except json.JSONDecodeError:
+        click.echo("Invalid input JSON", err=True)
+    else:
         encrypted = create_encrypted_export_tarball(data, encryptor)
         with dest:
             dest.write(encrypted.getbuffer())
-    except json.JSONDecodeError:
-        click.echo("Invalid input JSON", err=True)
 
 
 @click.group(name="import")
