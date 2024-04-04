@@ -62,6 +62,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'id',
         'user.display',
         'transaction',
+        'trace',
         'measurements.lcp',
         'measurements.fcp',
         'measurements.cls',
@@ -103,6 +104,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
       ? data.data
           .map(row => ({
             id: row.id?.toString(),
+            trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
