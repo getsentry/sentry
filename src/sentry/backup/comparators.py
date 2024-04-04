@@ -104,8 +104,9 @@ class JSONScrubbingComparator(ABC):
         self,
         left: JSONData,
         right: JSONData,
-        f: Callable[[list[str]], list[str]]
-        | Callable[[list[str]], ScrubbedData] = lambda _: ScrubbedData(),
+        f: (
+            Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
+        ) = lambda _: ScrubbedData(),
     ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
@@ -420,11 +421,27 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
         # Old user, password must remain constant.
         if not right["fields"].get("is_unclaimed"):
             findings.extend(super().compare(on, left, right))
+
+            # Ensure that `last_password_change` did not get mutated either.
+            lv = left["fields"].get("last_password_change", None)
+            rv = right["fields"].get("last_password_change", None)
+            if lv != rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `last_password_change` was not equal to the right value ("{rv}")""",
+                    )
+                )
             return findings
 
         # New user, password must change.
         left_password = left["fields"]["password"]
         right_password = right["fields"]["password"]
+        left_lpc = left["fields"].get("last_password_change") or UNIX_EPOCH
+        right_lpc = right["fields"].get("last_password_change") or UNIX_EPOCH
         if left_password == right_password:
             left_pw_truncated = self.truncate(
                 [left_password] if not isinstance(left_password, list) else left_password
@@ -441,6 +458,18 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                     reason=f"""the left value ("{left_pw_truncated}") of `password` was equal to the
                             right value ("{right_pw_truncated}"), which is disallowed when
                             `is_unclaimed` is `True`""",
+                )
+            )
+
+        # Ensure that the `last_password_change` field was not nulled or less than the left side.
+        if parser.parse(left_lpc) > parser.parse(right_lpc):
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ({left_lpc}) of `last_password_change` was not less than or equal to the right value ({right_lpc})""",
                 )
             )
 
@@ -691,11 +720,17 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
         assign = set()
         for f in fields:
             if isinstance(f, models.DateTimeField) and name in comps:
-                date_updated_comparator = next(
-                    filter(lambda e: isinstance(e, DateUpdatedComparator), comps[name]), None
-                )
-                if not date_updated_comparator or f.name not in date_updated_comparator.fields:
-                    assign.add(f.name)
+                # Only auto assign the `DatetimeEqualityComparator` if this field is not mentioned
+                # by a conflicting comparator.
+                possibly_conflicting = [
+                    e
+                    for e in comps[name]
+                    if isinstance(e, DateUpdatedComparator) or isinstance(e, IgnoredComparator)
+                ]
+                assign.add(f.name)
+                for comp in possibly_conflicting:
+                    if f.name in comp.fields:
+                        assign.remove(f.name)
 
         if len(assign):
             found = next(
@@ -747,7 +782,7 @@ ComparatorMap = dict[str, ComparatorList]
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def get_default_comparators():
+def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
     """Helper function executed at startup time which builds the static default comparators map."""
 
     from sentry.models.actor import Actor
@@ -817,11 +852,12 @@ def get_default_comparators():
             ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                DateUpdatedComparator("last_active", "last_password_change"),
-                # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
-                # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
+                DateUpdatedComparator("last_active"),
+                # `UserPasswordObfuscatingComparator` handles `last_password_change`,
+                # `is_unclaimed`, and `password` for us. Because of this, we can ignore the
+                # `last_password_change` and`is_unclaimed` fields otherwise and scrub them from the
                 # comparison.
-                IgnoredComparator("is_unclaimed"),
+                IgnoredComparator("last_password_change", "is_unclaimed"),
                 UserPasswordObfuscatingComparator(),
             ],
             "sentry.useremail": [
