@@ -14,6 +14,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
+from sentry.silo.base import SiloMode
 
 
 def get_project(value: str) -> int | None:
@@ -281,23 +282,24 @@ def cleanup(
                 item.delete_file()
 
         project_id = None
-        if project:
-            click.echo("Bulk NodeStore deletion not available for project selection", err=True)
-            project_id = get_project(project)
-            # These models span across projects, so let's skip them
-            DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
-            if project_id is None:
-                click.echo("Error: Project not found", err=True)
-                raise click.Abort()
-        else:
-            if not silent:
-                click.echo("Removing old NodeStore values")
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            if project:
+                click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+                project_id = get_project(project)
+                # These models span across projects, so let's skip them
+                DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
+                if project_id is None:
+                    click.echo("Error: Project not found", err=True)
+                    raise click.Abort()
+            else:
+                if not silent:
+                    click.echo("Removing old NodeStore values")
 
-            cutoff = timezone.now() - timedelta(days=days)
-            try:
-                nodestore.backend.cleanup(cutoff)
-            except NotImplementedError:
-                click.echo("NodeStore backend does not support cleanup operation", err=True)
+                cutoff = timezone.now() - timedelta(days=days)
+                try:
+                    nodestore.backend.cleanup(cutoff)
+                except NotImplementedError:
+                    click.echo("NodeStore backend does not support cleanup operation", err=True)
 
         for model_tp, dtfield, order_by in BULK_QUERY_DELETES:
             chunk_size = 10000
@@ -339,19 +341,21 @@ def cleanup(
 
                 task_queue.join()
 
-        project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
-        if project:
-            project_deletion_query = models.Project.objects.filter(id=project_id)
-
+        project_deletion_query = None
         to_delete_by_project = []
-        for model_tp_tup in DELETES_BY_PROJECT:
-            if is_filtered(model_tp_tup[0]):
-                if not silent:
-                    click.echo(">> Skipping %s" % model_tp_tup[0].__name__)
-            else:
-                to_delete_by_project.append(model_tp_tup)
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
+            if project:
+                project_deletion_query = models.Project.objects.filter(id=project_id)
 
-        if to_delete_by_project:
+            for model_tp_tup in DELETES_BY_PROJECT:
+                if is_filtered(model_tp_tup[0]):
+                    if not silent:
+                        click.echo(">> Skipping %s" % model_tp_tup[0].__name__)
+                else:
+                    to_delete_by_project.append(model_tp_tup)
+
+        if project_deletion_query and to_delete_by_project:
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
                 result_value_getter=lambda item: item,
