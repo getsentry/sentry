@@ -16,14 +16,17 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `
-gem "sentry-ruby"
+const getInstallSnippet = (
+  params: Params
+) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
 gem "sentry-rails"`;
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
   config.dsn = '${params.dsn}'
-  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+  config.breadcrumbs_logger = [:active_support_logger, :http_logger]${
+    params.isPerformanceSelected
+      ? `
 
   # Set traces_sample_rate to 1.0 to capture 100%
   # of transactions for performance monitoring.
@@ -32,7 +35,17 @@ Sentry.init do |config|
   # or
   config.traces_sampler = lambda do |context|
     true
-  end
+  end`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  # Set profiles_sample_rate to profile 100%
+  # of sampled transactions.
+  # We recommend adjusting this value in production.
+  config.profiles_sample_rate = 1.0`
+      : ''
+  }
 end`;
 
 const onboarding: OnboardingConfig = {
@@ -40,7 +53,7 @@ const onboarding: OnboardingConfig = {
     t(
       'In Rails, all uncaught exceptions will be automatically reported. We support Rails 5 and newer.'
     ),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -53,8 +66,20 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                {
+                  stackprofLink: (
+                    <ExternalLink href="https://github.com/tmm1/stackprof" />
+                  ),
+                  stackprofCode: <code />,
+                  sentryRubyCode: <code />,
+                }
+              )
+            : undefined,
           language: 'ruby',
-          code: getInstallSnippet(),
+          code: getInstallSnippet(params),
         },
       ],
     },
