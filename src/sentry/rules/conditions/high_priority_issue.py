@@ -33,6 +33,9 @@ class HighPriorityIssueCondition(EventCondition):
         if not has_high_priority_issue_alerts(self.project):
             return False
 
+        if not self.rule:
+            return state.is_new
+
         if not event.project.flags.has_high_priority_alerts:
             if self.rule.environment_id is None:
                 return state.is_new
