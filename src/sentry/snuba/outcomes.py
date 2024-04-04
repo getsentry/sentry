@@ -479,7 +479,7 @@ def run_metrics_outcomes_query(query: QueryDict, organization, projects) -> dict
         interval=int(3600 if interval is None else interval.total_seconds()),
         organization=organization,
         projects=projects,
-        environments=query.get("environment", []),
+        environments=query.getlist("environment", []),
         referrer="outcomes.timeseries",
     ).apply_transformer(MetricsStatsTransformer())
 
