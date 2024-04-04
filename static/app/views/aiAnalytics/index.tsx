@@ -9,7 +9,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import AiAnalyticsFilters from 'sentry/views/ai-analytics/filters';
+import AiAnalyticsFilters from 'sentry/views/aiAnalytics/filters';
 
 function NoAccessComponent() {
   return (
