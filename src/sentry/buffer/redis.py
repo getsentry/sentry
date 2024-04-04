@@ -170,6 +170,13 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
+    def _lock_key(self, client, key: str, ex: int) -> None | str:
+        lock_key = self._make_lock_key(key)
+        # prevent a stampede due to celerybeat + periodic task
+        if not client.set(lock_key, "1", nx=True, ex=ex):
+            return
+        return lock_key
+
     @classmethod
     def _dump_values(cls, values: dict[Any, Any]) -> dict[Any, tuple[str, str]]:
         result = {}
@@ -360,9 +367,8 @@ class RedisBuffer(Buffer):
 
         pending_key = self._make_pending_key(partition)
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._make_lock_key(pending_key)
-        # prevent a stampede due to celerybeat + periodic task
-        if not client.set(lock_key, "1", nx=True, ex=60):
+        lock_key = self._lock_key(client, pending_key, ex=60)
+        if not lock_key:
             return
 
         pending_buffer = PendingBuffer(self.incr_batch_size)
@@ -429,10 +435,8 @@ class RedisBuffer(Buffer):
 
     def _process_single_incr(self, key: str) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._make_lock_key(key)
-        # prevent a stampede due to the way we use celery etas + duplicate
-        # tasks
-        if not client.set(lock_key, "1", nx=True, ex=10):
+        lock_key = self._lock_key(client, key, ex=10)
+        if not lock_key:
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
             logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
