@@ -91,7 +91,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml --junitxml=.artifacts/pytest.acceptance.junit.xml"
 	@echo ""
 
 test-cli: create-db
