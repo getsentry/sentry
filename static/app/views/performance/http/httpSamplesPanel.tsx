@@ -166,8 +166,6 @@ export function HTTPSamplesPanel() {
     });
   };
 
-  durationData['avg(span.self_time)'].markLine = AverageValueMarkLine();
-
   return (
     <PageAlertProvider>
       <DetailPanel detailKey={detailKey} onClose={handleClose}>
@@ -285,7 +283,10 @@ export function HTTPSamplesPanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <DurationChart
-                  series={durationData[`avg(span.self_time)`]}
+                  series={{
+                    ...durationData[`avg(span.self_time)`],
+                    markLine: AverageValueMarkLine(),
+                  }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />
