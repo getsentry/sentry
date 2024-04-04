@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
+import type {Tag} from 'sentry/actionCreators/events';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -21,6 +22,7 @@ type TraceDetailsProps = {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  tagsQueryResults: UseApiQueryResult<Tag[], RequestError>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
@@ -51,6 +53,7 @@ export function TraceDetails(props: TraceDetailsProps) {
       <IssueList issues={issues} node={props.node} organization={props.organization} />
       {rootEvent ? (
         <Tags
+          tagsQueryResults={props.tagsQueryResults}
           generateUrl={(key: string, value: string) => {
             const url = props.traceEventView.getResultsViewUrlTarget(
               props.organization.slug,
