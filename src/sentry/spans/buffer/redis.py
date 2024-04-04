@@ -62,7 +62,7 @@ class RedisSpansBuffer:
 
         return timestamp > int(last_processed_timestamp)
 
-    def read_and_expire_many_segments(self, keys: list[str]) -> list[tuple[str, list[str | bytes]]]:
+    def read_and_expire_many_segments(self, keys: list[str]) -> list[list[str | bytes]]:
         values = []
         with self.client.pipeline() as p:
             for key in keys:
