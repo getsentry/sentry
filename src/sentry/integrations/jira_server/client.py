@@ -10,7 +10,8 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.integrations.client import ApiClient
-from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.exceptions import ApiError
@@ -54,12 +55,12 @@ class JiraServerClient(ApiClient):
 
     def __init__(
         self,
-        integration: RpcIntegration,
-        identity_id: int,
+        integration: RpcIntegration | Integration,
+        identity: RpcIdentity,
         logging_context: JSONData | None = None,
     ):
         self.base_url = integration.metadata["base_url"]
-        self.identity_id = identity_id
+        self.identity = identity
         super().__init__(
             integration_id=integration.id,
             verify_ssl=integration.metadata["verify_ssl"],
@@ -69,17 +70,15 @@ class JiraServerClient(ApiClient):
     def get_cache_prefix(self):
         return "sentry-jira-server:"
 
-    @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest):
         """Jira Server authorizes with RSA-signed OAuth1 scheme"""
-        identity = Identity.objects.filter(id=self.identity_id).first()
-        if not identity:
+        if not self.identity:
             return prepared_request
         auth_scheme = OAuth1(
-            client_key=identity.data["consumer_key"],
-            rsa_key=identity.data["private_key"],
-            resource_owner_key=identity.data["access_token"],
-            resource_owner_secret=identity.data["access_token_secret"],
+            client_key=self.identity.data["consumer_key"],
+            rsa_key=self.identity.data["private_key"],
+            resource_owner_key=self.identity.data["access_token"],
+            resource_owner_secret=self.identity.data["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
         )
