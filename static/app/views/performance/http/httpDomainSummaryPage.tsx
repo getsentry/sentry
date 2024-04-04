@@ -250,7 +250,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Third>
               <DurationChart
-                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />

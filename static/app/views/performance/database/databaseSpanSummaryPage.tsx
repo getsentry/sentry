@@ -213,11 +213,11 @@ function SpanSummaryPage({params}: Props) {
                 />
 
                 <DurationChart
-                  series={
+                  series={[
                     durationData[
                       `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                    ]
-                  }
+                    ],
+                  ]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
                 />

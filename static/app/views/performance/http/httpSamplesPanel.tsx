@@ -271,10 +271,12 @@ export function HTTPSamplesPanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <DurationChart
-                  series={{
-                    ...durationData[`avg(span.self_time)`],
-                    markLine: AverageValueMarkLine(),
-                  }}
+                  series={[
+                    {
+                      ...durationData[`avg(span.self_time)`],
+                      markLine: AverageValueMarkLine(),
+                    },
+                  ]}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />

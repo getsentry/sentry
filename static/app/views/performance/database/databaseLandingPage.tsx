@@ -189,7 +189,7 @@ export function DatabaseLandingPage() {
 
                 <ModuleLayout.Half>
                   <DurationChart
-                    series={durationData[`${selectedAggregate}(span.self_time)`]}
+                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />
