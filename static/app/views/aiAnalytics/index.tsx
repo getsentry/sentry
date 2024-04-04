@@ -9,7 +9,8 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import AiAnalyticsFilters from 'sentry/views/ai-analytics/filters';
+import AiAnalyticsFilters from 'sentry/views/aiAnalytics/filters';
+import TokenUsageChart from 'sentry/views/aiAnalytics/tokenUsageChart';
 
 function NoAccessComponent() {
   return (
@@ -35,6 +36,10 @@ function AiAnalyticsContainer() {
               <PageFiltersContainer>
                 <AiAnalyticsFilters onSearch={x => setSearch(x)} query={search} />
               </PageFiltersContainer>
+              <TwoColumns>
+                <TokenUsageChart metric="ai.prompt_tokens.used" />
+                <TokenUsageChart metric="ai.completion_tokens.used" />
+              </TwoColumns>
             </StyledMain>
           </StyledBody>
         </Layout.Page>
@@ -54,6 +59,11 @@ const StyledBody = styled('div')`
   grid-template-rows: 1fr;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: 'content saved-searches';
+`;
+
+const TwoColumns = styled('div')`
+  display: flex;
+  gap: ${space(2)};
 `;
 
 const StyledMain = styled('section')`
