@@ -169,7 +169,7 @@ _CANNED_OUTPUT = {
                 "properties": {
                     "id": {"type": "integer", "title": "Id"},
                     "user_id": {"type": "integer", "title": "User Id"},
-                    "slug": {"type": "string", "title": "Slug"},
+                    "slug": {"type": "integer", "title": "Slug"},
                     "include_projects": {
                         "type": "boolean",
                         "title": "Include Projects",
