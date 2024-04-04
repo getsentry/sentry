@@ -76,7 +76,7 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         response = generate_viewed_by_response(
-            replay_id=replay_id, viewed_by_ids=viewed_by_ids, as_user=request.user
+            replay_id=replay_id, viewed_by_ids=viewed_by_ids, actor=request.user
         )
         return Response({"data": response}, status=200)
 

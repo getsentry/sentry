@@ -93,13 +93,13 @@ class ReplayViewedByResponse(TypedDict):
 def process_raw_response(
     response: list[dict[str, Any]],
     fields: list[str],
-    request_user_id: int | None = None,
+    actor_uid: int | None = None,
 ) -> list[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
-    # request_user_id is used to check a replay's viewed status
+    # actor_uid (user_id) is used to check a replay's viewed status
     return list(
         generate_restricted_fieldset(
-            fields, generate_normalized_output(response, request_user_id=request_user_id)
+            fields, generate_normalized_output(response, actor_uid=actor_uid)
         )
     )
 
@@ -123,7 +123,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]], request_user_id: int | None = None
+    response: list[dict[str, Any]], actor_uid: int | None = None
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
@@ -206,9 +206,9 @@ def generate_normalized_output(
 
         # TODO: why are we using pop for all of these? The performance is probably worse than get
         has_viewed = False
-        if request_user_id is not None:
+        if actor_uid is not None:
             if viewed_by_ids := item.pop("viewed_by_ids", None):
-                has_viewed = request_user_id in viewed_by_ids
+                has_viewed = actor_uid in viewed_by_ids
         ret_item["has_viewed"] = has_viewed
 
         yield ret_item
@@ -223,7 +223,7 @@ def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[st
 def generate_viewed_by_response(
     replay_id: str,
     viewed_by_ids: list[int],
-    as_user: models.User,
+    actor: models.User,
 ) -> ReplayViewedByResponse:
     """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
     global user_serializer
@@ -233,12 +233,12 @@ def generate_viewed_by_response(
     # method 1: hybrid cloud user_service. Based on GroupSeenSerializer. No way
     # users = user_service.serialize_many(
     #     filter=dict(user_ids=[viewed_by_ids]),
-    #     as_user=serialize_rpc_user(as_user),  # as_user checks we have auth for these users
+    #     as_user=serialize_rpc_user(actor),  # as_user checks we have auth for these users
     # )
 
     # method 2: api.serializers
     users = models.User.objects.filter(id__in=viewed_by_ids)
-    serialized_users = serialize(users, user=as_user, serializer=user_serializer)
+    serialized_users = serialize(users, user=actor, serializer=user_serializer)
 
     return {
         "id": replay_id,
