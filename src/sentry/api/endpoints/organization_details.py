@@ -72,6 +72,7 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.types.region import get_local_region
 from sentry.utils.audit import create_audit_entry
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -324,6 +325,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(
                 "The accountRateLimit option cannot be configured for this organization"
             )
+        return value
+
+    def validate_genAIConsent(self, value):
+        if get_local_region().name != "us":
+            raise serializers.ValidationError(
+                "the genAiConsent option is only available to customers in the US region"
+            )
+
         return value
 
     def validate(self, attrs):
