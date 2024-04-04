@@ -74,6 +74,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+    has_viewed: bool
 
 
 class ReplayViewedByResponse(TypedDict):
@@ -82,10 +83,17 @@ class ReplayViewedByResponse(TypedDict):
 
 
 def process_raw_response(
-    response: list[dict[str, Any]], fields: list[str]
+    response: list[dict[str, Any]],
+    fields: list[str],
+    request_user_id: int | None = None,
 ) -> list[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
-    return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
+    # request_user_id is used to check a replay's viewed status
+    return list(
+        generate_restricted_fieldset(
+            fields, generate_normalized_output(response, request_user_id=request_user_id)
+        )
+    )
 
 
 def generate_restricted_fieldset(
@@ -107,7 +115,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]],
+    response: list[dict[str, Any]], request_user_id: int | None = None
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
@@ -187,6 +195,14 @@ def generate_normalized_output(
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)
         ret_item["count_warnings"] = item.pop("count_warnings", None)
+
+        # TODO: why are we using pop for all of these? The performance is probably worse than get
+        has_viewed = False
+        if request_user_id is not None:
+            if viewed_by_ids := item.pop("viewed_by_ids", None):
+                has_viewed = request_user_id in viewed_by_ids
+        ret_item["has_viewed"] = has_viewed
+
         yield ret_item
 
 

@@ -556,6 +556,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
+    "viewed_by_ids": ["viewed_by_ids"],
+    "viewed_by_id": ["viewed_by_ids"],
 }
 
 
@@ -703,10 +705,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Column("count_info_events")],
         alias="count_infos",
     ),
-    "has_viewed": Function(
-        "has",
-        parameters=[Column("viewed_by_id"), 1234],  # TODO: use actual user_id
-        alias="has_viewed",
+    "viewed_by_ids": Function(
+        "groupUniqArray",
+        parameters=[Column("viewed_by_id")],
+        alias="viewed_by_ids",
     ),
 }
 
@@ -761,7 +763,6 @@ def collect_aliases(fields: list[str]) -> list[str]:
 
 def select_from_fields(fields: list[str]) -> list[Column | Function]:
     """Return a list of columns to select."""
-    # if alias == "has_viewed": dosomething(). Need to pass down user_id for has_viewed query. # TODO:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 

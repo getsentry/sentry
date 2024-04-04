@@ -286,7 +286,12 @@ def make_full_aggregation_query(
     period_start: datetime,
     period_end: datetime,
 ) -> Query:
-    """Return a query to fetch every replay in the set."""
+    """
+    Return a query to fetch every replay in the set.
+
+    Arguments
+    fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
+    """
     from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
 
     def _select_from_fields() -> list[Column | Function]:
