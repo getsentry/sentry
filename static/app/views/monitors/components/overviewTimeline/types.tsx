@@ -1,8 +1,26 @@
+import type {DateTimeProps} from 'sentry/components/dateTime';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
-export interface TimeWindowOptions {
+interface MarkerIntervals {
+  /**
+   * The smallest number of minutes a marker mmay represent
+   */
+  minimumMarkerInterval: number;
+  /**
+   * The number of minutes "inner" markers represent. These are the markers
+   * that are aligned to a reasonable start.
+   */
+  normalMarkerInterval: number;
+  /**
+   * The number of minutes after the reference marker (start time) before we
+   * shoulds start showing
+   */
+  referenceMarkerInterval: number;
+}
+
+export interface TimeWindowConfig {
   /**
    * The time format used for the cursor label and job tick tooltip
    */
@@ -10,15 +28,27 @@ export interface TimeWindowOptions {
   /**
    * Props to pass to <DateTime> when displaying a time marker
    */
-  dateTimeProps: {dateOnly?: boolean; timeOnly?: boolean};
+  dateTimeProps: Partial<DateTimeProps>;
   /**
    * The elapsed minutes based on the selected resolution
    */
   elapsedMinutes: number;
   /**
-   * The interval between each grid line and time label in minutes
+   * The end of the window
    */
-  timeMarkerInterval: number;
+  end: Date;
+  /**
+   * Configuraton for marker intervals
+   */
+  intervals: MarkerIntervals;
+  /**
+   * The start of the window
+   */
+  start: Date;
+  /**
+   * The width in pixels of the timeline
+   */
+  timelineWidth: number;
 }
 
 // TODO(davidenwang): Remove this type as its a little too specific

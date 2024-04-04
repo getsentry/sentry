@@ -32,7 +32,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, get_blocks_and_fallback_text
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -47,7 +47,6 @@ def fake_get_tags(group, event_for_tags, tags):
     return old_get_tags(group, event_for_tags, None)
 
 
-@region_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -66,6 +65,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_user(self):
         """Test that issue alerts are sent to a Slack user."""
 
@@ -139,6 +139,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_performance_issue_alert_user(self, occurrence):
         """Test that performance issue alerts are sent to a Slack user."""
 
@@ -243,6 +244,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_generic_issue_alert_user(self, occurrence):
         """Test that generic issue alerts are sent to a Slack user."""
         event = self.store_event(
@@ -322,6 +324,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(responses.calls) == 0
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_issue_owners(self):
         """Test that issue alerts are sent to issue owners in Slack."""
 
@@ -420,6 +423,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_issue_owners_environment(self):
         """Test that issue alerts are sent to issue owners in Slack with the environment in the query params when the alert rule filters by environment."""
 
@@ -534,6 +538,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_team_issue_owners(self):
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action."""
 
@@ -778,6 +783,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
     @responses.activate
     @patch.object(sentry, "digests")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_team_issue_owners_user_settings_off_digests(self, digests):
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action
         even when the users' issue alert notification settings are off and digests are triggered."""
@@ -879,6 +885,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_team(self):
         """Test that issue alerts are sent to a team in Slack."""
         # add a second organization
@@ -1051,6 +1058,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_team_new_project(self):
         """Test that issue alerts are sent to a team in Slack when the team has added a new project"""
 
@@ -1177,6 +1185,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(responses.calls) == 0
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_issue_alert_team_fallback(self):
         """Test that issue alerts are sent to each member of a team in Slack."""
 
@@ -1246,6 +1255,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
     @responses.activate
     @patch.object(sentry, "digests")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_digest_enabled(self, digests):
         """
         Test that with digests enabled, but Slack notification settings

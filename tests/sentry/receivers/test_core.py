@@ -11,10 +11,9 @@ from sentry.models.user import User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@region_silo_test
 class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):

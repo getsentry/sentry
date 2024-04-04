@@ -223,6 +223,7 @@ export type IssueEventParameters = {
     page: number;
     query: string;
     sort: string;
+    total_issues_count: number | null;
     tab?: string;
   };
   'project_modal.created': {

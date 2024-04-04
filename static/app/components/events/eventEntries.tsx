@@ -19,7 +19,7 @@ import type {
 import {EntryType, EventOrGroupType} from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';

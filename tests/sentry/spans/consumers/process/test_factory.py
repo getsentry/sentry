@@ -11,6 +11,7 @@ from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_topic_definition
@@ -56,6 +57,16 @@ def build_mock_message(data, topic=None):
     return message
 
 
+def process_spans_strategy():
+    return ProcessSpansStrategyFactory(
+        num_processes=2,
+        input_block_size=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        output_block_size=1,
+    )
+
+
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
@@ -67,7 +78,7 @@ def test_consumer_pushes_to_redis():
 
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -78,7 +89,13 @@ def test_consumer_pushes_to_redis():
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message1.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -92,7 +109,13 @@ def test_consumer_pushes_to_redis():
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message2.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -110,6 +133,7 @@ def test_consumer_pushes_to_redis():
     ]
 
 
+@django_db_all
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
@@ -121,7 +145,7 @@ def test_consumer_pushes_to_redis():
 def test_produces_valid_segment_to_kafka(mock_produce):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -132,7 +156,13 @@ def test_produces_valid_segment_to_kafka(mock_produce):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message1.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now() - timedelta(minutes=3),
@@ -146,7 +176,13 @@ def test_produces_valid_segment_to_kafka(mock_produce):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message2.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -169,7 +205,7 @@ def test_produces_valid_segment_to_kafka(mock_produce):
 def test_option_disabled(mock_buffer):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -180,7 +216,13 @@ def test_option_disabled(mock_buffer):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -197,14 +239,16 @@ def test_option_disabled(mock_buffer):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [],
+        "standalone-spans.process-spans-consumer.project-allowlist": [
+            ("project_id", b"1"),
+        ],
     }
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
 def test_option_project_rollout(mock_buffer):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -215,7 +259,13 @@ def test_option_project_rollout(mock_buffer):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),

@@ -17,10 +17,8 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MarkOkTestCase(TestCase):
     def test_mark_ok_simple(self):
         now = timezone.now().replace(second=0, microsecond=0)

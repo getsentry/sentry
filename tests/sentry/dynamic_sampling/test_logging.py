@@ -28,7 +28,7 @@ def test_should_not_log_rules_if_unchanged():
         },
     ]
 
-    assert not should_log_rules_change(1, new_rules)  # type:ignore
+    assert not should_log_rules_change(1, new_rules)  # type: ignore[arg-type]
 
 
 @patch(
@@ -57,7 +57,7 @@ def test_should_not_log_rules_if_unchanged_and_different_order():
         },
     ]
 
-    assert not should_log_rules_change(1, new_rules)  # type:ignore
+    assert not should_log_rules_change(1, new_rules)  # type: ignore[arg-type]
 
 
 @patch(
@@ -118,7 +118,7 @@ def test_should_log_rules_if_new_rule_added():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)  # type:ignore
+    assert should_log_rules_change(1, new_rules)  # type: ignore[arg-type]
 
 
 @patch(
@@ -165,7 +165,7 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)  # type:ignore
+    assert should_log_rules_change(1, new_rules)  # type: ignore[arg-type]
 
 
 @patch(
@@ -196,9 +196,9 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                     "condition": {
                         "op": "and",
                         "inner": [
-                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},  # type:ignore
+                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},  # type: ignore[typeddict-item]
                             {
-                                "op": "eq",  # type:ignore
+                                "op": "eq",  # type: ignore[typeddict-item]
                                 "name": "trace.environment",
                                 "value": ["dev"],
                             },
@@ -234,4 +234,4 @@ def test_should_log_rules_if_rule_is_deleted():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)  # type:ignore
+    assert should_log_rules_change(1, new_rules)  # type: ignore[arg-type]

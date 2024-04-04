@@ -28,7 +28,7 @@ describe('InviteMembersModal', function () {
     return client.addMockResponse({
       url: `/organizations/${orgSlug}/members/me/`,
       method: 'GET',
-      body: {roles},
+      body: {orgRoleList: roles},
     });
   };
 
@@ -55,13 +55,15 @@ describe('InviteMembersModal', function () {
         id: 'admin',
         name: 'Admin',
         desc: 'This is the admin role',
-        allowed: true,
+        isAllowed: true,
+        isTeamRolesAllowed: true,
       },
       {
         id: 'member',
         name: 'Member',
         desc: 'This is the member role',
-        allowed: true,
+        isAllowed: true,
+        isTeamRolesAllowed: true,
       },
     ],
     modalProps = defaultMockModalProps,

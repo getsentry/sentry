@@ -9,7 +9,7 @@ from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMetho
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
 
 from . import FireTest
@@ -21,7 +21,6 @@ METADATA = {
 }
 
 
-@region_silo_test
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate

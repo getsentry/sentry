@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -14,8 +15,10 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DomainTransactionsTable,
@@ -24,7 +27,7 @@ import {
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
-import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -46,12 +49,21 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
+  // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {domain} = location.query;
+  const {domain, project: projectId} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      domain: decodeScalar,
+    },
+  });
+
+  const project = projects.find(p => projectId === p.id);
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
@@ -147,7 +159,7 @@ export function HTTPDomainSummaryPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'HTTP',
+                label: MODULE_TITLE,
                 to: normalizeUrl(`/organizations/${organization.slug}/performance/http`),
                 preservePageFilters: true,
               },
@@ -157,6 +169,7 @@ export function HTTPDomainSummaryPage() {
             ]}
           />
           <Layout.Title>
+            {project && <ProjectAvatar project={project} size={36} />}
             {domain}
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
@@ -237,7 +250,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Third>
               <DurationChart
-                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
@@ -307,7 +320,7 @@ function LandingPageWithProviders() {
   return (
     <ModulePageProviders
       baseURL="/performance/http"
-      title={[t('Performance'), t('HTTP'), t('Domain Summary')].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="performance-http-view"
     >
       <HTTPDomainSummaryPage />

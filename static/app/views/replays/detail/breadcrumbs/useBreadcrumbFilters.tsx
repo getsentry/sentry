@@ -31,7 +31,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',
   feedback: 'User Feedback',
   replay: 'Replay',
-  issue: 'Issue',
+  issue: 'Error',
   console: 'Console',
   nav: 'Navigation',
   pageLoad: 'Page Load',

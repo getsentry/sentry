@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -13,8 +12,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, Organization} from 'sentry/types';
+import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
@@ -26,16 +27,14 @@ import {TraceDrawerComponents} from './styles';
 export function ErrorNodeDetails({
   node,
   organization,
-  location,
   scrollToNode,
   onParentClick,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.TraceError>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
+  const location = useLocation();
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
   const {isLoading, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -89,7 +88,7 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList issues={node.errors} node={node} organization={organization} />
+      <IssueList issues={issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

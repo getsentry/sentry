@@ -13,10 +13,17 @@ const group = GroupFixture();
 const event = EventFixture();
 
 describe('AiAutofix', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/ai-autofix/`,
       body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+      },
     });
   });
 
@@ -65,6 +72,51 @@ describe('AiAutofix', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Toggle step details'}));
     expect(screen.getByText('First log message')).toBeInTheDocument();
     expect(screen.getByText('Second log message')).toBeInTheDocument();
+  });
+
+  it('can reset and try again while running', async () => {
+    const autofixData = AutofixDataFixture({
+      steps: [
+        AutofixStepFixture({
+          id: '1',
+          progress: [
+            AutofixProgressItemFixture({message: 'First log message'}),
+            AutofixProgressItemFixture({message: 'Second log message'}),
+          ],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/ai-autofix/`,
+      body: autofixData,
+    });
+
+    const triggerAutofixMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/ai-autofix/`,
+      method: 'POST',
+    });
+
+    render(
+      <Autofix
+        event={event}
+        group={{
+          ...group,
+          metadata: {
+            autofix: autofixData,
+          },
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Start Over'}));
+
+    expect(screen.getByText('Try Autofix')).toBeInTheDocument();
+
+    // Clicking the fix button should show the initial state "Starting Autofix..." and call the api
+    await userEvent.click(screen.getByRole('button', {name: 'Gimme Fix'}));
+    expect(await screen.findByText('Starting Autofix...')).toBeInTheDocument();
+    expect(triggerAutofixMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders the FixResult component when autofixData is present', () => {

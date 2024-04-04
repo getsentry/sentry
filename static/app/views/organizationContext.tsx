@@ -1,18 +1,9 @@
-import {
-  Component,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-} from 'react';
-import {captureMessage} from '@sentry/react';
+import {createContext, useCallback, useContext, useEffect, useRef} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -36,46 +27,6 @@ const OrganizationLoaderContext = createContext<null | (() => void)>(null);
 
 interface Props {
   children: React.ReactNode;
-}
-
-const proxyHandler: ProxyHandler<Organization> = {
-  get(organization, prop) {
-    // XXX(epurkhiser): Record a sentry message when we've accessed the
-    // organiztion. Once we stop getting these we can remove the
-    // LegacyOrganizationContextProvider
-    captureMessage('Legacy organization accessed!');
-
-    return organization[prop];
-  },
-};
-
-/**
- * There are still a number of places where we consume the legacy organization
- * context. So for now we still need a component that provides this.
- */
-class LegacyOrganizationContextProvider extends Component<{
-  value: Organization | null;
-  children?: React.ReactNode;
-}> {
-  static childContextTypes = {
-    organization: SentryPropTypeValidators.isObject,
-  };
-
-  getChildContext() {
-    if (!this.props.value) {
-      return {organization: null};
-    }
-
-    // XXX(epurkhiser): Proxying the legacy context organization object to
-    // figure out where we're actually accessing this (if at all) anymore.
-    const organization = new Proxy(this.props.value, proxyHandler);
-
-    return {organization};
-  }
-
-  render() {
-    return this.props.children;
-  }
 }
 
 /**
@@ -212,9 +163,7 @@ export function OrganizationContextProvider({children}: Props) {
   return (
     <OrganizationLoaderContext.Provider value={loadOrganization}>
       <OrganizationContext.Provider value={organization}>
-        <LegacyOrganizationContextProvider value={organization}>
-          {children}
-        </LegacyOrganizationContextProvider>
+        {children}
       </OrganizationContext.Provider>
     </OrganizationLoaderContext.Provider>
   );

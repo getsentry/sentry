@@ -14,9 +14,10 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
+from sentry.silo.base import SiloMode
 
 
-def get_project(value):
+def get_project(value: str) -> int | None:
     from sentry.models.project import Project
 
     try:
@@ -121,7 +122,15 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     help="Send the duration of this command to internal metrics.",
 )
 @log_options()
-def cleanup(days, project, concurrency, silent, model, router, timed):
+def cleanup(
+    days: int,
+    project: str | None,
+    concurrency: int,
+    silent: bool,
+    model: tuple[str, ...],
+    router: str | None,
+    timed: bool,
+) -> None:
     """Delete a portion of trailing data based on creation date.
 
     All data that is older than `--days` will be deleted.  The default for
@@ -154,6 +163,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         from django.apps import apps
         from django.db import router as db_router
+        from django.db.models import Model
 
         from sentry import models, nodestore
         from sentry.constants import ObjectStatus
@@ -177,7 +187,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         # list of models which this query is restricted to
         model_list = {m.lower() for m in model}
 
-        def is_filtered(model):
+        def is_filtered(model: type[Model]) -> bool:
             if router is not None and db_router.db_for_write(model) != router:
                 return True
             if not model_list:
@@ -189,8 +199,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         additional_bulk_query_deletes = []
         for entry in settings.ADDITIONAL_BULK_QUERY_DELETES:
             app_name, model_name = entry[0].split(".")
-            model = apps.get_model(app_name, model_name)
-            additional_bulk_query_deletes.append((model, entry[1], entry[2]))
+            model_tp = apps.get_model(app_name, model_name)
+            additional_bulk_query_deletes.append((model_tp, entry[1], entry[2]))
 
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
@@ -239,15 +249,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             expired_threshold = timezone.now() - timedelta(days=days)
             models.OrganizationMember.objects.delete_expired(expired_threshold)
 
-        for model in [models.ApiGrant, models.ApiToken]:
+        for model_tp in [models.ApiGrant, models.ApiToken]:
             if not silent:
-                click.echo(f"Removing expired values for {model.__name__}")
+                click.echo(f"Removing expired values for {model_tp.__name__}")
 
-            if is_filtered(model):
+            if is_filtered(model_tp):
                 if not silent:
-                    click.echo(f">> Skipping {model.__name__}")
+                    click.echo(f">> Skipping {model_tp.__name__}")
             else:
-                queryset = model.objects.filter(
+                queryset = model_tp.objects.filter(
                     expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
                 )
 
@@ -255,7 +265,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 # with these tokens sticking around so that the Integration can
                 # refresh them, but all other non-associated tokens should be
                 # deleted.
-                if model is models.ApiToken:
+                if model_tp is models.ApiToken:
                     queryset = queryset.filter(sentry_app_installation__isnull=True)
 
                 queryset.delete()
@@ -272,61 +282,54 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 item.delete_file()
 
         project_id = None
-        if project:
-            click.echo("Bulk NodeStore deletion not available for project selection", err=True)
-            project_id = get_project(project)
-            # These models span across projects, so let's skip them
-            DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
-            if project_id is None:
-                click.echo("Error: Project not found", err=True)
-                raise click.Abort()
-        else:
-            if not silent:
-                click.echo("Removing old NodeStore values")
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            if project:
+                click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+                project_id = get_project(project)
+                # These models span across projects, so let's skip them
+                DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
+                if project_id is None:
+                    click.echo("Error: Project not found", err=True)
+                    raise click.Abort()
+            else:
+                if not silent:
+                    click.echo("Removing old NodeStore values")
 
-            cutoff = timezone.now() - timedelta(days=days)
-            try:
-                nodestore.backend.cleanup(cutoff)
-            except NotImplementedError:
-                click.echo("NodeStore backend does not support cleanup operation", err=True)
+                cutoff = timezone.now() - timedelta(days=days)
+                try:
+                    nodestore.backend.cleanup(cutoff)
+                except NotImplementedError:
+                    click.echo("NodeStore backend does not support cleanup operation", err=True)
 
-        for model, dtfield, order_by in BULK_QUERY_DELETES:
+        for model_tp, dtfield, order_by in BULK_QUERY_DELETES:
             chunk_size = 10000
 
             if not silent:
-                click.echo(
-                    "Removing {model} for days={days} project={project}".format(
-                        model=model.__name__, days=days, project=project or "*"
-                    )
-                )
-            if is_filtered(model):
+                click.echo(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
+            if is_filtered(model_tp):
                 if not silent:
-                    click.echo(">> Skipping %s" % model.__name__)
+                    click.echo(">> Skipping %s" % model_tp.__name__)
             else:
                 BulkDeleteQuery(
-                    model=model,
+                    model=model_tp,
                     dtfield=dtfield,
                     days=days,
                     project_id=project_id,
                     order_by=order_by,
                 ).execute(chunk_size=chunk_size)
 
-        for model, dtfield, order_by in DELETES:
+        for model_tp, dtfield, order_by in DELETES:
             if not silent:
-                click.echo(
-                    "Removing {model} for days={days} project={project}".format(
-                        model=model.__name__, days=days, project=project or "*"
-                    )
-                )
+                click.echo(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
 
-            if is_filtered(model):
+            if is_filtered(model_tp):
                 if not silent:
-                    click.echo(">> Skipping %s" % model.__name__)
+                    click.echo(">> Skipping %s" % model_tp.__name__)
             else:
-                imp = ".".join((model.__module__, model.__name__))
+                imp = ".".join((model_tp.__module__, model_tp.__name__))
 
                 q = BulkDeleteQuery(
-                    model=model,
+                    model=model_tp,
                     dtfield=dtfield,
                     days=days,
                     project_id=project_id,
@@ -338,35 +341,35 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
                 task_queue.join()
 
-        project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
-        if project:
-            project_deletion_query = models.Project.objects.filter(id=project_id)
-
+        project_deletion_query = None
         to_delete_by_project = []
-        for model in DELETES_BY_PROJECT:
-            if is_filtered(model[0]):
-                if not silent:
-                    click.echo(">> Skipping %s" % model[0].__name__)
-            else:
-                to_delete_by_project.append(model)
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
+            if project:
+                project_deletion_query = models.Project.objects.filter(id=project_id)
 
-        if to_delete_by_project:
+            for model_tp_tup in DELETES_BY_PROJECT:
+                if is_filtered(model_tp_tup[0]):
+                    if not silent:
+                        click.echo(">> Skipping %s" % model_tp_tup[0].__name__)
+                else:
+                    to_delete_by_project.append(model_tp_tup)
+
+        if project_deletion_query and to_delete_by_project:
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
                 result_value_getter=lambda item: item,
             ):
-                for model, dtfield, order_by in to_delete_by_project:
+                for model_tp, dtfield, order_by in to_delete_by_project:
                     if not silent:
                         click.echo(
-                            "Removing {model} for days={days} project={project}".format(
-                                model=model.__name__, days=days, project=project_id_for_deletion
-                            )
+                            f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
                         )
 
-                    imp = ".".join((model.__module__, model.__name__))
+                    imp = ".".join((model_tp.__module__, model_tp.__name__))
 
                     q = BulkDeleteQuery(
-                        model=model,
+                        model=model_tp,
                         dtfield=dtfield,
                         days=days,
                         project_id=project_id_for_deletion,
@@ -406,7 +409,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         transaction.__exit__(None, None, None)
 
 
-def cleanup_unused_files(quiet=False):
+def cleanup_unused_files(quiet: bool = False) -> None:
     """
     Remove FileBlob's (and thus the actual files) if they are no longer
     referenced by any File.

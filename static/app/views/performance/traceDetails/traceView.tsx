@@ -143,7 +143,7 @@ export default function TraceView({
   handleLimitChange,
   ...props
 }: Props) {
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+  const sentryTransaction = Sentry.getActiveTransaction();
   const sentrySpan = sentryTransaction?.startChild({
     op: 'trace.render',
     description: 'trace-view-content',
@@ -471,7 +471,7 @@ export default function TraceView({
     </TraceDetailBody>
   );
 
-  sentrySpan?.finish();
+  sentrySpan?.end();
 
   return traceView;
 }

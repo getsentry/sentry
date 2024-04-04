@@ -4,6 +4,7 @@ import logging
 import pickle
 import threading
 from datetime import date, datetime, timezone
+from enum import Enum
 from time import time
 from typing import Any
 
@@ -32,6 +33,8 @@ logger = logging.getLogger(__name__)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
+Pipeline = Any
+# TODO type Pipeline instead of using Any here
 
 
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
@@ -47,6 +50,13 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
+
+
+class RedisOperation(Enum):
+    SET_ADD = "sadd"
+    SET_GET = "smembers"
+    HASH_ADD = "hset"
+    HASH_GET_ALL = "hgetall"
 
 
 class PendingBuffer:
@@ -208,6 +218,48 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
+    def get_redis_connection(self, key: str) -> Pipeline | None:
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+            conn = self.cluster
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
+            conn = self.cluster.get_local_client_for_key(key)
+        else:
+            raise AssertionError("unreachable")
+
+        pipe = conn.pipeline()
+        return pipe
+
+    def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
+        pending_key = self._make_pending_key_from_key(key)
+        pipe = self.get_redis_connection(pending_key)
+        if pipe:
+            getattr(pipe, operation.value)(key, *args)
+            if args:
+                pipe.expire(key, self.key_expire)
+            return pipe.execute()
+
+    def push_to_set(self, key: str, value: list[int] | int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
+
+    def get_set(self, key: str) -> list[set[int]]:
+        return self._execute_redis_operation(key, RedisOperation.SET_GET)
+
+    def push_to_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+        value: int,
+    ) -> None:
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
+
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        key = self._make_key(model, field)
+        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+
     def incr(
         self,
         model: type[models.Model],
@@ -226,19 +278,13 @@ class RedisBuffer(Buffer):
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-
         key = self._make_key(model, filters)
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster.get_local_client_for_key(key)
-        else:
-            raise AssertionError("unreachable")
-
-        pipe = conn.pipeline()
+        pipe = self.get_redis_connection(key)
+        if not pipe:
+            return
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 

@@ -16,10 +16,14 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
+
+VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_column):
+def add_comparison_to_event(event, average_columns):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
@@ -46,8 +50,9 @@ def add_comparison_to_event(event, average_column):
             },
             selected_columns=[
                 "span.group",
-                f"avg({average_column}) as avg",
+                *[f"avg({average_column})" for average_column in average_columns],
             ],
+            config=QueryBuilderConfig(transform_alias_to_input_format=True),
             # orderby shouldn't matter, just picking something so results are consistent
             orderby=["span.group"],
         )
@@ -60,13 +65,19 @@ def add_comparison_to_event(event, average_column):
                 )
             ]
         )
-        result = builder.run_query("Get avg for spans")
+        result = builder.process_results(
+            builder.run_query(Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value)
+        )
         sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
-        for result in result["data"]:
-            group = result["span.group"]
-            avg = result["avg"]
+        for row in result["data"]:
+            group = row["span.group"]
             for span in group_to_span_map[group]:
-                span["span.average_time"] = avg
+                average_results = {}
+                for col in row:
+                    if col.startswith("avg") and row[col] > 0:
+                        average_results[col] = row[col]
+                if average_results:
+                    span["span.averageResults"] = average_results
 
 
 @region_silo_endpoint
@@ -100,9 +111,12 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        average_column = request.GET.get("averageColumn")
-        if average_column in ["span.self_time"]:
-            add_comparison_to_event(event, average_column)
+        average_columns = request.GET.getlist("averageColumn", [])
+        if (
+            all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
+            and len(average_columns) > 0
+        ):
+            add_comparison_to_event(event, average_columns)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:

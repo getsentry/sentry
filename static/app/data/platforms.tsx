@@ -355,6 +355,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
+    id: 'nintendo',
+    name: 'Nintendo',
+    type: 'framework',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/nintendo',
+  },
+  {
     id: 'node',
     name: 'Node.js',
     type: 'language',
@@ -566,7 +573,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'python-serverless',
-    name: 'Serverless',
+    name: 'Serverless (Python)',
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/serverless/',
