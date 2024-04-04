@@ -47,8 +47,8 @@ class HighPriorityIssueConditionTest(RuleTestCase):
 
     @with_feature("projects:high-priority-alerts")
     def test_with_threshold_without_priority(self):
-        self.rule.data["new_issue_threshold_met"] = True
-        self.rule.save()
+        self.project.flags.has_high_priority_alerts = True
+        self.project.save()
         rule = self.get_rule(rule=self.rule)
 
         self.event.group.data["metadata"] = {"severity": "0.7"}
@@ -63,8 +63,8 @@ class HighPriorityIssueConditionTest(RuleTestCase):
     @with_feature("projects:high-priority-alerts")
     @with_feature("projects:issue-priority")
     def test_with_threshold_and_priority(self):
-        self.rule.data["new_issue_threshold_met"] = True
-        self.rule.save()
+        self.project.flags.has_high_priority_alerts = True
+        self.project.save()
 
         rule = self.get_rule(rule=self.rule)
 
