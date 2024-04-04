@@ -138,3 +138,9 @@ class SerializableFunctionSignature:
     def deserialize_return_value(self, value: Any) -> Any:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
+
+    def dump_schemas(self) -> tuple[type[pydantic.BaseModel], type[pydantic.BaseModel] | None]:
+        return (
+            self._parameter_model,
+            self._return_model if self._return_model else None,
+        )
