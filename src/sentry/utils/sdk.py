@@ -454,7 +454,7 @@ def configure_sdk():
         should_summarize_metric=minimetrics.should_summarize_metric,
     )
 
-    cache_spans = "-canary-" in os.environ.get("SENTRY_SERVER_NAME", "")
+    cache_spans = "CANARY" == os.environ.get("SENTRY_ENVIRONMENT", "").capitalize()
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
