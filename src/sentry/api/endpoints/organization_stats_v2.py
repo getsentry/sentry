@@ -166,14 +166,15 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
 
-            if request.GET.get("category") == "metrics":
-                # TODO(metrics): align project resolution
-                result = run_metrics_outcomes_query(
-                    request.GET,
-                    organization,
-                    self.get_projects(request, organization, include_all_accessible=True),
-                )
-                return Response(result, status=200)
+            if organization.features.has("organizations:metrics-stats"):
+                if request.GET.get("category") == "metrics":
+                    # TODO(metrics): align project resolution
+                    result = run_metrics_outcomes_query(
+                        request.GET,
+                        organization,
+                        self.get_projects(request, organization, include_all_accessible=True),
+                    )
+                    return Response(result, status=200)
 
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
