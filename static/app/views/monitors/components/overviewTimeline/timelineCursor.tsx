@@ -68,6 +68,10 @@ function useTimelineCursor<E extends HTMLElement>({
           return;
         }
 
+        if (!isInsideContainer) {
+          return;
+        }
+
         const offset = e.clientX - containerRect.left;
         const tooltipWidth = labelRef.current.offsetWidth;
 
