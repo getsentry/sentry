@@ -13,6 +13,7 @@ from sentry.types.activity import ActivityType
 
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_deploy(self):
         """
         Test that a Slack message is sent with the expected payload when a deploy happens.
