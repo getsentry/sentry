@@ -91,6 +91,8 @@ from .projectownership import ProjectOwnership  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectteam import ProjectTeam  # noqa
+from .projecttemplate import ProjectTemplate  # noqa
+from .projecttoprojecttemplate import ProjectToProjectTemplate  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
