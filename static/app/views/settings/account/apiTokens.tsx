@@ -15,7 +15,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -40,25 +46,47 @@ export function ApiTokens() {
 
   const {mutate: deleteToken} = useMutation(
     (token: InternalAppApiToken) => {
-      addLoadingMessage();
       return api.requestPromise('/api-tokens/', {
         method: 'DELETE',
         data: {tokenId: token.id},
       });
     },
     {
-      onSuccess: (_data, token) => {
-        addSuccessMessage(t('Removed token'));
-        queryClient.setQueryData<InternalAppApiToken[]>(
+      onMutate: token => {
+        addLoadingMessage();
+        queryClient.cancelQueries(API_TOKEN_QUERY_KEY);
+
+        const previous = getApiQueryData<InternalAppApiToken[]>(
+          queryClient,
+          API_TOKEN_QUERY_KEY
+        );
+
+        setApiQueryData<InternalAppApiToken[]>(
+          queryClient,
           API_TOKEN_QUERY_KEY,
           oldTokenList => {
             return oldTokenList?.filter(tk => tk.id !== token.id);
           }
         );
-        queryClient.invalidateQueries(API_TOKEN_QUERY_KEY);
+
+        return {previous};
       },
-      onError: () => {
+      onSuccess: _data => {
+        addSuccessMessage(t('Removed token'));
+      },
+      onError: (_error, _variables, context) => {
         addErrorMessage(t('Unable to remove token. Please try again.'));
+
+        if (context?.previous) {
+          setApiQueryData<InternalAppApiToken[]>(
+            queryClient,
+            API_TOKEN_QUERY_KEY,
+            context?.previous
+          );
+        }
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(API_TOKEN_QUERY_KEY);
       },
     }
   );
