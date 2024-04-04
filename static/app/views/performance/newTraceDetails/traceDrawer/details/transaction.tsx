@@ -327,6 +327,9 @@ export function TransactionNodeDetails({
             <TraceDrawerComponents.Duration
               duration={durationInSeconds}
               baseline={avgDurationInSeconds}
+              baseDescription={
+                'Average duration for this transaction across its project, over the last 24 hours'
+              }
             />
           </Row>
           {parentTransaction ? (
