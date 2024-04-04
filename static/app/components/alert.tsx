@@ -78,6 +78,7 @@ function Alert({
 
   return (
     <Wrap
+      role="status"
       type={type}
       system={system}
       opaque={opaque}
