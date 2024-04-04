@@ -129,7 +129,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     referrer: 'api.performance.transactions.statistical-detector-root-cause-analysis',
   });
 
-  let data: typeof spansData | typeof rcaData, isLoading: boolean, isError: boolean;
+  let data: typeof spansData | typeof rcaData;
+  let isLoading: boolean;
+  let isError: boolean;
   if (organization.features.includes('statistical-detectors-rca-spans-only')) {
     data = spansData;
     isLoading = isSpansDataLoading;
