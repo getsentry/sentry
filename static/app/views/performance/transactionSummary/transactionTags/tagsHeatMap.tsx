@@ -348,10 +348,10 @@ function TagsHeatMap(
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateTransactionLink(transactionName)(
+                      const target = generateTransactionLink()(
                         organization,
                         row,
-                        location.query
+                        location
                       );
 
                       return (

@@ -165,7 +165,7 @@ class EventsTable extends Component<Props, State> {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-        target = generateLink(transactionName)(organization, dataRow, location.query);
+        target = generateLink(transactionName)(organization, dataRow, location);
       }
 
       return (
