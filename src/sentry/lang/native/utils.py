@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.attachments import attachment_cache
@@ -53,7 +54,7 @@ def native_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
 
 
-def is_native_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
+def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) -> bool:
     """Returns whether `data` is a native event, based on its platform and
     the supplied stacktraces."""
 
