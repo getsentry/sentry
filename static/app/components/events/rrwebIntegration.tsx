@@ -25,6 +25,16 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
   } = useApiQuery<IssueAttachment[]>(
     [
       `/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/`,
+      // This was changed from `rrweb.json`, so that we can instead
+      // support incremental rrweb events as attachments. This is to avoid
+      // having clients uploading a single, large sized replay.
+      //
+      // Note: This will include all attachments that contain `rrweb`
+      // anywhere its name. We need to maintain compatibility with existing
+      // rrweb plugin users (single replay), but also support incremental
+      // replays as well. I can't think of a reason why someone would have
+      // a non-rrweb replay containing the string `rrweb`, but people have
+      // surprised me before.
       {query: {query: 'rrweb'}},
     ],
     {staleTime: 0}
