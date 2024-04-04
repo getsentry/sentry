@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {AutofixDoneLogs} from 'sentry/components/events/autofix/autofixDoneLogs';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixResult} from 'sentry/components/events/autofix/fixResult';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
@@ -10,10 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => void}) {
-  const hasSteps = data.steps && data.steps.length > 0;
-
-  const isDone = data.status !== 'PROCESSING';
-
   return (
     <AutofixPanel>
       <AutofixHeader>
@@ -22,9 +17,8 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
           Start Over
         </Button>
       </AutofixHeader>
+      <AutofixSteps data={data} />
       <AutofixResult autofixData={data} onRetry={onRetry} />
-      {hasSteps && !isDone ? <AutofixSteps data={data} /> : null}
-      {hasSteps && isDone ? <AutofixDoneLogs data={data} /> : null}
     </AutofixPanel>
   );
 }
