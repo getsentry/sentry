@@ -20,6 +20,7 @@ export function ResponseRateChart({series, isLoading, error}: Props) {
   return (
     <ChartPanel title={DataTitles.unsuccessfulHTTPCodes}>
       <Chart
+        showLegend
         height={CHART_HEIGHT}
         grid={{
           left: '4px',

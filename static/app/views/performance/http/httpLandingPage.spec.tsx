@@ -46,6 +46,8 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
+    jest.clearAllMocks();
+
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

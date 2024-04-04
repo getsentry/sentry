@@ -114,15 +114,21 @@ describe('HTTPSamplesPanel', () => {
       });
 
       chartRequestMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
+        url: `/organizations/${organization.slug}/events-stats/`,
         method: 'GET',
-
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+            referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
           }),
         ],
-        body: {},
+        body: {
+          'spm()': {
+            data: [
+              [1699907700, [{count: 7810.2}]],
+              [1699908000, [{count: 1216.8}]],
+            ],
+          },
+        },
       });
     });
 
@@ -158,20 +164,30 @@ describe('HTTPSamplesPanel', () => {
 
       expect(chartRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events/`,
+        `/organizations/${organization.slug}/events-stats/`,
         expect.objectContaining({
           method: 'GET',
           query: {
+            cursor: undefined,
             dataset: 'spansMetrics',
             environment: [],
-            field: ['span.status_code', 'count()'],
+            excludeOther: 0,
+            field: [],
+            interval: '30m',
+            orderby: undefined,
+            partial: 1,
             per_page: 50,
-            sort: 'span.status_code',
             project: [],
             query:
               'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
-            referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+            referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
             statsPeriod: '10d',
+            topEvents: undefined,
+            yAxis: [
+              'http_response_rate(3)',
+              'http_response_rate(4)',
+              'http_response_rate(5)',
+            ],
           },
         })
       );
