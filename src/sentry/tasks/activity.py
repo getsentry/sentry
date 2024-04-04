@@ -33,6 +33,8 @@ def get_activity_notifiers(project):
     silo_mode=SiloMode.REGION,
 )
 def send_activity_notifications(activity_id):
+    from sentry import features
+    from sentry.integrations.slack.service import SlackService
     from sentry.models.activity import Activity
     from sentry.models.organization import Organization
 
@@ -46,3 +48,7 @@ def send_activity_notifications(activity_id):
 
     for notifier in get_activity_notifiers(activity.project):
         notifier.notify_about_activity(activity)
+
+    if features.has("organizations:slack-thread-issue-alert", organization):
+        slack_service = SlackService.default()
+        slack_service.notify_all_threads_for_activity(activity=activity)
