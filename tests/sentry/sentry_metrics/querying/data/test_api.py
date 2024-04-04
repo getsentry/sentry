@@ -518,7 +518,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             referrer="metrics.data.api",
             query_type=QueryType.TOTALS,
         )
-        assert "intervals" not in results
+        assert results["intervals"] == []
         data = results["data"]
         assert len(data) == 1
         assert len(data[0]) == 2
