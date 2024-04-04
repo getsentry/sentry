@@ -8,11 +8,11 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
 )
 from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
-from sentry.models.organization import OrganizationStatus
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.types.integrations import ExternalProviderEnum
 
 _default_logger = getLogger(__name__)
 
@@ -22,6 +22,15 @@ class RuleDataError(Exception):
 
 
 class SlackService:
+    """
+    Slack service is the main entry point for all business logic related to Slack.
+    We will consolidate the Slack logic in here to create an easier interface to interact with, and not worry about
+    figuring out which specific class or object you need, how to create them, in which order, and what to call.
+
+    This service will have plentiful logging, error catching and handling, and be mindful of performance impacts.
+    There will also be monitoring and alerting in place to give more visibility to the main business logic methods.
+    """
+
     def __init__(
         self,
         notification_message_repository: IssueAlertNotificationMessageRepository,
@@ -77,22 +86,10 @@ class SlackService:
             )
             return None
 
-        try:
-            integration = integration_service.get_integration(
-                organization_id=activity.project.organization_id,
-                status=OrganizationStatus.ACTIVE,
-                provider="slack",
-            )
-        except Exception as err:
-            self._logger.info(
-                "error getting integration",
-                exc_info=err,
-                extra={
-                    "activity_id": activity.id,
-                },
-            )
-            return None
-
+        integration = get_active_integration_for_organization(
+            organization_id=activity.group.organization.id,
+            provider=ExternalProviderEnum.SLACK,
+        )
         if integration is None:
             self._logger.info(
                 "no integration found for activity",
@@ -169,7 +166,20 @@ class SlackService:
             block, fallback_text=notification_to_send
         )
         payload.update(slack_payload)
-        client.post("/chat.postMessage", data=payload, timeout=5)
+        try:
+            client.post("/chat.postMessage", data=payload, timeout=5)
+        except Exception as err:
+            self._logger.info(
+                "failed to post message to slack",
+                extra={
+                    "error": str(err),
+                    "payload": payload,
+                    "channel": channel_id,
+                    "thread_ts": parent_notification.message_identifier,
+                    "rule_action_uuid": parent_notification.rule_action_uuid,
+                },
+            )
+            raise
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
         """
