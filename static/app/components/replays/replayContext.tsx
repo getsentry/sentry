@@ -101,6 +101,12 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isSkippingInactive: boolean;
 
   /**
+   * Set to true while the current video is loading (this is used
+   * only for video replays and in lieu of `isBuffering`)
+   */
+  isVideoBuffering: boolean;
+
+  /**
    * Whether the replay is considered a video replay
    */
   isVideoReplay: boolean;
@@ -170,6 +176,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   addHighlight: () => {},
   initRoot: () => {},
   isBuffering: false,
+  isVideoBuffering: false,
   isFetching: false,
   isFinished: false,
   isPlaying: false,
@@ -264,6 +271,7 @@ function ProviderNonMemo({
   const [speed, setSpeedState] = useState(savedReplayConfigRef.current.playbackSpeed);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
+  const [isVideoBuffering, setVideoBuffering] = useState(false);
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
@@ -414,10 +422,17 @@ function ProviderNonMemo({
           start: startTimestampMs,
           onFinished: setReplayFinished,
           onLoaded: event => {
+            const {videoHeight, videoWidth} = event.target;
+            if (!videoHeight || !videoWidth) {
+              return;
+            }
             setDimensions({
-              height: event.target.videoHeight,
-              width: event.target.videoWidth,
+              height: videoHeight,
+              width: videoWidth,
             });
+          },
+          onBuffer: buffering => {
+            setVideoBuffering(buffering);
           },
         });
         // `.current` is marked as readonly, but it's safe to set the value from
@@ -615,6 +630,7 @@ function ProviderNonMemo({
         addHighlight,
         initRoot,
         isBuffering,
+        isVideoBuffering,
         isFetching,
         isVideoReplay,
         isFinished,
