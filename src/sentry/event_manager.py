@@ -50,23 +50,29 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
-from sentry.grouping.ingest import (
+from sentry.grouping.ingest.config import (
+    is_in_transition,
+    project_uses_optimized_grouping,
+    update_grouping_config_if_needed,
+)
+from sentry.grouping.ingest.hashing import (
+    find_existing_grouphash,
+    find_existing_grouphash_new,
+    get_hash_values,
+    maybe_run_background_grouping,
+    maybe_run_secondary_grouping,
+    run_primary_grouping,
+)
+from sentry.grouping.ingest.metrics import (
+    record_calculation_metric_with_result,
+    record_hash_calculation_metrics,
+    record_new_group_metrics,
+)
+from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
     check_for_group_creation_load_shed,
     extract_hashes,
-    find_existing_grouphash,
-    find_existing_grouphash_new,
-    get_hash_values,
-    is_in_transition,
-    maybe_run_background_grouping,
-    maybe_run_secondary_grouping,
-    project_uses_optimized_grouping,
-    record_calculation_metric_with_result,
-    record_hash_calculation_metrics,
-    record_new_group_metrics,
-    run_primary_grouping,
-    update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys

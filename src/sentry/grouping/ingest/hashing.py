@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import copy
 import logging
-import time
 from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
-from django.conf import settings
-from django.core.cache import cache
 
-from sentry import features
 from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
@@ -27,14 +23,12 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest.config import _config_update_happened_recently, is_in_transition
+from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
+from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
-from sentry.issues.grouptype import GroupCategory
-from sentry.killswitches import killswitch_matches_context
-from sentry.locks import locks
-from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
@@ -46,78 +40,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
-
-
-def update_grouping_config_if_needed(project: Project) -> None:
-    if _project_should_update_grouping(project):
-        _auto_update_grouping(project)
-
-
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
-
-
-def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
-    """
-    Determine whether an auto-upate happened within the last `tolerance` seconds.
-
-    We can use this test to compensate for the delay between config getting updated and Relay
-    picking up the change.
-    """
-    project_transition_expiry = project.get_option("sentry:secondary_grouping_expiry") or 0
-    last_config_update = project_transition_expiry - settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-    now = int(time.time())
-    time_since_update = now - last_config_update
-
-    return time_since_update < 60
-
-
-def _auto_update_grouping(project: Project) -> None:
-    current_config = project.get_option("sentry:grouping_config")
-    new_config = DEFAULT_GROUPING_CONFIG
-
-    if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
-        return
-
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
-    cache_key = f"grouping-config-update:{project.id}:{current_config}"
-    lock_key = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
-
-    with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
-            return
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
-
-        # This is when we will stop calculating both old hashes (which we do in an effort to
-        # preserve group continuity).
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-
-        changes = {
-            "sentry:secondary_grouping_config": current_config,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_config,
-        }
-        for key, value in changes.items():
-            project.update_option(key, value)
-
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
 
 
 def _calculate_event_grouping(
@@ -199,13 +121,6 @@ def _calculate_background_grouping(
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
         return _calculate_event_grouping(project, event, config)
-
-
-def is_in_transition(project: Project) -> bool:
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-
-    return bool(secondary_grouping_config) and (secondary_grouping_expiry or 0) >= time.time()
 
 
 def maybe_run_secondary_grouping(
@@ -461,160 +376,3 @@ def get_hash_values(
         job["finest_tree_label"] = all_hashes.finest_tree_label
 
     return (primary_hashes, secondary_hashes, all_hashes)
-
-
-def record_hash_calculation_metrics(
-    project: Project,
-    primary_config: GroupingConfig,
-    primary_hashes: CalculatedHashes,
-    secondary_config: GroupingConfig,
-    secondary_hashes: CalculatedHashes,
-):
-    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
-
-    if has_secondary_hashes:
-        tags = {
-            "primary_config": primary_config["id"],
-            "secondary_config": secondary_config["id"],
-        }
-
-        # If the configs are the same, *of course* the values are going to match, so no point in
-        # recording a metric
-        #
-        # TODO: If we fix the issue outlined in https://github.com/getsentry/sentry/pull/65116, we
-        # can ditch both this check and the logging below
-        if tags["primary_config"] != tags["secondary_config"]:
-            current_values = primary_hashes.hashes
-            secondary_values = secondary_hashes.hashes
-            hashes_match = current_values == secondary_values
-
-            if hashes_match:
-                tags["result"] = "no change"
-            else:
-                shared_hashes = set(current_values) & set(secondary_values)
-                if len(shared_hashes) > 0:
-                    tags["result"] = "partial change"
-                else:
-                    tags["result"] = "full change"
-
-            metrics.incr("grouping.hash_comparison", tags=tags)
-
-        else:
-            if not _config_update_happened_recently(project, 30):
-                logger.info(
-                    "Equal primary and secondary configs",
-                    extra={
-                        "project": project.id,
-                        "primary_config": primary_config["id"],
-                    },
-                )
-
-
-# TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
-# `record_hash_calculation_metrics`. Right now it's split up because we don't know the value for
-# `result` at the time the legacy `_save_aggregate` (indirectly) calls `record_hash_calculation_metrics`
-def record_calculation_metric_with_result(
-    project: Project,
-    has_secondary_hashes: bool,
-    result: str,
-) -> None:
-
-    # Track the total number of grouping calculations done overall, so we can divide by the
-    # count to get an average number of calculations per event
-    tags = {
-        "in_transition": str(is_in_transition(project)),
-        "using_transition_optimization": str(
-            features.has(
-                "organizations:grouping-suppress-unnecessary-secondary-hash",
-                project.organization,
-            )
-        ),
-        "result": result,
-    }
-    metrics.incr("grouping.event_hashes_calculated", tags=tags)
-    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
-
-
-def record_new_group_metrics(event: Event):
-    metrics.incr(
-        "group.created",
-        skip_internal=True,
-        tags={
-            "platform": event.platform or "unknown",
-            "sdk": normalized_sdk_tag_from_event(event),
-        },
-    )
-
-    # This only applies to events with stacktraces
-    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-    if frame_mix:
-        metrics.incr(
-            "grouping.in_app_frame_mix",
-            sample_rate=1.0,
-            tags={
-                "platform": event.platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(event),
-                "frame_mix": frame_mix,
-            },
-        )
-
-
-def check_for_group_creation_load_shed(project: Project, event: Event):
-    """
-    Raise a `HashDiscarded` error if the load-shed killswitch is enabled
-    """
-    if killswitch_matches_context(
-        "store.load-shed-group-creation-projects",
-        {
-            "project_id": project.id,
-            "platform": event.platform,
-        },
-    ):
-        raise HashDiscarded("Load shedding group creation", reason="load_shed")
-
-
-def add_group_id_to_grouphashes(
-    group: Group,
-    grouphashes: list[GroupHash],
-) -> None:
-    """
-    Link the given group to any grouphash which doesn't yet have a group assigned.
-    """
-
-    new_grouphash_ids = [gh.id for gh in grouphashes if gh.group_id is None]
-
-    GroupHash.objects.filter(id__in=new_grouphash_ids).exclude(
-        state=GroupHash.State.LOCKED_IN_MIGRATION
-    ).update(group=group)
-
-
-def check_for_category_mismatch(group: Group) -> bool:
-    """
-    Make sure an error event hasn't hashed to a value assigned to a non-error-type group
-    """
-    if group.issue_category != GroupCategory.ERROR:
-        logger.info(
-            "event_manager.category_mismatch",
-            extra={
-                "issue_category": group.issue_category,
-                "event_type": "error",
-            },
-        )
-        return True
-
-    return False
-
-
-def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
-    return [] if not calculated_hashes else list(calculated_hashes.hashes)
-
-
-def project_uses_optimized_grouping(project: Project) -> bool:
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    return not has_mobile_config and features.has(
-        "organizations:grouping-suppress-unnecessary-secondary-hash",
-        project.organization,
-    )
