@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
+from sentry import models
 from sentry.api.serializers.models.user import UserSerializerResponse as UserModelResponseType
 from sentry.replays.validators import VALID_FIELD_SET
 
@@ -77,6 +78,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
+@extend_schema_serializer
 class ReplayViewedByResponse(TypedDict):
     id: str
     viewed_by: list[UserModelResponseType]
@@ -210,6 +212,16 @@ def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[st
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
+
+
+def generate_viewed_by_response(
+    replay_id: str, viewed_by_query_response: dict[str, Any]
+) -> ReplayViewedByResponse:
+    users = [models.User.objects.get(id=id) for id in viewed_by_query_response["viewed_by_ids"]]
+    return {
+        "id": replay_id,
+        "viewed_by": users,
+    }
 
 
 def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:

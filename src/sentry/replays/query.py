@@ -99,6 +99,32 @@ def query_replay_instance(
     )["data"]
 
 
+def query_replay_viewed_by_ids(
+    project_id: int | list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    organization: Organization | None = None,
+):
+    """Query aggregated replay instance."""
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
+
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=["viewed_by_ids"],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.viewed_by_query",
+    )["data"][0]
+
+
 def query_replays_count(
     project_ids: list[int],
     start: datetime,
@@ -558,6 +584,7 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "count_infos": ["count_infos"],
     "viewed_by_ids": ["viewed_by_ids"],
     "viewed_by_id": ["viewed_by_ids"],
+    "has_viewed": ["viewed_by_ids"],
 }
 
 
