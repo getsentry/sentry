@@ -34,18 +34,6 @@ require() {
     command -v "$1" >/dev/null 2>&1
 }
 
-configure-sentry-cli() {
-    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
-        if ! require sentry-cli; then
-            if [ -f "${venv_name}/bin/pip" ]; then
-                pip-install sentry-cli
-            else
-                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
-            fi
-        fi
-    fi
-}
-
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
