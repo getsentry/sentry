@@ -447,25 +447,6 @@ class GroupManager(BaseManager["Group"]):
                     group.priority = priority
                     updated_priority[group.id] = priority
 
-                    logger.info(
-                        "group.update_group_status.priority_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "priority": priority,
-                        },
-                    )
-                else:
-                    logger.info(
-                        "group.update_group_status.priority_not_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "new_priority": priority,
-                            "current_priority": group.priority,
-                        },
-                    )
-
             modified_groups_list.append(group)
 
         Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
@@ -481,14 +462,6 @@ class GroupManager(BaseManager["Group"]):
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
-                logger.info(
-                    "group.update_group_status.priority_updated_activity",
-                    extra={
-                        "group_id": group.id,
-                        "priority": updated_priority[group.id],
-                        "group_priority": group.priority,
-                    },
-                )
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,
