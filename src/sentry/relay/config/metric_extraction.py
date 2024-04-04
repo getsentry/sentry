@@ -204,16 +204,16 @@ def _get_alert_metric_specs(
     return specs
 
 
-def _bulk_cache_query_key(project: Project):
+def _bulk_cache_query_key(project: Project) -> str:
     return f"on-demand.bulk-query-cache.{project.organization.id}"
 
 
-def _get_bulk_cached_query(project: Project):
+def _get_bulk_cached_query(project: Project) -> dict[str, Any]:
     query_bulk_cache_key = _bulk_cache_query_key(project)
     return cache.get(query_bulk_cache_key, None)
 
 
-def _set_bulk_cached_query(project: Project, query_cache: dict[str, Any]):
+def _set_bulk_cached_query(project: Project, query_cache: dict[str, Any]) -> None:
     query_bulk_cache_key = _bulk_cache_query_key(project)
     cache.set(query_bulk_cache_key, query_cache, timeout=5400)
 
