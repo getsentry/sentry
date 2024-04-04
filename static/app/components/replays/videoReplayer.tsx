@@ -33,6 +33,8 @@ interface VideoReplayerConfig {
   speed: number;
 }
 
+type RemoveListener = () => void;
+
 /**
  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
  */
@@ -45,11 +47,12 @@ export class VideoReplayer {
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
   private _isPlaying: boolean = false;
+  private _listeners: RemoveListener[] = [];
   /**
    * _videos is a dict that maps attachment index to the video element.
    * Video elements in this dict are preloaded and ready to be played.
    */
-  private _videos: Record<number, HTMLVideoElement>;
+  private _videos: WeakMap<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
   public config: VideoReplayerConfig = {
     skipInactive: false,
@@ -71,7 +74,7 @@ export class VideoReplayer {
       onLoaded,
       onBuffer,
     };
-    this._videos = {};
+    this._videos = new WeakMap<any, HTMLVideoElement>();
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -89,6 +92,63 @@ export class VideoReplayer {
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
   }
 
+  public destroy() {
+    this._listeners.forEach(listener => listener());
+    this._trackList = [];
+    this._videos = new WeakMap<any, HTMLVideoElement>();
+    this._timer.stop();
+  }
+
+  private addListeners(el: HTMLVideoElement, index: number): RemoveListener {
+    const handleEnded = () => this.handleSegmentEnd(index);
+
+    const handleLoadedData = event => {
+      // Used to correctly set the dimensions of the first frame
+      if (index === 0) {
+        this._callbacks.onLoaded(event);
+      }
+
+      // Only call this for current segment as we preload multiple
+      // segments simultaneously
+      if (index === this._currentIndex) {
+        this.setBuffering(false);
+
+        // We want to display the previous segment until next video
+        // is loaded and ready to play and since video is loaded
+        // and ready here, we can show next video and hide the
+        // previous video
+        this.showVideo(el);
+      }
+    };
+
+    const handlePlay = event => {
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded(event);
+      }
+    };
+
+    const handleLoadedMetaData = event => {
+      // Only call this for current segment?
+      if (index === this._currentIndex) {
+        // Theoretically we could have different orientations and they should
+        // only happen in different segments
+        this._callbacks.onLoaded(event);
+      }
+    };
+
+    el.addEventListener('ended', handleEnded);
+    el.addEventListener('loadeddata', handleLoadedData);
+    el.addEventListener('play', handlePlay);
+    el.addEventListener('loadedmetadata', handleLoadedMetaData);
+
+    return () => {
+      el.removeEventListener('ended', handleEnded);
+      el.removeEventListener('loadeddata', handleLoadedData);
+      el.removeEventListener('play', handlePlay);
+      el.removeEventListener('loadedmetadata', handleLoadedMetaData);
+    };
+  }
+
   private createVideo(segmentData: VideoEvent, index: number) {
     const el = document.createElement('video');
     const sourceEl = document.createElement('source');
@@ -102,41 +162,7 @@ export class VideoReplayer {
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    // TODO: only attach these when needed
-    el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
-    });
-    el.addEventListener('play', event => {
-      if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
-      }
-    });
-
-    // Finished loading data, ready to play
-    el.addEventListener('loadeddata', () => {
-      // Only call this for current segment as we preload multiple
-      // segments simultaneously
-      if (index === this._currentIndex) {
-        this.setBuffering(false);
-
-        // We want to display the previous segment until next video
-        // is loaded and ready to play and since video is loaded
-        // and ready here, we can show next video and hide the
-        // previous video
-        this.showVideo(el);
-      }
-    });
-
-    el.addEventListener('loadedmetadata', event => {
-      // Only call this for current segment?
-      if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
-      }
-    });
+    this._listeners.push(this.addListeners(el, index));
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);

@@ -392,17 +392,17 @@ function ProviderNonMemo({
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
-        return;
+        return null;
       }
 
       if (replayerRef.current) {
         if (!hasNewEvents) {
-          return;
+          return null;
         }
 
         if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
-          return;
+          return null;
         }
 
         // We have new events, need to clear out the old iframe because a new
@@ -441,7 +441,7 @@ function ProviderNonMemo({
         // @ts-expect-error
         replayerRef.current = inst;
         applyInitialOffset();
-        return;
+        return inst;
       }
 
       // eslint-disable-next-line no-new
@@ -479,6 +479,8 @@ function ProviderNonMemo({
         inst.play(startTimeOffsetMs);
         setIsPlaying(true);
       }
+
+      return inst;
     },
     [
       applyInitialOffset,
@@ -551,20 +553,31 @@ function ProviderNonMemo({
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') {
+      if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false);
       }
     };
 
-    if (replayerRef.current && (events || videoEvents)) {
-      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, videoEvents, togglePlayPause]);
+  }, [togglePlayPause]);
+
+  useEffect(() => {
+    let root;
+
+    if (replayerRef.current && (events || videoEvents)) {
+      root = initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+    }
+
+    return () => {
+      if (typeof root?.destroy === 'function') {
+        root.destroy();
+      }
+    };
+  }, [initRoot, events, videoEvents]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
@@ -629,7 +642,7 @@ function ProviderNonMemo({
         fastForwardSpeed,
         addHighlight,
         initRoot,
-        isBuffering,
+        isBuffering: isBuffering && !isVideoReplay,
         isVideoBuffering,
         isFetching,
         isVideoReplay,
