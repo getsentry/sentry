@@ -11,6 +11,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 pytestmark = [requires_snuba]
 
@@ -32,10 +33,10 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             external_id="jiraserver:123",
             identity_provider=self.create_identity_provider(integration=self.integration),
             data={
-                "consumer_key": "abc123",
-                "private_key": "key",
-                "access_token": "token",
-                "access_token_secret": "token_secret",
+                "consumer_key": "sentry-test",
+                "private_key": EXAMPLE_PRIVATE_KEY,
+                "access_token": "access-token",
+                "access_token_secret": "access-token-secret",
             },
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
