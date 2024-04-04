@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
+from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DRFResponse
+from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
@@ -221,3 +227,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         logger.info("proxy_success", extra=self.log_extra)
         return response
+
+    def handle_exception(  # type: ignore[override]
+        self,
+        request: DRFRequest,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> DRFResponse:
+        if isinstance(exc, IdentityNotValid):
+            return self.respond(status=400)
+
+        return super().handle_exception(request, exc, handler_context, scope)

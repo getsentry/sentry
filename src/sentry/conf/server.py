@@ -1889,7 +1889,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
-    "organizations:slack-block-kit": False,
+    "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
     # Use SNQL table join on weekly reports / daily summary
@@ -2332,13 +2332,11 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
-SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH = "sentry.release_health.metrics.MetricsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS: dict[str, Any] = {}
 
 # Release Monitor
-SENTRY_RELEASE_MONITOR = (
-    "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
-)
+SENTRY_RELEASE_MONITOR = "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend"
 SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.

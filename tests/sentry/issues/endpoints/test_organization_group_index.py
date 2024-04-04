@@ -2665,6 +2665,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 )
                 assert mock_query.call_count == 0
 
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_title(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="title:MyMessage",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert mock_query.call_count == 1
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

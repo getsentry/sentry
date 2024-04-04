@@ -23,6 +23,7 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
     addition,
+    all_duration_transactions,
     all_sessions,
     all_spans,
     all_transactions,
@@ -1608,6 +1609,14 @@ DERIVED_METRICS = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.ALL_DURATION.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: all_duration_transactions(
+                metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_COUNT.value,
             metrics=[TransactionMRI.DURATION.value],
             unit="transactions",
@@ -1619,7 +1628,7 @@ DERIVED_METRICS = {
             metric_mri=TransactionMRI.FAILURE_RATE.value,
             metrics=[
                 TransactionMRI.FAILURE_COUNT.value,
-                TransactionMRI.ALL.value,
+                TransactionMRI.ALL_DURATION.value,
             ],
             unit="transactions",
             snql=lambda failure_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
@@ -1638,7 +1647,7 @@ DERIVED_METRICS = {
             metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
             metrics=[
                 TransactionMRI.HTTP_ERROR_COUNT.value,
-                TransactionMRI.ALL.value,
+                TransactionMRI.ALL_DURATION.value,
             ],
             unit="transactions",
             snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
