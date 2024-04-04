@@ -70,6 +70,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                 "op": "http.server",
                 "hash": "0a7c0d32f132a132",
                 "exclusive_time": 4.0,
+                "trace_id": "a" * 32,
             }
 
         if "spans" not in kwargs:
@@ -177,6 +178,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                             "startTimestamp",
                             "finishTimestamp",
                             "exclusiveTime",
+                            "trace",
                         ]:
                             assert span[key] == expected_span[key], key
 
@@ -275,6 +277,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                                     self.min_ago + timedelta(seconds=8)
                                 ).timestamp(),
                                 "exclusiveTime": 4.0,
+                                "trace": "a" * 32,
                             }
                         ],
                     },
@@ -1512,6 +1515,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1616,6 +1620,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=4)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["b", "c"]
                         ],
@@ -1688,6 +1693,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1763,6 +1769,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
