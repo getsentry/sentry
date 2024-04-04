@@ -8,7 +8,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    NoiseConfig,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
@@ -2689,6 +2695,75 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event1.group.id
+        assert mock_query.call_count == 1
+
+    @patch.object(
+        PerformanceRenderBlockingAssetSpanGroupType,
+        "noise_config",
+        new=NoiseConfig(0, timedelta(minutes=1)),
+    )
+    @patch(
+        "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+        side_effect=send_issue_occurrence_to_eventstream,
+    )
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:issue-platform")
+    def test_snuba_perf_issue(self, mock_query, mock_eventstream, _):
+        time = datetime.now() - timedelta(minutes=1)
+        # create a performance issue
+        self.store_event(
+            data={
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+                "timestamp": datetime.now().timestamp(),
+                "start_timestamp": time.timestamp(),
+                "event_id": "c" * 32,
+                "user": {"email": "tags@example.com"},
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        perf_group = mock_eventstream.call_args[0][2].group
+
+        # create an error issue with the same tag
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["error-issue"],
+                "event_id": "e" * 32,
+                "user": {"email": "tags@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        # another error issue with a different tag
+        self.store_event(
+            data={
+                "fingerprint": ["error-issue-2"],
+                "event_id": "e" * 32,
+                "user": {"email": "different@example.com"},
+            },
+            project_id=self.project.id,
+        )
+
+        assert Group.objects.filter(id=perf_group.id).exists()
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="user.email:tags@example.com",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(perf_group.id),
+            str(error_event.group.id),
+        }
         assert mock_query.call_count == 1
 
 
