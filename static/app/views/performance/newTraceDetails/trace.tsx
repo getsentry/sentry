@@ -2347,7 +2347,6 @@ const TraceStylingWrapper = styled('div')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
-    transition: color 0.1s ease-in-out;
   }
 
   .TraceChildrenCount {
