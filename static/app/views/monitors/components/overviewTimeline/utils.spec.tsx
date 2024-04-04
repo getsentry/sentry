@@ -14,8 +14,11 @@ describe('Crons Timeline Utils', function () {
         end,
         dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
         elapsedMinutes: 5,
-        markerInterval: 1,
-        minimumMarkerInterval: 0.625,
+        intervals: {
+          normalMarkerInterval: 1,
+          minimumMarkerInterval: 0.625,
+          referenceMarkerInterval: 0.71875,
+        },
         dateTimeProps: {timeOnly: true},
         timelineWidth,
       });
@@ -30,8 +33,11 @@ describe('Crons Timeline Utils', function () {
         end,
         dateLabelFormat: getFormat(),
         elapsedMinutes: 1445,
-        markerInterval: 240,
-        minimumMarkerInterval: 198.6875,
+        intervals: {
+          normalMarkerInterval: 240,
+          minimumMarkerInterval: 198.6875,
+          referenceMarkerInterval: 207.71875,
+        },
         dateTimeProps: {timeOnly: false},
         timelineWidth,
       });
@@ -46,8 +52,11 @@ describe('Crons Timeline Utils', function () {
         end,
         dateLabelFormat: getFormat({timeOnly: true}),
         elapsedMinutes: 900,
-        markerInterval: 120,
-        minimumMarkerInterval: 112.5,
+        intervals: {
+          normalMarkerInterval: 120,
+          minimumMarkerInterval: 112.5,
+          referenceMarkerInterval: 129.375,
+        },
         dateTimeProps: {timeOnly: true},
         timelineWidth,
       });
@@ -64,8 +73,11 @@ describe('Crons Timeline Utils', function () {
         // 31 elapsed days
         elapsedMinutes: 31 * 24 * 60,
         // 5 days in between each time label
-        markerInterval: 5 * 24 * 60,
-        minimumMarkerInterval: 6138,
+        intervals: {
+          normalMarkerInterval: 5 * 24 * 60,
+          minimumMarkerInterval: 6138,
+          referenceMarkerInterval: 6417,
+        },
         dateTimeProps: {dateOnly: true},
         timelineWidth,
       });
