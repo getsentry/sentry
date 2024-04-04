@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {PageFilters} from 'sentry/types';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -18,25 +17,24 @@ function getMetaQueryParams(
   filters: Partial<PageFilters> = {}
 ):
   | {
-      project: string;
       statsPeriod: string;
     }
-  | {project: string; timestamp: string} {
+  | {
+      timestamp: string;
+    } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
 
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const project = decodeScalar(normalizedParams.project, ALL_ACCESS_PROJECTS + '');
   const timestamp = decodeScalar(normalizedParams.timestamp);
 
   if (timestamp) {
-    return {project, timestamp};
+    return {timestamp};
   }
 
   return {
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
-    project,
   };
 }
 
