@@ -405,6 +405,7 @@ class EventManager:
         start_time: int | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
+        has_attachments: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -480,7 +481,15 @@ class EventManager:
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
-                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
+                return self.save_error_events(
+                    project,
+                    job,
+                    projects,
+                    metric_tags,
+                    raw,
+                    cache_key,
+                    has_attachments=has_attachments,
+                )
 
     @sentry_sdk.tracing.trace
     def save_error_events(
@@ -491,6 +500,7 @@ class EventManager:
         metric_tags: MutableTags,
         raw: bool = False,
         cache_key: str | None = None,
+        has_attachments: bool = False,
     ) -> Event:
         jobs = [job]
 
@@ -527,9 +537,12 @@ class EventManager:
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
         # based on the group counter.
-        with metrics.timer("event_manager.get_attachments"):
-            with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
-                attachments = get_attachments(cache_key, job)
+        if has_attachments:
+            with metrics.timer("event_manager.get_attachments"):
+                with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
+                    attachments = get_attachments(cache_key, job)
+        else:
+            attachments = []
 
         try:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
@@ -575,8 +588,9 @@ class EventManager:
             group_id=group_info.group.id, environment_id=job["environment"].id
         )
 
-        with metrics.timer("event_manager.filter_attachments_for_group"):
-            attachments = filter_attachments_for_group(attachments, job)
+        if attachments:
+            with metrics.timer("event_manager.filter_attachments_for_group"):
+                attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
@@ -623,7 +637,7 @@ class EventManager:
         # We do not need this for reprocessed events as for those we update the
         # group_id on existing models in post_process_group, which already does
         # this because of indiv. attachments.
-        if not is_reprocessed:
+        if not is_reprocessed and attachments:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
 
