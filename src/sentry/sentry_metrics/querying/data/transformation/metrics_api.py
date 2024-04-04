@@ -242,6 +242,7 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
             "meta": [],
             "start": None,
             "end": None,
+            "intervals": [],
         }
 
         if not query_results:
