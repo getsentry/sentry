@@ -20,7 +20,12 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser as DjangoAnonymousUser
+
+class AnonymousUser(DjangoAnonymousUser):
+    @property
+    def is_sentry_app(self):
+        return False
 
 from sentry import features, roles
 from sentry.auth.staff import is_active_staff
