@@ -151,6 +151,7 @@ class TransactionMRI(Enum):
 
     # Derived
     ALL = "e:transactions/all@none"
+    ALL_DURATION = "e:transactions/all_duration@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transactions/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
