@@ -45,6 +45,7 @@ filterwarnings = [
   "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
+junit_family = "xunit2"
 
 [tool.mypy]
 python_version = "3.11"

@@ -136,7 +136,8 @@ test-python-ci:
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) \
+		--junitxml=.artifacts/pytest.junit.xml
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -156,6 +157,7 @@ test-monolith-dbs:
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	  --junitxml=.artifacts/pytest.monolith-dbs.junit.xml \
 	;
 	@echo ""
 
