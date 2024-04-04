@@ -23,8 +23,8 @@ describe('ApiTokens', function () {
   });
 
   it('renders with result', async function () {
-    const token1 = ApiTokenFixture({name: 'token1'});
-    const token2 = ApiTokenFixture({name: 'token2'});
+    const token1 = ApiTokenFixture({id: '1', name: 'token1'});
+    const token2 = ApiTokenFixture({id: '2', name: 'token2'});
 
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
