@@ -49,34 +49,28 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     logger = logging.getLogger("sentry.cleanup")
 
-    configured = False
-    skip_models = []
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry import deletions, models, similarity
+
+    skip_models = [
+        # Handled by other parts of cleanup
+        models.EventAttachment,
+        models.UserReport,
+        models.Group,
+        models.GroupEmailThread,
+        models.GroupRuleStatus,
+        # Handled by TTL
+        similarity,
+    ]
 
     while True:
         j = task_queue.get()
         if j == _STOP_WORKER:
             task_queue.task_done()
             return
-
-        # On first task, configure Sentry environment
-        if not configured:
-            from sentry.runner import configure
-
-            configure()
-            configured = True
-
-            from sentry import deletions, models, similarity
-
-            skip_models = [
-                # Handled by other parts of cleanup
-                models.EventAttachment,
-                models.UserReport,
-                models.Group,
-                models.GroupEmailThread,
-                models.GroupRuleStatus,
-                # Handled by TTL
-                similarity,
-            ]
 
         model, chunk = j
         model = import_string(model)
