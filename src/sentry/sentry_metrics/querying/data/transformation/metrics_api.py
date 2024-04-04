@@ -237,7 +237,7 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
         Returns:
             A mapping containing the data transformed in the correct format.
         """
-        base_result = {
+        base_result: dict[str, Any] = {
             "data": [],
             "meta": [],
             "start": None,
