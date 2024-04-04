@@ -174,6 +174,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                         request.GET,
                         organization,
                         self.get_projects(request, organization, include_all_accessible=True),
+                        self.get_environments(request, organization),
                     )
                     return Response(result, status=200)
 

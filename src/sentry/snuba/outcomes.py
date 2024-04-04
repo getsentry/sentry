@@ -466,7 +466,9 @@ def massage_outcomes_result(
     return result
 
 
-def run_metrics_outcomes_query(query: QueryDict, organization, projects) -> dict[str, list]:
+def run_metrics_outcomes_query(
+    query: QueryDict, organization, projects, environments
+) -> dict[str, list]:
     start, end = get_date_range_from_params(query)
     interval = parse_stats_period(query.get("interval", "1h"))
 
@@ -479,7 +481,7 @@ def run_metrics_outcomes_query(query: QueryDict, organization, projects) -> dict
         interval=int(3600 if interval is None else interval.total_seconds()),
         organization=organization,
         projects=projects,
-        environments=query.getlist("environment", []),
+        environments=environments,
         referrer="outcomes.timeseries",
     ).apply_transformer(MetricsStatsTransformer())
 
