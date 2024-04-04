@@ -1,3 +1,5 @@
+import {createEvent, fireEvent} from 'sentry-test/reactTestingLibrary';
+
 import {VideoReplayer} from './videoReplayer';
 
 // XXX: Not quite sure the best way to mock RAF - here we use fake timers
@@ -112,6 +114,8 @@ describe('VideoReplayer - no starting gap', () => {
       onBuffer: jest.fn(),
     });
     const playPromise = inst.play(18100);
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(inst.getVideo(2), createEvent.loadedData(inst.getVideo(2)));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);
@@ -307,6 +311,8 @@ describe('VideoReplayer - with starting gap', () => {
       onBuffer: jest.fn(),
     });
     const playPromise = inst.play(18100);
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(inst.getVideo(2), createEvent.loadedData(inst.getVideo(2)));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);

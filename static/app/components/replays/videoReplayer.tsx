@@ -462,6 +462,12 @@ export class VideoReplayer {
     // timestamp before playing.
     else if (segmentIndex === undefined && previousSegmentIndex !== undefined) {
       const previousSegment = this.getSegment(previousSegmentIndex)!;
+
+      // XXX: Note that loading the previous segment will require waiting for
+      // it to be loaded before it "plays" through the gap. Some future
+      // improvements can be made here. (e.g. do we play through gaps at all?
+      // should it skip buffering state?)
+
       // Load the last frame of the previous segment
       await this.loadSegment(previousSegmentIndex, {
         segmentOffsetMs: previousSegment.duration,
