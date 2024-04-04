@@ -112,7 +112,7 @@ class GroupingContext:
         self._stack.pop()
 
     def get_grouping_component(
-        self, interface: Interface, *, event: Event, **kwargs: Any
+        self, interface: Interface, *, event: Event, start_span: bool = True, **kwargs: Any
     ) -> GroupingComponent | ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
@@ -124,9 +124,12 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        with sentry_sdk.start_span(
-            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
-        ):
+        if start_span:
+            with sentry_sdk.start_span(
+                op="sentry.grouping.GroupingContext.get_grouping_component", description=path
+            ):
+                rv = strategy(interface, **kwargs)
+        else:
             rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
 
