@@ -129,6 +129,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
 };
 
 type GridEditableState = {
+  highlightedRowKey: number | undefined;
   numColumn: number;
 };
 
@@ -150,6 +151,7 @@ class GridEditable<
 
   state: GridEditableState = {
     numColumn: 0,
+    highlightedRowKey: undefined,
   };
 
   componentDidMount() {
@@ -378,17 +380,31 @@ class GridEditable<
   }
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
-    const {columnOrder, grid, onRowMouseOver, onRowMouseOut, highlightedRowKey} =
-      this.props;
+    const {columnOrder, grid, onRowMouseOver, onRowMouseOut} = this.props;
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
 
+    const highlightedRowKey =
+      this.props.highlightedRowKey ?? this.state.highlightedRowKey;
+
     return (
       <GridRow
         key={row}
-        onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
-        onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
+        onMouseOver={event => {
+          this.setState(state => ({
+            ...state,
+            highlightedRowKey: row,
+          }));
+          onRowMouseOver?.(dataRow, row, event);
+        }}
+        onMouseOut={event => {
+          this.setState(state => ({
+            ...state,
+            highlightedRowKey: undefined,
+          }));
+          onRowMouseOut?.(dataRow, row, event);
+        }}
         isHighlighted={row === highlightedRowKey}
         data-test-id="grid-body-row"
       >
