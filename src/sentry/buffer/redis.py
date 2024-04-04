@@ -7,9 +7,11 @@ from collections.abc import Callable
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
-from typing import Any
+from typing import Any, TypeVar
 
+import rb
 from django.utils.encoding import force_bytes, force_str
+from rediscluster import RedisCluster
 
 from sentry.buffer.base import Buffer
 from sentry.db import models
@@ -31,6 +33,7 @@ _local_buffers_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", str, bytes)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
@@ -170,11 +173,13 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
-    def _lock_key(self, client, key: str, ex: int) -> None | str:
+    def _lock_key(
+        self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
+    ) -> None | str:
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to celerybeat + periodic task
         if not client.set(lock_key, "1", nx=True, ex=ex):
-            return
+            return None
         return lock_key
 
     @classmethod
@@ -294,6 +299,22 @@ class RedisBuffer(Buffer):
     ) -> dict[str, str]:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+
+    def process_batch(self, partition: int | None = None) -> None:
+        pending_key = self._make_pending_key(partition)
+        pipe = self.get_redis_connection(pending_key)
+        if not pipe:
+            return
+
+        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
+        lock_key = self._lock_key(client, pending_key, ex=60)
+        if not lock_key:
+            return
+
+        try:
+            redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
+        finally:
+            client.delete(lock_key)
 
     def incr(
         self,
