@@ -37,7 +37,6 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
@@ -88,7 +87,6 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest):
         self.send_async.reset_mock()
 
 
-@region_silo_test
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
     @freeze_time()
     def test_simple(self):
@@ -103,7 +101,6 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
         assert message.context == build_activity_context(activity, recipient)
 
 
-@region_silo_test
 class TestBuildActivityContext(BaseIncidentActivityTest):
     def run_test(
         self, activity, expected_username, expected_action, expected_comment, expected_recipient
@@ -160,7 +157,6 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         )
 
 
-@region_silo_test
 class HandleTriggerActionTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -285,7 +281,6 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
             ]
 
 
-@region_silo_test
 class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
     """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
 

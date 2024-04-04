@@ -92,9 +92,9 @@ def _ensure_monitor_with_config(
     if not monitor:
         monitor, created = Monitor.objects.update_or_create(
             organization_id=project.organization_id,
+            project_id=project.id,
             slug=monitor_slug,
             defaults={
-                "project_id": project.id,
                 "name": monitor_slug,
                 "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
@@ -751,7 +751,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(check_in, ts=start_time, received=item.ts)
+                # Note: We use `start_time` for received here since it's the time that this
+                # checkin was received by relay. Potentially, `ts` should be the client
+                # timestamp. If we change that, leave `received` the same.
+                mark_failed(check_in, ts=start_time, received=start_time)
             else:
                 mark_ok(check_in, ts=start_time)
 

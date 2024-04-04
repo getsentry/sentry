@@ -142,7 +142,8 @@ export enum SpanIndexedField {
   RESPONSE_CODE = 'span.status_code',
 }
 
-export type SpanIndexedFieldTypes = {
+export type IndexedResponse = {
+  [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
   [SpanIndexedField.SPAN_MODULE]: string;
@@ -150,6 +151,8 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
+  [SpanIndexedField.TRACE]: string;
+  [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
@@ -168,7 +171,13 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
+  [SpanIndexedField.RESPONSE_CODE]: string;
 };
+
+export type IndexedProperty = keyof IndexedResponse;
+
+// TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
+export type SpanIndexedFieldTypes = IndexedResponse;
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 

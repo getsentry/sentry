@@ -14,12 +14,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -238,7 +233,6 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
-@region_silo_test
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 

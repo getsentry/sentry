@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -19,7 +19,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorEnvironmentLabel from 'sentry/views/monitors/components/overviewTimeline/monitorEnvironmentLabel';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
-import {scheduleAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 import type {CheckInTimelineProps} from './checkInTimeline';
 import {CheckInTimeline} from './checkInTimeline';

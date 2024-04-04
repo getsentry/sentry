@@ -2,14 +2,12 @@ from sentry.models.rule import Rule
 from sentry.rules.conditions.high_priority_issue import HighPriorityIssueCondition
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class HighPriorityIssueConditionTest(RuleTestCase):
     rule_cls = HighPriorityIssueCondition
 

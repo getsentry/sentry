@@ -6,14 +6,14 @@ from sentry.utils import json
 
 
 @click.group()
-def files():
+def files() -> None:
     """Manage files from filestore."""
 
 
 @files.command()
 @click.argument("id", type=click.INT, metavar="FILE_ID")
 @configuration
-def get(id):
+def get(id: int) -> None:
     """Fetch a file's contents by id."""
     from sentry.models.files.file import File
 
@@ -33,7 +33,7 @@ def get(id):
 @click.argument("id", type=click.INT, metavar="FILE_ID")
 @click.option("--format", default="json", type=click.Choice(("json", "yaml")))
 @configuration
-def info(id, format):
+def info(id: int, format: str) -> None:
     """Show a file's metadata by id."""
     from sentry.models.files.file import File
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
 from snuba_sdk import Column, Condition, Direction, Op
-from snuba_sdk.expressions import Granularity, Limit
+from snuba_sdk.expressions import Granularity, Limit, Offset
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -1716,6 +1716,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             orderby=orderby,
             groupby=groupby,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            offset=Offset(offset) if offset is not None else None,
             limit=Limit(limit) if limit is not None else None,
             include_series=False,
             include_totals=True,

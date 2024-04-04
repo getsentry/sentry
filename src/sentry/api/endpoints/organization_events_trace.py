@@ -8,11 +8,12 @@ from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import constants, eventstore, features
+from sentry import constants, eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -601,10 +602,12 @@ def augment_transactions_with_spans(
                 error_spans.add(error["trace.span"])
             projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
+        time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
+        sentry_sdk.set_measurement("trace_view.spans.time_buffer", time_buffer)
         if ts_params["min"]:
-            params["start"] = ts_params["min"] - timedelta(hours=1)
+            params["start"] = ts_params["min"] - timedelta(hours=time_buffer)
         if ts_params["max"]:
-            params["end"] = ts_params["max"] + timedelta(hours=1)
+            params["end"] = ts_params["max"] + timedelta(hours=time_buffer)
 
         if ts_params["max"] and ts_params["min"]:
             sentry_sdk.set_measurement(
@@ -726,8 +729,10 @@ def update_params_with_timestamp(request: HttpRequest, params: Mapping[str, str]
         example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
-        example_start = example_timestamp - timedelta(days=1, hours=12)
-        example_end = example_timestamp + timedelta(days=1, hours=12)
+        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
+        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        example_start = example_timestamp - timedelta(days=time_buffer)
+        example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
         params["start"] = max(params["start"], example_start)
@@ -738,6 +743,20 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+        """The trace endpoint always wants to get all projects regardless of what's passed into the API
+
+        This is because a trace can span any number of projects in an organization. But we still want to
+        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
+        which is what would be sent if we wanted all projects"""
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(

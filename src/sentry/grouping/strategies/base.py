@@ -2,8 +2,6 @@ import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Generic, Protocol, TypeVar
 
-import sentry_sdk
-
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -124,10 +122,7 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        with sentry_sdk.start_span(
-            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
-        ):
-            rv = strategy(interface, **kwargs)
+        rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
@@ -285,7 +280,7 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements([])
+            enhancements_instance = Enhancements.from_config_string("")
         else:
             enhancements_instance = Enhancements.loads(enhancements)
         self.enhancements = enhancements_instance

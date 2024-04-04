@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
@@ -6,7 +7,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -17,11 +17,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
-import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -29,6 +33,7 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetrics
 import {
   ModuleName,
   SpanFunction,
+  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -109,26 +114,34 @@ export function HTTPSamplesPanel() {
   });
 
   const {
-    data: responseCodeData,
     isFetching: isResponseCodeDataLoading,
-    error: responseCodeDataError,
-  } = useSpanMetrics({
+    data: responseCodeData,
+    error: responseCodeError,
+  } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
-    fields: ['span.status_code', 'count()'],
-    sorts: [{field: 'span.status_code', kind: 'asc'}],
+    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+    referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
   });
 
-  const responseCodeBarChartSeries: Series = {
-    seriesName: 'span.status_code',
-    data: (responseCodeData ?? []).map(item => {
-      return {
-        name: item['span.status_code'] || t('N/A'),
-        value: item['count()'],
-      };
-    }),
-  };
+  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+
+  const {
+    data: samplesData,
+    isFetching: isSamplesDataFetching,
+    error: samplesDataError,
+  } = useSpanSamples({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+    ],
+    min: 0,
+    max: durationAxisMax,
+    enabled: query.panel === 'duration' && durationAxisMax > 0,
+    referrer: 'api.starfish.http-module-samples-panel-samples',
+  });
 
   const handleClose = () => {
     router.replace({
@@ -254,23 +267,58 @@ export function HTTPSamplesPanel() {
             </SegmentedControl>
           </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            {query.panel === 'duration' && (
-              <DurationChart
-                series={durationData[`avg(span.self_time)`]}
-                isLoading={isDurationDataFetching}
-                error={durationError}
-              />
-            )}
+          {query.panel === 'duration' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <DurationChart
+                  series={{
+                    ...durationData[`avg(span.self_time)`],
+                    markLine: AverageValueMarkLine(),
+                  }}
+                  isLoading={isDurationDataFetching}
+                  error={durationError}
+                />
+              </ModuleLayout.Full>
 
-            {query.panel === 'status' && (
-              <ResponseCodeBarChart
-                series={responseCodeBarChartSeries}
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={samplesData}
+                  isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  error={samplesDataError}
+                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                  meta={{
+                    fields: {
+                      'span.response_code': 'number',
+                    },
+                    units: {},
+                  }}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
+
+          {query.panel === 'status' && (
+            <ModuleLayout.Full>
+              <ResponseRateChart
+                series={[
+                  {
+                    ...responseCodeData[`http_response_rate(3)`],
+                    seriesName: t('3XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(4)`],
+                    seriesName: t('4XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(5)`],
+                    seriesName: t('5XX'),
+                  },
+                ]}
                 isLoading={isResponseCodeDataLoading}
-                error={responseCodeDataError}
+                error={responseCodeError}
               />
-            )}
-          </ModuleLayout.Full>
+            </ModuleLayout.Full>
+          )}
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>

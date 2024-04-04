@@ -5,14 +5,13 @@ from django.core.mail.message import EmailMultiAlternatives
 from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, get_channel
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class AssignedNotificationAPITest(APITestCase):
     def validate_email(self, outbox, index, email, txt_msg, html_msg):
         msg = outbox[index]
@@ -60,7 +59,9 @@ class AssignedNotificationAPITest(APITestCase):
         self.login_as(self.user)
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_assignment_notification(self):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is assigned.
@@ -89,7 +90,9 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.project.slug in attachment["footer"]
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_reassignment_notification_user(self):
+        # TODO: make this a block kit test
         """Test that if a user is assigned to an issue and then the issue is reassigned to a different user
         that the original assignee receives an unassignment notification as well as the new assignee
         receiving an assignment notification"""
@@ -149,7 +152,9 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, self.group, self.project, user1.id, index=2)
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_reassignment_notification_team(self):
+        # TODO: make this a block kit test
         """Test that if a team is assigned to an issue and then the issue is reassigned to a different team
         that the originally assigned team receives an unassignment notification as well as the new assigned
         team receiving an assignment notification"""

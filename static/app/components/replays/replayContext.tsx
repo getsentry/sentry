@@ -256,7 +256,7 @@ function ProviderNonMemo({
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
-  const [isPlaying, setIsPlaying] = useState(!!autoStart);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
     savedReplayConfigRef.current.isSkippingInactive
@@ -460,6 +460,10 @@ function ProviderNonMemo({
       replayerRef.current = inst;
 
       applyInitialOffset();
+      if (autoStart) {
+        inst.play(startTimeOffsetMs);
+        setIsPlaying(true);
+      }
     },
     [
       applyInitialOffset,
@@ -475,6 +479,8 @@ function ProviderNonMemo({
       setReplayFinished,
       startTimestampMs,
       theme.purple200,
+      startTimeOffsetMs,
+      autoStart,
     ]
   );
 

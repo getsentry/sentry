@@ -49,6 +49,10 @@ interface BaseConfig {
    * tz database style timezone string
    */
   timezone: string;
+  /**
+   * The id of thee "shadow" alert rule generated when alert assignees are
+   * selected
+   */
   alert_rule_id?: number;
   /**
    * How many consecutive missed or failed check-ins in a row before creating a
@@ -89,7 +93,7 @@ export interface IntervalConfig extends BaseConfig {
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvBrokenDetection {
-  envMutedTimestamp: string;
+  environmentMutedTimestamp: string;
   userNotifiedTimestamp: string;
 }
 
@@ -169,6 +173,10 @@ export interface CheckIn {
    */
   id: string;
   /**
+   * A snapshot of the monitor configuration at the time of the check-in
+   */
+  monitorConfig: MonitorConfig;
+  /**
    * Status of the check-in
    */
   status: CheckInStatus;
@@ -179,7 +187,8 @@ export interface CheckIn {
 }
 
 /**
- * Object used to store config for the display next to an environment in the timeline view
+ * Object used to store config for the display next to an environment in the
+ * timeline view
  */
 export interface StatusNotice {
   color: ColorOrAlias;

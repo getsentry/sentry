@@ -19,12 +19,10 @@ from sentry.issues.issue_velocity import (
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 
 WEEK_IN_HOURS = 7 * 24
 
 
-@region_silo_test
 @freeze_time()
 class IssueVelocityTests(TestCase, SnubaTestCase):
     def setUp(self):

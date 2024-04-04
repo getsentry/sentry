@@ -14,11 +14,10 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
-@region_silo_test
 class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
@@ -176,7 +175,9 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_request_to_join_slack(self):
+        # TODO: convert this test to block kit
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 

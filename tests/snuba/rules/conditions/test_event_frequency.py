@@ -15,13 +15,17 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    BaseMetricsTestCase,
+    PerformanceIssueTestCase,
+    RuleTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ErrorEventMixin(SnubaTestCase):
@@ -282,7 +286,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
+class EventFrequencyPercentConditionTestCase(BaseMetricsTestCase, RuleTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
@@ -307,7 +311,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
                 duration=None,
                 errors=0,
                 # The line below is crucial to spread sessions throughout the time period.
-                started=received - i,
+                started=received - i - 1,
                 received=received,
             )
 
@@ -423,7 +427,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 
         # Test data is 2 events in the current period and 1 events in the comparison period.
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
-        # is 10%. Overall a 100% increase comparitively.
+        # is 10%. Overall a 100% increase comparatively.
         event = self.add_event(
             data={"fingerprint": ["something_random"]},
             project_id=self.project.id,
@@ -461,7 +465,6 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
@@ -469,7 +472,6 @@ class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyCondit
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
@@ -480,7 +482,6 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -491,7 +492,6 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -502,7 +502,6 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
@@ -512,7 +511,6 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,

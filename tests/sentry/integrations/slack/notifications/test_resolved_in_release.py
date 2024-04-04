@@ -10,14 +10,12 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, get_blocks_and_fallback_text
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SlackResolvedInReleaseNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
@@ -33,6 +31,7 @@ class SlackResolvedInReleaseNotificationTest(
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_resolved_in_release(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved in a release
@@ -77,6 +76,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_resolved_in_release_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
@@ -128,6 +128,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_resolved_in_release_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved in a release
@@ -180,6 +181,7 @@ class SlackResolvedInReleaseNotificationTest(
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_resolved_in_release_parsed_version(self):
         """
         Test that the release version is formatted to the short version

@@ -10,6 +10,7 @@ import type {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -142,21 +143,9 @@ function DurationChart({
   const baselineAvgSeries: Series = {
     seriesName: 'Average',
     data: [],
-    markLine: {
-      data: [{valueDim: 'x', yAxis: avg}],
-      symbol: ['none', 'none'],
-      lineStyle: {
-        color: theme.gray400,
-      },
-      emphasis: {disabled: true},
-      label: {
-        position: 'insideEndBottom',
-        formatter: () => `Average`,
-        fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
-      },
-    },
+    markLine: AverageValueMarkLine({
+      value: avg,
+    }),
   };
 
   const sampledSpanDataSeries: Series[] = spans.map(
