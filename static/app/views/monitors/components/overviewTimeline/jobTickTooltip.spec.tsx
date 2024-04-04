@@ -26,6 +26,7 @@ const tickConfig: TimeWindowConfig = {
   elapsedMinutes: 60,
   markerInterval: 10,
   minimumMarkerInterval: 10,
+  timelineWidth: 1000,
   dateTimeProps: {timeOnly: true},
 };
 

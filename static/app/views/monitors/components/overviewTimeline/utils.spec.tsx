@@ -17,6 +17,7 @@ describe('Crons Timeline Utils', function () {
         markerInterval: 1,
         minimumMarkerInterval: 0.625,
         dateTimeProps: {timeOnly: true},
+        timelineWidth,
       });
     });
 
@@ -32,6 +33,7 @@ describe('Crons Timeline Utils', function () {
         markerInterval: 240,
         minimumMarkerInterval: 198.6875,
         dateTimeProps: {timeOnly: false},
+        timelineWidth,
       });
     });
 
@@ -47,6 +49,7 @@ describe('Crons Timeline Utils', function () {
         markerInterval: 120,
         minimumMarkerInterval: 112.5,
         dateTimeProps: {timeOnly: true},
+        timelineWidth,
       });
     });
 
@@ -64,6 +67,7 @@ describe('Crons Timeline Utils', function () {
         markerInterval: 5 * 24 * 60,
         minimumMarkerInterval: 6138,
         dateTimeProps: {dateOnly: true},
+        timelineWidth,
       });
     });
   });

@@ -31,6 +31,7 @@ import {
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
+import {IconRobot} from 'sentry/icons/iconRobot';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -51,7 +52,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_TITLE as HTTP_MODULE_TITLE,
+  releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
+} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -268,7 +272,11 @@ function Sidebar() {
               <Feature features="performance-http-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
+                  label={
+                    <GuideAnchor target="performance-http">
+                      {HTTP_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
@@ -377,6 +385,20 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
+  );
+
+  const aiAnalytics = hasOrganization && (
+    <Feature features="ai-analytics" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconRobot />}
+        label={t('AI Analytics')}
+        isAlpha
+        variant="short"
+        to={`/organizations/${organization.slug}/ai-analytics/`}
+        id="ai-analytics"
+      />
+    </Feature>
   );
 
   const userFeedback = hasOrganization && (
@@ -544,6 +566,7 @@ function Sidebar() {
                 {profiling}
                 {metrics}
                 {replays}
+                {aiAnalytics}
                 {feedback}
                 {monitors}
                 {alerts}
