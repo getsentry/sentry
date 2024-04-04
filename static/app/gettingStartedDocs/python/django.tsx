@@ -43,29 +43,28 @@ const onboarding: OnboardingConfig = {
     tct('The Django integration adds support for the [link:Django Web Framework].', {
       link: <ExternalLink href="https://www.djangoproject.com/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'The Django integration adds support for the [link:Django Web Framework].',
+        'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
         {
-          link: <ExternalLink href="https://www.djangoproject.com/" />,
+          code: <code />,
+          sentryDjangoCode: <code />,
         }
       ),
       configurations: [
         {
-          language: 'bash',
-          description: (
-            <p>
-              {tct(
-                'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
                 {
-                  code: <code />,
-                  sentryDjangoCode: <code />,
+                  codeVersion: <code />,
+                  codePackage: <code />,
                 }
-              )}
-            </p>
-          ),
+              )
+            : undefined,
+          language: 'bash',
           code: getInstallSnippet(),
         },
       ],

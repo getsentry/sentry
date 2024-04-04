@@ -53,7 +53,7 @@ sentry_sdk.init(
 )`;
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: (
@@ -61,6 +61,15 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                {
+                  codeVersion: <code />,
+                  codePackage: <code />,
+                }
+              )
+            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
