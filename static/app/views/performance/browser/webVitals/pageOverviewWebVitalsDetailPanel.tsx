@@ -12,11 +12,14 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -206,8 +209,13 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      const eventTarget = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug({id: row.id, project: projectSlug}),
+        dataRow: row,
+        organization,
+        eventView: EventView.fromLocation(location),
+        location,
+      });
       return (
         <NoOverflow>
           <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
