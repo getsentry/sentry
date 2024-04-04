@@ -191,9 +191,11 @@ class PythonParser(SimpleLanguageParser):
     regexes = [python_function_regex]
 
 
-class RubyParser(SimpleLanguageParser):
+class RubyParser(LanguageParser):
     issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
-    # @@ -152,10 +152,6 @@ six = lambda { puts "This is a lambda."}
+
+    function_prefix = "."
+
     function_declaration_regex = r"^@@.*@@\s+def\s+(?:\w+\.)?(?P<fnc>\w+).*$"
     dynamic_method_declaration_regex = r"^@@.*@@\s+define_method\s+:(?P<fnc>\w+).*$"
     lambda_arrow_function_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*=\s*->.*$"
@@ -221,13 +223,13 @@ class JavascriptParser(LanguageParser):
     """
     function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>[^\(]*)\(.*$"
     arrow_function_regex = (
-        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^=]*)\s+=[^>|^\n]*[\(^\n*\)]?\s*=>.*$"
+        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^=\n]*)\s+=[^>\n]*[\(^\n*\)]?\s*=>.*$"
     )
     function_expression_regex = (
-        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(]*)\s+=.*\s+function.*\(.*$"
+        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(\n]*)\s+=.*\s+function.*\(.*$"
     )
     function_constructor_regex = (
-        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(]*)\s+=\s+new\s+Function\(.*$"
+        r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(\n]*)\s+=\s+new\s+Function\(.*$"
     )
 
     regexes = [
@@ -266,6 +268,7 @@ PATCH_PARSERS: dict[str, Any] = {
     "jsx": JavascriptParser,
     "ts": JavascriptParser,
     "tsx": JavascriptParser,
+    "php": PHPParser,
 }
 
 # for testing new parsers
