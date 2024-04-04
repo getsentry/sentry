@@ -70,6 +70,9 @@ class JiraServerClient(ApiClient):
     def get_cache_prefix(self):
         return "sentry-jira-server:"
 
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        return self.authorize_request(prepared_request=prepared_request)
+
     def authorize_request(self, prepared_request: PreparedRequest):
         """Jira Server authorizes with RSA-signed OAuth1 scheme"""
         if not self.identity:
