@@ -294,6 +294,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has custom metrics
         has_custom_metrics: bool
 
+        # This Project has enough issue volume to use high priority alerts
+        has_high_priority_alerts: bool
+
         bitfield_default = 10
         bitfield_null = True
 
