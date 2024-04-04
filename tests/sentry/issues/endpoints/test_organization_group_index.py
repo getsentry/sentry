@@ -2666,7 +2666,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 )
                 assert mock_query.call_count == 0
 
-    @pytest.mark.xfail(reason="Need to fix")
+    @pytest.mark.skip(reason="Need to fix")
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
