@@ -1527,6 +1527,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
+    # Enables category "metrics" in stats_v2 endpoint
+    "organizations:metrics-stats": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
