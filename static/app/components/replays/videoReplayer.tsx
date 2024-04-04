@@ -99,7 +99,7 @@ export class VideoReplayer {
     this._timer.stop();
   }
 
-  private addListeners(el: HTMLVideoElement, index: number): RemoveListener {
+  private addListeners(el: HTMLVideoElement, index: number): void {
     const handleEnded = () => this.handleSegmentEnd(index);
 
     const handleLoadedData = event => {
@@ -141,12 +141,12 @@ export class VideoReplayer {
     el.addEventListener('play', handlePlay);
     el.addEventListener('loadedmetadata', handleLoadedMetaData);
 
-    return () => {
+    this._listeners.push(() => {
       el.removeEventListener('ended', handleEnded);
       el.removeEventListener('loadeddata', handleLoadedData);
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
-    };
+    });
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
@@ -162,7 +162,7 @@ export class VideoReplayer {
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    this._listeners.push(this.addListeners(el, index));
+    this.addListeners(el, index);
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
