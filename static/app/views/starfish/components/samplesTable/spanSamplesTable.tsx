@@ -25,6 +25,7 @@ const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Keys =
   | 'transaction_id'
+  | 'span_id'
   | 'profile_id'
   | 'timestamp'
   | 'duration'
@@ -35,8 +36,8 @@ export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
 export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
-    key: 'transaction_id',
-    name: 'Event ID',
+    key: 'span_id',
+    name: 'Span ID',
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -119,7 +120,7 @@ export function SpanSamplesTable({
       onMouseEnter: () => handleMouseOverBodyCell(row),
     };
 
-    if (column.key === 'transaction_id') {
+    if (column.key === 'span_id') {
       return (
         <Link
           to={normalizeUrl(
@@ -127,7 +128,7 @@ export function SpanSamplesTable({
           )}
           {...commonProps}
         >
-          {row['transaction.id'].slice(0, 8)}
+          {row.span_id}
         </Link>
       );
     }
