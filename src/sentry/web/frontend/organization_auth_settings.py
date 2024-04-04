@@ -34,6 +34,7 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
+    # TODO: include SAML cert field
     class AuthProviderSettingsForm(forms.Form):
         disabled = provider.is_partner
         require_link = forms.BooleanField(
@@ -65,12 +66,25 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             disabled=disabled,
         )
 
+        if provider.is_saml:
+            x509cert = forms.CharField(
+                label="x509 public certificate",
+                widget=forms.Textarea,
+                help_text=_("The SAML certificate for your Identity Provider"),
+                required=False,
+                disabled=disabled,
+            )
+
     initial = {
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
     }
     if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
+
+    if provider.is_saml:
+        certificate = auth_provider.config.get("idp", {}).get("x509cert", "")
+        initial["x509cert"] = certificate
 
     form = AuthProviderSettingsForm(
         data=request.POST if request.POST.get("op") == "settings" else None, initial=initial
