@@ -12,7 +12,7 @@ import type {EventMetadataWithAutofix} from 'sentry/components/events/autofix/ty
 const group = GroupFixture();
 const event = EventFixture();
 
-describe('AiAutofix', () => {
+describe('Autofix', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/ai-autofix/`,
@@ -63,14 +63,14 @@ describe('AiAutofix', () => {
       />
     );
 
-    // Should show latest log preview in header
-    expect(await screen.findByText('Second log message')).toBeInTheDocument();
-    // Others should not be visible
-    expect(screen.queryByText('First log message')).not.toBeInTheDocument();
-
-    // Opening step shows all logs
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle step details'}));
+    // Logs should be visible
     expect(screen.getByText('First log message')).toBeInTheDocument();
+    expect(screen.getByText('Second log message')).toBeInTheDocument();
+
+    // Toggling step hides old logs
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle step details'}));
+    expect(screen.queryByText('First log message')).not.toBeInTheDocument();
+    // Should show latest log preview in header
     expect(screen.getByText('Second log message')).toBeInTheDocument();
   });
 
@@ -150,38 +150,5 @@ describe('AiAutofix', () => {
       'href',
       'https://github.com/pulls/1234'
     );
-  });
-
-  it('can toggle logs for completed fix', async () => {
-    render(
-      <Autofix
-        event={event}
-        group={{
-          ...group,
-          metadata: {
-            autofix: {
-              status: 'COMPLETED',
-              completed_at: '',
-              created_at: '',
-              steps: [
-                {
-                  id: '1',
-                  index: 1,
-                  title: 'I am processing',
-                  completedMessage: 'oh yes I am',
-                  status: 'PROCESSING',
-                  progress: [],
-                },
-              ],
-            },
-          },
-        }}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle log details'}));
-
-    expect(screen.getByText('I am processing')).toBeInTheDocument();
-    expect(screen.getByText('oh yes I am')).toBeInTheDocument();
   });
 });
