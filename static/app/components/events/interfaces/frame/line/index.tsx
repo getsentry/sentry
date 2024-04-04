@@ -98,6 +98,7 @@ function Line({
       case 'objc':
       case 'cocoa':
       case 'native':
+      case 'nintendo':
         return (
           <Native
             event={event}
