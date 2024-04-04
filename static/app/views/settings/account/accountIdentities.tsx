@@ -6,7 +6,7 @@ import {disconnectIdentity} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
