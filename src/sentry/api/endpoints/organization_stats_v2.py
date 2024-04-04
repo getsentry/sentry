@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -166,7 +167,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
 
-            if organization.features.has("organizations:metrics-stats"):
+            if features.has("organizations:metrics-stats", organization):
                 if request.GET.get("category") == "metrics":
                     # TODO(metrics): align project resolution
                     result = run_metrics_outcomes_query(
