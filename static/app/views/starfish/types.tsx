@@ -83,6 +83,15 @@ export const SPAN_FUNCTIONS = [
   'http_error_count',
 ] as const;
 
+const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
+type BreakpointCondition = (typeof BREAKPOINT_CONDITIONS)[number];
+
+type RegressionFunctions = [
+  `regression_score(${string},${string})`,
+  `avg_by_timestamp(${string},${BreakpointCondition},${string})`,
+  `epm_by_timestamp(${BreakpointCondition},${string})`,
+][number];
+
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
@@ -101,6 +110,8 @@ export type MetricsResponse = {
   'http_response_rate(5)': number;
 } & {
   ['project.id']: number;
+} & {
+  [Function in RegressionFunctions]: number;
 };
 
 export type MetricsFilters = {

@@ -16,13 +16,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 type RawDataRow<K extends string> = Record<K, any>;
 
-type DurationDataRow<K extends string> = RawDataRow<K> & {
+export type DurationDataRow<K extends string> = RawDataRow<K> & {
   durationAfter: number;
   durationBefore: number;
   percentageChange: number;
 };
 
-type ThroughputDataRow<K extends string> = RawDataRow<K> & {
+export type ThroughputDataRow<K extends string> = RawDataRow<K> & {
   percentageChange: number;
   throughputAfter: number;
   throughputBefore: number;
