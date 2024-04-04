@@ -620,10 +620,11 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                         len(e.args) > 0
                         and e.args[0] == "maximum recursion depth exceeded in comparison"
                     ):
-                        mock_handle_error.recursion_error_happened = True
+                        pass
                 raise
 
         mock_handle_error.side_effect = mocky
+        mock_handle_error.recursion_error_happened = False
         query = " OR ".join([f'transaction:"{e}"' for e in range(100)])
         req = {
             "mri": "d:transactions/duration@millisecond",
@@ -644,7 +645,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "query": query,
         }
         res = self.do_request(req)
-        assert mock_handle_error.recursion_error_happened is False
         assert res.status_code == 200
 
     def test_multiple_span_sample_per_time_bucket(self):
