@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
 
 interface Props {
   value?: number;
@@ -25,7 +26,7 @@ export function AverageValueMarkLine({value}: Props = {}) {
     emphasis: {disabled: true},
     label: {
       position: 'insideEndBottom',
-      formatter: () => `Average`,
+      formatter: () => t(`Average`),
       fontSize: 14,
       color: theme.chartLabel,
       backgroundColor: theme.chartOther,
