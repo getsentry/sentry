@@ -49,7 +49,6 @@ class GroupTypeRegistry:
             raise ValueError(
                 f"A group type with the type_id {group_type.type_id} has already been registered."
             )
-
         self._registry[group_type.type_id] = group_type
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)

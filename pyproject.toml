@@ -66,7 +66,6 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code"]
 
-
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
 
@@ -258,7 +257,6 @@ module = [
     "sentry.auth.providers.saml2.views",
     "sentry.auth.system",
     "sentry.auth.view",
-    "sentry.buffer.redis",
     "sentry.db.mixin",
     "sentry.db.models.manager.base",
     "sentry.db.models.paranoia",
@@ -407,7 +405,6 @@ module = [
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
-    "sentry.quotas.redis",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
     "sentry.release_health.metrics_sessions_v2",
@@ -589,14 +586,10 @@ module = [
     "tests.sentry.ingest.test_slicing",
     "tests.sentry.integrations.github.test_client",
     "tests.sentry.integrations.slack.test_requests",
-    "tests.sentry.issues.endpoints.test_group_events",
-    "tests.sentry.issues.endpoints.test_organization_group_index",
     "tests.sentry.issues.test_utils",
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
-    "tests.sentry.tasks.test_daily_summary",
     "tests.sentry.tasks.test_post_process",
-    "tools.mypy_helpers.make_module_ignores",
 ]
 disable_error_code = [
     "arg-type",
@@ -611,7 +604,6 @@ disable_error_code = [
     "misc",
     "operator",
     "override",
-    "possibly-undefined",
     "return-value",
     "typeddict-item",
     "typeddict-unknown-key",

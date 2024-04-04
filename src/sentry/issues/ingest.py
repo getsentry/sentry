@@ -137,6 +137,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
     event_metadata["initial_priority"] = occurrence.initial_issue_priority
+
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
         # could populate this instead?
@@ -198,14 +199,14 @@ def save_issue_from_occurrence(
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
-        with (
-            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
-            metrics.timer(
-                "issues.save_issue_from_occurrence.transaction",
-                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
-                sample_rate=1.0,
-            ) as metric_tags,
-            transaction.atomic(router.db_for_write(GroupHash)),
+        with sentry_sdk.start_span(
+            op="issues.save_issue_from_occurrence.transaction"
+        ) as span, metrics.timer(
+            "issues.save_issue_from_occurrence.transaction",
+            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+            sample_rate=1.0,
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
         ):
             group, is_new = _save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
