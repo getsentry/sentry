@@ -1443,8 +1443,8 @@ def _save_aggregate(
             metrics.timer("event_manager.create_group_transaction") as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            span.set_tag("create_group_transaction.outcome", "no_group")
-            metric_tags["create_group_transaction.outcome"] = "no_group"
+            span.set_tag("create_group_transaction.outcome", "wait_for_lock")
+            metric_tags["create_group_transaction.outcome"] = "wait_for_lock"
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
@@ -1768,8 +1768,8 @@ def create_group_with_grouphashes(
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
-        span.set_tag("create_group_transaction.outcome", "no_group")
-        metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
+        span.set_tag("create_group_transaction.outcome", "wait_for_lock")
+        metrics_timer_tags["create_group_transaction.outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
         # attached. We thus want to create a new group, but we need to guard against another
