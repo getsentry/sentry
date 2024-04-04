@@ -8,7 +8,6 @@ from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.redis import clusters
 
 
@@ -22,7 +21,7 @@ def test_is_rate_limited_script():
     assert list(
         map(
             bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
         )
     ) == [False, False]
 
@@ -30,7 +29,7 @@ def test_is_rate_limited_script():
     assert list(
         map(
             bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
         )
     ) == [True, False]
 
@@ -41,7 +40,7 @@ def test_is_rate_limited_script():
     assert list(
         map(
             bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
         )
     ) == [True, False]
 
@@ -58,14 +57,13 @@ def test_is_rate_limited_script():
     # Test that refunded quotas work
     client.set("apple", 5)
     # increment
-    is_rate_limited(client, ("orange", "baz"), (1, now + 60))
+    is_rate_limited(("orange", "baz"), (1, now + 60), client)
     # test that it's rate limited without refund
-    assert list(map(bool, is_rate_limited(client, ("orange", "baz"), (1, now + 60)))) == [True]
+    assert list(map(bool, is_rate_limited(("orange", "baz"), (1, now + 60), client))) == [True]
     # test that refund key is used
-    assert list(map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60)))) == [False]
+    assert list(map(bool, is_rate_limited(("orange", "apple"), (1, now + 60), client))) == [False]
 
 
-@region_silo_test
 class RedisQuotaTest(TestCase):
     @cached_property
     def quota(self):

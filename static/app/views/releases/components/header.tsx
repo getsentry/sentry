@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -18,8 +19,17 @@ type Props = {
   hasV2ReleaseUIEnabled?: boolean;
 };
 
+const enum ReleaseTab {
+  RELEASES = 'releases',
+  RELEASE_THRESHOLDS = 'release-thresholds',
+}
+
 function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
-  const [selected, setSelected] = useState(router.location.pathname);
+  const [selected, setSelected] = useState<ReleaseTab>(
+    router.location.pathname.includes('release-thresholds')
+      ? ReleaseTab.RELEASE_THRESHOLDS
+      : ReleaseTab.RELEASES
+  );
 
   const location = router.location;
   const {
@@ -32,33 +42,27 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
   const tabs = hasV2ReleaseUIEnabled
     ? [
         {
+          key: ReleaseTab.RELEASES,
           label: t('Monitor'),
           description: '',
-          path: normalizeUrl(`/organizations/${organization.slug}/releases/`),
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-            },
-            pathname: `/organizations/${organization.slug}/releases/`,
-          }),
+          to: normalizeUrl(
+            `/organizations/${organization.slug}/releases/?${qs.stringify(queryParams)}`
+          ),
         },
         {
+          key: ReleaseTab.RELEASE_THRESHOLDS,
           label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
-          path: normalizeUrl(`/organizations/${organization.slug}/release-thresholds/`),
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-            },
-            pathname: `/organizations/${organization.slug}/release-thresholds/`,
-          }),
+          to: normalizeUrl(
+            `/organizations/${organization.slug}/release-thresholds/?${qs.stringify(queryParams)}`
+          ),
           badge: <FeatureBadge type="alpha" />,
         },
       ]
     : [];
 
-  const onTabSelect = key => {
+  const onTabSelect = (key: ReleaseTab) => {
     setSelected(key);
   };
 
@@ -78,9 +82,9 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
       {hasV2ReleaseUIEnabled && (
         <StyledTabs value={selected} onChange={onTabSelect}>
           <TabList hideBorder>
-            {tabs.map(({label, description, path, to, badge}) => {
+            {tabs.map(({label, description, key, to, badge}) => {
               return (
-                <TabList.Item key={path} to={to} textValue={label}>
+                <TabList.Item key={key} to={to} textValue={label}>
                   <Tooltip
                     title={description}
                     position="bottom"
@@ -102,6 +106,6 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
 
 export default Header;
 
-const StyledTabs = styled(Tabs)`
+const StyledTabs = styled(Tabs<ReleaseTab>)`
   grid-column: 1/-1;
 `;

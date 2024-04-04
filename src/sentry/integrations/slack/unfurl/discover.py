@@ -77,7 +77,7 @@ def get_double_period(period: str) -> str:
     if not m:
         m = re.match(r"^(\d+)([hdmsw]?)$", DEFAULT_PERIOD)
 
-    value, unit = m.groups()  # type: ignore
+    value, unit = m.groups()  # type: ignore[union-attr]
     value = int(value)
 
     return f"{value * 2}{unit}"

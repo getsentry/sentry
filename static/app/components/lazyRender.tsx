@@ -21,7 +21,7 @@ const DEFAULT_OPTIONS: IntersectionObserverInit = {
   threshold: 0,
 };
 
-interface LazyRenderProps {
+export interface LazyRenderProps {
   children: React.ReactNode;
   containerHeight?: number;
   observerOptions?: Partial<IntersectionObserverInit>;
@@ -61,6 +61,10 @@ export function LazyRender(props: LazyRenderProps) {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             setVisible(true);
+            if (node) {
+              // clear the placeholder container height
+              node.style.height = '';
+            }
             maybeCleanupObserver(observerRef);
           }
         }

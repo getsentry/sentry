@@ -36,7 +36,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
-    fields: Mapping[str, forms.ChoiceField]  # type: ignore
+    fields: Mapping[str, forms.ChoiceField]  # type: ignore[assignment]
 
     def __init__(self, *args, **kwargs):
         self.org_id = kwargs.pop("org_id")

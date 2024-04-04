@@ -60,11 +60,15 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         return self.paginate(
             request,
@@ -178,6 +182,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
+
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
@@ -378,6 +387,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])

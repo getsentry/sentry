@@ -308,8 +308,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "performance",
         },
         "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-        "dlq_max_invalid_ratio": 0.01,
-        "dlq_max_consecutive_count": 1000,
+        "dlq_max_invalid_ratio": None,
+        "dlq_max_consecutive_count": None,
     },
     "generic-metrics-last-seen-updater": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -351,10 +351,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-spans": {
         "topic": Topic.SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "detect-performance-issues": {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

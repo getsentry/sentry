@@ -65,7 +65,7 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       tags: {
         // This is a boolean to reduce cardinality -- technically this can
         // match 7.8.x, but replay wasn't released in that version, so this should be fine
-        recentSdkVersion: replayRecord.sdk.version.startsWith('7.8'),
+        recentSdkVersion: replayRecord.sdk.version?.startsWith('7.8') ?? false,
       },
     };
 

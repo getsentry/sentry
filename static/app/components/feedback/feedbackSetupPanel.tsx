@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -13,7 +13,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSetupPanel() {
   const organization = useOrganization();
-  const hasNewOnboarding = organization.features.includes('user-feedback-onboarding');
   const {activateSidebar} = useFeedbackOnboardingSidebarPanel();
 
   useEffect(() => {
@@ -36,28 +35,15 @@ export default function FeedbackSetupPanel() {
                 'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
               )}
             </p>
-            {hasNewOnboarding ? (
-              <Button
-                external
-                onClick={activateSidebar}
-                priority="primary"
-                analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
-                analyticsEventKey="feedback.index-click-onboarding-setup"
-              >
-                {t('Set Up Now')}
-              </Button>
-            ) : (
-              <LinkButton
-                external
-                href="https://docs.sentry.io/product/user-feedback/setup/"
-                priority="primary"
-                analyticsEventName="Clicked Feedback Onboarding Setup Button"
-                analyticsEventKey="feedback.index-setup-button-clicked"
-                analyticsParams={{surface: 'setup-panel'}}
-              >
-                {t('Set Up Now')}
-              </LinkButton>
-            )}
+            <Button
+              external
+              onClick={activateSidebar}
+              priority="primary"
+              analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
+              analyticsEventKey="feedback.index-click-onboarding-setup"
+            >
+              {t('Set Up Now')}
+            </Button>
           </Fragment>
         </StyledBox>
       </Container>

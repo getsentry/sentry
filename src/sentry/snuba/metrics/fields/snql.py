@@ -476,7 +476,7 @@ def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Funct
     )
 
 
-def _metric_id_equivalence(metric_condition: Function) -> Function:
+def _metric_id_equivalence(metric_condition: Function | int) -> Function:
     return Function(
         "equals",
         [
@@ -555,6 +555,18 @@ def all_transactions(
             _metric_id_equivalence(
                 _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
             ),
+        ],
+        alias,
+    )
+
+
+def all_duration_transactions(
+    metric_ids: Sequence[int],
+    alias: str | None = None,
+) -> Function:
+    return _count_if_with_conditions(
+        [
+            _metric_id_equivalence(list(metric_ids)[0]),
         ],
         alias,
     )

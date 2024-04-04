@@ -25,11 +25,9 @@ export default function hydrateFrames(attachments: unknown[]) {
       return;
     }
     if (isBreadcrumbFrameEvent(attachment)) {
-      if (attachment.data.payload.category === 'sentry.feedback') {
-        // @ts-expect-error In SDK <= 7.100.0 we were incorrectly setting the timestamp
-        attachment.data.payload.timestamp = attachment.data.timestamp;
+      if (attachment.data.payload.category !== 'sentry.feedback') {
+        breadcrumbFrames.push(attachment.data.payload);
       }
-      breadcrumbFrames.push(attachment.data.payload);
     } else if (isSpanFrameEvent(attachment)) {
       spanFrames.push(attachment.data.payload);
     } else if (isOptionFrameEvent(attachment)) {

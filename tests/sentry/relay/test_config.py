@@ -497,7 +497,6 @@ def test_project_config_with_organizations_metrics_extraction(
         session_metrics = get_path(cfg, "config", "sessionMetrics")
         if has_metrics_extraction:
             assert session_metrics == {
-                "drop": False,
                 "version": 2 if abnormal_mechanism_rollout else 1,
             }
         else:
@@ -767,6 +766,10 @@ def test_performance_calculate_score(default_project):
     with Feature(features):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
+        # Set a version field that is returned even though it's optional.
+        for profile in config["performanceScore"]["profiles"]:
+            profile["version"] = "1"
+
         validate_project_config(json.dumps(config), strict=True)
         performance_score = config["performanceScore"]["profiles"]
         assert performance_score[0] == {
@@ -789,6 +792,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Chrome",
             },
+            "version": "1",
         }
         assert performance_score[1] == {
             "name": "Firefox",
@@ -828,6 +832,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Firefox",
             },
+            "version": "1",
         }
         assert performance_score[2] == {
             "name": "Safari",
@@ -867,6 +872,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Safari",
             },
+            "version": "1",
         }
         assert performance_score[3] == {
             "name": "Edge",
@@ -888,6 +894,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Edge",
             },
+            "version": "1",
         }
         assert performance_score[4] == {
             "name": "Opera",
@@ -909,6 +916,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Opera",
             },
+            "version": "1",
         }
 
 
@@ -947,6 +955,28 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
                 "custom",
             ]
         }
+
+    options["relay.cardinality-limiter.limits"] = [
+        {
+            "rollout_rate": 0,
+            "limit": {
+                "id": "test1",
+                "window": {"windowSeconds": 7000, "granularitySeconds": 700},
+                "limit": 70,
+                "scope": "name",
+            },
+        },
+        {
+            "rollout_rate": 1,
+            "limit": {
+                "id": "test2",
+                "window": {"windowSeconds": 8000, "granularitySeconds": 800},
+                "limit": 80,
+                "scope": "name",
+                "report": True,
+            },
+        },
+    ]
 
     features = Feature({"organizations:relay-cardinality-limiter": True})
 

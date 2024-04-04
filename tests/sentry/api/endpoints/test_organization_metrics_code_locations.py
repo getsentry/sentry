@@ -13,13 +13,11 @@ from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 @freeze_time("2023-11-21T10:30:30.000Z")
 class OrganizationMetricsCodeLocationsTest(APITestCase, BaseSpansTestCase):
     endpoint = "sentry-api-0-organization-metrics-code-locations"

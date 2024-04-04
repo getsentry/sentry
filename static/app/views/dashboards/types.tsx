@@ -69,6 +69,7 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  isHidden?: boolean | null;
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
 };

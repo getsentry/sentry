@@ -9,14 +9,13 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
@@ -63,7 +62,6 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
 
 
-@region_silo_test
 class OrganizationInviteRequestCreateTest(
     APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin
 ):
@@ -190,7 +188,9 @@ class OrganizationInviteRequestCreateTest(
         assert "eric@localhost" in mail.outbox[0].body
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_request_to_invite_slack(self):
+        # TODO: make this a block kit test
         with self.tasks():
             self.get_success_response(
                 self.organization.slug,

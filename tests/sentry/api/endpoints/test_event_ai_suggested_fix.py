@@ -9,7 +9,6 @@ from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -46,7 +45,6 @@ def openai_mock(monkeypatch):
     monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
 
 
-@region_silo_test
 class EventAiSuggestedFixEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()

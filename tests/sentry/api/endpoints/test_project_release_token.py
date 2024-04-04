@@ -2,11 +2,9 @@ from django.urls import reverse
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.region import get_local_region
 
 
-@region_silo_test
 class ReleaseTokenGetTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

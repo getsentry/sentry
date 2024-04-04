@@ -1,8 +1,6 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupingConfigsNoSlugTest(APITestCase):
     endpoint = "sentry-api-0-grouping-configs"
 
@@ -23,7 +21,6 @@ class GroupingConfigsNoSlugTest(APITestCase):
         assert "delegates" in body[0]
 
 
-@region_silo_test
 class GroupingConfigsWithSlugTest(APITestCase):
     endpoint = "sentry-api-0-organization-grouping-configs"
 

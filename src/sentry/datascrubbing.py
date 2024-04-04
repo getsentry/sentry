@@ -15,16 +15,6 @@ from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 
-def _escape_key(key: str) -> str:
-    """
-    Attempt to escape the key for PII config path selectors.
-
-    If this fails and we cannot represent the key, return None
-    """
-
-    return "'{}'".format(key.replace("'", "''"))
-
-
 def get_pii_config(project):
     def _decode(value):
         if value:

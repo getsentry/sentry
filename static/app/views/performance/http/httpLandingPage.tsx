@@ -1,6 +1,7 @@
 import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,6 +19,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -112,12 +114,15 @@ export function HTTPLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: t('HTTP'),
+                label: MODULE_TITLE,
               },
             ]}
           />
 
-          <Layout.Title>{t('HTTP')}</Layout.Title>
+          <Layout.Title>
+            {MODULE_TITLE}
+            <FeatureBadge type={RELEASE_LEVEL} />
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
@@ -199,7 +204,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 function LandingPageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('HTTP')].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
       features="performance-http-view"
     >

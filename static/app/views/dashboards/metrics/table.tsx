@@ -1,7 +1,7 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,12 +35,7 @@ export function MetricTableContainer({
       : {headers: [], rows: []};
   }, [timeseriesData, metricQueries]);
 
-  return (
-    <Fragment>
-      <LoadingScreen loading={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableData} borderless />
-    </Fragment>
-  );
+  return <MetricTable isLoading={isLoading} data={tableData} borderless />;
 }
 
 interface MetricTableProps {

@@ -51,6 +51,7 @@ from sentry.incidents.models.incident import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -463,9 +464,11 @@ class BackupTestCase(TransactionTestCase):
             organization=org,
             projects=[project],
             monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-        self.create_alert_rule_activation_condition(alert_rule=activated_alert)
-        self.create_alert_rule_activation(alert_rule=activated_alert, metric_value=100)
+        self.create_alert_rule_activation(
+            alert_rule=activated_alert, project=project, metric_value=100
+        )
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
@@ -701,7 +704,7 @@ class BackupTestCase(TransactionTestCase):
             sorted_deps = sorted_dependencies()
             a_model = get_model(NormalizedModelName(a["model"]))
             b_model = get_model(NormalizedModelName(b["model"]))
-            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore[arg-type]
             if model_diff != 0:
                 return model_diff
 

@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import Text from 'sentry/components/text';
@@ -25,7 +25,8 @@ import {
   SortSelector,
 } from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey, scheduleAsText} from 'sentry/views/monitors/utils';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 

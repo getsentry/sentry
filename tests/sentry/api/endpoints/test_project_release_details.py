@@ -1,6 +1,7 @@
 import unittest
 from datetime import UTC, datetime
 
+import pytest
 from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
@@ -12,15 +13,13 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-@region_silo_test
 class ReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -49,7 +48,6 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["newGroups"] == 5
 
 
-@region_silo_test
 class UpdateReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -207,7 +205,6 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.ref == "master"
 
 
-@region_silo_test
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

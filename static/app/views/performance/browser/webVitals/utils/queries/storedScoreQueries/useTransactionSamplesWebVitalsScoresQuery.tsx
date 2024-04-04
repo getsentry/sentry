@@ -2,6 +2,7 @@ import type {ReactText} from 'react';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -78,12 +79,13 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: [
+      query: new MutableSearch([
         'transaction.op:pageload',
-        `transaction:"${transaction}"`,
         'has:measurements.score.total',
         ...(query ? [query] : []),
-      ].join(' '),
+      ])
+        .addStringFilter(`transaction:"${transaction}"`)
+        .formatString(),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },

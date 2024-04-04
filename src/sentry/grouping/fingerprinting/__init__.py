@@ -81,6 +81,7 @@ class EventAccess:
         self._tags = None
         self._sdk = None
         self._family = None
+        self._release = None
 
     def get_messages(self):
         if self._messages is None:
@@ -164,6 +165,10 @@ class EventAccess:
             {"family": get_behavior_family_for_platform(self.event.get("platform"))}
         ]
         return self._family
+
+    def get_release(self):
+        self._release = self._release or [{"release": self.event.get("release")}]
+        return self._release
 
     def get_values(self, match_group):
         return getattr(self, "get_" + match_group)()
@@ -283,6 +288,7 @@ MATCHERS = {
     "family": "family",
     "app": "app",
     "sdk": "sdk",
+    "release": "release",
 }
 
 
@@ -312,6 +318,8 @@ class Match:
             return "sdk"
         if self.key == "family":
             return "family"
+        if self.key == "release":
+            return "release"
         return "frames"
 
     def matches(self, values):
@@ -364,6 +372,9 @@ class Match:
         elif self.key == "sdk":
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
+                return True
+        elif self.key == "release":
+            if self._positive_path_match(value):
                 return True
         elif self.key == "app":
             ref_val = get_rule_bool(self.pattern)

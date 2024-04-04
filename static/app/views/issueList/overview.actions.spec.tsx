@@ -302,7 +302,10 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Mark Reviewed'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More issue actions'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Mark Reviewed'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',

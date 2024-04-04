@@ -11,7 +11,7 @@ class RuleRegistry:
         self._rules: dict[str, list[type[RuleBase]]] = defaultdict(list)
         self._map: dict[str, type[RuleBase]] = {}
 
-    def __contains__(self, rule_id: int) -> bool:
+    def __contains__(self, rule_id: str) -> bool:
         return rule_id in self._map
 
     def __iter__(self) -> Generator[tuple[str, type[RuleBase]], None, None]:

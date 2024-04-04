@@ -75,12 +75,22 @@ export function isBreadcrumbFrame(
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
 }
 
+export function isFeedbackFrame(
+  frame: ReplayFrame | undefined
+): frame is BreadcrumbFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'feedback');
+}
+
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
   return Boolean(frame && 'op' in frame);
 }
 
 export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'issue');
+}
+
+export function isClickFrame(frame: ReplayFrame): frame is ClickFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'ui.click');
 }
 
 export function getFrameOpOrCategory(frame: ReplayFrame) {
@@ -182,9 +192,27 @@ type HydratedSpan<Op extends string> = Overwrite<
 
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
-  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
 >;
+
+export type FeedbackFrame = {
+  category: 'feedback';
+  data: {
+    eventId: string;
+    groupId: number;
+    groupShortId: string;
+    label: string;
+    labels: string[];
+    projectSlug: string;
+  };
+  message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
+  type: string;
+};
+
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
@@ -195,7 +223,6 @@ export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
-export type FeedbackOpenedFrame = HydratedBreadcrumb<'sentry.feedback'>;
 
 // This list must match each of the categories used in `HydratedBreadcrumb` above
 // and any app-specific types that we hydrate (ie: replay.init).
@@ -204,7 +231,6 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
-  'sentry.feedback',
   'ui.blur',
   'ui.click',
   'ui.focus',
