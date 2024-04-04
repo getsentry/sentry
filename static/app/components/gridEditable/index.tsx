@@ -130,7 +130,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
 };
 
 type GridEditableState = {
-  highlightedRowKey: number | undefined;
   numColumn: number;
 };
 
@@ -152,7 +151,6 @@ class GridEditable<
 
   state: GridEditableState = {
     numColumn: 0,
-    highlightedRowKey: undefined,
   };
 
   componentDidMount() {
