@@ -134,6 +134,26 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ).apply_transformer(self.query_transformer)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_no_formulas(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value, "transaction:/bar")
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1)
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        assert len(results["data"]) == 0
+        assert len(results["meta"]) == 0
+        assert results["start"] is None
+        assert results["end"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @pytest.mark.xfail
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.

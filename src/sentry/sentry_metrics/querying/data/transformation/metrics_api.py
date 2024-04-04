@@ -237,9 +237,15 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
         Returns:
             A mapping containing the data transformed in the correct format.
         """
-        # If we have not run any queries, we won't return anything back.
+        base_result = {
+            "data": [],
+            "meta": [],
+            "start": None,
+            "end": None,
+        }
+
         if not query_results:
-            return {}
+            return base_result
 
         # We first build intermediate results that we can work efficiently with.
         queries_groups, queries_meta = self._build_intermediate_results(query_results)
@@ -277,13 +283,10 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
         for query_meta in queries_meta:
             transformed_queries_meta.append([meta.meta for meta in query_meta])
 
-        base_result = {
-            "data": transformed_queries_groups,
-            "meta": transformed_queries_meta,
-            "start": start,
-            "end": end,
-        }
-
+        base_result["data"] = transformed_queries_groups
+        base_result["meta"] = transformed_queries_meta
+        base_result["start"] = start
+        base_result["end"] = end
         if intervals is not None:
             base_result["intervals"] = intervals
 
