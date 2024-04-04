@@ -66,9 +66,6 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code"]
 
-enable_error_code = ["possibly-undefined"]
-
-enable_error_code = ["possibly-undefined"]
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -655,3 +652,16 @@ module = [
 disallow_any_generics = true
 disallow_untyped_defs = true
 # end: stronger typing
+
+# begin: possibly-undefined checks for issue team critical code
+[[tool.mypy.overrides]]
+module = [
+  "sentry.issues.*",
+  "sentry.tasks.post_process",
+  "sentry.event_manager",
+  "sentry.grouping.*",
+  "sentry.tasks.store",
+  "sentry.ingest.consumer.processors"
+]
+enable_error_code = ["possibly-undefined"]
+# end: possibly-undefined
