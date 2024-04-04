@@ -7,9 +7,9 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry import models
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer, UserSerializerResponse
+from sentry.models.user import User
 from sentry.replays.validators import VALID_FIELD_SET
 
 # from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
@@ -223,7 +223,7 @@ def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[st
 def generate_viewed_by_response(
     replay_id: str,
     viewed_by_ids: list[int],
-    actor: models.User,
+    actor: User,
 ) -> ReplayViewedByResponse:
     """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
     global user_serializer
@@ -237,7 +237,7 @@ def generate_viewed_by_response(
     # )
 
     # method 2: api.serializers
-    users = models.User.objects.filter(id__in=viewed_by_ids)
+    users = User.objects.filter(id__in=viewed_by_ids)
     serialized_users = serialize(users, user=actor, serializer=user_serializer)
 
     return {

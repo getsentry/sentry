@@ -21,7 +21,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayViewedByResponse, generate_viewed_by_response
-from sentry.replays.query import query_replay_viewed_by_ids
+from sentry.replays.query import query_replay_project_ids, query_replay_viewed_by_ids
 from sentry.replays.tasks import publish_replay_viewed
 
 
@@ -44,9 +44,14 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, replay_id: str) -> Response:
         """
-        Returns list of User objects who have viewed a given replay.
+        Returns list of serialized User objects who have viewed a given replay.
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            replay_id = str(uuid.UUID(replay_id))
+        except ValueError:
             return Response(status=404)
 
         try:
@@ -58,11 +63,6 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
 
         # TODO: do we need this range filter?
         if not filter_params["start"] or not filter_params["end"]:
-            return Response(status=404)
-
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
             return Response(status=404)
 
         viewed_by_ids: list[int] = query_replay_viewed_by_ids(
@@ -81,7 +81,7 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
         return Response({"data": response}, status=200)
 
     @extend_schema(
-        operation_id="Mark a replay as viewed, by the authorized user",
+        operation_id="Signal the requesting user has viewed a replay",
         parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID],
         responses={
             200: RESPONSE_SUCCESS,
@@ -92,8 +92,15 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
         examples=None,
     )
     def post(self, request: Request, organization: Organization, replay_id: str) -> Response:
-
+        """
+        Publishes a replay_viewed event for Snuba processing.
+        """
         if not features.has("organizations:session-replay", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            replay_id = str(uuid.UUID(replay_id))
+        except ValueError:
             return Response(status=404)
 
         try:
@@ -103,14 +110,23 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response(status=404)
 
-        # query_replay_instance(
-        #     # TODO:
-        # )
+        # TODO: do we need this range filter?
+        if not filter_params["start"] or not filter_params["end"]:
+            return Response(status=404)
 
-        project_ids = filter_params["project_id"]
-        # TODO: find the project_id this replay belongs to
-        project_id = project_ids[0]
+        # TODO: are there more efficient ways to lookup or pass in the project_id, rather than a snuba query?
+        # If not, maybe put this query in the celery task?
+        project_ids = query_replay_project_ids(
+            replay_id=replay_id,
+            filter_project_ids=filter_params["project_id"],
+            start=filter_params["start"],
+            end=filter_params["end"],
+            organization=organization,
+        )
+        if not project_ids:
+            return Response(status=404)
 
         publish_replay_viewed.delay(
-            project_id=project_id, replay_id=replay_id, viewed_by_id=request.user.id
+            project_id=project_ids[0], replay_id=replay_id, viewed_by_id=request.user.id
         )
+        return Response(status=200)

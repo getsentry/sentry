@@ -100,14 +100,29 @@ def query_replay_instance(
 
 
 def query_replay_project_ids(
-    project_ids: list[int],
     replay_id: str,
+    filter_project_ids: list[int],
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
-):
-    # TODO:
-    pass
+) -> list[int]:
+    """
+    Query the project id(s) a replay belongs to.
+    `filter_project_ids` specifies the allowed projects for the requesting user.
+    """
+    agg_snuba_response = execute_query(
+        query=make_full_aggregation_query(
+            fields=["project_id"],
+            replay_ids=[replay_id],
+            project_ids=filter_project_ids,
+            period_start=start,
+            period_end=end,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.details_query",
+    )
+    snuba_response = agg_snuba_response["data"][0]
+    return snuba_response["project_id"]
 
 
 def query_replay_viewed_by_ids(
