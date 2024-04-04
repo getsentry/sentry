@@ -346,13 +346,10 @@ export class VideoReplayer {
       this.setBuffering(true);
     }
 
-    const playPromise = video.play();
-    await playPromise;
+    await video.play();
 
     // Buffering is over after play promise is resolved
     this.setBuffering(false);
-
-    return playPromise;
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
