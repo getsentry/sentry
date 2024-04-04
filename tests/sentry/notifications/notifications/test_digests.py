@@ -159,6 +159,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch.object(sentry, "digests")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_digest_notification(self, digests):
         """
         Test that with digests enabled, but Slack notification settings

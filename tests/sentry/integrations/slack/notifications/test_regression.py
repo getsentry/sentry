@@ -27,6 +27,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_regression(self):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -66,6 +67,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_regression_with_release(self):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -117,6 +119,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_regression_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
@@ -164,6 +167,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_regression_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type regresses

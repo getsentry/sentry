@@ -27,6 +27,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_unassignment(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
@@ -71,6 +72,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_unassignment_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is unassigned
@@ -118,6 +120,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_unassignment_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is unassigned

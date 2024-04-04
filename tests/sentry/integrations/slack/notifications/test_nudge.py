@@ -17,6 +17,7 @@ SEED = 0
 
 class SlackNudgeNotificationTest(SlackActivityNotificationTest):
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_nudge(self):
         notification = IntegrationNudgeNotification(
             self.organization,

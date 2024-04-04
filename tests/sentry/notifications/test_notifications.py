@@ -27,6 +27,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -116,7 +117,9 @@ class ActivityNotificationTest(APITestCase):
         self.short_id = self.group.qualified_short_id
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_note_notification(self):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when a comment is created on an issue.
@@ -153,7 +156,9 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_unassignment_notification(self):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
@@ -219,7 +224,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_resolution_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
@@ -270,7 +277,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_deployment_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when a release is deployed.
@@ -334,7 +343,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_regression_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue regresses.
@@ -398,7 +409,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_resolved_in_release_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved by a release.
@@ -463,7 +476,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_issue_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue comes in that triggers an alert rule.

@@ -1002,7 +1002,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_confirmation_notification_contents(self):
+        # TODO: make this a block kit test
         conditions = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
         ]

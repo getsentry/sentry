@@ -27,6 +27,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_note(self):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on an issue
@@ -77,6 +78,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_note_performance_issue(self):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on a performance issue
@@ -134,6 +136,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-block-kit": False})
     def test_note_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on a generic issue type
