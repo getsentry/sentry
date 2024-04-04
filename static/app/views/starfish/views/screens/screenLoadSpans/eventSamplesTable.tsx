@@ -20,7 +20,10 @@ import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {generateEventIDLinkTarget, generateEventSlug} from 'sentry/utils/discover/urls';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,7 +74,7 @@ export function EventSamplesTable({
     if (column.key === eventIdKey) {
       return (
         <Link
-          to={generateEventIDLinkTarget({
+          to={generateLinkToEventInTraceView({
             eventSlug: generateEventSlug({...row, id: row[eventIdKey]}),
             organization,
             location,
