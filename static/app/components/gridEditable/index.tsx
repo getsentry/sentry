@@ -105,12 +105,14 @@ type GridEditableProps<DataRow, ColumnKey> = {
   headerButtons?: () => React.ReactNode;
 
   height?: string | number;
+  highlightedRowKey?: number;
+
   isLoading?: boolean;
 
   minimumColWidth?: number;
 
-  onRowMouseOut?: (row: DataRow, event: React.MouseEvent) => void;
-  onRowMouseOver?: (row: DataRow, event: React.MouseEvent) => void;
+  onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
+  onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
 
   scrollable?: boolean;
   stickyHeader?: boolean;
@@ -376,7 +378,8 @@ class GridEditable<
   }
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
-    const {columnOrder, grid, onRowMouseOver, onRowMouseOut} = this.props;
+    const {columnOrder, grid, onRowMouseOver, onRowMouseOut, highlightedRowKey} =
+      this.props;
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
@@ -384,8 +387,9 @@ class GridEditable<
     return (
       <GridRow
         key={row}
-        onMouseOver={event => onRowMouseOver?.(dataRow, event)}
-        onMouseOut={event => onRowMouseOut?.(dataRow, event)}
+        onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
+        onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
+        isHighlighted={row === highlightedRowKey}
         data-test-id="grid-body-row"
       >
         {prependColumns?.map((item, i) => (
