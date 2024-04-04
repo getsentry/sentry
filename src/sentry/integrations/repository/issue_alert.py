@@ -65,7 +65,7 @@ class NewIssueAlertNotificationMessage(BaseNewNotificationMessage):
                 return RuleFireHistoryAndRuleActionUuidActionValidationError()
 
         # We can create a NotificationMessage if it has both, or neither, of rule fire history and action.
-        # The following is an XNOR check for incident and trigger
+        # The following is an XNOR check for rule fire history and action
         if (self.rule_fire_history_id is not None) != (self.rule_action_uuid is not None):
             return RuleFireHistoryAndRuleActionUuidActionValidationError()
 
