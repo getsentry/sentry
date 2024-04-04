@@ -2672,6 +2672,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     )
     @override_options({"issues.group_attributes.send_kafka": True})
     def test_snuba_query_title(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
         event1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "MyMessage"},
             project_id=self.project.id,
