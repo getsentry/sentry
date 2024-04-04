@@ -133,7 +133,8 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                             example_segment = segment[0]
                         produce_segment_to_kafka(segment)
 
-            txn.set_tag("sample_span", example_segment)
+            if example_segment:
+                txn.set_tag("sample_span", example_segment)
 
 
 def produce_segment(message: Message[ProduceSegmentContext | None]):

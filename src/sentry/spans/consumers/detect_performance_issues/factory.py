@@ -2,6 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -39,9 +40,12 @@ def _process_message(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
 
     try:
-        process_message(message)
+        with sentry_sdk.start_transaction(
+            op="process", name="spans.detect_performance_issues.process_message"
+        ):
+            process_message(message)
     except Exception:
-        logger.exception("Failed to process segment payload")
+        sentry_sdk.capture_exception()
 
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
