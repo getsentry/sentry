@@ -66,9 +66,7 @@ describe('WebVitalMeters', function () {
   });
 
   it('renders web vital meters with interaction to next paint', async () => {
-    const organizationWithInp = OrganizationFixture({
-      features: ['starfish-browser-webvitals-replace-fid-with-inp'],
-    });
+    const organizationWithInp = OrganizationFixture();
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     render(<WebVitalMeters projectData={projectData} projectScore={projectScore} />);
     await screen.findByText('Largest Contentful Paint');
