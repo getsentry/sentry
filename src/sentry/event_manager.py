@@ -1443,8 +1443,8 @@ def _save_aggregate(
             metrics.timer("event_manager.create_group_transaction") as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            span.set_tag("create_group_transaction.outcome", "wait_for_lock")
-            metric_tags["create_group_transaction.outcome"] = "wait_for_lock"
+            span.set_tag("outcome", "wait_for_lock")
+            metric_tags["outcome"] = "wait_for_lock"
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
@@ -1482,8 +1482,8 @@ def _save_aggregate(
                 is_new = True
                 is_regression = False
 
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metric_tags["create_group_transaction.outcome"] = "new_group"
+                span.set_tag("outcome", "new_group")
+                metric_tags["outcome"] = "new_group"
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
@@ -1768,8 +1768,8 @@ def create_group_with_grouphashes(
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
-        span.set_tag("create_group_transaction.outcome", "wait_for_lock")
-        metrics_timer_tags["create_group_transaction.outcome"] = "wait_for_lock"
+        span.set_tag("outcome", "wait_for_lock")
+        metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
         # attached. We thus want to create a new group, but we need to guard against another
@@ -1796,8 +1796,8 @@ def create_group_with_grouphashes(
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("create_group_transaction.outcome", "new_group")
-            metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
+            span.set_tag("outcome", "new_group")
+            metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
             group = _create_group(project, event, **group_processing_kwargs)
