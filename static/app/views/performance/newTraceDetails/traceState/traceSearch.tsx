@@ -17,13 +17,12 @@ export type TraceSearchAction =
   | {type: 'go to next match'}
   | {type: 'go to previous match'}
   | {
-      node: TraceTreeNode<TraceTree.NodeValue>;
       resultIndex: number;
       resultIteratorIndex: number;
-      type: 'set iterator index';
+      type: 'set search iterator index';
     }
   | {type: 'clear'}
-  | {type: 'clear iterator index'}
+  | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
       results: ReadonlyArray<TraceResult>;
@@ -153,7 +152,7 @@ export function traceSearchReducer(
       };
     }
 
-    case 'set iterator index': {
+    case 'set search iterator index': {
       return {
         ...state,
         resultIteratorIndex: action.resultIteratorIndex,
@@ -161,7 +160,7 @@ export function traceSearchReducer(
       };
     }
 
-    case 'clear iterator index':
+    case 'clear search iterator index':
       return {
         ...state,
         resultIteratorIndex: null,

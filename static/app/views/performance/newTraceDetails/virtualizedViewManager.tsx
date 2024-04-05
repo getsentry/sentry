@@ -1201,11 +1201,11 @@ export class VirtualizedViewManager {
     return scrollToRow();
   }
 
-  scrollToRow(index: number) {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.list) {
       return;
     }
-    this.list.scrollToRow(index);
+    this.list.scrollToRow(index, anchor);
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {

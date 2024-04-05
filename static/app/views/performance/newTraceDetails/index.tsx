@@ -363,10 +363,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     [traceDispatch]
   );
 
-  // Scrolls to the row but does not mark it as clicked
+  // Scrolls to row in trace view
   const onScrollRowIntoView = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>, index?: number) => {
-      if (!index) {
+    (node: TraceTreeNode<TraceTree.NodeValue>, index?: number, anchor?: 'top') => {
+      if (index === undefined) {
         index = tree.list.indexOf(node);
       }
 
@@ -375,7 +375,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         return;
       }
 
-      viewManager.scrollToRow(index);
+      viewManager.scrollToRow(index, anchor);
 
       const offset =
         node.depth >= (previouslyScrolledToNodeRef.current?.depth ?? 0)
@@ -391,6 +391,22 @@ function TraceViewContent(props: TraceViewContentProps) {
       viewManager.onScrollEndOutOfBoundsCheck();
     },
     [tree, viewManager]
+  );
+
+  const onTraceLoad = useCallback(
+    (
+      _trace: TraceTree,
+      node: TraceTreeNode<TraceTree.NodeValue> | null,
+      index: number | null
+    ) => {
+      // If the trace loaded with a node that we should scroll to,
+      // scroll to it and mark it as clicked
+      if (node && index) {
+        onScrollRowIntoView(node, index, 'top');
+        onRowClick(node, null, index);
+      }
+    },
+    [onRowClick, onScrollRowIntoView]
   );
 
   // Setup the middleware for the trace reducer
@@ -422,13 +438,12 @@ function TraceViewContent(props: TraceViewContentProps) {
           const idx = traceStateRef.current.search.resultsLookup.get(nextRovingNode)!;
 
           traceDispatch({
-            type: 'set iterator index',
+            type: 'set search iterator index',
             resultIndex: nextRovingTabIndex,
             resultIteratorIndex: idx,
-            node: nextRovingNode,
           });
         } else if (nextState.search.resultIteratorIndex !== null) {
-          traceDispatch({type: 'clear iterator index'});
+          traceDispatch({type: 'clear search iterator index'});
         }
       }
     };
@@ -520,7 +535,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_dispatch={traceDispatch}
             scrollQueueRef={scrollQueueRef}
             onRowClick={onRowClick}
-            onScrollToNode={onScrollRowIntoView}
+            onTraceLoad={onTraceLoad}
             onTraceSearch={onTraceSearch}
             previouslyFocusedNodeRef={previouslyFocusedNodeRef}
             manager={viewManager}

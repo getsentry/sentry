@@ -125,15 +125,7 @@ export function traceTabsReducer(
           tabs: [...state.tabs, state.last_clicked_tab],
         };
       }
-      // If it's not pinned, create a new tab and activate it
-      // console.log(
-      //   'Setting node',
-      //   isTransactionNode(tab.node)
-      //     ? tab.node.value.transaction
-      //     : isSpanNode(tab.node)
-      //       ? tab.node.value.op ?? 'Unknown'
-      //       : 'Unknown'
-      // );
+
       return {
         ...state,
         current_tab: tab,

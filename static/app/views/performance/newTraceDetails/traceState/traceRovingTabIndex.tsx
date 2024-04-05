@@ -40,7 +40,7 @@ export function traceRovingTabIndexReducer(
   }
 }
 
-export function getRovingIndexActionFromEvent(
+export function getRovingIndexActionFromDOMEvent(
   event: React.KeyboardEvent
 ): RovingTabIndexUserActions | null {
   // @TODO it would be trivial to extend this and support

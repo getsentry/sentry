@@ -25,7 +25,7 @@ import type {
   TraceReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState';
 import {
-  getRovingIndexActionFromEvent,
+  getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
 
@@ -121,7 +121,11 @@ interface TraceProps {
     event: React.MouseEvent<HTMLElement> | null,
     index: number | null
   ) => void;
-  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTraceLoad: (
+    trace: TraceTree,
+    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    index: number | null
+  ) => void;
   onTraceSearch: (query: string) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
@@ -143,7 +147,7 @@ export function Trace({
   scrollQueueRef,
   previouslyFocusedNodeRef,
   onTraceSearch,
-  onScrollToNode,
+  onTraceLoad,
   rerender,
   trace_state,
   trace_dispatch,
@@ -200,9 +204,7 @@ export function Trace({
     loadedRef.current = true;
 
     if (!scrollQueueRef.current) {
-      if (traceStateRef.current.search.query) {
-        onTraceSearch(traceStateRef.current.search.query);
-      }
+      onTraceLoad(trace, null, null);
       return;
     }
 
@@ -226,14 +228,11 @@ export function Trace({
 
     promise
       .then(maybeNode => {
+        onTraceLoad(trace, maybeNode?.node ?? null, maybeNode?.index ?? null);
+
         if (!maybeNode) {
           Sentry.captureMessage('Failled to find and scroll to node in tree');
           return;
-        }
-
-        onScrollToNode(maybeNode.node);
-        if (traceStateRef.current.search.query) {
-          onTraceSearch(traceStateRef.current.search.query);
         }
       })
       .finally(() => {
@@ -245,14 +244,13 @@ export function Trace({
       });
   }, [
     api,
-    scrollQueueRef,
-    trace_dispatch,
-    organization,
     trace,
     trace_id,
     manager,
-    onTraceSearch,
-    onScrollToNode,
+    onTraceLoad,
+    trace_dispatch,
+    scrollQueueRef,
+    organization,
   ]);
 
   const onNodeZoomIn = useCallback(
@@ -320,7 +318,7 @@ export function Trace({
       if (!manager.list) {
         return;
       }
-      const action = getRovingIndexActionFromEvent(event);
+      const action = getRovingIndexActionFromDOMEvent(event);
       if (action) {
         event.preventDefault();
         const nextIndex = computeNextIndexFromAction(
