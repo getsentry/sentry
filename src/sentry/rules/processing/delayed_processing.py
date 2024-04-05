@@ -14,12 +14,12 @@ PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 # TODO: Add redis buffer registry decorator
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
-    project_ids = buffer.get_list(PROJECT_ID_BUFFER_LIST_KEY)
+    project_ids = buffer.get_list(PROJECT_ID_BUFFER_LIST_KEY)  # type: ignore[attr-defined]
 
     project_mapping = Project.objects.in_bulk(set(project_ids))
 
     for project_id, project in project_mapping.items():
-        rulegroup_event_mapping: dict[str, int] = buffer.get_queue(Project, {id: project_id})
+        rulegroup_event_mapping: dict[str, int] = buffer.get_queue(Project, {id: project_id})  # type: ignore[attr-defined]
         safe_execute(
             apply_delayed,
             project,
