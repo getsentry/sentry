@@ -137,6 +137,7 @@ pycparser==2.21
 pydantic==1.10.9
 pyflakes==3.2.0
 pyjwt==2.4.0
+pylibmc==1.6.3
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1

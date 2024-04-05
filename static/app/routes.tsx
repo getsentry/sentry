@@ -1490,6 +1490,16 @@ function buildRoutes() {
     </Route>
   );
 
+  const aiAnalyticsRoutes = (
+    <Route
+      path="/ai-analytics/"
+      component={make(() => import('sentry/views/aiAnalytics'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -1522,6 +1532,13 @@ function buildRoutes() {
           path="domains/"
           component={make(
             () => import('sentry/views/performance/http/httpDomainSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path="cache/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/cache/cacheLandingPage')
           )}
         />
       </Route>
@@ -2151,6 +2168,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {aiAnalyticsRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

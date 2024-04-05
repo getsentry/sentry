@@ -8,6 +8,11 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -25,6 +30,7 @@ const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Keys =
   | 'transaction_id'
+  | 'span_id'
   | 'profile_id'
   | 'timestamp'
   | 'duration'
@@ -35,8 +41,8 @@ export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
 export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
-    key: 'transaction_id',
-    name: 'Event ID',
+    key: 'span_id',
+    name: 'Span ID',
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -57,6 +63,7 @@ type SpanTableRow = {
     id: string;
     'project.name': string;
     timestamp: string;
+    trace: string;
     'transaction.duration': number;
   };
 } & SpanSample;
@@ -119,15 +126,27 @@ export function SpanSamplesTable({
       onMouseEnter: () => handleMouseOverBodyCell(row),
     };
 
-    if (column.key === 'transaction_id') {
+    if (column.key === 'span_id') {
       return (
         <Link
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug({
+              id: row['transaction.id'],
+              project: row.project,
+            }),
+            organization,
+            location,
+            eventView: EventView.fromLocation(location),
+            dataRow: {
+              id: row['transaction.id'],
+              trace: row.transaction?.trace,
+              timestamp: row.timestamp,
+            },
+            spanId: row.span_id,
+          })}
           {...commonProps}
         >
-          {row['transaction.id'].slice(0, 8)}
+          {row.span_id}
         </Link>
       );
     }

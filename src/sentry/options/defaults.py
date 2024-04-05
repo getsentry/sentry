@@ -625,10 +625,17 @@ register(
 )
 
 # Enable use of Symbolicator proguard processing for specific projects.
-register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+register(
+    "symbolicator.proguard-processing-projects",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enable use of Symbolicator proguard processing for fraction of projects.
-register("symbolicator.proguard-processing-sample-rate", default=0.0)
-register("symbolicator.proguard-processing-ab-test", default=0.0)
+register(
+    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Post Process Error Hook Sampling
 register(
@@ -2334,6 +2341,11 @@ register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.detect-performance-issues-consumer.enable",
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

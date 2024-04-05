@@ -9,9 +9,11 @@ from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.conf.types.kafka_definition import Topic as TopicNames
+from sentry.event_manager import EventManager
 from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 
 def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
@@ -40,6 +42,7 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
 
+    bogus_payload = b"bogus message"
     empty_event_payload = msgpack.packb(
         {
             "type": "event",
@@ -49,11 +52,22 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
             "event_id": "aaa",
         }
     )
-    bogus_payload = b"bogus message"
+
+    em = EventManager({}, project=project)
+    em.normalize()  # hack to get a sample event
+    sample_event = dict(em.get_data())
+    unsupported_message_type_payload = msgpack.packb(
+        {
+            "type": "unsupported type",
+            "project_id": project.id,
+            "payload": json.dumps(sample_event).encode("utf-8"),
+            "start_time": int(time.time()),
+            "event_id": "aaa",
+        }
+    )
 
     partition = Partition(Topic(topic_name), 0)
     offset = 5
-
     factory = IngestStrategyFactory(
         consumer_type,
         reprocess_only_stuck_events=False,
@@ -65,19 +79,10 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     )
     strategy = factory.create_with_partitions(Mock(), Mock())
 
-    # Empty event raises InvalidMessage error (except for Attachments, which drops these in FilterStep)
-    if consumer_type != ConsumerType.Attachments:
+    for payload in [bogus_payload, empty_event_payload, unsupported_message_type_payload]:
         with pytest.raises(InvalidMessage) as exc_info:
-            message = make_message(empty_event_payload, partition, offset)
+            message = make_message(payload, partition, offset)
             strategy.submit(message)
 
         assert exc_info.value.partition == partition
         assert exc_info.value.offset == offset
-
-    # Invalid payload raises InvalidMessage error
-    with pytest.raises(InvalidMessage) as exc_info:
-        message = make_message(bogus_payload, partition, offset)
-        strategy.submit(message)
-
-    assert exc_info.value.partition == partition
-    assert exc_info.value.offset == offset

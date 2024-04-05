@@ -1527,6 +1527,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
+    # Enables category "metrics" in stats_v2 endpoint
+    "organizations:metrics-stats": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1889,7 +1891,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
-    "organizations:slack-block-kit": False,
+    "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
     # Use SNQL table join on weekly reports / daily summary
