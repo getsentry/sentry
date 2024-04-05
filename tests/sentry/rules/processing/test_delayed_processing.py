@@ -16,10 +16,6 @@ class ProcessDelayedAlertConditionsTest(TestCase):
     def test_fetches_from_buffer_and_executes(self, mock_safe_execute):
         self.project_two = self.create_project()
 
-        project_id_mapping = {
-            self.project.id: self.project,
-            self.project_two.id: self.project_two,
-        }
         rulegroup_event_mapping_one = {"1:1": 1, "2:2": 2}
         rulegroup_event_mapping_two = {"3:3": 3, "4:4": 4}
         self.buffer_mapping = {
@@ -35,8 +31,10 @@ class ProcessDelayedAlertConditionsTest(TestCase):
 
         process_delayed_alert_conditions(mock_buffer)
 
-        for project_id, rule_group_event_mapping in self.buffer_mapping.items():
-            project = project_id_mapping[project_id]
+        for project, rule_group_event_mapping in (
+            (self.project, rulegroup_event_mapping_one),
+            (self.project_two, rulegroup_event_mapping_two),
+        ):
             mock_safe_execute.assert_any_call(
                 apply_delayed,
                 project,
