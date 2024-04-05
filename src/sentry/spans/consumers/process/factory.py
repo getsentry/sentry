@@ -116,6 +116,8 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                 )
 
             sentry_sdk.set_measurement("segments.count", len(keys))
+            if len(keys) > 0:
+                txn.set_tag("sample_key", keys[0])
 
             example_segment = None
             total_spans_read = 0
