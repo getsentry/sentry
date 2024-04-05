@@ -37,6 +37,7 @@ MATCHERS = {
     "stack.package": "package",
     "stack.function": "function",
     "error.type": "type",
+    "type": "type",
     "error.value": "value",
     "error.mechanism": "mechanism",
     # fingerprinting shortened fields
