@@ -153,6 +153,7 @@ SPAN_COLUMN_MAP = {
     "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

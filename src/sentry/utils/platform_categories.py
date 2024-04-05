@@ -79,6 +79,7 @@ BACKEND = [
     "php-monolog",
     "php-symfony",
     "php",
+    "powershell",
     "python",
     "python-aiohttp",
     "python-asgi",
@@ -142,10 +143,15 @@ DESKTOP = [
     "unreal",
 ]
 
+# TODO: @athena Remove this
+# This is only temporary since we decide the right category. Don't add anything here or your frontend experience will be broken
+TEMPORARY = ["nintendo"]
+
 CATEGORY_LIST = [
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},
     {id: "server", "name": _("Server"), "platforms": BACKEND},
     {id: "mobile", "name": _("Mobile"), "platforms": MOBILE},
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
+    {id: "temporary", "name": _("Temporary"), "platforms": TEMPORARY},
 ]
