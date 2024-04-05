@@ -30,12 +30,17 @@ const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
 const getInstallProfilingSnippetPackageManager = () => `
-Install-Package Sentry.Profiling --prerelease`;
+Install-Package Sentry.Profiling`;
 
 const getInstallProfilingSnippetCoreCli = () => `
-dotnet add package Sentry.Profiling --prerelease`;
+dotnet add package Sentry.Profiling`;
 
-const getConfigureSnippet = (params: Params) => `
+enum DotNetPlatform {
+  WINDOWS_LINUX_MACOS,
+  IOS_MACCATALYST,
+}
+
+const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
 using Sentry;
 
 SentrySdk.Init(options =>
@@ -60,8 +65,10 @@ SentrySdk.Init(options =>
       params.isPerformanceSelected
         ? `
 
-    // This option will enable Sentry's tracing features. You still need to start transactions and spans.
-    options.EnableTracing = true;`
+    // Set TracesSampleRate to 1.0 to capture 100%
+    // of transactions for performance monitoring.
+    // We recommend adjusting this value in production.
+    options.TracesSampleRate = 1.0;`
         : ''
     }${
       params.isProfilingSelected
@@ -70,7 +77,9 @@ SentrySdk.Init(options =>
     // Sample rate for profiling, applied on top of othe TracesSampleRate,
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
-    options.ProfilesSampleRate = 1.0;
+    options.ProfilesSampleRate = 1.0;${
+      platform !== DotNetPlatform.IOS_MACCATALYST
+        ? `
 
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
@@ -78,6 +87,8 @@ SentrySdk.Init(options =>
         // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
+        : ''
+    }`
         : ''
     }
 });`;
@@ -158,7 +169,7 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: t(
-                  '.NET profiling alpha is available for Windows, Linux, MacOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
                 ),
               },
             ]
@@ -177,10 +188,27 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows/Linux/macOS',
+                  value: 'Windows/Linux/macOS',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS_LINUX_MACOS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],
