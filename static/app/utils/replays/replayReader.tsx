@@ -356,8 +356,16 @@ export default class ReplayReader {
 
   getStartOffsetMs = () => this._startOffsetMs;
 
-  getStartTimestampMs = () =>
-    this._replayRecord.started_at.getTime() + this._startOffsetMs;
+  getStartTimestampMs = () => {
+    // For video replays we bypass setting the global startOffsetMs
+    // But we still need that value here
+    const start =
+      this.isVideoReplay() && this._clipWindow
+        ? this._clipWindow?.startTimestampMs - this._replayRecord.started_at.getTime()
+        : this._startOffsetMs;
+
+    return this._replayRecord.started_at.getTime() + start;
+  };
 
   getReplay = () => {
     return this._replayRecord;
