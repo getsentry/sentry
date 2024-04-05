@@ -42,7 +42,8 @@ def _process_message(message: Message[KafkaPayload]):
     try:
         with sentry_sdk.start_transaction(
             op="process", name="spans.detect_performance_issues.process_message"
-        ):
+        ) as txn:
+            txn.set_measurement("message_size.bytes", len(message.payload.value))
             process_message(message)
     except Exception:
         sentry_sdk.capture_exception()

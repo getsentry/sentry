@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
@@ -84,14 +85,19 @@ class RedisSpansBuffer:
 
         ltrim_index = 0
         segment_keys = []
+        processed_segment_ts = None
         for result in results:
             segment_timestamp, segment_key = json.loads(result)
             if now - segment_timestamp < buffer_window:
                 break
 
+            processed_segment_ts = segment_timestamp
             ltrim_index += 1
             segment_keys.append(segment_key)
 
         self.client.ltrim(key, ltrim_index, -1)
+
+        sentry_sdk.set_tag("current_timestamp", now)
+        sentry_sdk.set_tag("segment_timestamp", processed_segment_ts)
 
         return segment_keys

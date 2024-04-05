@@ -60,11 +60,14 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         return None
 
     assert isinstance(message.value, BrokerValue)
+    metrics.incr("process_spans.spans.received.count")
 
     with sentry_sdk.start_transaction(op="process", name="spans.process.process_message") as txn:
         payload_value = message.payload.value
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
+
+        txn.set_tag("payload", payload_value)
 
         span = _deserialize_span(payload_value)
         segment_id = span["segment_id"]
@@ -72,7 +75,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
         txn.set_tag("trace.id", trace_id)
         txn.set_tag("segment.id", segment_id)
-        txn.set_tag("payload", payload_value)
+        txn.set_measurement("num_keys", len(span))
 
         client = RedisSpansBuffer()
 
@@ -89,7 +92,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
 def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
     try:
-        _process_message(message)
+        return _process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
 
