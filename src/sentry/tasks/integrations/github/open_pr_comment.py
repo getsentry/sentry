@@ -520,7 +520,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
-        if file_extension in ["php"]:
+        if file_extension == ["php"]:
             logger.info(
                 "github.open_pr_comment.php",
                 extra={
@@ -531,7 +531,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
-        if file_extension in ["rb"]:
+        if file_extension == ["rb"]:
             logger.info(
                 "github.open_pr_comment.ruby",
                 extra={
