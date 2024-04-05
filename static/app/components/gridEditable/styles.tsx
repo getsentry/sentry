@@ -180,17 +180,13 @@ export const GridBody = styled('tbody')`
   grid-column: 1/-1;
 `;
 
-export const GridRow = styled('tr')`
+export const GridRow = styled('tr')<{isHighlighted?: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
   &:not(thead > &) {
-    background-color: ${p => p.theme.background};
-
-    &.highlighted {
-      background-color: ${p => p.theme.gray100};
-    }
+    background-color: ${p => (p.isHighlighted ? p.theme.gray100 : p.theme.background)};
 
     &:not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.innerBorder};
