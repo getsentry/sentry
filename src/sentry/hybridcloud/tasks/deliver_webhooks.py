@@ -145,15 +145,15 @@ def drain_mailbox(payload_id: int) -> None:
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
         # task.
         if timezone.now() >= deadline:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+            )
             logger.info(
-                "deliver_webhook.delivery_deadline",
+                "drain_mailbox.delivery_deadline",
                 extra={
                     "mailbox_name": payload.mailbox_name,
                     "delivered": delivered,
                 },
-            )
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
             )
             break
 
@@ -175,13 +175,6 @@ def drain_mailbox(payload_id: int) -> None:
 
         # No more messages to deliver
         if batch_count < 1:
-            logger.info(
-                "deliver_webhook.delivery_complete",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "delivered": delivered,
-                },
-            )
             return
 
 
@@ -216,20 +209,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             },
         )
         return
-    logger.info(
-        "drain_mailbox_parallel.start",
-        extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
-    )
 
     # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
     # Once payloads are this old they are low value, and we're better off prioritizing new work.
     max_age = timezone.now() - MAX_DELIVERY_AGE
     if payload.date_added < max_age:
-        logger.info(
-            "drain_mailbox_parallel.max_age_start",
-            extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
-        )
-
         # We delete chunks of stale messages using a subquery
         # because postgres cannot do delete with limit
         stale_query = WebhookPayload.objects.filter(
@@ -283,14 +267,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 threadpool.submit(deliver_message_parallel, record)
                 for record in query[:worker_threads]
             }
-            logger.info(
-                "drain_mailbox_parallel.send_batch",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "count": len(futures),
-                    "threads": worker_threads,
-                },
-            )
             for future in as_completed(futures):
                 payload_record, err = future.result()
 
@@ -325,13 +301,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             # We didn't have any more messages to deliver.
             # Break out of this task so we can get a new one.
             if len(futures) < 1:
-                logger.info(
-                    "deliver_webhook_parallel.task_complete",
-                    extra={
-                        "mailbox_name": payload.mailbox_name,
-                        "delivered": delivered,
-                    },
-                )
                 break
 
         # If a delivery failed we should stop processing this mailbox and try again later.
@@ -388,7 +357,6 @@ def perform_request(payload: WebhookPayload) -> None:
             tags={"destination_region": region.name},
         ):
             logging_context["region"] = region.name
-            logging_context["request_method"] = payload.request_method
             logging_context["request_path"] = payload.request_path
 
             headers = json.loads(payload.request_headers)
