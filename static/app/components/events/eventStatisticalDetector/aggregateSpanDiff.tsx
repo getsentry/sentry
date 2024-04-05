@@ -112,7 +112,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     isLoading: isSpansDataLoading,
     isError: isSpansDataError,
   } = useSpanMetrics({
-    search: new MutableSearch(`transaction:${transaction} has:span.description`),
+    search: new MutableSearch(`transaction:${transaction} has:span.group`),
     fields: [
       'span.op',
       'span.description',
@@ -146,13 +146,17 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     return (
       data?.map(row => {
         if (isSpansOnly) {
+          const commonProps = {
+            operation: row['span.op'],
+            group: row['span.group'],
+            description: row['span.description'] || undefined,
+          };
+
           if (causeType === 'throughput') {
             const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
             const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
             return {
-              operation: row['span.op'],
-              group: row['span.group'],
-              description: row['span.description'],
+              ...commonProps,
               throughputBefore,
               throughputAfter,
               percentageChange: throughputAfter / throughputBefore - 1,
@@ -164,9 +168,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
           const durationAfter =
             row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
           return {
-            operation: row['span.op'],
-            group: row['span.group'],
-            description: row['span.description'],
+            ...commonProps,
             durationBefore,
             durationAfter,
             percentageChange: durationAfter / durationBefore - 1,
