@@ -92,6 +92,8 @@ type RegressionFunctions = [
   `epm_by_timestamp(${BreakpointCondition},${string})`,
 ][number];
 
+type SpanAnyFunction = `any(${string})`;
+
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
@@ -112,6 +114,8 @@ export type MetricsResponse = {
   ['project.id']: number;
 } & {
   [Function in RegressionFunctions]: number;
+} & {
+  [Function in SpanAnyFunction]: string;
 };
 
 export type MetricsFilters = {

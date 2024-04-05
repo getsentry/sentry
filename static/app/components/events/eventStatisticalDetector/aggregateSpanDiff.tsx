@@ -115,7 +115,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     search: new MutableSearch(`transaction:${transaction} has:span.group`),
     fields: [
       'span.op',
-      'span.description',
+      'any(span.description)',
       'span.group',
       `regression_score(span.self_time,${breakpoint})`,
       `avg_by_timestamp(span.self_time,less,${breakpoint})`,
@@ -149,7 +149,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
           const commonProps = {
             operation: row['span.op'],
             group: row['span.group'],
-            description: row['span.description'] || undefined,
+            description: row['any(span.description)'] || undefined,
           };
 
           if (causeType === 'throughput') {
