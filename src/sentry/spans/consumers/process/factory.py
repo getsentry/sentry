@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -67,7 +68,9 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        txn.set_tag("payload", payload_value)
+        if random.random() < 0.005:
+            sentry_sdk.set_context("payload", {"value": str(payload_value)})
+            txn.set_tag("has_payload", True)
 
         span = json.loads(payload_value)
         segment_id = span["segment_id"]
@@ -109,6 +112,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             op="process", name="spans.process.produce_segment"
         ) as txn:
             client = RedisSpansBuffer()
+            payload_context = {}
 
             with txn.start_child(op="process", description="fetch_unprocessed_segments"):
                 keys = client.get_unprocessed_segments_and_prune_bucket(
@@ -117,9 +121,9 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
 
             sentry_sdk.set_measurement("segments.count", len(keys))
             if len(keys) > 0:
-                txn.set_tag("sample_key", keys[0])
+                payload_context["sample_key"] = keys[0]
 
-            example_segment = None
+            sample_span = None
             total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
@@ -130,12 +134,15 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                     for segment in segments:
                         total_spans_read += len(segment)
                         if len(segment) > 0:
-                            example_segment = segment[0]
+                            sample_span = segment[0]
                         produce_segment_to_kafka(segment)
 
             metrics.incr("process_spans.spans.read.count", total_spans_read)
-            if example_segment:
-                txn.set_tag("sample_span", example_segment)
+            if sample_span and random.random() < 0.01:
+                txn.set_tag("has_payload", True)
+                payload_context["sample_span"] = str(sample_span)
+
+            sentry_sdk.set_context("payload", payload_context)
 
 
 def produce_segment(message: Message[ProduceSegmentContext | None]):

@@ -97,7 +97,7 @@ class RedisSpansBuffer:
 
         self.client.ltrim(key, ltrim_index, -1)
 
-        sentry_sdk.set_tag("current_timestamp", now)
-        sentry_sdk.set_tag("segment_timestamp", processed_segment_ts)
+        segment_context = {"current_timestamp": now, "segment_timestamp": processed_segment_ts}
+        sentry_sdk.set_context("processed_segment", segment_context)
 
         return segment_keys
