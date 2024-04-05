@@ -263,17 +263,22 @@ class IdOrSlugPathParamsEnabledTest(TestCase):
 
     @override_options({"api.id-or-slug-enabled": True})
     def test_ga_option_enabled(self):
-        assert id_or_slug_path_params_enabled(qual_name="TestEndpoint.convert_args")
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
+    def test_ea_endpoint_option_enabled(self):
+        assert not id_or_slug_path_params_enabled(convert_args_class="NotTestEndpoint.convert_args")
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
+    def test_ea_org_option_enabled(self):
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
 
     @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
     @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
-    def test_ea_org_option_enabled(self):
+    def test_ea_org_and_endpointoption_enabled(self):
         assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
         assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
         assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args", "not-sentry")
         assert id_or_slug_path_params_enabled("TestEndpoint.convert_args", "sentry")
-
-    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
-    def test_ea_endpoint_option_enabled(self):
-        assert not id_or_slug_path_params_enabled(qual_name="NotTestEndpoint.convert_args")
-        assert id_or_slug_path_params_enabled(qual_name="TestEndpoint.convert_args")

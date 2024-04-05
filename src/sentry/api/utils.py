@@ -482,7 +482,9 @@ class Timer:
             return time.time() - self._start
 
 
-def id_or_slug_path_params_enabled(qual_name: str, organization_slug: str | None = None) -> bool:
+def id_or_slug_path_params_enabled(
+    convert_args_class: str, organization_slug: str | None = None
+) -> bool:
     # GA option
     if options.get("api.id-or-slug-enabled"):
         return True
@@ -492,7 +494,7 @@ def id_or_slug_path_params_enabled(qual_name: str, organization_slug: str | None
         return False
 
     # EA option for endpoints where organization is not available
-    if qual_name in options.get("api.id-or-slug-enabled-ea-endpoints"):
+    if convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
         return True
 
     return False
