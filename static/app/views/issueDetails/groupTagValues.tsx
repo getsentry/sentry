@@ -188,7 +188,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
               >
                 {key === 'user' ? (
                   <UserBadge
-                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    user={{...tagValue, id: tagValue.identifier ?? tagValue.name}}
                     avatarSize={20}
                     hideEmail
                   />
