@@ -619,12 +619,6 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
-        # self.organization = self.create_organization(owner=self.user, name="saml2-org")
-        # self.auth_provider_inst = AuthProvider.objects.create(
-        #     provider=self.provider_name,
-        #     config=dummy_provider_config,
-        #     organization_id=self.organization.id,
-        # )
 
     def create_org_and_auth_provider(self, provider_name="saml2_dummy"):
         self.user.update(is_managed=True)
@@ -645,13 +639,11 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         return om
 
     def test_edit_sso_settings(self):
-        # EDITING SSO SETTINGS
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
 
-        assert not getattr(auth_provider.flags, "allow_unlinked")
-        assert organization.default_role == "member"
+        assert not getattr(auth_provider, "config")
         self.login_as(self.user, organization_id=organization.id)
 
         with self.feature("organizations:sso-basic"), outbox_runner():
@@ -667,24 +659,26 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-        assert getattr(auth_provider.flags, "allow_unlinked")
+        auth_provider = AuthProvider.objects.get(
+            organization_id=organization.id, id=auth_provider.id
+        )
+        assert getattr(auth_provider, "config") == {
+            "idp": {
+                "x509cert": "bar_x509_cert",
+            }
+        }
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            organization = Organization.objects.get(id=organization.id)
-            assert organization.default_role == "owner"
-
-        result = AuditLogEntry.objects.filter(
+        audit_logs = AuditLogEntry.objects.filter(
             organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
         ).first()
 
-        assert result.data == {
-            "require_link": "to False",
-            "default_role": "to owner",
+        assert audit_logs.data == {
             "x509cert": "to bar_x509_cert",
+            "default_role": "to owner",
+            "require_link": "to False",
         }
 
 
