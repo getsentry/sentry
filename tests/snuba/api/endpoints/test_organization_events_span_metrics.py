@@ -1351,6 +1351,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "any(span.description)",
                 ],
                 "query": "",
+                "orderby": ["transaction"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "statsPeriod": "1h",
@@ -1359,8 +1360,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
-            {"transaction": "foo", "any(span.description)": "a"},
             {"transaction": "bar", "any(span.description)": "a"},
+            {"transaction": "foo", "any(span.description)": "a"},
         ]
 
 
