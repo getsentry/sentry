@@ -118,11 +118,12 @@ def detect_performance_problems(
         if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with metrics.timer(
-                "performance.detect_performance_issue", sample_rate=0.01
-            ), sentry_sdk.start_span(
-                op="py.detect_performance_issue", description="none"
-            ) as sdk_span:
+            with (
+                metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
+                sentry_sdk.start_span(
+                    op="py.detect_performance_issue", description="none"
+                ) as sdk_span,
+            ):
                 return _detect_performance_problems(
                     data, sdk_span, project, is_standalone_spans=is_standalone_spans
                 )
@@ -493,7 +494,7 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {}
+        op_tags = {"is_standalone_spans": is_standalone_spans}
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True
