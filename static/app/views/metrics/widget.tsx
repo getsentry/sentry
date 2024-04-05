@@ -484,7 +484,7 @@ const MetricWidgetBody = memo(
         {limitedResults && (
           <LimitAlert type="warning" showIcon>
             {tct(
-              'Specified queries generate a large number of result groups. Only first [numOfGroups] are displayed.',
+              'Specified queries generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
               {numOfGroups: chartSeries.length}
             )}
           </LimitAlert>
