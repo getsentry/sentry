@@ -22,6 +22,7 @@ from sentry.monitors.models import (
     MonitorIncident,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.query import RangeQuerySetWrapper
@@ -35,7 +36,7 @@ NUM_CONSECUTIVE_BROKEN_CHECKINS = 4
 NUM_DAYS_BROKEN_PERIOD = 14
 
 # The number of days until a monitor env is auto-muted AFTER user has been notified it was broken
-NUM_DAYS_MUTED_PERIOD = 1
+NUM_DAYS_MUTED_PERIOD = 14
 
 # Max number of environments to have in the broken monitor email link
 MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
@@ -130,6 +131,9 @@ def detect_broken_monitor_envs():
         except Organization.DoesNotExist:
             continue
 
+        # Record how long it takes to process this org
+        org_process_start_time = django_timezone.now()
+
         # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
         user_broken_envs: dict[str, dict[str, Any]] = defaultdict(
             lambda: defaultdict(
@@ -153,6 +157,9 @@ def detect_broken_monitor_envs():
             order_by="starting_timestamp",
             step=1000,
         ):
+            # Record how long it takes to process this org's incident
+            org_incident_process_start_time = django_timezone.now()
+
             # Verify that the most recent check-ins have been failing
             recent_checkins = (
                 MonitorCheckIn.objects.filter(monitor_environment=open_incident.monitor_environment)
@@ -199,6 +206,15 @@ def detect_broken_monitor_envs():
                         user_muted_envs, user.user_email, open_incident, project, environment_name
                     )
 
+            metrics.timing(
+                "crons.detect_broken_monitor_org_incident_time",
+                django_timezone.now().timestamp() - org_incident_process_start_time.timestamp(),
+                tags={"incident": open_incident.id},
+            )
+
+        # Record how long it takes to send all emails for an org
+        org_email_sending_start_time = django_timezone.now()
+
         # After accumulating all users within the org and which monitors to email them, send the emails
         for user_email, broken_monitors in user_broken_envs.items():
             context = {
@@ -232,7 +248,19 @@ def detect_broken_monitor_envs():
             )
             message.send_async([user_email])
 
+        metrics.timing(
+            "crons.detect_broken_monitor_org_email_time",
+            django_timezone.now().timestamp() - org_email_sending_start_time.timestamp(),
+            tags={"org_id": org_id},
+        )
+
         # mark all open detections for this org as having had their email sent
         MonitorEnvBrokenDetection.objects.filter(
             monitor_incident__in=orgs_open_incidents, user_notified_timestamp=None
         ).update(user_notified_timestamp=django_timezone.now())
+
+        metrics.timing(
+            "crons.detect_broken_monitor_org_time",
+            django_timezone.now().timestamp() - org_process_start_time.timestamp(),
+            tags={"org_id": org_id},
+        )

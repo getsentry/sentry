@@ -1,23 +1,28 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
+import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   useResizableDrawer,
   type UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
+import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   getTraceTabTitle,
   type TraceTabsReducerAction,
@@ -27,8 +32,8 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 
 import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
 
-import NodeDetail from './tabs/details';
-import {TraceLevelDetails} from './tabs/trace';
+import {TraceDetails} from './tabs/trace';
+import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 27];
 
@@ -73,9 +78,33 @@ const LAYOUT_STORAGE: Partial<Record<TraceDrawerProps['layout'], number>> = {};
 
 export function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
+  const location = useLocation();
   const panelRef = useRef<HTMLDivElement>(null);
   const [minimized, setMinimized] = useState(
     Math.round(props.drawerSize) <= getDrawerMinSize(props.layout)
+  );
+
+  // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
+  // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
+  // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
+  const urlParams = pick(location.query, [
+    ...Object.values(PERFORMANCE_URL_PARAM),
+    'cursor',
+  ]);
+  const tagsQueryResults = useApiQuery<Tag[]>(
+    [
+      `/organizations/${props.organization.slug}/events-facets/`,
+      {
+        query: {
+          ...urlParams,
+          ...props.traceEventView.getFacetsAPIPayload(location),
+          cursor: undefined,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+    }
   );
 
   const minimizedRef = useRef(minimized);
@@ -293,17 +322,20 @@ export function TraceDrawer(props: TraceDrawerProps) {
       <Content layout={props.layout}>
         <ContentWrapper>
           {props.tabs.current ? (
-            props.tabs.current.node === 'Trace' ? (
-              <TraceLevelDetails
-                node={props.trace.root.children[0]}
+            props.tabs.current.node === 'trace' ? (
+              <TraceDetails
+                tagsQueryResults={tagsQueryResults}
                 tree={props.trace}
+                node={props.trace.root.children[0]}
                 rootEventResults={props.rootEventResults}
                 organization={props.organization}
                 traces={props.traces}
                 traceEventView={props.traceEventView}
               />
+            ) : props.tabs.current.node === 'vitals' ? (
+              <TraceVitals trace={props.trace} />
             ) : (
-              <NodeDetail
+              <TraceTreeNodeDetails
                 node={props.tabs.current.node}
                 organization={props.organization}
                 manager={props.manager}
@@ -334,19 +366,22 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
     const root = props.trace.root.children[0];
     return (
       <Tab
+        className={typeof props.tab.node === 'string' ? 'Static' : ''}
         active={props.tab === props.tabs.current}
         onClick={() => {
-          props.scrollToNode(root);
+          if (props.tab.node !== 'vitals') {
+            props.scrollToNode(root);
+          }
           props.tabsDispatch({type: 'activate tab', payload: props.index});
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'Trace' ? null : (
+        {props.tab.node === 'trace' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
         )}
-        <TabButton>{node}</TabButton>
+        <TabButton>{props.tab.label ?? props.tab.node}</TabButton>
       </Tab>
     );
   }
@@ -435,7 +470,7 @@ const TabsContainer = styled('ul')`
   width: 100%;
   align-items: center;
   justify-content: left;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   padding-left: 0;
   margin-bottom: 0;
 `;
@@ -463,6 +498,23 @@ const Tab = styled('li')<{active: boolean}>`
   align-items: center;
   border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : 'transparent')};
   padding: 0 ${space(0.25)};
+  position: relative;
+
+  &.Static + li:not(.Static) {
+    margin-left: ${space(2)};
+
+    &:after {
+      display: block;
+      content: '';
+      position: absolute;
+      left: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 72%;
+      width: 1px;
+      background-color: ${p => p.theme.border};
+    }
+  }
 
   &:hover {
     border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : p.theme.blue200)};
@@ -480,6 +532,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
   height: 12px;
   min-width: 12px;
   border-radius: 2px;
+  margin-right: ${space(0.25)};
   background-color: ${p => p.backgroundColor};
 `;
 
@@ -494,6 +547,7 @@ const TabButton = styled('button')`
 
   border-radius: 0;
   margin: 0;
+  padding: 0 ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   background: transparent;

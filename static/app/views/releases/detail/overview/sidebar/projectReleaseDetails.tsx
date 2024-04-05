@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';

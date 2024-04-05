@@ -1,12 +1,14 @@
 import datetime
 import pickle
+from collections import defaultdict
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import RedisBuffer
+from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
@@ -17,6 +19,14 @@ from sentry.utils.redis import (
     is_instance_rb_cluster,
     is_instance_redis_cluster,
 )
+
+
+def _hgetall_decode_keys(client, key, is_redis_cluster):
+    ret = client.hgetall(key)
+    if not is_redis_cluster:
+        return {k.decode(): v for k, v in ret.items()}
+    else:
+        return ret
 
 
 class TestRedisBuffer:
@@ -146,9 +156,7 @@ class TestRedisBuffer:
         filters = {"pk": 1, "datetime": now}
         key = self.buf._make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-        result = client.hgetall(key)
-        if not self.buf.is_redis_cluster:
-            result = {k.decode(): v for k, v in result.items()}
+        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
 
         f = result.pop("f")
         if self.buf.is_redis_cluster:
@@ -176,9 +184,7 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-        result = client.hgetall(key)
-        if not self.buf.is_redis_cluster:
-            result = {k.decode(): v for k, v in result.items()}
+        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now
@@ -247,6 +253,94 @@ class TestRedisBuffer:
 
         # Make sure we didn't queue up more
         assert len(process_pending.apply_async.mock_calls) == 2
+
+    def group_rule_data_by_project_id(self, buffer, project_ids):
+        project_ids_to_rule_data = defaultdict(list)
+        for proj_id in project_ids[0]:
+            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id})
+            for pair in rule_group_pairs:
+                for k, v in pair.items():
+                    if isinstance(k, bytes):
+                        k = k.decode("utf-8")
+                    if isinstance(v, bytes):
+                        v = v.decode("utf-8")
+                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+        return project_ids_to_rule_data
+
+    def test_enqueue(self):
+        PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
+        project_id = 1
+        rule_id = 2
+        group_id = 3
+        event_id = 4
+        group2_id = 5
+        event2_id = 6
+
+        project_id2 = 7
+        rule2_id = 8
+        group3_id = 9
+        event3_id = 10
+        event4_id = 11
+
+        # store the project ids
+        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+
+        # store the rules and group per project
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+            value=event_id,
+        )
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group2_id}",
+            value=event2_id,
+        )
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id2},
+            field=f"{rule2_id}:{group3_id}",
+            value=event3_id,
+        )
+
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert project_ids
+
+        project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
+        assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
+        assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
+            event2_id
+        )
+        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
+            event3_id
+        )
+
+        # overwrite the value to event4_id
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id2},
+            field=f"{rule2_id}:{group3_id}",
+            value=event4_id,
+        )
+
+        project_ids_to_rule_data = project_ids_to_rule_data = self.group_rule_data_by_project_id(
+            self.buf, project_ids
+        )
+        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
+            event4_id
+        )
+
+    def test_buffer_hook_registry(self):
+        """Test that we can add an event to the registry and that the callback is invoked"""
+        mock = Mock()
+        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+
+        redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.buf
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

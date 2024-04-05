@@ -294,6 +294,20 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "apitoken.save-hash-on-create",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the hashed value of User API tokens for lookups when logging in
+# and also updates tokens which are not hashed
+register(
+    "apitoken.use-and-update-hash-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "api.rate-limit.org-create",
@@ -611,9 +625,17 @@ register(
 )
 
 # Enable use of Symbolicator proguard processing for specific projects.
-register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+register(
+    "symbolicator.proguard-processing-projects",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enable use of Symbolicator proguard processing for fraction of projects.
-register("symbolicator.proguard-processing-sample-rate", default=0.0)
+register(
+    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Post Process Error Hook Sampling
 register(
@@ -764,15 +786,22 @@ register(
 
 register(
     "issues.severity.seer-project-rate-limit",
-    type=Int,
-    default=5,
+    type=Any,
+    default={"limit": 5, "window": 1},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.severity.seer-global-rate-limit",
-    type=Int,
-    default=25,
+    type=Any,
+    default={"limit": 20, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-circuit-breaker-passthrough-limit",
+    type=Dict,
+    default={"limit": 1, "window": 10},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -972,6 +1001,15 @@ register(
 register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# List of additional cardinality limits and selectors.
+#
+# ```
+# {
+#   "rollout_rate": 0.001,
+#   "limit": { .. Cardinality Limit .. }
+# }
+# ```
+register("relay.cardinality-limiter.limits", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.
@@ -1727,7 +1765,11 @@ register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMAT
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 register(
-    "hybrid_cloud.use_region_specific_upload_url", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "hybrid_cloud.use_region_specific_upload_url", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+register(
+    "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Retry controls
@@ -2299,6 +2341,11 @@ register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.detect-performance-issues-consumer.enable",
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

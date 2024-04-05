@@ -33,9 +33,18 @@ import type {
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
+import {
+  type DispatchingReducerMiddleware,
+  useDispatchingReducer,
+} from 'sentry/utils/useDispatchingReducer';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -50,18 +59,14 @@ import {
   searchInTraceTree,
   traceSearchReducer,
   type TraceSearchState,
-} from 'sentry/views/performance/newTraceDetails/traceSearch';
-import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearch';
+import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchInput';
 import {
   traceTabsReducer,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import {
-  cancelAnimationTimeout,
-  requestAnimationTimeout,
-} from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import Breadcrumb from '../breadcrumb';
 
 import {TraceDrawer} from './traceDrawer/traceDrawer';
@@ -140,8 +145,15 @@ export function TraceView() {
 }
 
 const TRACE_TAB: TraceTabsReducerState['tabs'][0] = {
-  node: 'Trace',
+  node: 'trace',
+  label: t('Trace'),
 };
+
+const VITALS_TAB: TraceTabsReducerState['tabs'][0] = {
+  node: 'vitals',
+  label: t('Vitals'),
+};
+
 const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
@@ -239,14 +251,12 @@ function TraceViewContent(props: TraceViewContentProps) {
     throw new Error('Invalid trace state');
   }, [props.traceSlug, props.trace, props.status, projects]);
 
-  const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
-    rovingTabIndexReducer,
-    {
+  const [rovingTabIndexState, rovingTabIndexDispatch, rovingTabIndexEventEmitter] =
+    useDispatchingReducer(rovingTabIndexReducer, {
       index: null,
       items: null,
       node: null,
-    }
-  );
+    });
 
   const rovingTabIndexStateRef = useRef<RovingTabIndexState>(rovingTabIndexState);
   rovingTabIndexStateRef.current = rovingTabIndexState;
@@ -258,7 +268,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       index: null,
       node: null,
     });
-  }, [tree.list.length]);
+  }, [tree.list.length, rovingTabIndexDispatch]);
 
   const initialQuery = useMemo((): string | undefined => {
     const query = qs.parse(location.search);
@@ -271,15 +281,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [searchState, searchDispatch] = useReducer(traceSearchReducer, {
-    query: initialQuery,
-    resultIteratorIndex: null,
-    resultIndex: null,
-    node: null,
-    results: null,
-    status: undefined,
-    resultsLookup: new Map(),
-  });
+  const [searchState, searchDispatch, searchStateEmitter] = useDispatchingReducer(
+    traceSearchReducer,
+    {
+      query: initialQuery,
+      resultIteratorIndex: null,
+      resultIndex: null,
+      node: null,
+      results: null,
+      status: undefined,
+      resultsLookup: new Map(),
+    }
+  );
 
   const searchStateRef = useRef<TraceSearchState>(searchState);
   searchStateRef.current = searchState;
@@ -289,6 +302,38 @@ function TraceViewContent(props: TraceViewContentProps) {
     current: STATIC_DRAWER_TABS[0] ?? null,
     last_clicked: null,
   });
+
+  const tabsStateRef = useRef<TraceTabsReducerState>(tabs);
+  tabsStateRef.current = tabs;
+
+  useLayoutEffect(() => {
+    if (tree.type !== 'trace') {
+      return;
+    }
+
+    const newTabs = [TRACE_TAB];
+
+    if (tree.vitals.size > 0) {
+      const types = Array.from(tree.vital_types.values());
+      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
+
+      newTabs.push({
+        ...VITALS_TAB,
+        label,
+      });
+    }
+
+    tabsDispatch({
+      type: 'initialize',
+      payload: {
+        current: tabs[0] ?? tabsStateRef?.current?.tabs?.[0],
+        tabs: newTabs,
+        last_clicked: null,
+      },
+    });
+    // We only want to update the tabs when the tree changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
 
   const onRowClick = useCallback(
     (
@@ -309,7 +354,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       tabsDispatch({type: 'activate tab', payload: node, pin_previous: event?.metaKey});
       maybeFocusRow();
     },
-    []
+    [tabsDispatch]
   );
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
@@ -364,7 +409,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         }
       );
     },
-    []
+    [rovingTabIndexDispatch, searchDispatch]
   );
 
   const onSearchChange = useCallback(
@@ -380,100 +425,87 @@ function TraceViewContent(props: TraceViewContentProps) {
       searchDispatch({type: 'set query', query: event.currentTarget.value});
       onTraceSearch(tree, event.currentTarget.value, previousNode);
     },
-    [onTraceSearch, tree]
+    [onTraceSearch, tree, searchDispatch]
   );
 
   const onSearchClear = useCallback(() => {
     searchDispatch({type: 'clear query'});
-  }, []);
+  }, [searchDispatch]);
 
-  const onSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    switch (event.key) {
-      case 'ArrowDown':
-        searchDispatch({type: 'go to next match'});
-        break;
-      case 'ArrowUp':
-        searchDispatch({type: 'go to previous match'});
-        break;
-      case 'Enter':
-        searchDispatch({
-          type: event.shiftKey ? 'go to previous match' : 'go to next match',
-        });
-        break;
-      default:
-    }
-  }, []);
+  const onSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      switch (event.key) {
+        case 'ArrowDown':
+          searchDispatch({type: 'go to next match'});
+          break;
+        case 'ArrowUp':
+          searchDispatch({type: 'go to previous match'});
+          break;
+        case 'Enter':
+          searchDispatch({
+            type: event.shiftKey ? 'go to previous match' : 'go to next match',
+          });
+          break;
+        default:
+      }
+    },
+    [searchDispatch]
+  );
 
   const onNextSearchClick = useCallback(() => {
     searchDispatch({type: 'go to next match'});
-  }, []);
+  }, [searchDispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
     searchDispatch({type: 'go to previous match'});
-  }, []);
+  }, [searchDispatch]);
 
-  // This should be performed synchronously when reducer actions are dispatched
-  useLayoutEffect(() => {
-    if (searchState.node && typeof searchStateRef.current.resultIndex === 'number') {
-      if (
-        previouslyFocusedNodeRef.current === searchState.node ||
-        previouslyScrolledToNodeRef.current === searchState.node
-      ) {
-        return;
-      }
-
-      onRowClick(searchState.node, null);
-      viewManager.scrollToRow(searchStateRef.current.resultIndex);
+  const scrollRowIntoView = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>, index: number) => {
+      onRowClick(node, null);
+      viewManager.scrollToRow(index);
 
       const offset =
-        searchState.node.depth >= (previouslyScrolledToNodeRef.current?.depth ?? 0)
+        node.depth >= (previouslyScrolledToNodeRef.current?.depth ?? 0)
           ? viewManager.trace_physical_space.width / 2
           : 0;
 
-      previouslyScrolledToNodeRef.current = searchState.node;
+      previouslyScrolledToNodeRef.current = node;
 
-      if (viewManager.isOutsideOfViewOnKeyDown(searchState.node, offset)) {
-        viewManager.scrollRowIntoViewHorizontally(
-          searchState.node,
-          0,
-          offset,
-          'measured'
-        );
+      if (viewManager.isOutsideOfViewOnKeyDown(node, offset)) {
+        viewManager.scrollRowIntoViewHorizontally(node, 0, offset, 'measured');
       }
-    }
-  }, [searchState.node, viewManager, onRowClick]);
+    },
+    [viewManager, onRowClick]
+  );
 
-  // This should be performed synchronously when reducer actions are dispatched
   useLayoutEffect(() => {
-    if (
-      rovingTabIndexState.node &&
-      typeof rovingTabIndexStateRef.current.index === 'number'
-    ) {
-      if (previouslyScrolledToNodeRef.current === rovingTabIndexState.node) {
-        return;
+    const beforeRovingStateChange: DispatchingReducerMiddleware<
+      typeof rovingTabIndexReducer
+    >['before next state'] = (prevState, nextState) => {
+      const {node, index} = nextState;
+      if (node && typeof index === 'number' && prevState.node !== node) {
+        scrollRowIntoView(node, index);
       }
+    };
 
-      onRowClick(rovingTabIndexState.node, null);
-      viewManager.scrollToRow(rovingTabIndexStateRef.current.index);
-
-      const offset =
-        rovingTabIndexState.node.depth >=
-        (previouslyScrolledToNodeRef.current?.depth ?? 0)
-          ? viewManager.trace_physical_space.width / 2
-          : 0;
-
-      previouslyScrolledToNodeRef.current = rovingTabIndexState.node;
-
-      if (viewManager.isOutsideOfViewOnKeyDown(rovingTabIndexState.node, offset)) {
-        viewManager.scrollRowIntoViewHorizontally(
-          rovingTabIndexState.node,
-          0,
-          offset,
-          'measured'
-        );
+    const beforeSearchStateChange: DispatchingReducerMiddleware<
+      typeof traceSearchReducer
+    >['before next state'] = (prevState, nextState) => {
+      const {node, resultIndex} = nextState;
+      if (node && typeof resultIndex === 'number' && prevState.node !== node) {
+        scrollRowIntoView(node, resultIndex);
       }
-    }
-  }, [rovingTabIndexState.node, viewManager, onRowClick]);
+    };
+
+    rovingTabIndexEventEmitter.on('before next state', beforeRovingStateChange);
+    searchStateEmitter.on('before next state', beforeSearchStateChange);
+
+    return () => {
+      rovingTabIndexEventEmitter.off('before next state', beforeRovingStateChange);
+      searchStateEmitter.off('before next state', beforeSearchStateChange);
+    };
+  }, [rovingTabIndexEventEmitter, searchStateEmitter, scrollRowIntoView]);
 
   const syncQuery = useMemo(() => {
     return {search: searchState.query};
@@ -500,8 +532,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       query: queryParamsWithoutNode,
     });
 
+    tabsDispatch({type: 'clear clicked tab'});
+    rovingTabIndexDispatch({type: 'clear index'});
+    searchDispatch({type: 'clear node'});
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tree]);
 
   const traceContainerRef = useRef<HTMLElement | null>(null);
   useOnClickOutside(traceContainerRef, onOutsideClick);
@@ -540,7 +576,15 @@ function TraceViewContent(props: TraceViewContentProps) {
           return maybeNode;
         });
     },
-    [api, props.organization, tree, viewManager, searchState, onTraceSearch]
+    [
+      api,
+      props.organization,
+      tree,
+      viewManager,
+      searchState,
+      onTraceSearch,
+      rovingTabIndexDispatch,
+    ]
   );
 
   const onLayoutChange = useCallback(
@@ -601,7 +645,22 @@ function TraceViewContent(props: TraceViewContentProps) {
           return;
         }
 
-        viewManager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
+        const offset =
+          maybeNode.node.depth >= (previouslyScrolledToNodeRef.current?.depth ?? 0)
+            ? viewManager.trace_physical_space.width / 2
+            : 0;
+
+        previouslyScrolledToNodeRef.current = maybeNode.node;
+
+        if (viewManager.isOutsideOfViewOnKeyDown(maybeNode.node, offset)) {
+          viewManager.scrollRowIntoViewHorizontally(
+            maybeNode.node,
+            0,
+            offset,
+            'measured'
+          );
+        }
+
         if (maybeNode.node.space) {
           viewManager.animateViewTo(maybeNode.node.space);
         }
@@ -609,6 +668,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     },
     [scrollToNode, viewManager]
   );
+
+  const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
 
   return (
     <TraceExternalLayout>
@@ -663,15 +724,15 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             previouslyFocusedNodeRef={previouslyFocusedNodeRef}
             manager={viewManager}
+            forceRerender={forceRender}
+            rerender={rerender}
           />
 
-          {tree.type === 'loading' ? (
-            <TraceLoading />
-          ) : tree.type === 'error' ? (
+          {tree.type === 'error' ? (
             <TraceError />
           ) : tree.type === 'empty' ? (
             <TraceEmpty />
-          ) : scrollQueueRef.current ? (
+          ) : tree.type === 'loading' || scrollQueueRef.current ? (
             <TraceLoading />
           ) : null}
 

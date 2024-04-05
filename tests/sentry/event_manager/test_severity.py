@@ -4,12 +4,14 @@ import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.core.cache import cache
 from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
 
 from sentry import options
 from sentry.event_manager import (
     NON_TITLE_EVENT_TITLES,
+    SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
     severity_connection_pool,
@@ -86,6 +88,7 @@ class TestGetEventSeverity(TestCase):
         )
         assert severity == 0.1231
         assert reason == "ml"
+        assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -133,6 +136,7 @@ class TestGetEventSeverity(TestCase):
             )
             assert severity == 0.1231
             assert reason == "ml"
+            assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -270,6 +274,7 @@ class TestGetEventSeverity(TestCase):
         )
         assert severity == 1.0
         assert reason == "microservice_max_retry"
+        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -314,6 +319,7 @@ class TestGetEventSeverity(TestCase):
         )
         assert severity == 1.0
         assert reason == "microservice_error"
+        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
 
 @apply_feature_flag_on_cls("projects:first-event-severity-calculation")
@@ -426,4 +432,5 @@ class TestEventManagerSeverity(TestCase):
 
         assert event.group
         assert "severity" not in event.group.get_event_metadata()
+        assert cache.get(SEER_ERROR_COUNT_KEY) is None
         assert mock_get_severity_score.call_count == 0

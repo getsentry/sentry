@@ -103,22 +103,16 @@ export function MockTimelineVisualization({schedule}: Props) {
         <Fragment>
           <StyledGridLineTimeLabels
             timeWindowConfig={timeWindowConfig}
-            start={start}
-            end={end}
             width={timelineWidth}
           />
           <StyledGridLineOverlay
             showCursor={!isLoading}
             timeWindowConfig={timeWindowConfig}
-            start={start}
-            end={end}
             width={timelineWidth}
           />
           <MockCheckInTimeline
             width={timelineWidth}
             mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
-            start={start}
-            end={end}
             timeWindowConfig={timeWindowConfig}
           />
         </Fragment>

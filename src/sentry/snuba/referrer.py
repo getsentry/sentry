@@ -344,11 +344,15 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS = (
+        "api.performance.transactions.statistical-detector-root-cause-analysis"
+    )
     API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
         "api.performance.transactions.statistical-detector-stats"
     )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
+    API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"

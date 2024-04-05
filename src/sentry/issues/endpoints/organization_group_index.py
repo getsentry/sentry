@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
@@ -45,6 +46,17 @@ from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
+
+
+# these filters are currently not supported in the snuba only search
+# and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
+UNSUPPORTED_SNUBA_FILTERS = [
+    "bookmarked_by",
+    "linked",
+    "subscribed_by",
+    "regressed_in_release",
+    "issue.priority",
+]
 
 
 def inbox_search(
@@ -165,10 +177,32 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
+
+                def use_group_snuba_dataset():
+                    # if useGroupSnubaDataset we consider using the snuba dataset
+                    if not request.GET.get("useGroupSnubaDataset"):
+                        return False
+                    # haven't migrated trends
+                    if query_kwargs["sort_by"] == "trends":
+                        return False
+                    # check for unsupported snuba filters
+                    return (
+                        len(
+                            list(
+                                filter(
+                                    lambda x: x.key.name in UNSUPPORTED_SNUBA_FILTERS,
+                                    query_kwargs.get("search_filters", []),
+                                )
+                            )
+                        )
+                        == 0
+                    )
+
                 query_kwargs["referrer"] = "search.group_index"
-                # optional argument to use the group snuba dataset
-                if request.GET.get("useGroupSnubaDataset"):
-                    query_kwargs["use_group_snuba_dataset"] = True
+                query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()
+                sentry_sdk.set_tag(
+                    "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
+                )
 
                 result = search.query(**query_kwargs)
             return result, query_kwargs

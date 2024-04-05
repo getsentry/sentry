@@ -31,6 +31,7 @@ import {
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
+import {IconRobot} from 'sentry/icons/iconRobot';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -51,7 +52,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_TITLE as CACHE_MODULE_TITLE,
+  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
+} from 'sentry/views/performance/cache/settings';
+import {
+  MODULE_TITLE as HTTP_MODULE_TITLE,
+  releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
+} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -240,7 +248,9 @@ function Sidebar() {
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
           organization.features.includes('performance-screens-view') ||
-          organization.features.includes('performance-http-view')
+          organization.features.includes('performance-http-view') ||
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('starfish-browser-resource-module-ui')
         ) {
           return (
             <SidebarAccordion
@@ -268,11 +278,29 @@ function Sidebar() {
               <Feature features="performance-http-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
+                  label={
+                    <GuideAnchor target="performance-http">
+                      {HTTP_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
                   {...HTTPModuleBadgeProps}
+                />
+              </Feature>
+              <Feature features="performance-cache-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-cache">
+                      {CACHE_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  id="performance-cache"
+                  icon={<SubitemDot collapsed />}
+                  {...CacheModuleBadgeProps}
                 />
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
@@ -377,6 +405,20 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
+  );
+
+  const aiAnalytics = hasOrganization && (
+    <Feature features="ai-analytics" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconRobot />}
+        label={t('AI Analytics')}
+        isAlpha
+        variant="short"
+        to={`/organizations/${organization.slug}/ai-analytics/`}
+        id="ai-analytics"
+      />
+    </Feature>
   );
 
   const userFeedback = hasOrganization && (
@@ -544,6 +586,7 @@ function Sidebar() {
                 {profiling}
                 {metrics}
                 {replays}
+                {aiAnalytics}
                 {feedback}
                 {monitors}
                 {alerts}
@@ -723,7 +766,7 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
-    border-bottom: 1px solid ${p => p.theme.gray400};
+    border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
@@ -732,7 +775,7 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.gray400};
+    border-right: 1px solid ${p => p.theme.sidebarBorder};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;

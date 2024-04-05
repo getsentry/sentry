@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,4 +18,13 @@ class RelatedIssuesEndpoint(GroupEndpoint):
 
     def get(self, _: Request, group: Group) -> Response:
         related_issues = find_related_issues(group)
-        return Response({key: [g.id for g in groups] for key, groups in related_issues.items()})
+        # Backward compatible for UI
+        response: dict[str, Any] = {
+            related_set["type"]: [int(g.id) for g in related_set["data"]]
+            for related_set in related_issues
+        }
+        response["data"] = [
+            {"type": related_set["type"], "data": [int(g.id) for g in related_set["data"]]}
+            for related_set in related_issues
+        ]
+        return Response(response)

@@ -9,22 +9,19 @@ import {
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {SortSelector} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
-import {useMonitorTimes} from 'sentry/views/monitors/utils/useMonitorDates';
 
+import {GridLineOverlay, GridLineTimeLabels} from './gridLines';
+import {SortSelector} from './sortSelector';
 import {TimelineTableRow} from './timelineTableRow';
-import type {MonitorBucketData} from './types';
+import {useMonitorStats} from './useMonitorStats';
+import {useTimeWindowConfig} from './useTimeWindowConfig';
 
 interface Props {
   monitorList: Monitor[];
@@ -40,25 +37,12 @@ export function OverviewTimeline({monitorList}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {dates, selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          monitor: monitorList.map(m => m.id),
-          ...selectionQuery,
-          ...location.query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: timelineWidth > 0,
-    }
-  );
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: monitorList.map(m => m.id),
+    timeWindowConfig,
+  });
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
@@ -141,20 +125,13 @@ export function OverviewTimeline({monitorList}: Props) {
         <HeaderControls>
           <SortSelector size="xs" />
         </HeaderControls>
-        <GridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          start={dates.start}
-          end={dates.end}
-          width={timelineWidth}
-        />
+        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
       </Header>
       <GridLineOverlay
         stickyCursor
         allowZoom
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        start={dates.start}
-        end={dates.end}
         width={timelineWidth}
       />
 
@@ -164,8 +141,6 @@ export function OverviewTimeline({monitorList}: Props) {
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
           bucketedData={monitorStats?.[monitor.id]}
-          start={dates.start}
-          end={dates.end}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
           onToggleMuteEnvironment={(env, isMuted) =>
