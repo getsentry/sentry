@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -67,7 +68,9 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        sentry_sdk.set_context("payload", {"value": str(payload_value)})
+        if random.random() < 0.005:
+            sentry_sdk.set_context("payload", {"value": str(payload_value)})
+            txn.set_tag("has_payload", True)
 
         span = _deserialize_span(payload_value)
         segment_id = span["segment_id"]
@@ -135,7 +138,8 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                         produce_segment_to_kafka(segment)
 
             metrics.incr("process_spans.spans.read.count", total_spans_read)
-            if sample_span:
+            if sample_span and random.random() < 0.01:
+                txn.set_tag("has_payload", True)
                 payload_context["sample_span"] = str(sample_span)
 
             sentry_sdk.set_context("payload", payload_context)
