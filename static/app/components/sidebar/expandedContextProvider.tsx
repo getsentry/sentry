@@ -6,17 +6,18 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useMedia from 'sentry/utils/useMedia';
 
 export const ExpandedContext = createContext<{
-  openMainItemId: string | null;
-  setOpenMainItem: (mainItemId: string | null) => void;
+  expandedItemId: string | null;
+  setExpandedItemId: (mainItemId: string | null) => void;
   shouldAccordionFloat: boolean;
 }>({
-  openMainItemId: null,
-  setOpenMainItem: () => {},
+  expandedItemId: null,
+  setExpandedItemId: () => {},
   shouldAccordionFloat: false,
 });
 
+// Provides the expanded context to the sidebar accordion when it's in the floating state only (collapsed sidebar or on mobile view)
 export function ExpandedContextProvider(props) {
-  const [openMainItemId, setOpenMainItem] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const theme = useTheme();
   const preferences = useLegacyStore(PreferencesStore);
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -24,7 +25,7 @@ export function ExpandedContextProvider(props) {
 
   return (
     <ExpandedContext.Provider
-      value={{openMainItemId, setOpenMainItem, shouldAccordionFloat}}
+      value={{expandedItemId, setExpandedItemId, shouldAccordionFloat}}
     >
       {props.children}
     </ExpandedContext.Provider>

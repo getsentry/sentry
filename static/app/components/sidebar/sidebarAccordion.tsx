@@ -34,7 +34,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
   const accordionRef = useRef<HTMLDivElement>(null);
   const floatingSidebarRef = useRef<HTMLDivElement>(null);
-  const {openMainItemId, setOpenMainItem} = useContext(ExpandedContext);
+  const {expandedItemId, setExpandedItemId} = useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const router = useRouter();
@@ -43,12 +43,12 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     true
   );
   useOnClickOutside(floatingSidebarRef, () => {
-    setOpenMainItem(null);
+    setExpandedItemId(null);
   });
 
   const mainItemId = `sidebar-accordion-${id}-item`;
   const contentId = `sidebar-accordion-${id}-content`;
-  const isOpenInFloatingSidebar = openMainItemId === mainItemId;
+  const isOpenInFloatingSidebar = expandedItemId === mainItemId;
 
   const isActive = isItemActive(itemProps);
 
@@ -77,22 +77,22 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
   ) => {
     if ((!horizontal && !sidebarCollapsed) || !children) {
-      setOpenMainItem(null);
+      setExpandedItemId(null);
       return;
     }
 
     e.preventDefault();
     if (isOpenInFloatingSidebar) {
-      setOpenMainItem(null);
+      setExpandedItemId(null);
     } else {
-      setOpenMainItem(mainItemId);
+      setExpandedItemId(mainItemId);
     }
   };
 
   const handleTitleClick: MouseEventHandler<HTMLDivElement> = () => {
     if (itemProps.to) {
       router.push(itemProps.to);
-      setOpenMainItem(null);
+      setExpandedItemId(null);
     }
   };
 

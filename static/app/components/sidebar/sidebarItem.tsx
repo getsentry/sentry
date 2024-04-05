@@ -134,7 +134,7 @@ function SidebarItem({
   isNested,
   ...props
 }: SidebarItemProps) {
-  const {setOpenMainItem, shouldAccordionFloat} = useContext(ExpandedContext);
+  const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -178,13 +178,13 @@ function SidebarItem({
 
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
-      setOpenMainItem(null);
+      setExpandedItemId(null);
       !(to || href) && event.preventDefault();
       recordAnalytics();
       onClick?.(id, event);
       showIsNew && localStorage.setItem(isNewSeenKey, 'true');
     },
-    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setOpenMainItem]
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
 
   const isInFloatingSidebar = isNested && shouldAccordionFloat;
