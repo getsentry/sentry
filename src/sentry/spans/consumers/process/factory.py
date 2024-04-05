@@ -16,7 +16,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.produce_segment import produce_segment_to_kafka
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
         txn.set_tag("payload", payload_value)
 
-        span = _deserialize_span(payload_value)
+        span = json.loads(payload_value)
         segment_id = span["segment_id"]
         trace_id = span["trace_id"]
 
