@@ -1490,6 +1490,16 @@ function buildRoutes() {
     </Route>
   );
 
+  const aiAnalyticsRoutes = (
+    <Route
+      path="/ai-analytics/"
+      component={make(() => import('sentry/views/aiAnalytics'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -2151,6 +2161,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {aiAnalyticsRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

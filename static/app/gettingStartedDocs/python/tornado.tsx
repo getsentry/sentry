@@ -41,7 +41,7 @@ const onboarding: OnboardingConfig = {
     tct('The Tornado integration adds support for the [link:Tornado Web Framework].', {
       link: <ExternalLink href="https://www.tornadoweb.org/en/stable/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -53,6 +53,15 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                {
+                  codeVersion: <code />,
+                  codePackage: <code />,
+                }
+              )
+            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
