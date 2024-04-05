@@ -24,6 +24,8 @@ def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()
     end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
     start = kwargs.get("start", now - timedelta(days=1))
+    # Filter for user reports where there was no event associated with them at
+    # ingestion time
     user_reports = UserReport.objects.filter(
         group_id__isnull=True,
         environment_id__isnull=True,
