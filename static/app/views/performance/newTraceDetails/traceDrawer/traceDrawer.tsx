@@ -56,7 +56,7 @@ type TraceDrawerProps = {
 function getUninitializedDrawerSize(layout: TraceDrawerProps['layout']): number {
   return layout === 'drawer bottom'
     ? // 36 of the screen height
-      Math.max(window.innerHeight * 0.36)
+      Math.max(window.innerHeight * 0.36, MIN_TRACE_DRAWER_DIMENSTIONS[1])
     : // Half the screen minus the ~sidebar width
       Math.max(window.innerWidth * 0.5 - 220, MIN_TRACE_DRAWER_DIMENSTIONS[0]);
 }
@@ -132,10 +132,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
         } else if (minimizedRef.current && newSize > min) {
           setMinimized(false);
         }
-      }
-
-      if (minimizedRef.current) {
-        newSize = min;
+      } else {
+        setMinimized(newSize <= min);
       }
 
       onDrawerResize(newSize);
