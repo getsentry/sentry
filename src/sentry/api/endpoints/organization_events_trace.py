@@ -672,11 +672,21 @@ def augment_transactions_with_spans(
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
     if len(query_spans) > 100:
         list_spans = list(query_spans)
-        chunks = [
-            list_spans[: len(list_spans) // 3],
-            list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
-            list_spans[len(list_spans) // 3 * 2 :],
-        ]
+        if len(query_spans) < 7_500:
+            chunks = [
+                list_spans[: len(list_spans) // 3],
+                list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
+                list_spans[len(list_spans) // 3 * 2 :],
+            ]
+        # We're hitting the query size limit, lets do 5 queries for now so we dont hit parallel queries limit
+        else:
+            chunks = [
+                list_spans[: len(list_spans) // 5],
+                list_spans[len(list_spans) // 5 : len(list_spans) // 5 * 2],
+                list_spans[len(list_spans) // 5 * 2 : len(list_spans) // 5 * 3],
+                list_spans[len(list_spans) // 5 * 3 : len(list_spans) // 5 * 4],
+                list_spans[len(list_spans) // 5 * 4 :],
+            ]
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
         results = bulk_snql_query(
             [query.get_snql_query() for query in queries],
