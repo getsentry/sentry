@@ -27,7 +27,7 @@ import {
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
-import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -159,7 +159,7 @@ export function HTTPDomainSummaryPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'HTTP',
+                label: MODULE_TITLE,
                 to: normalizeUrl(`/organizations/${organization.slug}/performance/http`),
                 preservePageFilters: true,
               },
@@ -250,7 +250,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Third>
               <DurationChart
-                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
@@ -320,7 +320,7 @@ function LandingPageWithProviders() {
   return (
     <ModulePageProviders
       baseURL="/performance/http"
-      title={[t('Performance'), t('HTTP'), t('Domain Summary')].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="performance-http-view"
     >
       <HTTPDomainSummaryPage />

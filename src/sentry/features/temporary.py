@@ -60,6 +60,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ddm-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-metrics-api-unit-normalization", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:metrics-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:deprecate-fid-from-performance-score", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
