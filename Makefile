@@ -8,19 +8,19 @@ POSTGRES_CONTAINER := sentry_postgres
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
-bootstrap \
 develop \
+install-js-dev \
+install-py-dev :
+	@devenv sync
+
+bootstrap \
 clean \
-init-config \
-run-dependent-services \
 drop-db \
 create-db \
 apply-migrations \
 reset-db \
 setup-git \
-node-version-check \
-install-js-dev \
-install-py-dev :
+node-version-check :
 	@./scripts/do.sh $@
 
 build-platform-assets \

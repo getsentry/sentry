@@ -78,31 +78,14 @@ sudo-askpass() {
     fi
 }
 
+# needed by getsentry make
 pip-install() {
     pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
+# needed by getsentry make
 upgrade-pip() {
     pip-install pip
-}
-
-install-py-dev() {
-    upgrade-pip
-    # It places us within top src dir to be at the same path as setup.py
-    # This helps when getsentry calls into this script
-    cd "${HERE}/.." || exit
-
-    echo "--> Installing Sentry (for development)"
-
-    # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy djangorestframework-stubs django-stubs
-
-    pip-install -r requirements-dev-frozen.txt
-
-    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-    # and acceptance tests, which webpack automatically if run.
-    python3 -m tools.fast_editable --path .
 }
 
 setup-git-config() {
@@ -138,32 +121,6 @@ node-version-check() {
         )
 }
 
-install-js-dev() {
-    node-version-check
-    echo "--> Installing Yarn packages (for development)"
-    # Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-    NODE_ENV=development yarn install --frozen-lockfile
-    # A common problem is with node packages not existing in `node_modules` even though `yarn install`
-    # says everything is up to date. Even though `yarn install` is run already, it doesn't take into
-    # account the state of the current filesystem (it only checks .yarn-integrity).
-    # Add an additional check against `node_modules`
-    yarn check --verify-tree || yarn install --check-files
-}
-
-develop() {
-    install-js-dev
-    install-py-dev
-    setup-git
-}
-
-init-config() {
-    sentry init --dev --no-clobber
-}
-
-run-dependent-services() {
-    sentry devservices up
-}
-
 create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
@@ -197,10 +154,7 @@ build-platform-assets() {
 }
 
 bootstrap() {
-    develop
-    init-config
-    run-dependent-services
-    apply-migrations
+    devenv sync
     create-superuser
     # Load mocks requires a superuser
     bin/load-mocks
