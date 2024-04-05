@@ -10,7 +10,7 @@ import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -19,10 +19,11 @@ import {
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
-import type {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
-import {useMonitorTimes} from 'sentry/views/monitors/utils/useMonitorDates';
+
+import {useMonitorStats} from './overviewTimeline/useMonitorStats';
+import {useTimeWindowConfig} from './overviewTimeline/useTimeWindowConfig';
 
 interface Props {
   monitor: Monitor;
@@ -37,25 +38,12 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          monitor: monitor.id,
-          ...selectionQuery,
-          ...location.query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: timelineWidth > 0,
-    }
-  );
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
 
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,

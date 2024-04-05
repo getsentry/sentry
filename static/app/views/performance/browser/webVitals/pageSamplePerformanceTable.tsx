@@ -17,11 +17,14 @@ import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -42,10 +45,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -100,8 +100,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const router = useRouter();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   let datatype = Datatype.PAGELOADS;
   switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
@@ -112,11 +110,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       datatype = Datatype.PAGELOADS;
   }
 
-  const sortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const sortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
@@ -372,8 +366,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     }
 
     if (key === 'id' && 'id' in row) {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      const eventTarget = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
+        dataRow: row,
+        eventView: EventView.fromLocation(location),
+        organization,
+        location,
+      });
+
       return (
         <NoOverflow>
           <Tooltip title={t('View Transaction')}>
@@ -397,7 +397,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {shouldReplaceFidWithInp && (
+        {
           <SegmentedControl
             size="md"
             value={datatype}
@@ -421,7 +421,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               {t('Interactions')}
             </SegmentedControl.Item>
           </SegmentedControl>
-        )}
+        }
 
         <StyledSearchBar
           query={query}

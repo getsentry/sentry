@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
+from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DRFResponse
+from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
@@ -202,18 +208,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
-        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
-        if response.status_code != 200 and self.integration.provider == "slack":
-            logger.info(
-                "slack.response",
-                extra={
-                    **self.log_extra,
-                    "integration_id": self.integration.id,
-                    "status_code": response.status_code,
-                    "response_text": response.content.decode("utf8"),
-                },
-            )
-
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
             tags={"status": response.status_code},
@@ -221,3 +215,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         logger.info("proxy_success", extra=self.log_extra)
         return response
+
+    def handle_exception(  # type: ignore[override]
+        self,
+        request: DRFRequest,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> DRFResponse:
+        if isinstance(exc, IdentityNotValid):
+            return self.respond(status=400)
+
+        return super().handle_exception(request, exc, handler_context, scope)

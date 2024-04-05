@@ -246,12 +246,12 @@ export const makeFetchEventAttachmentsQueryKey = ({
 ];
 
 export const useFetchEventAttachments = (
-  {orgSlug, projectSlug, eventId}: FetchEventAttachmentParameters,
+  params: FetchEventAttachmentParameters,
   options: Partial<UseApiQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
   return useApiQuery<FetchEventAttachmentResponse>(
-    [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
+    makeFetchEventAttachmentsQueryKey(params),
     {
       staleTime: Infinity,
       ...options,

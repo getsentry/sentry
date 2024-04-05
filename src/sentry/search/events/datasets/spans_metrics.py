@@ -507,6 +507,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "epm_by_timestamp",
+                    required_args=[
+                        fields.SnQLStringArg("condition", allowed_strings=["greater", "less"]),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    snql_distribution=lambda args, alias: self._resolve_epm_condition(
+                        args, args["condition"], alias
+                    ),
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "any",
+                    required_args=[fields.MetricArg("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_distribution=lambda args, alias: Function(
+                        "min",
+                        [self.builder.column(args["column"])],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="string",
+                    redundant_grouping=True,
+                ),
             ]
         }
 
@@ -866,6 +890,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, str | Column | SelectType | int | float | datetime],
         condition: str,
+        alias: str | None = None,
     ) -> SelectType:
         if condition == "greater":
             interval = (self.builder.params.end - args["timestamp"]).total_seconds()
@@ -891,6 +916,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 Function("divide", [interval, 60]),
             ],
+            alias,
         )
 
     def _resolve_avg_condition(

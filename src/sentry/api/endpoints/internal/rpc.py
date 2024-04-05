@@ -1,7 +1,6 @@
 from typing import Any
 
 import pydantic
-from pydantic.fields import Field
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,24 +14,6 @@ from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.rpc import RpcResolutionException, dispatch_to_local_service
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
-
-
-class RpcMetadata(pydantic.BaseModel):
-    """Metadata about an RPC request or response.
-
-    The "meta" fields appear in request or response bodies as a hook for future use.
-    Currently, this is always an empty object.
-    """
-
-
-class RpcRequestBody(pydantic.BaseModel):
-    meta: RpcMetadata = Field(default_factory=RpcMetadata)
-    args: dict[str, Any]
-
-
-class RpcResponseBody(pydantic.BaseModel):
-    meta: RpcMetadata = Field(default_factory=RpcMetadata)
-    value: Any
 
 
 @all_silo_endpoint
@@ -95,4 +76,4 @@ class InternalRpcServiceEndpoint(Endpoint):
                 ) from e
             capture_exception()
             raise ValidationError from e
-        return Response(data=RpcResponseBody(value=result).dict())
+        return Response(data=result)

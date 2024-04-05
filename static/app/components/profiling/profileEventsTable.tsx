@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
