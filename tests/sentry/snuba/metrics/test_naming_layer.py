@@ -131,10 +131,6 @@ def test_parse_mri_with_valid_mri(name, expected):
             ParsedMRI("s", "sessions", "error", "none"),
         ),
         (
-            "s:sessions/error@",
-            ParsedMRI("s", "sessions", "error", ""),
-        ),
-        (
             "dist:my_namespace/organizations/v1/my endpoint@{none}",
             ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "{none}"),
         ),
@@ -164,6 +160,10 @@ def test_parse_mri_lenient_with_valid_mri(name, expected):
         "d@transactions/measurements.stall_longest_time",
         "d:transactions/breakdowns.span_ops.ops.http",
         "d/transactions@breakdowns.span_ops.ops.http:millisecond",
+        "d/transactions",
+        "transactions",
+        ":transactions/breakdowns.span_ops.ops.http@none",
+        ":/@",
     ],
 )
 def test_parse_mri_lenient_with_invalid_mri(name):

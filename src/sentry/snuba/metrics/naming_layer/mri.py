@@ -322,13 +322,15 @@ def parse_mri_lenient(mri_string: str | None) -> ParsedMRI | None:
     # Find the MRI delimiters one after the other.
     for i in range(len(mri_string)):
         if mri_delimiters and mri_string[i] in mri_delimiters[0]:
-            mri_components.append(mri_string[start:i])
+            if start < i:
+                mri_components.append(mri_string[start:i])
+
             mri_delimiters.pop(0)
             start = i + 1
 
-    # Append the substring after the last delimiter. If we have no string after the last delimiter, we will still return
-    # ''.
-    mri_components.append(mri_string[start:])
+    # Append the substring after the last delimiter.
+    if start < len(mri_string):
+        mri_components.append(mri_string[start:])
 
     # In case we do not find the exact number of components that we expect in the MRI, we will return `None`.
     if len(mri_components) != 4:
