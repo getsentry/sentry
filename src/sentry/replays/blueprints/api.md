@@ -612,7 +612,7 @@ Retrieve a collection of click events associated with a replay.
   }
   ```
 
-## Replay Viewed By [/organizations/<organization_slug>/replays/<replay_id>/viewed-by/]
+## Replay Viewed By [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/viewed-by/]
 
 ### Fetch Replay Viewed By [GET]
 
