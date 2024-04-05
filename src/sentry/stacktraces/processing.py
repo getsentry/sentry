@@ -578,6 +578,7 @@ def dedup_errors(errors):
     return rv
 
 
+@sentry_sdk.tracing.trace
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:

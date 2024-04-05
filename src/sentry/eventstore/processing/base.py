@@ -39,23 +39,22 @@ class EventProcessingStore(Service):
 
     @sentry_sdk.tracing.trace
     def store(self, event: Event, unprocessed: bool = False) -> str:
-        with sentry_sdk.start_span(op="eventstore.processing.store"):
-            key = cache_key_for_event(event)
-            if unprocessed:
-                key = self.__get_unprocessed_key(key)
-            self.inner.set(key, event, self.timeout)
-            return key
+        key = cache_key_for_event(event)
+        if unprocessed:
+            key = self.__get_unprocessed_key(key)
+        self.inner.set(key, event, self.timeout)
+        return key
 
+    @sentry_sdk.tracing.trace
     def get(self, key: str, unprocessed: bool = False) -> Event | None:
-        with sentry_sdk.start_span(op="eventstore.processing.get"):
-            if unprocessed:
-                key = self.__get_unprocessed_key(key)
-            return self.inner.get(key)
+        if unprocessed:
+            key = self.__get_unprocessed_key(key)
+        return self.inner.get(key)
 
+    @sentry_sdk.tracing.trace
     def delete_by_key(self, key: str) -> None:
-        with sentry_sdk.start_span(op="eventstore.processing.delete_by_key"):
-            self.inner.delete(key)
-            self.inner.delete(self.__get_unprocessed_key(key))
+        self.inner.delete(key)
+        self.inner.delete(self.__get_unprocessed_key(key))
 
     def delete(self, event: Event) -> None:
         key = cache_key_for_event(event)
