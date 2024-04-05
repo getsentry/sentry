@@ -9,7 +9,6 @@ REPROCESSING_OPTION = "sentry:processing-rev"
 logger = logging.getLogger("sentry.events")
 
 
-@sentry_sdk.tracing.trace
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
     from sentry.lang.native.utils import NATIVE_PLATFORMS
@@ -29,6 +28,7 @@ def event_supports_reprocessing(data):
     return False
 
 
+@sentry_sdk.tracing.trace
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
     from sentry.models.options.project_option import ProjectOption
