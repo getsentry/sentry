@@ -327,12 +327,21 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
+    def validate_aggregatedDataConsent(self, value):
+        request = self.context["request"]
+        if not request.access.has_scope("org:billing"):
+            raise serializers.ValidationError("You do not have permission to change this option")
+        return value
+
     def validate_genAIConsent(self, value):
+        request = self.context["request"]
+        if not request.access.has_scope("org:billing"):
+            raise serializers.ValidationError("You do not have permission to change this option")
+
         if get_local_region().name != "us":
             raise serializers.ValidationError(
                 "the genAiConsent option is only available to customers in the US region"
             )
-
         return value
 
     def validate(self, attrs):
