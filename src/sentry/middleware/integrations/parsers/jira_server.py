@@ -63,6 +63,11 @@ class JiraServerRequestParser(BaseRequestParser):
         if not issue_id or not enabled:
             return str(integration.id)
 
+        try:
+            issue_id = int(issue_id)
+        except ValueError:
+            return str(integration.id)
+
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         if not ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):

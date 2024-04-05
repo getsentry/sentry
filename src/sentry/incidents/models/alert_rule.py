@@ -159,7 +159,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
-                if alert_rule.activation_conditions.filter(
+                # an alert rule should only ever have a single condition
+                if alert_rule.activation_condition.filter(
                     condition_type=activation_condition.value
                 ).exists():
                     # if an activated alert rule exists with the passed condition
@@ -355,6 +356,7 @@ class AlertRule(Model):
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
         if self.monitor_type == monitor_type.value:
+            # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,

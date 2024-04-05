@@ -8,6 +8,7 @@ from sentry.integrations.utils.code_mapping import (
     FrameFilename,
     Repo,
     RepoTree,
+    UnexpectedPathException,
     UnsupportedFrameFilename,
     convert_stacktrace_frame_path_to_source_path,
     filter_source_code_files,
@@ -15,7 +16,6 @@ from sentry.integrations.utils.code_mapping import (
     get_extension,
     get_sorted_code_mapping_configs,
     should_include,
-    stacktrace_buckets,
 )
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
@@ -96,7 +96,8 @@ def test_buckets_logic():
         "getsentry/billing/tax/manager.py",
         "/cronscripts/monitoringsync.php",
     ] + UNSUPPORTED_FRAME_FILENAMES
-    buckets = stacktrace_buckets(stacktraces)
+    helper = CodeMappingTreesHelper({})
+    buckets = helper._stacktrace_buckets(stacktraces)
     assert buckets == {
         "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "app:": [FrameFilename("app://foo.js")],
@@ -315,6 +316,14 @@ class TestDerivedCodeMappings(TestCase):
         stacktrace_root, source_path = find_roots("app:///../services/", "services/")
         assert stacktrace_root == "app:///../"
         assert source_path == ""
+
+    def test_find_roots_bad_stack_path(self):
+        with pytest.raises(UnexpectedPathException):
+            find_roots("https://yrurlsinyourstackpath.com/", "sentry/something.py")
+
+    def test_find_roots_bad_source_path(self):
+        with pytest.raises(UnexpectedPathException):
+            find_roots("sentry/random.py", "nothing/something.js")
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

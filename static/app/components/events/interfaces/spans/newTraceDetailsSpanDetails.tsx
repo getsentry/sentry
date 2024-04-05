@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
@@ -38,6 +38,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
+import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -387,6 +388,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     ratio={span.exclusive_time / 1000 / duration}
                     duration={span.exclusive_time / 1000}
                     baseline={averageSpanSelfTimeInSeconds}
+                    baseDescription={t(
+                      'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
+                    )}
                   />
                 </Row>
               ) : null}
@@ -523,20 +527,20 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
+                    {value >= 1024 && <span>{` (${value} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
-                    {maybeStringify(value)}
+                    <GeneralSpanDetailsValue value={value} />
                   </Row>
                 ) : null
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  <GeneralSpanDetailsValue value={span[key]} />
                 </Row>
               ))}
             </tbody>
@@ -592,13 +596,6 @@ function SpanHTTPInfo({span}: {span: RawSpanType}) {
 
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
   return <OpsDot style={{backgroundColor: timing.color}} />;
-}
-
-function maybeStringify(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return JSON.stringify(value, null, 4);
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`

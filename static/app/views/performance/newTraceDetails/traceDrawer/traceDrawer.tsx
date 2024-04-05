@@ -1,19 +1,23 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
+import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   useResizableDrawer,
   type UseResizableDrawerOptions,
@@ -52,7 +56,7 @@ type TraceDrawerProps = {
 function getUninitializedDrawerSize(layout: TraceDrawerProps['layout']): number {
   return layout === 'drawer bottom'
     ? // 36 of the screen height
-      Math.max(window.innerHeight * 0.36)
+      Math.max(window.innerHeight * 0.36, MIN_TRACE_DRAWER_DIMENSTIONS[1])
     : // Half the screen minus the ~sidebar width
       Math.max(window.innerWidth * 0.5 - 220, MIN_TRACE_DRAWER_DIMENSTIONS[0]);
 }
@@ -74,9 +78,33 @@ const LAYOUT_STORAGE: Partial<Record<TraceDrawerProps['layout'], number>> = {};
 
 export function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
+  const location = useLocation();
   const panelRef = useRef<HTMLDivElement>(null);
   const [minimized, setMinimized] = useState(
     Math.round(props.drawerSize) <= getDrawerMinSize(props.layout)
+  );
+
+  // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
+  // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
+  // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
+  const urlParams = pick(location.query, [
+    ...Object.values(PERFORMANCE_URL_PARAM),
+    'cursor',
+  ]);
+  const tagsQueryResults = useApiQuery<Tag[]>(
+    [
+      `/organizations/${props.organization.slug}/events-facets/`,
+      {
+        query: {
+          ...urlParams,
+          ...props.traceEventView.getFacetsAPIPayload(location),
+          cursor: undefined,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+    }
   );
 
   const minimizedRef = useRef(minimized);
@@ -104,10 +132,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
         } else if (minimizedRef.current && newSize > min) {
           setMinimized(false);
         }
-      }
-
-      if (minimizedRef.current) {
-        newSize = min;
+      } else {
+        setMinimized(newSize <= min);
       }
 
       onDrawerResize(newSize);
@@ -296,6 +322,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
           {props.tabs.current ? (
             props.tabs.current.node === 'trace' ? (
               <TraceDetails
+                tagsQueryResults={tagsQueryResults}
                 tree={props.trace}
                 node={props.trace.root.children[0]}
                 rootEventResults={props.rootEventResults}
@@ -347,7 +374,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
+        {props.tab.node === 'trace' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
@@ -471,14 +498,14 @@ const Tab = styled('li')<{active: boolean}>`
   padding: 0 ${space(0.25)};
   position: relative;
 
-  &:has(+ :not(.Static)) {
-    margin-right: ${space(2)};
+  &.Static + li:not(.Static) {
+    margin-left: ${space(2)};
 
     &:after {
       display: block;
       content: '';
       position: absolute;
-      right: -10px;
+      left: -14px;
       top: 50%;
       transform: translateY(-50%);
       height: 72%;

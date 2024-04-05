@@ -219,7 +219,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -250,7 +250,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -297,7 +297,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -574,6 +574,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-baseline-config",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=300,
             wait_for=[],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=["--overwrite-configs"],
@@ -582,6 +583,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-colliding-users",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=300,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=filter_usernames_args,
@@ -590,6 +592,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-raw-relocation-data",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="organizations",
+            timeout=2400,
             wait_for=["import-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
@@ -598,6 +601,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-baseline-config",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=300,
             wait_for=["import-raw-relocation-data"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -606,6 +610,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-colliding-users",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=300,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=filter_usernames_args,
@@ -614,6 +619,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-raw-relocation-data",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="organizations",
+            timeout=2400,
             wait_for=["export-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
@@ -627,6 +633,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-baseline-config",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=120,
             wait_for=["export-raw-relocation-data"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -635,6 +642,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-colliding-users",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=120,
             wait_for=["compare-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
@@ -664,6 +672,7 @@ def create_cloudbuild_validation_step(
     scope: str,
     wait_for: list[str],
     kind: RelocationFile.Kind,
+    timeout: int,
     args: list[str],
 ) -> str:
     return step.substitute(
@@ -674,5 +683,6 @@ def create_cloudbuild_validation_step(
         kind=str(kind),
         scope=scope,
         tarfile=kind.to_filename("tar"),
+        timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )

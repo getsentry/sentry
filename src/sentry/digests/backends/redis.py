@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from typing import Any
 
-import rb
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
 
@@ -73,7 +72,6 @@ class RedisBackend(Backend):
 
     def __init__(self, **options: Any) -> None:
         cluster, options = get_cluster_from_options("SENTRY_DIGESTS_OPTIONS", options)
-        assert isinstance(cluster, rb.Cluster)
         self.cluster = cluster
         self.locks = LockManager(RedisLockBackend(self.cluster))
 

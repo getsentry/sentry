@@ -56,7 +56,3 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
 const StyledIconSentry = styled(IconSentry)`
   padding-bottom: 3px;
 `;
-
-const DO_NOT_USE_ACTIVITY_AVATAR = ActivityAvatar;
-
-export default DO_NOT_USE_ACTIVITY_AVATAR;

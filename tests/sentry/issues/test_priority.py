@@ -12,13 +12,17 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
+from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
 @apply_feature_flag_on_cls("projects:issue-priority")
 class TestUpdatesPriority(TestCase):
     def assert_activity_grouphistory_set(self, group, priority, reason) -> None:
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_PRIORITY.value)
+        activity = (
+            Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value)
+            .order_by("-datetime")
+            .first()
+        )
         assert activity.data == {
             "priority": priority.to_str(),
             "reason": reason.value,
@@ -77,68 +81,18 @@ class TestUpdatesPriority(TestCase):
 
     def test_updates_priority_ongoing(self) -> None:
         self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            priority=PriorityLevel.MEDIUM,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            priority=PriorityLevel.LOW,
         )
-        GroupHistory.objects.create(
-            group=self.group,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            status=GroupHistoryStatus.PRIORITY_LOW,
-        )
+        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.LOW
+        auto_update_priority(self.group, PriorityChangeReason.ESCALATING)
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         self.group.refresh_from_db()
 
         assert self.group.priority == PriorityLevel.LOW
         self.assert_activity_grouphistory_set(
             self.group, PriorityLevel.LOW, PriorityChangeReason.ONGOING
-        )
-
-    def test_updates_priority_ongoing_multiple_histories(self) -> None:
-        self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            priority=PriorityLevel.HIGH,
-        )
-        group_history_data = {
-            "group": self.group,
-            "organization_id": self.group.project.organization_id,
-            "project_id": self.group.project_id,
-        }
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_LOW,
-        )
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_MEDIUM,
-        )
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_HIGH,
-        )
-        auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        assert self.group.priority == PriorityLevel.HIGH
-        assert not Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_PRIORITY.value
-        ).exists()
-        assert (
-            GroupHistory.objects.filter(
-                group=self.group, status=GroupHistoryStatus.PRIORITY_HIGH
-            ).count()
-            == 1
-        )
-
-    def test_updates_priority_ongoing_no_history(self) -> None:
-        self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-        )
-        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
-        self.group.save()
-
-        auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        assert self.group.priority == PriorityLevel.MEDIUM
-        self.assert_activity_grouphistory_set(
-            self.group, PriorityLevel.MEDIUM, PriorityChangeReason.ONGOING
         )
 
     @patch("sentry.issues.priority.logger.error")
@@ -151,7 +105,7 @@ class TestUpdatesPriority(TestCase):
 
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         mock_logger.assert_called_with(
-            "Unable to determine previous priority value after transitioning group to ongoing",
+            "get_priority_for_ongoing_group.initial_priority_not_found",
             extra={"group": self.group.id},
         )
         assert not self.group.priority

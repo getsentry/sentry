@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import type {Event, MemoryInfoContext} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {
   getMemoryInfoKnownDataDetails,
@@ -13,15 +13,14 @@ import {
 type Props = {
   data: MemoryInfoContext | null;
   event: Event;
+  meta?: Record<string, any>;
 };
 
-export function MemoryInfoEventContext({data, event}: Props) {
+export function MemoryInfoEventContext({data, event, meta: propsMeta}: Props) {
   if (!data) {
     return null;
   }
-
-  const meta =
-    event._meta?.contexts?.['Memory Info'] ?? event._meta?.contexts?.memory_info ?? {};
+  const meta = propsMeta ?? getContextMeta(event, 'memory_info');
 
   return (
     <Fragment>

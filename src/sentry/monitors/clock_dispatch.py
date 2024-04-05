@@ -18,6 +18,13 @@ MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 
 
+def _int_or_none(s: str | None) -> int | None:
+    if s is None:
+        return None
+    else:
+        return int(s)
+
+
 def _dispatch_tasks(ts: datetime):
     """
     Dispatch monitor tasks triggered by the consumer clock.
@@ -74,9 +81,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # timestamp. Use `int()` to keep the timestamp (score) as an int
     slowest_part_ts = int(slowest_partitions[0][1])
 
-    precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
-    if precheck_last_ts is not None:
-        precheck_last_ts = int(precheck_last_ts)
+    precheck_last_ts = _int_or_none(redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY))
 
     # If we have the same or an older timestamp from the most recent tick there
     # is nothing to do, we've already handled this tick.
@@ -90,9 +95,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # GETSET is atomic. This is critical to avoid another consumer also
     # processing the same tick.
-    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, slowest_part_ts)
-    if last_ts is not None:
-        last_ts = int(last_ts)
+    last_ts = _int_or_none(redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, slowest_part_ts))
 
     # Another consumer already handled the tick if the first LAST_TRIGGERED
     # timestamp we got is different from the one we just got from the GETSET.
