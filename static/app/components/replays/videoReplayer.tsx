@@ -53,6 +53,7 @@ export class VideoReplayer {
    */
   private _videos: Record<number, HTMLVideoElement>;
   private _videoApiPrefix: string;
+  private _clipDuration: number | undefined;
   public config: VideoReplayerConfig = {
     skipInactive: false,
     speed: 1.0,
@@ -82,6 +83,7 @@ export class VideoReplayer {
       onBuffer,
     };
     this._videos = {};
+    this._clipDuration = undefined;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -91,6 +93,9 @@ export class VideoReplayer {
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
     if (clipWindow) {
+      // Set max duration on the timer
+      this._clipDuration = clipWindow.endTimestampMs - clipWindow.startTimestampMs;
+
       // If there's a clip window set, load the segment at the clip start
       const clipStartOffset = clipWindow.startTimestampMs - start;
       this.loadSegmentAtTime(clipStartOffset);
@@ -100,8 +105,7 @@ export class VideoReplayer {
       this._startTimestamp = clipWindow.startTimestampMs;
 
       // Tell the timer to stop at the clip end
-      const clipDuration = clipWindow.endTimestampMs - clipWindow.startTimestampMs;
-      this._timer.addNotificationAtTime(clipDuration, () => {
+      this._timer.addNotificationAtTime(this._clipDuration, () => {
         this.stopReplay();
       });
     } else {
@@ -206,6 +210,14 @@ export class VideoReplayer {
   private startReplay(videoOffsetMs: number) {
     this._isPlaying = true;
     this._timer.start(videoOffsetMs);
+
+    // This is used when a replay clip is restarted
+    // Add another stop notification so the timer doesn't run over
+    if (this._clipDuration) {
+      this._timer.addNotificationAtTime(this._clipDuration, () => {
+        this.stopReplay();
+      });
+    }
   }
 
   /**
