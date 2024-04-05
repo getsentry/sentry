@@ -221,6 +221,22 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     ),
                     private=True,
                 ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
             ]
         }
 
