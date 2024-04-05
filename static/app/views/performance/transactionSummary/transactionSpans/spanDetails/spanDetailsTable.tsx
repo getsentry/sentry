@@ -138,6 +138,7 @@ function renderBodyCellWithMeta(
     let rendered = fieldRenderer(dataRow, {location, organization});
 
     if (column.key === 'id') {
+      const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
       const worstSpan = dataRow.spans.length
         ? dataRow.spans.reduce((worst, span) =>
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
@@ -145,7 +146,7 @@ function renderBodyCellWithMeta(
         : null;
       const target = generateTransactionLink()(
         organization,
-        dataRow,
+        {...dataRow, trace: traceSlug},
         location,
         worstSpan.id
       );
