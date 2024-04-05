@@ -17,7 +17,7 @@ from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
-from sentry.rules.processor import RuleProcessor
+from sentry.rules.processing.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
@@ -317,7 +317,9 @@ class RuleProcessorTest(TestCase):
 
         # Test that we don't get errors if we try to create statuses that already exist due to a
         # race condition
-        with mock.patch("sentry.rules.processor.GroupRuleStatus") as mocked_GroupRuleStatus:
+        with mock.patch(
+            "sentry.rules.processing.processor.GroupRuleStatus"
+        ) as mocked_GroupRuleStatus:
             call_count = 0
 
             def mock_filter(*args, **kwargs):
@@ -356,7 +358,7 @@ class RuleProcessorTest(TestCase):
             },
         )
         with (
-            patch("sentry.rules.processor.rules", init_registry()),
+            patch("sentry.rules.processing.processor.rules", init_registry()),
             patch(
                 "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
             ) as passes,
@@ -418,7 +420,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with patch("sentry.rules.processor.rules", init_registry()):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -447,7 +449,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with patch("sentry.rules.processor.rules", init_registry()):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -553,13 +555,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         with mock.patch(
-            "sentry.rules.processor.RuleProcessor.bulk_get_rule_status",
+            "sentry.rules.processing.processor.RuleProcessor.bulk_get_rule_status",
             return_value={self.rule.id: grs},
         ):
             results = list(rp.apply())
             assert len(results) == 0
 
-    @mock.patch("sentry.rules.processor.RuleProcessor.logger")
+    @mock.patch("sentry.rules.processing.processor.RuleProcessor.logger")
     def test_invalid_predicate(self, mock_logger):
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
 
@@ -573,7 +575,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
 
-        with patch("sentry.rules.processor.get_match_function", return_value=None):
+        with patch("sentry.rules.processing.processor.get_match_function", return_value=None):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
