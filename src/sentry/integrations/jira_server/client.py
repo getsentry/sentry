@@ -10,10 +10,10 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.integrations.client import ApiClient
-from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -26,7 +26,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraServerClient(IntegrationProxyClient):
+class JiraServerClient(ApiClient):
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
     STATUS_URL = "/rest/api/2/status"
@@ -55,19 +55,14 @@ class JiraServerClient(IntegrationProxyClient):
 
     def __init__(
         self,
-        integration: RpcIntegration,
-        identity_id: int,
-        org_integration_id: int | None = None,
+        integration: RpcIntegration | Integration,
+        identity: RpcIdentity,
         logging_context: JSONData | None = None,
     ):
         self.base_url = integration.metadata["base_url"]
-        self.identity_id = identity_id
-        if not org_integration_id:
-            org_integration_id = infer_org_integration(
-                integration_id=integration.id, ctx_logger=logger
-            )
+        self.identity = identity
         super().__init__(
-            org_integration_id=org_integration_id,
+            integration_id=integration.id,
             verify_ssl=integration.metadata["verify_ssl"],
             logging_context=logging_context,
         )
@@ -75,17 +70,18 @@ class JiraServerClient(IntegrationProxyClient):
     def get_cache_prefix(self):
         return "sentry-jira-server:"
 
-    @control_silo_function
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        return self.authorize_request(prepared_request=prepared_request)
+
     def authorize_request(self, prepared_request: PreparedRequest):
         """Jira Server authorizes with RSA-signed OAuth1 scheme"""
-        identity = Identity.objects.filter(id=self.identity_id).first()
-        if not identity:
+        if not self.identity:
             return prepared_request
         auth_scheme = OAuth1(
-            client_key=identity.data["consumer_key"],
-            rsa_key=identity.data["private_key"],
-            resource_owner_key=identity.data["access_token"],
-            resource_owner_secret=identity.data["access_token_secret"],
+            client_key=self.identity.data["consumer_key"],
+            rsa_key=self.identity.data["private_key"],
+            resource_owner_key=self.identity.data["access_token"],
+            resource_owner_secret=self.identity.data["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
         )
