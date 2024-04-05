@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -119,10 +118,7 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    const shouldHighlight = row.span_id === highlightedSpanId;
-
     const commonProps = {
-      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
       onMouseEnter: () => handleMouseOverBodyCell(row),
     };
 
@@ -202,6 +198,7 @@ export function SpanSamplesTable({
         data={data}
         columnOrder={columnOrder ?? DEFAULT_COLUMN_ORDER}
         columnSortBy={[]}
+        highlightedRowKey={data.findIndex(sample => sample.span_id === highlightedSpanId)}
         grid={{
           renderHeadCell,
           renderBodyCell,
