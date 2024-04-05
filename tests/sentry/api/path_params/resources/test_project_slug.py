@@ -98,7 +98,6 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "release_threshold": release_threshold.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "release_threshold": release_threshold,
         }
@@ -130,7 +129,6 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "rule_id": str(rule.id),
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "rule": rule,
         }
