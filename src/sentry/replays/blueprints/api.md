@@ -383,6 +383,7 @@ Retrieve a collection of selectors.
 | element.testid     | string        | -                                                  |
 | element.title      | string        | -                                                  |
 | project_id         | string        | -                                                  |
+| component_name     | string        | -                                                  |
 
 - Response 200
 
@@ -403,7 +404,8 @@ Retrieve a collection of selectors.
           "testid": "",
           "title": ""
         },
-        "project_id": "1"
+        "project_id": "1",
+        "component_name": "MyDiv"
       }
     ]
   }

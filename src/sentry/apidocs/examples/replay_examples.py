@@ -88,6 +88,7 @@ class ReplayExamples:
                             "title": "",
                         },
                         "project_id": "1",
+                        "component_name": "MyDiv",
                     }
                 ]
             },
