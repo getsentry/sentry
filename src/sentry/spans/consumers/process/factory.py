@@ -119,7 +119,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             if len(keys) > 0:
                 txn.set_tag("sample_key", keys[0])
 
-            example_segment = None
+            sample_span = None
             total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
@@ -130,12 +130,12 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                     for segment in segments:
                         total_spans_read += len(segment)
                         if len(segment) > 0:
-                            example_segment = segment[0]
+                            sample_span = segment[0]
                         produce_segment_to_kafka(segment)
 
             metrics.incr("process_spans.spans.read.count", total_spans_read)
-            if example_segment:
-                txn.set_tag("sample_span", example_segment)
+            if sample_span:
+                txn.set_tag("sample_span", sample_span)
 
 
 def produce_segment(message: Message[ProduceSegmentContext | None]):
