@@ -75,7 +75,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
         txn.set_tag("trace.id", trace_id)
         txn.set_tag("segment.id", segment_id)
-        txn.set_measurement("num_keys", len(span))
+        sentry_sdk.set_measurement("num_keys", len(span))
 
         client = RedisSpansBuffer()
 
@@ -95,6 +95,7 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         return _process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
+        return None
 
 
 def _produce_segment(message: Message[ProduceSegmentContext | None]):
@@ -119,7 +120,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                     context.timestamp, context.partition
                 )
 
-            txn.set_measurement("segments.count", len(keys))
+            sentry_sdk.set_measurement("segments.count", len(keys))
 
             example_segment = None
 
