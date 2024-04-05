@@ -242,13 +242,7 @@ class RedisBuffer(Buffer):
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
         key = self._make_key(model, filters)
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            pipe = self.cluster.pipeline(transaction=False)
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster.get_local_client_for_key(key)
-            pipe = conn.pipeline()
-        else:
-            raise AssertionError("unreachable")
+        pipe = self.get_redis_connection(key, transaction=False)
 
         for col in columns:
             pipe.hget(key, f"i+{col}")
@@ -258,7 +252,7 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def get_redis_connection(self, key: str) -> Pipeline | None:
+    def get_redis_connection(self, key: str, transaction: bool = True) -> Pipeline:
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -266,17 +260,16 @@ class RedisBuffer(Buffer):
         else:
             raise AssertionError("unreachable")
 
-        pipe = conn.pipeline()
+        pipe = conn.pipeline(transaction=transaction)
         return pipe
 
     def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        if pipe:
-            getattr(pipe, operation.value)(key, *args)
-            if args:
-                pipe.expire(key, self.key_expire)
-            return pipe.execute()
+        getattr(pipe, operation.value)(key, *args)
+        if args:
+            pipe.expire(key, self.key_expire)
+        return pipe.execute()
 
     def push_to_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
@@ -300,14 +293,21 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
 
-    def process_batch(self, partition: int | None = None) -> None:
-        pending_key = self._make_pending_key(partition)
-        pipe = self.get_redis_connection(pending_key)
-        if not pipe:
-            return
+    def handle_pending_partitions(self, partition: int | None) -> None:
+        if partition is None and self.pending_partitions > 1:
+            # If we're using partitions, this one task fans out into
+            # N subtasks instead.
+            for i in range(self.pending_partitions):
+                process_pending.apply_async(kwargs={"partition": i})
+            # Explicitly also run over the unpartitioned buffer as well
+            # to ease in transition. In practice, this should just be
+            # super fast and is fine to do redundantly.
 
+    def process_batch(self, partition: int | None = None) -> None:
+        self.handle_pending_partitions(partition)
+        pending_key = self._make_pending_key(partition)
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._lock_key(client, pending_key, ex=60)
+        lock_key = self._lock_key(client, pending_key, ex=10)
         if not lock_key:
             return
 
@@ -329,7 +329,7 @@ class RedisBuffer(Buffer):
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
-            - Perform an incrby on counters
+            - Perform an incrby on countersif is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             - Perform a set (last write wins) on extra
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
@@ -339,8 +339,6 @@ class RedisBuffer(Buffer):
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
-        if not pipe:
-            return
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
@@ -377,14 +375,7 @@ class RedisBuffer(Buffer):
         )
 
     def process_pending(self, partition: int | None = None) -> None:
-        if partition is None and self.pending_partitions > 1:
-            # If we're using partitions, this one task fans out into
-            # N subtasks instead.
-            for i in range(self.pending_partitions):
-                process_pending.apply_async(kwargs={"partition": i})
-            # Explicitly also run over the unpartitioned buffer as well
-            # to ease in transition. In practice, this should just be
-            # super fast and is fine to do redundantly.
+        self.handle_pending_partitions(partition)
 
         pending_key = self._make_pending_key(partition)
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
@@ -465,13 +456,7 @@ class RedisBuffer(Buffer):
         pending_key = self._make_pending_key_from_key(key)
 
         try:
-            if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                pipe = self.cluster.pipeline(transaction=False)
-            elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-                conn = self.cluster.get_local_client_for_key(key)
-                pipe = conn.pipeline()
-            else:
-                raise AssertionError("unreachable")
+            pipe = self.get_redis_connection(key, transaction=False)
             pipe.hgetall(key)
             pipe.zrem(pending_key, key)
             pipe.delete(key)
