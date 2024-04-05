@@ -20,7 +20,7 @@ from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
 )
-from sentry.snuba.metrics.naming_layer.mri import parse_mri
+from sentry.snuba.metrics import parse_mri
 
 
 class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
