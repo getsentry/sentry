@@ -36,7 +36,9 @@ def run_for_connection(app_name: str, migration_name: str, connection_name: str)
     connection = connections[connection_name]
     executor = MigrationExecutor(connection)
     migration = executor.loader.get_migration_by_prefix(app_name, migration_name)
-    if not getattr(migration, "is_dangerous", None):
+    if not getattr(migration, "is_dangerous", None) and not getattr(
+        migration, "is_post_deployment", None
+    ):
         raise click.ClickException(
             f"This is not a post-deployment migration: {migration.name}\n"
             f"To apply this migration, please run: make apply-migrations"
