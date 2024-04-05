@@ -146,7 +146,7 @@ pytest-cov==4.0.0
 pytest-django==4.8.0
 pytest-fail-slow==0.3.0
 pytest-rerunfailures==11.0
-pytest-sentry==0.2.0
+pytest-sentry==0.3.0rc1
 pytest-xdist==3.0.2
 python-dateutil==2.8.2
 python-rapidjson==1.8
