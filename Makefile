@@ -159,7 +159,7 @@ test-monolith-dbs:
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
 	  --json-report \
-	  --json-report-file=".artifacts/pytest.monolith-dbs.json"
+	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
 	;
 	@echo ""
 
