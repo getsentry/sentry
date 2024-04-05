@@ -67,7 +67,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        sentry_sdk.set_context("payload", {"value", payload_value})
+        sentry_sdk.set_context("payload", {"value": str(payload_value)})
 
         span = _deserialize_span(payload_value)
         segment_id = span["segment_id"]
@@ -136,7 +136,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
 
             metrics.incr("process_spans.spans.read.count", total_spans_read)
             if sample_span:
-                payload_context["sample_span"] = sample_span
+                payload_context["sample_span"] = str(sample_span)
 
             sentry_sdk.set_context("payload", payload_context)
 
