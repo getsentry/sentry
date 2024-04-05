@@ -87,25 +87,52 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
     initialState ?? (initializer?.(initialState) as ReducerState<R>)
   );
 
-  const reducerRef = useRef(reducer);
-  reducerRef.current = reducer;
-
-  // Store state reference in ref so that the callback can be stable
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const reducerRef = useRef(reducer);
+  reducerRef.current = reducer;
+
+  const actionQueue = useRef<ReducerAction<R>[]>([]);
+
+  // Drains the setState queue and returns the final state
+  const drainQueue = useMemo(() => {
+    return function drain(): ReducerState<R> {
+      let start = stateRef.current;
+
+      while (actionQueue.current.length > 0) {
+        const next = actionQueue.current.shift()!;
+        emitter.emit('before action', start, next);
+        const nextState = reducerRef.current(start, next);
+        emitter.emit('before next state', start, nextState, next);
+        start = nextState;
+      }
+
+      return start;
+    };
+    // Emitter is stable and can be ignored
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updatesRef = useRef<number | null>(null);
   const wrappedDispatch = useCallback(
-    (action: ReducerAction<R>) => {
+    (a: ReducerAction<R>) => {
       // @TODO it is possible for a dispatched action to throw an error
       // and break the reducer. We should probably catch it, I'm just not sure
       // what would be the best mechanism to handle it. If we opt to rethrow,
       // we are likely going to have to rethrow async and lose stack traces...
-      emitter.emit('before action', stateRef.current, action);
-      const nextState = reducerRef.current(stateRef.current, action);
-      emitter.emit('before next state', stateRef.current, nextState, action);
-      setState(nextState);
+      actionQueue.current.push(a);
+
+      if (updatesRef.current !== null) {
+        window.cancelAnimationFrame(updatesRef.current);
+      }
+      updatesRef.current = window.requestAnimationFrame(() => {
+        setState(drainQueue());
+      });
     },
-    [emitter]
+    // Emitter is stable and can be ignored
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   return [state, wrappedDispatch, emitter];

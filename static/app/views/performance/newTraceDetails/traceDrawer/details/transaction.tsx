@@ -56,7 +56,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -64,7 +64,7 @@ import type {
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceAverageTransactionDuration} from '../../useTraceAverageTransactionDuration';
+import {useTraceAverageTransactionDuration} from '../../traceApi/useTraceAverageTransactionDuration';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';

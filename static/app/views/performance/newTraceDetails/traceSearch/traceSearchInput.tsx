@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -8,18 +8,15 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearch';
+import type {
+  TraceReducerAction,
+  TraceReducerState,
+} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 
 interface TraceSearchInputProps {
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onKeyDown: React.KeyboardEventHandler<HTMLInputElement>;
-  onNextSearchClick: () => void;
-  onPreviousSearchClick: () => void;
-  onSearchClear: () => void;
-  query: string | undefined;
-  resultCount: number | undefined;
-  resultIteratorIndex: number | null;
-  status: TraceSearchState['status'];
+  trace_dispatch: React.Dispatch<TraceReducerAction>;
+  trace_state: TraceReducerState;
 }
 
 const MIN_LOADING_TIME = 300;
@@ -31,6 +28,11 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const statusRef = useRef<TraceSearchState['status']>(status);
   statusRef.current = status;
 
+  const traceStateRef = useRef(props.trace_state);
+  traceStateRef.current = props.trace_state;
+
+  const trace_dispatch = props.trace_dispatch;
+
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
       window.clearTimeout(timeoutRef.current);
@@ -38,12 +40,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
     // if status is loading, show loading icon immediately
     // if previous status was loading, show loading icon for at least 500ms
-    if (!statusRef.current && props.status) {
-      setStatus([performance.now(), props.status[1]]);
+    if (!statusRef.current && props.trace_state.search.status) {
+      setStatus([performance.now(), props.trace_state.search.status[1]]);
       return;
     }
 
-    const nextStatus = props.status;
+    const nextStatus = props.trace_state.search.status;
     if (nextStatus) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
@@ -58,7 +60,55 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     } else {
       setStatus(nextStatus);
     }
-  }, [props.status]);
+  }, [props.trace_state.search.status]);
+
+  const onChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event.currentTarget.value) {
+        trace_dispatch({type: 'clear query'});
+        return;
+      }
+
+      trace_dispatch({type: 'set query', query: event.currentTarget.value});
+    },
+    [trace_dispatch]
+  );
+
+  const onSearchClear = useCallback(() => {
+    trace_dispatch({type: 'clear query'});
+  }, [trace_dispatch]);
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      switch (event.key) {
+        case 'ArrowDown':
+          trace_dispatch({
+            type: event.shiftKey ? 'go to last match' : 'go to next match',
+          });
+          break;
+        case 'ArrowUp':
+          trace_dispatch({
+            type: event.shiftKey ? 'go to first match' : 'go to previous match',
+          });
+          break;
+        case 'Enter':
+          trace_dispatch({
+            type: event.shiftKey ? 'go to previous match' : 'go to next match',
+          });
+          break;
+        default:
+      }
+    },
+    [trace_dispatch]
+  );
+
+  const onNextSearchClick = useCallback(() => {
+    trace_dispatch({type: 'go to next match'});
+  }, [trace_dispatch]);
+
+  const onPreviousSearchClick = useCallback(() => {
+    trace_dispatch({type: 'go to previous match'});
+  }, [trace_dispatch]);
 
   return (
     <StyledSearchBar>
@@ -76,19 +126,19 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        value={props.query}
-        onChange={props.onChange}
-        onKeyDown={props.onKeyDown}
+        value={props.trace_state.search.query ?? ''}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText>
           {`${
-            props.query && !props.resultCount
+            props.trace_state.search.query && !props.trace_state.search.results?.length
               ? t('no results')
-              : props.query
-                ? (props.resultIteratorIndex !== null
-                    ? props.resultIteratorIndex + 1
-                    : '-') + `/${props.resultCount ?? 0}`
+              : props.trace_state.search.query
+                ? (props.trace_state.search.resultIteratorIndex !== null
+                    ? props.trace_state.search.resultIteratorIndex + 1
+                    : '-') + `/${props.trace_state.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>
@@ -98,7 +148,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           icon={<IconChevron size="xs" />}
           aria-label={t('Next')}
           disabled={status?.[1] === 'loading'}
-          onClick={props.onPreviousSearchClick}
+          onClick={onPreviousSearchClick}
         />
         <StyledSearchBarTrailingButton
           size="zero"
@@ -106,14 +156,14 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           icon={<IconChevron size="xs" direction="down" />}
           aria-label={t('Previous')}
           disabled={status?.[1] === 'loading'}
-          onClick={props.onNextSearchClick}
+          onClick={onNextSearchClick}
         />
-        {props.query ? (
+        {props.trace_state.search.query ? (
           <SearchBarTrailingButton
             size="zero"
             borderless
             disabled={status?.[1] === 'loading'}
-            onClick={props.onSearchClear}
+            onClick={onSearchClear}
             icon={<IconClose size="xs" />}
             aria-label={t('Clear')}
           />

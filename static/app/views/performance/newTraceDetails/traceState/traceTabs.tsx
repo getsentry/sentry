@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -14,7 +15,7 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from './guards';
+} from '../guards';
 
 export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -58,13 +59,13 @@ type Tab = {
 };
 
 export type TraceTabsReducerState = {
-  current: Tab | null;
-  last_clicked: Tab | null;
+  current_tab: Tab | null;
+  last_clicked_tab: Tab | null;
   tabs: Tab[];
 };
 
 export type TraceTabsReducerAction =
-  | {payload: TraceTabsReducerState; type: 'initialize'}
+  | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}
   | {
       payload: Tab['node'] | number;
       type: 'activate tab';
@@ -72,6 +73,7 @@ export type TraceTabsReducerAction =
     }
   | {type: 'pin tab'}
   | {payload: number; type: 'unpin tab'}
+  | {type: 'clear'}
   | {type: 'clear clicked tab'};
 
 export function traceTabsReducer(
@@ -79,7 +81,7 @@ export function traceTabsReducer(
   action: TraceTabsReducerAction
 ): TraceTabsReducerState {
   switch (action.type) {
-    case 'initialize': {
+    case 'initialize tabs reducer': {
       return action.payload;
     }
     case 'activate tab': {
@@ -87,7 +89,7 @@ export function traceTabsReducer(
       if (typeof action.payload === 'number') {
         return {
           ...state,
-          current: state.tabs[action.payload] ?? state.last_clicked,
+          current_tab: state.tabs[action.payload] ?? state.last_clicked_tab,
         };
       }
 
@@ -98,8 +100,8 @@ export function traceTabsReducer(
         if (tab.node === action.payload) {
           return {
             ...state,
-            current: tab,
-            last_clicked: state.last_clicked,
+            current_tab: tab,
+            last_clicked_tab: state.last_clicked_tab,
           };
         }
       }
@@ -107,36 +109,44 @@ export function traceTabsReducer(
       const tab = {node: action.payload};
 
       // If its pinned, activate it and pin the previous tab
-      if (action.pin_previous && state.last_clicked) {
-        if (state.last_clicked.node === action.payload) {
+      if (action.pin_previous && state.last_clicked_tab) {
+        if (state.last_clicked_tab.node === action.payload) {
           return {
             ...state,
-            current: state.last_clicked,
-            last_clicked: null,
-            tabs: [...state.tabs, state.last_clicked],
+            current_tab: state.last_clicked_tab,
+            last_clicked_tab: null,
+            tabs: [...state.tabs, state.last_clicked_tab],
           };
         }
         return {
           ...state,
-          current: tab,
-          last_clicked: tab,
-          tabs: [...state.tabs, state.last_clicked],
+          current_tab: tab,
+          last_clicked_tab: tab,
+          tabs: [...state.tabs, state.last_clicked_tab],
         };
       }
       // If it's not pinned, create a new tab and activate it
+      // console.log(
+      //   'Setting node',
+      //   isTransactionNode(tab.node)
+      //     ? tab.node.value.transaction
+      //     : isSpanNode(tab.node)
+      //       ? tab.node.value.op ?? 'Unknown'
+      //       : 'Unknown'
+      // );
       return {
         ...state,
-        current: tab,
-        last_clicked: tab,
+        current_tab: tab,
+        last_clicked_tab: tab,
       };
     }
 
     case 'pin tab': {
       return {
         ...state,
-        current: state.last_clicked,
-        last_clicked: null,
-        tabs: [...state.tabs, state.last_clicked!],
+        current_tab: state.last_clicked_tab,
+        last_clicked_tab: null,
+        tabs: [...state.tabs, state.last_clicked_tab!],
       };
     }
 
@@ -147,57 +157,59 @@ export function traceTabsReducer(
 
       const nextTabIsPersistent = typeof newTabs[newTabs.length - 1].node === 'string';
       if (nextTabIsPersistent) {
-        if (!state.last_clicked && !state.current) {
+        if (!state.last_clicked_tab && !state.current_tab) {
           throw new Error(
             'last_clicked and current should not be null when nextTabIsPersistent is true'
           );
         }
 
         const nextTab = nextTabIsPersistent
-          ? state.last_clicked ?? state.current
+          ? state.last_clicked_tab ?? state.current_tab
           : newTabs[newTabs.length - 1];
 
         return {
           ...state,
-          current: nextTab,
-          last_clicked: nextTab,
+          current_tab: nextTab,
+          last_clicked_tab: nextTab,
           tabs: newTabs,
         };
       }
 
-      if (state.current?.node === state.tabs[action.payload].node) {
+      if (state.current_tab?.node === state.tabs[action.payload].node) {
         return {
           ...state,
-          current: newTabs[newTabs.length - 1],
-          last_clicked: state.last_clicked,
+          current_tab: newTabs[newTabs.length - 1],
+          last_clicked_tab: state.last_clicked_tab,
           tabs: newTabs,
         };
       }
 
-      const next = state.last_clicked ?? newTabs[newTabs.length - 1];
+      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1];
 
       return {
         ...state,
-        current: next,
-        last_clicked: next,
+        current_tab: next,
+        last_clicked_tab: next,
         tabs: newTabs,
       };
     }
 
-    case 'clear clicked tab': {
+    case 'clear clicked tab':
+    case 'clear': {
       const next =
-        state.last_clicked === state.current
+        state.last_clicked_tab === state.current_tab
           ? state.tabs[state.tabs.length - 1]
-          : state.current;
+          : state.current_tab;
       return {
         ...state,
-        current: next,
-        last_clicked: null,
+        current_tab: next,
+        last_clicked_tab: null,
       };
     }
 
     default: {
-      throw new Error('Invalid action');
+      traceReducerExhaustiveActionCheck(action);
+      return state;
     }
   }
 }
