@@ -181,7 +181,7 @@ export function getUnknownData({
     }));
 }
 
-export function getTitle({
+export function getContextTitle({
   alias,
   type,
   value = {},
