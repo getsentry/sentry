@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {CACHE_MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/cache/settings';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/cache/settings';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
@@ -26,13 +26,13 @@ export function CacheLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: CACHE_MODULE_TITLE,
+                label: MODULE_TITLE,
               },
             ]}
           />
 
           <Layout.Title>
-            {CACHE_MODULE_TITLE}
+            {MODULE_TITLE}
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -56,7 +56,7 @@ export function CacheLandingPage() {
 function LandingPageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), CACHE_MODULE_TITLE].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/cache"
       features="performance-cache-view"
     >

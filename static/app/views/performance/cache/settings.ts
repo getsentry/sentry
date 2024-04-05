@@ -10,4 +10,4 @@ export const releaseLevelAsBadgeProps = {
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
 
-export const CACHE_MODULE_TITLE = t('Cache');
+export const MODULE_TITLE = t('Cache');
