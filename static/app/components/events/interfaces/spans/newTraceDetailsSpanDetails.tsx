@@ -388,6 +388,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     ratio={span.exclusive_time / 1000 / duration}
                     duration={span.exclusive_time / 1000}
                     baseline={averageSpanSelfTimeInSeconds}
+                    baseDescription={t(
+                      'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
+                    )}
                   />
                 </Row>
               ) : null}
