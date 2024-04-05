@@ -392,7 +392,7 @@ class GridEditable<
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
         data-test-id="grid-body-row"
       >
-        <InteractionStateLayer isHovered={row === highlightedRowKey} />
+        <InteractionStateLayer isHovered={row === highlightedRowKey} as="div" />
 
         {prependColumns?.map((item, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
