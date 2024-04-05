@@ -130,30 +130,11 @@ create-db() {
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
-create-superuser() {
-    echo "--> Creating a superuser account"
-    if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password --no-input
-    else
-        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
-        echo "Password is admin."
-    fi
-}
-
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
-}
-
-bootstrap() {
-    devenv sync
-    create-superuser
-    # Load mocks requires a superuser
-    bin/load-mocks
-    build-platform-assets
-    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
@@ -180,7 +161,6 @@ drop-db() {
 reset-db() {
     drop-db
     devenv sync
-    create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }
 

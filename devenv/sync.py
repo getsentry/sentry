@@ -182,7 +182,7 @@ python3 -m tools.fast_editable --path .
         exit=True,
     )
 
-    if run_procs(
+    if not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -202,6 +202,35 @@ sentry upgrade --noinput
             ),
         ),
     ):
-        return 0
+        return 1
 
-    return 1
+    # Starting sentry is slow.
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
+        proc.run(
+            (
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
+            )
+        )
+
+    return 0
