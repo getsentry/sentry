@@ -44,6 +44,11 @@ class PlaintextSecretAlreadyRead(Exception):
         super().__init__(message)
 
 
+class NotSupported(Exception):
+    def __init__(self, message="the method you called is not supported by this token type"):
+        super().__init__(message)
+
+
 class ApiTokenManager(ControlOutboxProducingManager):
     def create(self, *args, **kwargs):
         token_type: AuthTokenType | None = kwargs.get("token_type", None)
@@ -168,7 +173,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if self.refresh_token or self.hashed_refresh_token:
             return ApiToken.objects.plaintext_refresh_token
         else:
-            raise NotImplementedError("This API token type does not support refresh tokens")
+            raise NotSupported("This API token type does not support refresh tokens")
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if options.get("apitoken.save-hash-on-create"):
@@ -241,7 +246,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def refresh(self, expires_at=None):
         if self.token_type == AuthTokenType.USER:
-            raise NotImplementedError("User auth tokens do not support refreshing the token")
+            raise NotSupported("User auth tokens do not support refreshing the token")
 
         if expires_at is None:
             expires_at = timezone.now() + DEFAULT_EXPIRATION

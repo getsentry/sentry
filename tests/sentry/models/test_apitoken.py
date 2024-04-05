@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.models.apitoken import ApiToken, PlaintextSecretAlreadyRead
+from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
@@ -78,6 +78,13 @@ class ApiTokenTest(TestCase):
         assert token.token_last_characters is None
 
     @override_options({"apitoken.save-hash-on-create": True})
+    def test_hash_exists_on_token(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.hashed_token is not None
+        assert token.hashed_refresh_token is not None
+
+    @override_options({"apitoken.save-hash-on-create": True})
     def test_hash_exists_on_user_token(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
@@ -130,11 +137,19 @@ class ApiTokenTest(TestCase):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotSupported):
             assert token._plaintext_refresh_token is not None
 
     @override_options({"apitoken.save-hash-on-create": True})
-    def test_user_auth_token_hash(self):
+    def test_user_auth_token_refresh_raises_error(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+
+        with pytest.raises(NotSupported):
+            token.refresh()
+
+    @override_options({"apitoken.save-hash-on-create": True})
+    def test_user_auth_token_sha256_hash(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         expected_hash = hashlib.sha256(token._plaintext_token.encode()).hexdigest()
