@@ -16,7 +16,7 @@ def get_process_lock(partition: str = None):
     if partition is None:
         lock_key = "buffer:process_pending"
     else:
-        lock_key = "buffer:process_pending:%d" % partition
+        lock_key = f"buffer:process_pending:{partition}"
 
     return locks.get(lock_key, duration=60, name="process_pending")
 
