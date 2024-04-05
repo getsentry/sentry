@@ -10,7 +10,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
-import {ExpandedContext} from 'sentry/components/sidebar/sidebarAccordion';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -85,14 +85,10 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
-   * Is the sidebar collapsed or in mobile view
-   */
-  isFloatingSidebar?: boolean;
-
-  /**
    * Is this item nested within another item
    */
   isNested?: boolean;
+
   /**
    * Specify the variant for the badge.
    */
@@ -136,10 +132,9 @@ function SidebarItem({
   trailingItems,
   variant,
   isNested,
-  isFloatingSidebar = false,
   ...props
 }: SidebarItemProps) {
-  const {setOpenMainItem} = useContext(ExpandedContext);
+  const {setOpenMainItem, shouldAccordionFloat} = useContext(ExpandedContext);
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -151,7 +146,7 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   const isActive = defined(active) ? active : isActiveRouter;
-  const isTop = orientation === 'top';
+  const isTop = orientation === 'top' && !isNested;
   const placement = isTop ? 'bottom' : 'right';
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
@@ -192,7 +187,7 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setOpenMainItem]
   );
 
-  const isInFloatingSidebar = isNested && isFloatingSidebar;
+  const isInFloatingSidebar = isNested && shouldAccordionFloat;
   const isInCollapsedState = !isInFloatingSidebar && collapsed;
 
   return (
@@ -208,7 +203,7 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
-        isFloatingSidebar={isFloatingSidebar}
+        isInFloatingAccordion={shouldAccordionFloat && isNested}
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
@@ -292,16 +287,16 @@ export default SidebarItem;
 const getActiveStyle = ({
   active,
   theme,
-  isFloatingSidebar,
+  isInFloatingAccordion,
 }: {
   active?: string;
-  isFloatingSidebar?: boolean;
+  isInFloatingAccordion?: boolean;
   theme?: Theme;
 }) => {
   if (!active) {
     return '';
   }
-  if (isFloatingSidebar) {
+  if (isInFloatingAccordion) {
     return css`
       color: ${theme?.gray500};
 
@@ -376,7 +371,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => (p.isFloatingSidebar ? p.theme.gray500 : p.theme.white)};
+    color: ${p => (p.isInFloatingAccordion ? p.theme.gray500 : p.theme.white)};
   }
 
   &:focus {

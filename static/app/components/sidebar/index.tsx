@@ -11,6 +11,10 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
+import {
+  ExpandedContext,
+  ExpandedContextProvider,
+} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
@@ -59,7 +63,7 @@ import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
-import {ExpandedContextProvider, SidebarAccordion} from './sidebarAccordion';
+import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
@@ -115,6 +119,7 @@ function Sidebar() {
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -180,15 +185,6 @@ function Sidebar() {
     collapsed,
     hasPanel,
     organization,
-  };
-
-  const isFloatingSidebar = horizontal || collapsed;
-
-  const nestedSidebarItemProps = {
-    ...sidebarItemProps,
-    isNested: true,
-    isFloatingSidebar,
-    orientation: 'left' as SidebarOrientation,
   };
 
   const sidebarAnchor = isDemoWalkthrough() ? (
@@ -258,11 +254,11 @@ function Sidebar() {
               label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
-              exact={!isFloatingSidebar}
+              exact={!shouldAccordionFloat}
             >
               <Feature features="performance-database-view" organization={organization}>
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={
                     <GuideAnchor target="performance-database">
                       {t('Queries')}
@@ -277,7 +273,7 @@ function Sidebar() {
               </Feature>
               <Feature features="performance-http-view" organization={organization}>
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
@@ -287,7 +283,7 @@ function Sidebar() {
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={
                     <GuideAnchor target="performance-webvitals">
                       {t('Web Vitals')}
@@ -300,7 +296,7 @@ function Sidebar() {
               </Feature>
               <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={t('Screen Loads')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
@@ -309,7 +305,7 @@ function Sidebar() {
               </Feature>
               <Feature features="starfish-mobile-appstart" organization={organization}>
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={t('App Starts')}
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
@@ -319,7 +315,7 @@ function Sidebar() {
               </Feature>
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
-                  {...nestedSidebarItemProps}
+                  {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
@@ -357,10 +353,10 @@ function Sidebar() {
         label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
-        exact={!isFloatingSidebar}
+        exact={!shouldAccordionFloat}
       >
         <SidebarItem
-          {...nestedSidebarItemProps}
+          {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"

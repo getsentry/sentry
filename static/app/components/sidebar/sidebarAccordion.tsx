@@ -1,17 +1,19 @@
 import {
   Children,
-  createContext,
+  cloneElement,
   isValidElement,
   type MouseEventHandler,
+  type ReactElement,
+  type ReactNode,
   useCallback,
   useContext,
   useRef,
-  useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,28 +29,10 @@ type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
 };
 
-export const ExpandedContext = createContext<{
-  openMainItemId: string | null;
-  setOpenMainItem: (mainItemId: string | null) => void;
-}>({
-  openMainItemId: null,
-  setOpenMainItem: () => {},
-});
-
-export function ExpandedContextProvider(props) {
-  const [openMainItemId, setOpenMainItem] = useState<string | null>(null);
-
-  return (
-    <ExpandedContext.Provider value={{openMainItemId, setOpenMainItem}}>
-      {props.children}
-    </ExpandedContext.Provider>
-  );
-}
-
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
 
-  const accoridonRef = useRef<HTMLDivElement>(null);
+  const accordionRef = useRef<HTMLDivElement>(null);
   const floatingSidebarRef = useRef<HTMLDivElement>(null);
   const {openMainItemId, setOpenMainItem} = useContext(ExpandedContext);
   const theme = useTheme();
@@ -77,6 +61,8 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
     return false;
   });
+
+  const childrenWithProps = renderChildrenWithProps(children);
 
   const handleExpandAccordionClick = useCallback(
     (e: React.MouseEvent) => {
@@ -111,7 +97,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   };
 
   return (
-    <SidebarAccordionWrapper ref={accoridonRef}>
+    <SidebarAccordionWrapper ref={accordionRef}>
       <SidebarAccordionHeaderWrap>
         <SidebarItem
           {...itemProps}
@@ -140,19 +126,19 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
       </SidebarAccordionHeaderWrap>
       {expanded && !horizontal && !sidebarCollapsed && (
         <SidebarAccordionSubitemsWrap id={contentId}>
-          {children}
+          {childrenWithProps}
         </SidebarAccordionSubitemsWrap>
       )}
       {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
         <FloatingSidebar
-          accordionRef={accoridonRef}
+          accordionRef={accordionRef}
           horizontal={horizontal}
           ref={floatingSidebarRef}
         >
           <SidebarItemLabel onClick={handleTitleClick}>
             {itemProps.label}
           </SidebarItemLabel>
-          {children}
+          {childrenWithProps}
         </FloatingSidebar>
       )}
     </SidebarAccordionWrapper>
@@ -160,6 +146,23 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 }
 
 export {SidebarAccordion};
+
+const renderChildrenWithProps = (children: ReactNode): ReactNode => {
+  const propsToAdd: Partial<SidebarItemProps> = {
+    isNested: true,
+  };
+
+  return Children.map(children, child => {
+    if (!isValidElement(child)) {
+      return child;
+    }
+    // Clone child with common prop and recursively render its children
+    return cloneElement(child as ReactElement<any>, {
+      ...propsToAdd,
+      children: renderChildrenWithProps((child as ReactElement<any>).props.children),
+    });
+  });
+};
 
 function findChildElementsInTree(
   children: React.ReactNode,
