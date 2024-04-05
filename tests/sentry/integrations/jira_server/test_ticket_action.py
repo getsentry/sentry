@@ -6,9 +6,12 @@ from sentry.eventstore.models import Event
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 pytestmark = [requires_snuba]
 
@@ -18,16 +21,29 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration, _ = self.create_provider_integration_for(
+        self.integration, org_integration = self.create_provider_integration_for(
             self.organization,
             self.user,
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},
         )
+        identity = self.create_identity(
+            user=self.user,
+            external_id="jiraserver:123",
+            identity_provider=self.create_identity_provider(integration=self.integration),
+            data={
+                "consumer_key": "sentry-test",
+                "private_key": EXAMPLE_PRIVATE_KEY,
+                "access_token": "access-token",
+                "access_token_secret": "access-token-secret",
+            },
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration.default_auth_id = identity.id
+            org_integration.save()
 
         self.installation = self.integration.get_installation(self.organization.id)
-
         self.login_as(user=self.user)
 
     def trigger(self, event, rule_object):
