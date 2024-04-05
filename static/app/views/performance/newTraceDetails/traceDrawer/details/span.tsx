@@ -40,13 +40,13 @@ export function SpanNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {getSpanOperation(span)}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
