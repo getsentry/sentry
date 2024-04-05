@@ -11,20 +11,21 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 const PROFILE_KNOWN_DATA_VALUES = [ProfileContextKey.PROFILE_ID];
 
 interface ProfileContextProps {
   data: ProfileContext & Record<string, any>;
   event: Event;
+  meta?: Record<string, any>;
 }
 
-export function ProfileEventContext({event, data}: ProfileContextProps) {
+export function ProfileEventContext({event, data, meta: propsMeta}: ProfileContextProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
-  const meta = event._meta?.contexts?.profile ?? {};
+  const meta = propsMeta ?? getContextMeta(event, 'profile');
 
   return (
     <Feature organization={organization} features="profiling">
