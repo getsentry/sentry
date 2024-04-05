@@ -1,7 +1,10 @@
 import {useContext, useEffect, useMemo} from 'react';
 
 import Avatar from 'sentry/components/avatar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import type {DetailedTeam} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -16,6 +19,10 @@ import SelectField from './selectField';
 export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   /**
+   * Ensures the only selectable teams and members are members of the given project
+   */
+  memberOfProjectSlug?: string;
+  /**
    * Use the slug as the select field value. Without setting this the numeric id
    * of the project will be used.
    */
@@ -25,6 +32,7 @@ export interface RenderFieldProps extends SelectFieldProps<any> {
 function SentryMemberTeamSelectorField({
   avatarSize = 20,
   placeholder = t('Choose Teams and Members'),
+  memberOfProjectSlug,
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
@@ -72,11 +80,36 @@ function SentryMemberTeamSelectorField({
 
   const {teams, isLoading: loadingTeams} = useUserTeams();
 
-  const teamOptions = teams?.map(team => ({
-    value: `team:${team.id}`,
-    label: `#${team.slug}`,
-    leadingItems: <Avatar team={team} size={avatarSize} />,
-  }));
+  // TODO(davidenwang): Fix the team type here to avoid this type cast
+  const teamOptions = (teams as DetailedTeam[])
+    .map(team => {
+      const isDisabledTeam =
+        memberOfProjectSlug &&
+        !defined(team.projects.find(({slug}) => memberOfProjectSlug === slug));
+      return {
+        value: `team:${team.id}`,
+        leadingItems: <Avatar team={team} size={avatarSize} />,
+        ...(isDisabledTeam
+          ? {
+              disabled: true,
+              label: (
+                <Tooltip
+                  position="left"
+                  title={t('%s is not a member of the selected project', `#${team.slug}`)}
+                >
+                  #{team.slug}
+                </Tooltip>
+              ),
+            }
+          : {
+              disabled: false,
+              label: `#${team.slug}`,
+            }),
+      };
+    })
+    .sort(({disabled: teamADisabled}, {disabled: teamBDisabled}) =>
+      teamADisabled === teamBDisabled ? 0 : teamADisabled ? 1 : -1
+    );
 
   // TODO(epurkhiser): This is an unfortunate hack right now since we don't
   // actually load members anywhere and the useMembers and useTeams hook don't
