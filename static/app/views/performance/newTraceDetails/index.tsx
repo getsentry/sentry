@@ -97,6 +97,12 @@ export function TraceView() {
 
   const traceSlug = params.traceSlug?.trim() ?? '';
 
+  useEffect(() => {
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization,
+    });
+  }, [organization]);
+
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,

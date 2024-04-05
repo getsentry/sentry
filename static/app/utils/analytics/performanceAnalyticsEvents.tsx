@@ -171,6 +171,9 @@ export type PerformanceEventParameters = {
     transaction: string;
   };
   'performance_views.trace_view.view': {};
+  'performance_views.trace_view_v1_page_load': {
+    organization: Organization;
+  };
   'performance_views.transactionEvents.cellaction': {
     action: string;
   };
@@ -242,6 +245,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Widget Interaction',
   'performance_views.landingv3.widget.switch':
     'Performance Views: Landing Widget Switched',
+  'performance_views.trace_view_v1_page_load':
+    'Performance Views: Trace View v1 Page Load',
   'performance_views.landingv3.batch_queries':
     'Performance Views: Landing Query Batching',
   'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',
