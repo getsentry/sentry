@@ -225,10 +225,7 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
-  private _clipWindow: ClipWindow = {
-    startTimestampMs: 0,
-    endTimestampMs: 0,
-  };
+  private _clipWindow: ClipWindow | undefined = undefined;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
