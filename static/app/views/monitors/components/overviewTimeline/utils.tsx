@@ -11,6 +11,12 @@ export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
 };
 
 /**
+ * The minimum pixels to allocate to the reference start time label which
+ * always includes date, time, and timezone.
+ */
+const TIMELABEL_WIDTH_FULL = 115;
+
+/**
  * The minimum pixels to allocate to each time label when it is a full date.
  */
 const TIMELABEL_WIDTH_DATE = 110;
@@ -54,49 +60,49 @@ export function getConfigFromTimeRange(
   // Display only the time (no date) when the window is less than 24 hours
   const timeOnly = elapsedMinutes <= ONE_HOUR * 24;
 
-  const minimumWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
-
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.
   const displaySeconds = elapsedMinutes < timelineWidth;
 
-  // Compute the smallest minute value that we are willing to space our ticks
-  // apart by. This will be at least minimumWidth.
+  function computeMarkerInterval(pixels: number) {
+    const minutesPerPixel = elapsedMinutes / timelineWidth;
+    return minutesPerPixel * pixels;
+  }
 
-  // Calculate the minutes per pixel of the timeline
-  const minutesPerPixel = elapsedMinutes / timelineWidth;
+  // This is smallest minute value that we are willing to space our ticks
+  const minMarkerWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
 
-  // Calculate minutes at the minimumWidth
-  const minTickMinutesApart = minutesPerPixel * minimumWidth;
+  const minimumMarkerInterval = computeMarkerInterval(minMarkerWidth);
+  const referenceMarkerInterval = computeMarkerInterval(TIMELABEL_WIDTH_FULL);
 
-  const baseConfig = {
-    start,
-    end,
-    elapsedMinutes,
-    minimumMarkerInterval: minTickMinutesApart,
-  };
+  const intervals = {referenceMarkerInterval, minimumMarkerInterval};
 
   for (const minutes of CLAMPED_MINUTE_RANGES) {
-    if (minutes < minTickMinutesApart) {
+    if (minutes < minimumMarkerInterval) {
       continue;
     }
 
-    // Configuration falls into
     return {
-      ...baseConfig,
-      markerInterval: minutes,
+      start,
+      end,
+      elapsedMinutes,
+      timelineWidth,
+      intervals: {...intervals, normalMarkerInterval: minutes},
       dateTimeProps: {timeOnly},
       dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
     };
   }
 
   // Calculate the days in between each tick marker at the minimum time
-  const tickIntervalDayInMinutes =
-    Math.ceil(minTickMinutesApart / (ONE_HOUR * 24)) * ONE_HOUR * 24;
+  const normalMarkerInterval =
+    Math.ceil(minimumMarkerInterval / (ONE_HOUR * 24)) * ONE_HOUR * 24;
 
   return {
-    ...baseConfig,
-    markerInterval: tickIntervalDayInMinutes,
+    start,
+    end,
+    elapsedMinutes,
+    timelineWidth,
+    intervals: {...intervals, normalMarkerInterval},
     dateTimeProps: {dateOnly: true},
     dateLabelFormat: getFormat(),
   };

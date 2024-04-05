@@ -4,7 +4,7 @@ import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
@@ -47,8 +47,10 @@ interface TimeMarker {
 }
 
 function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
-  const {start, end, elapsedMinutes, dateTimeProps} = config;
-  const {markerInterval, minimumMarkerInterval} = config;
+  const {start, end, elapsedMinutes, intervals, dateTimeProps} = config;
+
+  const {referenceMarkerInterval, minimumMarkerInterval, normalMarkerInterval} =
+    intervals;
 
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
@@ -58,18 +60,18 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
     {
       date: start,
       position: 0,
-      dateTimeProps: {},
+      dateTimeProps: {timeZone: true},
     },
   ];
 
   // The mark after the first mark will be aligned to a boundary to make it
   // easier to understand the rest of the marks
-  const currentMark = alignDateToBoundary(moment(start), markerInterval);
+  const currentMark = alignDateToBoundary(moment(start), normalMarkerInterval);
 
-  // if the current mark is not at least minimumMarkerInterval from the start
-  // skip until it is
-  while (currentMark.isBefore(moment(start).add(minimumMarkerInterval, 'minutes'))) {
-    currentMark.add(markerInterval, 'minute');
+  // The first label is larger since we include the date, time, and timezone.
+
+  while (currentMark.isBefore(moment(start).add(referenceMarkerInterval, 'minutes'))) {
+    currentMark.add(normalMarkerInterval, 'minute');
   }
 
   // Generate time markers which represent location of grid lines/time labels.
@@ -77,7 +79,7 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
   while (moment(currentMark).add(minimumMarkerInterval, 'minutes').isBefore(end)) {
     const position = (currentMark.valueOf() - start.valueOf()) / msPerPixel;
     markers.push({date: currentMark.toDate(), position, dateTimeProps});
-    currentMark.add(markerInterval, 'minutes');
+    currentMark.add(normalMarkerInterval, 'minutes');
   }
 
   return markers;
