@@ -177,8 +177,8 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["tag"] == "div"
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
-            assert response_data["data"][0]["element"]["aria_label"] is None
-            assert response_data["data"][0]["component_name"] is None
+            assert response_data["data"][0]["element"]["aria_label"] == ""
+            assert response_data["data"][0]["component_name"] == ""
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
