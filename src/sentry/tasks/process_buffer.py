@@ -10,6 +10,17 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
+def get_process_lock(partition: str = None):
+    from sentry.locks import locks
+
+    if partition is None:
+        lock_key = "buffer:process_pending"
+    else:
+        lock_key = "buffer:process_pending:%d" % partition
+
+    return locks.get(lock_key, duration=60, name="process_pending")
+
+
 @instrumented_task(
     name="sentry.tasks.process_buffer.process_pending", queue="buffers.process_pending"
 )
@@ -18,20 +29,34 @@ def process_pending(partition=None):
     Process pending buffers.
     """
     from sentry import buffer
-    from sentry.locks import locks
 
-    if partition is None:
-        lock_key = "buffer:process_pending"
-    else:
-        lock_key = "buffer:process_pending:%d" % partition
-
-    lock = locks.get(lock_key, duration=60, name="process_pending")
+    lock = get_process_lock(partition)
 
     try:
         with lock.acquire():
             buffer.process_pending(partition=partition)
     except UnableToAcquireLock as error:
         logger.warning("process_pending.fail", extra={"error": error, "partition": partition})
+
+
+@instrumented_task(
+    name="sentry.tasks.process_buffer.process_pending_batch", queue="buffers.process_pending_batch"
+)
+def process_pending_batch(partition=None):
+    """
+    Process pending buffers in a batch.
+    """
+
+    # TODO(ceo): There isn't actually a task in server.py for this yet. will need to add that and put this behind a flag when we're ready
+    from sentry import buffer
+
+    lock = get_process_lock(partition)
+
+    try:
+        with lock.acquire():
+            buffer.process_batch(partition=partition)
+    except UnableToAcquireLock as error:
+        logger.warning("process_pending_batch.fail", extra={"error": error, "partition": partition})
 
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")

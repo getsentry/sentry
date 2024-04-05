@@ -3,7 +3,12 @@ from unittest import mock
 from django.test import override_settings
 
 from sentry.models.group import Group
-from sentry.tasks.process_buffer import buffer_incr, process_incr, process_pending
+from sentry.tasks.process_buffer import (
+    buffer_incr,
+    process_incr,
+    process_pending,
+    process_pending_batch,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -28,6 +33,18 @@ class ProcessPendingTest(TestCase):
         process_pending(partition=1)
         assert len(mock_process_pending.mock_calls) == 2
         mock_process_pending.assert_any_call(partition=1)
+
+
+class ProcessPendingBatchTest(TestCase):
+    @mock.patch("sentry.buffer.backend.process_batch")
+    def test_process_pending_batch(self, mock_process_pending_batch):
+        process_pending_batch()
+        assert len(mock_process_pending_batch.mock_calls) == 1
+        mock_process_pending_batch.assert_any_call(partition=None)
+
+        process_pending_batch(partition=1)
+        assert len(mock_process_pending_batch.mock_calls) == 2
+        mock_process_pending_batch.assert_any_call(partition=1)
 
 
 class BufferIncrTest(TestCase):
