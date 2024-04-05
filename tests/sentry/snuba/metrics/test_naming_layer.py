@@ -138,6 +138,18 @@ def test_parse_mri_with_valid_mri(name, expected):
             "dist:my_namespace/organizations/v1/my endpoint@{none}",
             ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "{none}"),
         ),
+        (
+            "d:transactions/measurements.disk_io@byte/second",
+            ParsedMRI("d", "transactions", "measurements.disk_io", "byte/second"),
+        ),
+        (
+            "c:custom/http.client.open_connections@{connection}",
+            ParsedMRI("c", "custom", "http.client.open_connections", "{connection}"),
+        ),
+        (
+            "c:custom/http.client.active_requests@{request}",
+            ParsedMRI("c", "custom", "http.client.active_requests", "{request}"),
+        ),
     ],
 )
 def test_parse_mri_lenient_with_valid_mri(name, expected):
