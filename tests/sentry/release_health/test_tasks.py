@@ -15,13 +15,13 @@ from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class BaseTestReleaseMonitor(TestCase, SnubaTestCase):
+class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     backend_class: type[BaseReleaseMonitorBackend]
