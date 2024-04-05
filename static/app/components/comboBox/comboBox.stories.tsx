@@ -1,71 +1,111 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
-import JSXNode from 'sentry/components/stories/jsxNode';
+import type {ComboBoxOptionOrSection} from 'sentry/components/comboBox/types';
+import Matrix from 'sentry/components/stories/matrix';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
 import {ComboBox} from './';
 
+const options: ComboBoxOptionOrSection<string>[] = [
+  {label: 'Option One', value: 'opt_one'},
+  {label: 'Option Two', value: 'opt_two'},
+  {label: 'Option Three', value: 'opt_three'},
+  {label: 'Disabled', value: 'opt_dis', disabled: true},
+  {label: 'Option Four', textValue: 'included in search', value: 'opt_four'},
+  {
+    label: 'Section',
+    options: [
+      {label: 'Other Option One', value: 'oth_opt_one'},
+      {label: 'Other Option Two', value: 'oth_opt_two'},
+      {label: 'Other Option Three', value: 'oth_opt_three'},
+      {label: 'Other Disabled', value: 'oth_opt_dis', disabled: true},
+      {
+        label: 'Other Option Four',
+        textValue: 'included in search',
+        value: 'oth_opt_four',
+      },
+    ],
+  },
+];
+
 export default storyBook(ComboBox, story => {
   story('Default', () => {
+    const [value, setValue] = useState('opt_one');
+    return (
+      <SizingWindow display="block" style={{overflow: 'visible'}}>
+        <ComboBox
+          value={value}
+          onChange={({value: newValue}) => setValue(newValue)}
+          aria-label="ComboBox"
+          menuTrigger="focus"
+          placeholder="Select an Option"
+          options={options}
+        />
+      </SizingWindow>
+    );
+  });
+
+  story('With list size limit', () => {
+    const [value, setValue] = useState('opt_one');
     return (
       <Fragment>
-        <p>
-          The <JSXNode name="ComboBox" /> component allows users to select an option from
-          a list of options by typing in an input field. From a user perspective it is
-          basically a combination of an input field and a dropdown menu filled with
-          suggestions.
-        </p>
-        <SizingWindow display="block" style={{height: '200px', width: '400px'}}>
+        <SizingWindow display="block" style={{overflow: 'visible'}}>
           <ComboBox
+            value={value}
+            onChange={({value: newValue}) => setValue(newValue)}
             aria-label="ComboBox"
             menuTrigger="focus"
-            options={[
-              {label: 'Option One', value: 'opt_one'},
-              {label: 'Option Two', value: 'opt_two'},
-              {label: 'Option Three', value: 'opt_three'},
-              {
-                label: 'Others',
-                options: [
-                  {label: 'Option Four', value: 'opt_four'},
-                  {label: 'Option Five', value: 'opt_five'},
-                ],
-              },
-            ]}
+            placeholder="Select an Option"
+            sizeLimit={5}
+            options={options}
           />
         </SizingWindow>
       </Fragment>
     );
   });
 
-  story('Controlled', () => {
+  story('Loading indicator', () => {
     const [value, setValue] = useState('opt_one');
     return (
-      <Fragment>
-        <SizingWindow display="block" style={{height: '200px', width: '400px'}}>
-          <ComboBox
-            value={value}
-            onChange={({value: newValue}) => setValue(newValue)}
-            aria-label="ComboBox"
-            menuTrigger="focus"
-            options={[
-              {label: 'Option One', value: 'opt_one'},
-              {label: 'Option Two', value: 'opt_two'},
-              {label: 'Option Three', value: 'opt_three'},
-              {
-                label: 'Others',
-                options: [
-                  {label: 'Option Four', value: 'opt_four'},
-                  {label: 'Option Five', value: 'opt_five'},
-                ],
-              },
-            ]}
-          />
-          <hr />
-          <Button onClick={() => setValue('opt_two')}>Select Option Two</Button>
-        </SizingWindow>
-      </Fragment>
+      <SizingWindow display="block" style={{overflow: 'visible'}}>
+        <ComboBox
+          value={value}
+          onChange={({value: newValue}) => setValue(newValue)}
+          aria-label="ComboBox"
+          menuTrigger="focus"
+          placeholder="Select an Option"
+          isLoading
+          options={options}
+        />
+      </SizingWindow>
+    );
+  });
+
+  story('Size vs diabled', () => {
+    return (
+      <Matrix
+        render={props => {
+          const [value, setValue] = useState('opt_one');
+          return (
+            <ComboBox
+              value={value}
+              onChange={({value: newValue}) => setValue(newValue)}
+              aria-label="ComboBox"
+              menuTrigger="focus"
+              placeholder="Select an Option"
+              options={options}
+              {...props}
+            />
+          );
+        }}
+        selectedProps={['size', 'disabled']}
+        propMatrix={{
+          size: ['md', 'sm', 'xs'] as const,
+          disabled: [false, true],
+        }}
+        sizingWindowProps={{style: {overflow: 'visible'}}}
+      />
     );
   });
 });
