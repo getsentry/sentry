@@ -25,8 +25,8 @@ from sentry.sentry_metrics.indexer.strings import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
-from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
 from sentry.snuba.metrics import parse_mri
+from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
