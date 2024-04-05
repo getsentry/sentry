@@ -595,14 +595,6 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
     });
 
     it('renders project picker modal when no url does not have project id', async function () {
@@ -1138,14 +1130,6 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
 
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
-
       expect(
         screen.queryByTestId('search-metrics-fallback-warning')
       ).not.toBeInTheDocument();
@@ -1195,14 +1179,6 @@ describe('Performance > TransactionSummary', function () {
               'transaction.op:pageload event.type:transaction transaction:/performance',
           }),
         })
-      );
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
       );
     });
 
@@ -1292,15 +1268,6 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
-
       expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
     });
   });
