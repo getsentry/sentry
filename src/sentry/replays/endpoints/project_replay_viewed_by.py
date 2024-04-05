@@ -31,7 +31,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
 
     @extend_schema(
-        operation_id="Get list of users who have viewed a replay",
+        operation_id="Get list of user who have viewed a replay",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -46,9 +46,6 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         examples=ReplayExamples.GET_REPLAY_VIEWED_BY,
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        """
-        Returns list of serialized User objects who have viewed a given replay.
-        """
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
@@ -59,6 +56,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
+        # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project)
         # TODO: do we need this range filter?
         if not filter_params["start"] or not filter_params["end"]:
@@ -74,13 +72,14 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         if not viewed_by_ids:
             return Response(status=404)
 
+        # query + serialize User objects from postgres
         response = generate_viewed_by_response(
             replay_id=replay_id, viewed_by_ids=viewed_by_ids, actor=request.user
         )
         return Response({"data": response}, status=200)
 
     @extend_schema(
-        operation_id="Signal the requesting user has viewed a replay",
+        operation_id="Post that the requesting user has viewed a replay",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, ReplayParams.REPLAY_ID],
         responses={
             200: RESPONSE_SUCCESS,
@@ -91,9 +90,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         examples=None,
     )
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """
-        Publishes a replay_viewed event for Snuba processing.
-        """
+        """Publishes a replay_viewed event for Snuba processing."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
