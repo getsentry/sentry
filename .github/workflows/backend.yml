@@ -114,7 +114,7 @@ jobs:
         uses: getsentry/action-collect-test-data@eddb08e4f7bddb8601699ef06a5581a1cd42bdc1 # v0.1.1
         with:
           path: .artifacts/pytest.json
-          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/${{ github.repository_id }}-${{ github.run_id }}/${{ github.job }}
+          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/${{ github.repository_id }}-${{ github.run_id }}/${{ github.job }}/instance-${{ steps.setup.outputs.matrix-instance-number }}
           gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}

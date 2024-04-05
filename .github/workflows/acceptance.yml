@@ -45,6 +45,9 @@ jobs:
     name: acceptance
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -109,6 +112,16 @@ jobs:
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
+
+      - name: Collect test data
+        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
+        uses: getsentry/action-collect-test-data@eddb08e4f7bddb8601699ef06a5581a1cd42bdc1 # v0.1.1
+        with:
+          path: .artifacts/pytest.json
+          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/${{ github.repository_id }}-${{ github.run_id }}/${{ github.job }}/instance-${{ steps.setup.outputs.matrix-instance-number }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
