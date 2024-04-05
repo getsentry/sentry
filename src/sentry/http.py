@@ -70,7 +70,7 @@ def safe_urlopen(
     json=None,
     headers=None,
     allow_redirects=False,
-    timeout=30,
+    timeout=10,
     verify_ssl=True,
     user_agent=None,
     stream=False,
