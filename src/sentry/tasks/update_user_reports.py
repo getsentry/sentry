@@ -69,7 +69,16 @@ def update_user_reports(**kwargs: Any) -> None:
                     "organizations:user-feedback-ingest", project.organization, actor=None
                 ):
                     shim_to_feedback(
-                        report, event, project, FeedbackCreationSource.USER_REPORT_ENVELOPE
+                        {
+                            "name": report.name,
+                            "email": report.email,
+                            "comments": report.comments,
+                            "event_id": report.event_id,
+                            "level": "error",
+                        },
+                        event,
+                        project,
+                        FeedbackCreationSource.USER_REPORT_ENVELOPE,
                     )
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
