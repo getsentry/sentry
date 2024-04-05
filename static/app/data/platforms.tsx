@@ -240,7 +240,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Spring',
     type: 'framework',
     language: 'java',
-    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+    link: 'https://docs.sentry.io/platforms/java/guides/spring/',
   },
   {
     id: 'java-spring-boot',

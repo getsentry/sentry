@@ -474,6 +474,7 @@ def symbolicate(
             stacktraces=stacktraces,
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+            apply_source_context=False,
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
@@ -783,6 +784,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 modules=[
                     {
                         "uuid": UUID(debug_file_id).hex,
+                        "type": "proguard",
                     }
                 ],
                 stacktraces=[
