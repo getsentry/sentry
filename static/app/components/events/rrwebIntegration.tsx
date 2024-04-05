@@ -53,9 +53,8 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     return null;
   }
 
-  const createAttachmentUrl = (attachment: IssueAttachment) => {
-    return `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
-  };
+  const createAttachmentUrl = (attachment: IssueAttachment) =>
+    `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
   return (
     <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
