@@ -12,7 +12,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_codec("buffered-segments")
@@ -26,7 +26,7 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 
 def process_message(message: Message[KafkaPayload]):
     try:
-        segment = _deserialize_segment(message.payload.value)
+        segment = json.loads(message.payload.value)
     except ValidationError:
         logger.exception("Failed to deserialize segment payload")
         return
