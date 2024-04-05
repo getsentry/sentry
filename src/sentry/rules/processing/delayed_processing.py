@@ -8,7 +8,7 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.rules.delayed_processing")
 
 
-# TODO(schew2381): Import once available
+# TODO: Import once available
 PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
