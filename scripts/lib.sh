@@ -130,12 +130,6 @@ create-db() {
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
-apply-migrations() {
-    create-db
-    echo "--> Applying migrations"
-    sentry upgrade --noinput
-}
-
 create-superuser() {
     echo "--> Creating a superuser account"
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
@@ -185,7 +179,7 @@ drop-db() {
 
 reset-db() {
     drop-db
-    apply-migrations
+    devenv sync
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }

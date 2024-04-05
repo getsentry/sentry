@@ -10,14 +10,14 @@ freeze-requirements:
 
 develop \
 install-js-dev \
-install-py-dev :
+install-py-dev \
+apply-migrations:
 	@devenv sync
 
 bootstrap \
 clean \
 drop-db \
 create-db \
-apply-migrations \
 reset-db \
 setup-git \
 node-version-check :

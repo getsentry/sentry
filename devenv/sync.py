@@ -189,7 +189,16 @@ python3 -m tools.fast_editable --path .
         (
             (
                 "python migrations",
-                ("make", "apply-migrations"),
+                (
+                    "bash",
+                    "-euo",
+                    "pipefail",
+                    "-c",
+                    """
+make create-db
+sentry upgrade --noinput
+""",
+                ),
             ),
         ),
     ):
