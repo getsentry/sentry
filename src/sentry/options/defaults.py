@@ -2345,7 +2345,7 @@ register(
 )
 register(
     "standalone-spans.detect-performance-issues-consumer.enable",
-    default=False,
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
