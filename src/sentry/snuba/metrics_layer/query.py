@@ -25,7 +25,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import parse_mri_lenient
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
 from sentry.utils import metrics
 from sentry.utils.snuba import bulk_snuba_queries
@@ -349,7 +349,7 @@ def _resolve_use_case_ids(exp: Formula | Timeseries) -> set[str]:
             mri = get_mri(metric.public_name)
         else:
             mri = metric.mri
-        parsed_mri = parse_mri_lenient(mri)
+        parsed_mri = parse_mri(mri)
         if parsed_mri is None:
             raise InvalidParams(f"'{mri}' is not a valid MRI")
 

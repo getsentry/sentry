@@ -146,7 +146,7 @@ from ..snuba.metrics import (
     MetricsQuery,
     get_date_range,
 )
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri_lenient
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1806,7 +1806,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
         """
-        if (parsed_mri := parse_mri_lenient(mri_string)) is not None:
+        if (parsed_mri := parse_mri(mri_string)) is not None:
             return self.ENTITY_SHORTHANDS[parsed_mri.entity]
         else:
             return None

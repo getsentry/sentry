@@ -16,7 +16,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     SessionMRI,
     SpanMRI,
     TransactionMRI,
-    parse_mri_lenient,
+    parse_mri,
 )
 from sentry.snuba.metrics.naming_layer.public import (
     ErrorsMetricKey,
@@ -99,7 +99,7 @@ def is_private_mri(internal_name: TransactionMRI | SessionMRI | str) -> bool:
 
 
 def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
-    parsed_mri = parse_mri_lenient(mri)
+    parsed_mri = parse_mri(mri)
     if parsed_mri is None:
         return None
 

@@ -66,18 +66,7 @@ def _build_namespace_regex() -> str:
     return rf"({'|'.join(use_case_ids)})"
 
 
-# These regexes are referring to the strictest MRI specification, but we currently switched over to a more lenient
-# implementation in `parse_mri_lenient` since we are assuming that all MRIs in the system are going first through Relay
-# which performs validation and normalization of MRIs.
-#
-# Should we ever need to validate MRIs in places where they don't go through Relay first (e.g., an endpoint receives
-# an MRI that needs to be stored somewhere), then we would still like to use our regexes directly from the `parse_mri`
-# function.
-MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
-MRI_NAMESPACE_REGEX = _build_namespace_regex()
-MRI_NAME_REGEX = r"([a-zA-Z0-9_/.]+)"
-MRI_UNIT_REGEX = r"[\s\S\r\n]*"
-MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
+MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
@@ -293,9 +282,6 @@ def format_mri_field_value(field: str, value: str) -> str:
 def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     """
     Parse a mri string to determine its entity, namespace, name and unit.
-
-    Note that this function is currently unused, but we decided to keep it along with its regexes because we might
-    want stricter validation of MRIs in specific cases where the MRIs are input by the user.
     """
     if mri_string is None:
         return None
@@ -307,48 +293,11 @@ def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     return ParsedMRI(**match.groupdict())
 
 
-def parse_mri_lenient(mri_string: str | None) -> ParsedMRI | None:
-    """
-    Parse a mri string in a lenient way, meaning that the goal of the parsing is just
-    to find the common structure of the mri which is split by a series of known delimiters ':', '/', '@'.
-    """
-    if mri_string is None:
-        return None
-
-    mri_delimiters = [":", "/", "@"]
-    mri_components = []
-    start = 0
-
-    # Find the MRI delimiters one after the other.
-    for i in range(len(mri_string)):
-        if mri_delimiters and mri_string[i] in mri_delimiters[0]:
-            if start < i:
-                mri_components.append(mri_string[start:i])
-
-            mri_delimiters.pop(0)
-            start = i + 1
-
-    # Append the substring after the last delimiter.
-    if start < len(mri_string):
-        mri_components.append(mri_string[start:])
-
-    # In case we do not find the exact number of components that we expect in the MRI, we will return `None`.
-    if len(mri_components) != 4:
-        return None
-
-    return ParsedMRI(
-        entity=mri_components[0],
-        namespace=mri_components[1],
-        name=mri_components[2],
-        unit=mri_components[3],
-    )
-
-
 def is_mri(mri_string: str | None) -> bool:
     """
     Returns true if the passed value is a mri.
     """
-    return parse_mri_lenient(mri_string) is not None
+    return parse_mri(mri_string) is not None
 
 
 def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
@@ -412,7 +361,7 @@ def extract_use_case_id(mri: str) -> UseCaseID:
     """
     Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
     """
-    parsed_mri = parse_mri_lenient(mri)
+    parsed_mri = parse_mri(mri)
     if parsed_mri is not None:
         if parsed_mri.namespace in {id.value for id in UseCaseID}:
             return UseCaseID(parsed_mri.namespace)

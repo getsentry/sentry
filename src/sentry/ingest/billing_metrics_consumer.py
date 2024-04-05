@@ -25,7 +25,7 @@ from sentry.sentry_metrics.indexer.strings import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
-from sentry.snuba.metrics.naming_layer.mri import is_custom_metric, parse_mri_lenient
+from sentry.snuba.metrics.naming_layer.mri import is_custom_metric, parse_mri
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -163,7 +163,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             project_id = generic_metric["project_id"]
             metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
 
-            parsed_mri = parse_mri_lenient(metric_mri)
+            parsed_mri = parse_mri(metric_mri)
             # If the metric is not custom, we don't want to perform any work.
             if parsed_mri is None or not is_custom_metric(parsed_mri):
                 return

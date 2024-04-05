@@ -4,7 +4,7 @@ from django.test import override_settings
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import PREFIX, SHARED_STRINGS, StaticStringIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import parse_mri_lenient
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 use_case_id = UseCaseID.SESSIONS
 
@@ -101,11 +101,11 @@ def test_reverse_resolve_reindexed():
             id=string,
         )
         for string, id in SHARED_STRINGS.items()
-        if parse_mri_lenient(string) is not None
+        if parse_mri(string) is not None
     ],
 )
 def test_shared_mri_string_range(mri, id):
-    parsed_mri = parse_mri_lenient(mri)
+    parsed_mri = parse_mri(mri)
     assert parsed_mri is not None, mri
     try:
         start, end = {

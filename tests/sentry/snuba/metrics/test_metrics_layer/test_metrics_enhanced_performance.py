@@ -2389,8 +2389,8 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             }
         ]
 
-    @mock.patch("sentry.snuba.metrics.datasource.parse_mri_lenient")
-    def test_broken_custom_metric(self, mocked_parse_mri_lenient):
+    @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
+    def test_broken_custom_metric(self, mocked_parse_mri):
         # Store valid metric
         self.store_transaction_metric(
             1,
@@ -2401,7 +2401,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         )
 
         # mock mri failing to parse the metric
-        mocked_parse_mri_lenient.return_value = None
+        mocked_parse_mri.return_value = None
         result = get_custom_measurements(
             project_ids=[self.project.id],
             organization_id=self.organization.id,
