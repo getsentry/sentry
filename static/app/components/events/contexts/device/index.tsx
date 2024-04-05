@@ -14,13 +14,13 @@ import {getInferredData} from './utils';
 type Props = {
   data: DeviceContext;
   event: Event;
+  meta: Record<string, any>;
 };
 
 const deviceIgnoredDataValues = [];
 
-export function DeviceEventContext({data, event}: Props) {
+export function DeviceEventContext({data, event, meta}: Props) {
   const inferredData = getInferredData(data);
-  const meta = event._meta?.contexts?.device ?? {};
 
   return (
     <Fragment>

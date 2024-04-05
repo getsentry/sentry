@@ -18,6 +18,7 @@ export type UserEventContextData = {
 type Props = {
   data: UserEventContextData;
   event: Event;
+  meta: Record<string, any>;
 };
 
 export enum UserKnownDataType {
@@ -42,9 +43,7 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-export function UserEventContext({data, event}: Props) {
-  const meta = event._meta?.user ?? event._meta?.contexts?.user ?? {};
-
+export function UserEventContext({data, meta}: Props) {
   return (
     <div className="user-widget">
       <div className="pull-left">

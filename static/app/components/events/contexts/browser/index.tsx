@@ -12,6 +12,7 @@ import {BrowserKnownDataType} from './types';
 type Props = {
   data: BrowserKnownData;
   event: Event;
+  meta: Record<string, any>;
 };
 
 export const browserKnownDataValues = [
@@ -19,8 +20,7 @@ export const browserKnownDataValues = [
   BrowserKnownDataType.VERSION,
 ];
 
-export function BrowserEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.browser ?? {};
+export function BrowserEventContext({data, meta}: Props) {
   return (
     <Fragment>
       <ContextBlock

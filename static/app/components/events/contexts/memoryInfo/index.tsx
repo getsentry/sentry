@@ -13,15 +13,13 @@ import {
 type Props = {
   data: MemoryInfoContext | null;
   event: Event;
+  meta: Record<string, any>;
 };
 
-export function MemoryInfoEventContext({data, event}: Props) {
+export function MemoryInfoEventContext({data, event, meta}: Props) {
   if (!data) {
     return null;
   }
-
-  const meta =
-    event._meta?.contexts?.['Memory Info'] ?? event._meta?.contexts?.memory_info ?? {};
 
   return (
     <Fragment>

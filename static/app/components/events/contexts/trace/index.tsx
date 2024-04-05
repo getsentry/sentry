@@ -23,11 +23,11 @@ const traceIgnoredDataValues = [];
 type Props = {
   data: TraceKnownData & Record<string, any>;
   event: Event;
+  meta: Record<string, any>;
 };
 
-export function TraceEventContext({event, data}: Props) {
+export function TraceEventContext({event, data, meta}: Props) {
   const organization = useOrganization();
-  const meta = event._meta?.contexts?.trace ?? {};
 
   return (
     <ErrorBoundary mini>

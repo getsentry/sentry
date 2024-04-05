@@ -16,11 +16,10 @@ type Props = {
     state: StateDescription;
   };
   event: Event;
+  meta: Record<string, any>;
 };
 
-export function StateEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.state ?? {};
-
+export function StateEventContext({data, meta}: Props) {
   function getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }

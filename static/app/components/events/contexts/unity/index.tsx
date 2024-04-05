@@ -10,14 +10,13 @@ import {getUnityKnownDataDetails, unityKnownDataValues} from './getUnityKnownDat
 type Props = {
   data: UnityContext | null;
   event: Event;
+  meta: Record<string, any>;
 };
 
-export function UnityEventContext({data, event}: Props) {
+export function UnityEventContext({data, meta}: Props) {
   if (!data) {
     return null;
   }
-
-  const meta = event._meta?.contexts?.unity ?? {};
 
   return (
     <Fragment>

@@ -13,17 +13,13 @@ import {
 type Props = {
   data: ThreadPoolInfoContext | null;
   event: Event;
+  meta: Record<string, any>;
 };
 
-export function ThreadPoolInfoEventContext({data, event}: Props) {
+export function ThreadPoolInfoEventContext({data, event, meta}: Props) {
   if (!data) {
     return null;
   }
-
-  const meta =
-    event._meta?.contexts?.['ThreadPool Info'] ??
-    event._meta?.contexts?.threadpool_info ??
-    {};
 
   return (
     <Fragment>
