@@ -138,7 +138,7 @@ test-python-ci:
 		--ignore tests/tools \
 		--cov . $(COV_ARGS) \
 		--json-report \
-		--json-report-file=".artifacts/pytest.json" \
+		--json-report-file=".artifacts/pytest.json"
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
