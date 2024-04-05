@@ -39,11 +39,6 @@ def run_metrics_queries_plan(
         A MetricsQueriesPlanResult object which encapsulates the results of the plan and allows a QueryTransformer
         to be run on the data.
     """
-    # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
-    # to a better data type.
-    if metrics_queries_plan.is_empty():
-        return MetricsQueriesPlanResult([])
-
     # We build the basic query that contains the metadata which will be shared across all queries.
     base_query = MetricsQuery(
         start=start,
