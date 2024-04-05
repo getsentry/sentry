@@ -110,7 +110,7 @@ class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 
 class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.tasks.servicehooks.process_service_hook")
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     @patch("sentry.signals.event_processed.send_robust")
@@ -147,7 +147,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         # transaction events do not call event.processed
         assert mock_signal.call_count == 0
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_no_cache_abort(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
 
@@ -354,7 +354,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
 
@@ -375,7 +375,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_rule_processor(self, mock_processor):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -451,7 +451,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             )
             assert MockAction.return_value.after.call_count == 1
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -480,7 +480,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             EventMatcher(event, group=group2), True, False, True, False, False
         )
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_group_last_seen_buffer(self, mock_processor):
         first_event_date = timezone.now() - timedelta(days=90)
         event1 = self.create_event(
@@ -541,7 +541,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.tasks.servicehooks.process_service_hook")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
 
@@ -570,7 +570,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.tasks.servicehooks.process_service_hook")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_service_hook_does_not_fire_without_alert(
         self, mock_processor, mock_process_service_hook
     ):
@@ -734,7 +734,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 
 
 class InboxTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
         new_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -1562,7 +1562,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_issue_platform(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
@@ -1628,7 +1628,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -1677,7 +1677,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
     @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
         with (
@@ -1714,7 +1714,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2380,7 +2380,7 @@ class PostProcessGroupPerformanceTest(
 
     @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
     @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.signals.event_processed.send_robust")
     def test_process_transaction_event_with_no_group(
@@ -2420,7 +2420,7 @@ class PostProcessGroupPerformanceTest(
     @patch("sentry.tasks.post_process.handle_auto_assignment")
     @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.signals.event_processed.send_robust")
     def test_full_pipeline_with_group_states(
@@ -2603,7 +2603,7 @@ class PostProcessGroupGenericTest(
         # We don't use the cache for generic issues, so skip this test
         pass
 
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_occurrence_deduping(self, mock_processor):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
@@ -2631,7 +2631,7 @@ class PostProcessGroupGenericTest(
     @patch("sentry.tasks.post_process.handle_auto_assignment")
     @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.rules.processing.processor.RuleProcessor")
     @patch("sentry.signals.event_processed.send_robust")
     @patch("sentry.utils.snuba.raw_query")
     def test_full_pipeline_with_group_states(
