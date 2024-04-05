@@ -7,7 +7,7 @@ import type {AvatarUser} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 
@@ -43,7 +43,9 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-export function UserEventContext({data, meta = {}}: Props) {
+export function UserEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'user');
+
   return (
     <div className="user-widget">
       <div className="pull-left">

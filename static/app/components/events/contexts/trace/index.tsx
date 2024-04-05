@@ -3,7 +3,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import type {TraceKnownData} from './types';
@@ -26,8 +26,9 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export function TraceEventContext({event, data, meta = {}}: Props) {
+export function TraceEventContext({event, data, meta: propsMeta}: Props) {
   const organization = useOrganization();
+  const meta = propsMeta ?? getContextMeta(event, 'trace');
 
   return (
     <ErrorBoundary mini>

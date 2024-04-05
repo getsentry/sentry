@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import type {Event, UnityContext} from 'sentry/types';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getUnityKnownDataDetails, unityKnownDataValues} from './getUnityKnownDataDetails';
 
@@ -13,10 +13,11 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export function UnityEventContext({data, meta = {}}: Props) {
+export function UnityEventContext({data, event, meta: propsMeta}: Props) {
   if (!data) {
     return null;
   }
+  const meta = propsMeta ?? getContextMeta(event, 'unity');
 
   return (
     <Fragment>

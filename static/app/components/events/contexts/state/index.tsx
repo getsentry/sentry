@@ -2,6 +2,7 @@ import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
@@ -19,7 +20,9 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export function StateEventContext({data, meta = {}}: Props) {
+export function StateEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'state');
+
   function getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }
