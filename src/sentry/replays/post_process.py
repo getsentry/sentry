@@ -73,6 +73,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+    has_viewed: bool
 
 
 def process_raw_response(
@@ -181,6 +182,7 @@ def generate_normalized_output(
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)
         ret_item["count_warnings"] = item.pop("count_warnings", None)
+        ret_item["has_viewed"] = item.get("has_viewed", False)
         yield ret_item
 
 

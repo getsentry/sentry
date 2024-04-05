@@ -70,6 +70,7 @@ def query_replays_collection_raw(
         project_ids=project_ids,
         period_start=start,
         period_stop=end,
+        request_user_id=actor.id if actor else None,
     )
 
 
@@ -79,6 +80,7 @@ def query_replay_instance(
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
+    request_user_id: int | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -93,6 +95,7 @@ def query_replay_instance(
             project_ids=project_ids,
             period_start=start,
             period_end=end,
+            request_user_id=request_user_id,
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
@@ -765,3 +768,19 @@ def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, No
             yield child
         elif isinstance(child, ParenExpression):
             yield from _extract_children(child)
+
+
+def compute_has_viewed(viewed_by_id: int) -> Function:
+    return Function(
+        "greater",
+        parameters=[
+            Function(
+                "sum",
+                parameters=[
+                    Function("equals", parameters=[Column("viewed_by_id"), viewed_by_id]),
+                ],
+            ),
+            0,
+        ],
+        alias="has_viewed",
+    )
