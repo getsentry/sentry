@@ -2715,7 +2715,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     )
     @override_options({"issues.group_attributes.send_kafka": True})
     @with_feature("organizations:issue-platform")
-    def test_snuba_perf_issue(self, mock_query, mock_eventstream, _):
+    def test_snuba_perf_issue(self, mock_query, mock_eventstream):
         time = datetime.now() - timedelta(minutes=1)
         # create a performance issue
         self.store_event(
