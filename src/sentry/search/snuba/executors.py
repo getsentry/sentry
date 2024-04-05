@@ -1137,12 +1137,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         Returns the basic lookup for a search filter.
         """
 
-        # return Condition(
-        #     Column(f"{search_filter.key.name}", joined_entitity),
-        #     Op.EQ,
-        #     search_filter.value.raw_value,
-        # )
-
         dataset = Dataset.Events if joined_entitity.alias == "e" else Dataset.IssuePlatform
 
         query_builder = UnresolvedQuery(
