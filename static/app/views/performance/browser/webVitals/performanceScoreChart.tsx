@@ -13,7 +13,6 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -36,8 +35,7 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  const order = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const order = ORDER_WITH_INP;
 
   const score = projectScore
     ? webVital
@@ -66,8 +64,8 @@ export function PerformanceScoreChart({
     ? {
         lcp: projectScore.lcpWeight,
         fcp: projectScore.fcpWeight,
-        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
-        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        fid: 0,
+        inp: projectScore.inpWeight,
         cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }

@@ -52,9 +52,7 @@ describe('PerformanceScoreRingWithTooltips', function () {
   });
 
   it('renders inp', async () => {
-    const organizationWithInp = OrganizationFixture({
-      features: ['starfish-browser-webvitals-replace-fid-with-inp'],
-    });
+    const organizationWithInp = OrganizationFixture();
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     render(
       <PerformanceScoreRingWithTooltips

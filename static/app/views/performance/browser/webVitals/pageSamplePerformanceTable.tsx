@@ -45,10 +45,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -103,8 +100,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const router = useRouter();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   let datatype = Datatype.PAGELOADS;
   switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
@@ -115,11 +110,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       datatype = Datatype.PAGELOADS;
   }
 
-  const sortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const sortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
@@ -406,7 +397,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {shouldReplaceFidWithInp && (
+        {
           <SegmentedControl
             size="md"
             value={datatype}
@@ -430,7 +421,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               {t('Interactions')}
             </SegmentedControl.Item>
           </SegmentedControl>
-        )}
+        }
 
         <StyledSearchBar
           query={query}

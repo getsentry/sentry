@@ -41,11 +41,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
   }
 
-  if (
-    props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
-  ) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
-  }
+  doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
 
   return (
     <PerformanceDisplayProvider

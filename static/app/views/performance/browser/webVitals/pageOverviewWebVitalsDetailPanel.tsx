@@ -30,7 +30,6 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -42,7 +41,6 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -91,7 +89,6 @@ export function PageOverviewWebVitalsDetailPanel({
   const organization = useOrganization();
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
   const isInp = webVital === 'inp';
 
@@ -110,14 +107,13 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
-    enabled: shouldUseStoredScores,
     weightWebVital: webVital ?? 'total',
     transaction,
   });
 
-  const projectScore = shouldUseStoredScores
-    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
-    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
+    projectScoresData?.data?.[0]
+  );
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
     useTransactionsCategorizedSamplesQuery({
