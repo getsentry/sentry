@@ -1,4 +1,5 @@
 import type {BadgeType} from 'sentry/components/featureBadge';
+import {t} from 'sentry/locale';
 
 export const RELEASE_LEVEL: BadgeType = 'alpha';
 
@@ -8,3 +9,5 @@ export const releaseLevelAsBadgeProps = {
   isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
+
+export const CACHE_MODULE_TITLE = t('Cache');
