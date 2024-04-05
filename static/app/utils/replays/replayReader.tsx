@@ -42,7 +42,7 @@ import {
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-interface ClipWindow {
+export interface ClipWindow {
   endTimestampMs: number;
   startTimestampMs: number;
 }
@@ -225,6 +225,10 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
+  private _clipWindow: ClipWindow = {
+    startTimestampMs: 0,
+    endTimestampMs: 0,
+  };
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -238,6 +242,40 @@ export default class ReplayReader {
       this._replayRecord.finished_at.getTime()
     );
 
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+
+    if (this.isVideoReplay()) {
+      this._clipWindow = {
+        startTimestampMs: clipStartTimestampMs,
+        endTimestampMs: clipEndTimestampMs,
+      };
+
+      // Trim error frames and update offsets so they show inside the clip window
+      // Do this in here since we bypass setting the global offset
+      // Eventually when we have video breadcrumbs we'll probably need to trim them here too
+
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
+        frames: Array<T>
+      ) => {
+        const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+
+        return frames.map(frame => ({
+          ...frame,
+          offsetMs: frame.offsetMs - offset,
+        }));
+      };
+
+      this._errors = updateVideoFrameOffsets(
+        this._trimFramesToClipWindow(
+          this._errors,
+          clipStartTimestampMs,
+          clipEndTimestampMs
+        )
+      );
+
+      return;
+    }
+
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
     // the correct time.
@@ -247,7 +285,6 @@ export default class ReplayReader {
     this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
 
     this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -310,6 +347,8 @@ export default class ReplayReader {
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
+
+  getClipWindow = () => this._clipWindow;
 
   /**
    * @returns Duration of Replay (milliseonds)

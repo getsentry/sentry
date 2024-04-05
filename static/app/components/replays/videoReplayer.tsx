@@ -1,3 +1,4 @@
+import type {ClipWindow} from 'sentry/utils/replays/replayReader';
 import {Timer} from 'sentry/utils/replays/timer';
 import type {VideoEvent} from 'sentry/utils/replays/types';
 
@@ -20,6 +21,7 @@ interface VideoReplayerOptions {
   root: RootElem;
   start: number;
   videoApiPrefix: string;
+  clipWindow?: ClipWindow;
 }
 
 interface VideoReplayerConfig {
@@ -60,7 +62,15 @@ export class VideoReplayer {
 
   constructor(
     attachments: VideoEvent[],
-    {root, start, videoApiPrefix, onBuffer, onFinished, onLoaded}: VideoReplayerOptions
+    {
+      root,
+      start,
+      videoApiPrefix,
+      onBuffer,
+      onFinished,
+      onLoaded,
+      clipWindow,
+    }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
     this._startTimestamp = start;
@@ -78,15 +88,31 @@ export class VideoReplayer {
       root.appendChild(this.wrapper);
     }
 
-    // Initially load the first segment so that users are not staring at a
-    // blank replay. This initially caused some issues
-    // (https://github.com/getsentry/sentry/pull/67911), but the problem was
-    // due to the logic around our timers and the assumption that we were
-    // always hiding the video at the previous index, and not the video that
-    // was previously displayed, e.g. when you "restart" a replay.
-    this.loadSegment(0);
-
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
+
+    if (clipWindow) {
+      // If there's a clip window set, load the segment at the clip start
+      const clipStartOffset = clipWindow.startTimestampMs - start;
+      this.loadSegmentAtTime(clipStartOffset);
+
+      // Some logic in `loadSegmentAtTime` depends on the real video start time
+      // So only set the new startTimestamp here
+      this._startTimestamp = clipWindow.startTimestampMs;
+
+      // Tell the timer to stop at the clip end
+      const clipDuration = clipWindow.endTimestampMs - clipWindow.startTimestampMs;
+      this._timer.addNotificationAtTime(clipDuration, () => {
+        this.stopReplay();
+      });
+    } else {
+      // Initially load the first segment so that users are not staring at a
+      // blank replay. This initially caused some issues
+      // (https://github.com/getsentry/sentry/pull/67911), but the problem was
+      // due to the logic around our timers and the assumption that we were
+      // always hiding the video at the previous index, and not the video that
+      // was previously displayed, e.g. when you "restart" a replay.
+      this.loadSegment(0);
+    }
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
