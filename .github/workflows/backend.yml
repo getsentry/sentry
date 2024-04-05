@@ -106,6 +106,16 @@ jobs:
         run: |
           make test-python-ci
 
+      - name: Collect test data
+        if: ${{ !cancelled() }}
+        uses: getsentry/action-collect-test-data@eddb08e4f7bddb8601699ef06a5581a1cd42bdc1 # v0.1.1
+        with:
+          path: .artifacts/pytest.json
+          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/${{ github.repository_id }}-${{ github.run_id }}/${{ github.job }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
@@ -260,6 +270,16 @@ jobs:
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Collect test data
+        if: ${{ !cancelled() }}
+        uses: getsentry/action-collect-test-data@eddb08e4f7bddb8601699ef06a5581a1cd42bdc1 # v0.1.1
+        with:
+          path: .artifacts/pytest.monolith-dbs.json
+          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/${{ github.repository_id }}-${{ github.run_id }}/${{ github.job }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
