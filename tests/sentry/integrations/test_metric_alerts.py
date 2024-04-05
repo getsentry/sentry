@@ -193,7 +193,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         self.incident = self.create_incident(
@@ -224,7 +224,6 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    @pytest.mark.xfail(reason="Doesn't pass with release health backend")
     def test_with_incident_trigger_sessions_resolve(self):
         self.create_incident_and_related_objects()
         data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
@@ -237,7 +236,6 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    @pytest.mark.xfail(reason="Doesn't pass with release health backend")
     def test_with_incident_trigger_users(self):
         self.create_incident_and_related_objects(field="users")
         data = incident_attachment_info(self.incident, IncidentStatus.CRITICAL, 92)
