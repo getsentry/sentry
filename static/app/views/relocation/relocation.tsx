@@ -87,13 +87,11 @@ function RelocationOnboarding(props: Props) {
   const api = useApi();
   const regions = ConfigStore.get('regions');
 
+  const [regionUrl, setRegionUrl] = useState('');
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
   const [existingRelocation, setExistingRelocation] = useState('');
-
-  // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
-  // change during a single run through this workflow.
   const [publicKey, setPublicKey] = useState('');
   const [publicKeyState, setPublicKeyState] = useState(LoadingState.FETCHING);
 
@@ -250,6 +248,11 @@ function RelocationOnboarding(props: Props) {
             data-test-id={`onboarding-step-${stepObj.id}`}
             existingRelocationUUID={existingRelocation}
             stepIndex={stepIndex}
+            onChangeRegionUrl={(regUrl?) => {
+              if (regUrl) {
+                setRegionUrl(regUrl);
+              }
+            }}
             onComplete={(uuid?) => {
               if (uuid) {
                 setExistingRelocation(uuid);
@@ -259,6 +262,7 @@ function RelocationOnboarding(props: Props) {
               }
             }}
             publicKey={publicKey}
+            regionUrl={regionUrl}
             route={props.route}
             router={props.router}
             location={props.location}

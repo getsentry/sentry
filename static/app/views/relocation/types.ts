@@ -6,8 +6,10 @@ export type StepProps = Pick<
 > & {
   active: boolean;
   existingRelocationUUID: string;
+  onChangeRegionUrl: (regionUrl?: string) => void;
   onComplete: (uuid?: string) => void;
   publicKey: string;
+  regionUrl: string;
   stepIndex: number;
 };
 
