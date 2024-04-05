@@ -24,10 +24,8 @@ from sentry.monitors.models import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MarkFailedTestCase(TestCase):
     @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
@@ -335,6 +333,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)
@@ -445,6 +444,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)
@@ -555,6 +555,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)

@@ -160,8 +160,8 @@ def _build_next_values(
     for result in result_iter:
         result_value = key(result)
 
-        is_larger = result_value >= next_value  # type: ignore
-        is_smaller = result_value <= next_value  # type: ignore
+        is_larger = result_value >= next_value  # type: ignore[operator]
+        is_smaller = result_value <= next_value  # type: ignore[operator]
 
         if (is_desc and is_smaller) or (not is_desc and is_larger):
             next_offset += 1
@@ -229,8 +229,8 @@ def _build_prev_values(
     for result in result_iter:
         result_value = key(result, for_prev=True)
 
-        is_larger = result_value >= prev_value  # type: ignore
-        is_smaller = result_value <= prev_value  # type: ignore
+        is_larger = result_value >= prev_value  # type: ignore[operator]
+        is_smaller = result_value <= prev_value  # type: ignore[operator]
 
         # Note that the checks are reversed here as a prev query has
         # it's ordering reversed.

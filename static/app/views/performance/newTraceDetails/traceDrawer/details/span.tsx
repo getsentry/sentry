@@ -7,12 +7,14 @@ import {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
@@ -21,12 +23,7 @@ export function SpanNodeDetails({
   organization,
   scrollToNode,
   onParentClick,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
   const {event, childTransaction, ...span} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
@@ -43,13 +40,13 @@ export function SpanNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {getSpanOperation(span)}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>

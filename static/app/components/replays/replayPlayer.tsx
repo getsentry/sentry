@@ -64,8 +64,10 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     fastForwardSpeed,
     initRoot,
     isBuffering,
+    isVideoBuffering,
     isFetching,
     isFinished,
+    isVideoReplay,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -128,8 +130,8 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-        {isBuffering ? <PositionedBuffering /> : null}
-        {isPreview ? null : <PlayerDOMAlert />}
+        {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
+        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>

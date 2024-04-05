@@ -11,10 +11,10 @@ const TOOLTIP_OFFSET = 10;
 
 interface Options {
   /**
-   * Function used to compute the text of the cursor tooltip. Recieves the %
-   * value the cursor is within the container.
+   * Function used to compute the text of the cursor tooltip. Receives the
+   * offset value within the container.
    */
-  labelText: (percentPosition: number) => string;
+  labelText: (positionX: number) => string;
   /**
    * May be set to false to disable rendering the timeline cursor
    */
@@ -68,10 +68,14 @@ function useTimelineCursor<E extends HTMLElement>({
           return;
         }
 
+        if (!isInsideContainer) {
+          return;
+        }
+
         const offset = e.clientX - containerRect.left;
         const tooltipWidth = labelRef.current.offsetWidth;
 
-        labelRef.current.innerText = labelText(offset / containerRect.width);
+        labelRef.current.innerText = labelText(offset);
 
         containerRef.current.style.setProperty('--cursorOffset', `${offset}px`);
         containerRef.current.style.setProperty('--cursorMax', `${containerRect.width}px`);

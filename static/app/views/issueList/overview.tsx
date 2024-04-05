@@ -17,6 +17,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -148,6 +149,11 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
 };
+
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
@@ -490,7 +496,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
         GroupStore.onPopulateStats(groups, data);
-        this.trackTabViewed(groups, data);
+        this.trackTabViewed(groups, data, this.state.queryCount);
       },
       error: err => {
         this.setState({
@@ -821,7 +827,7 @@ class IssueListOverview extends Component<Props, State> {
     }
   }
 
-  trackTabViewed(groups: string[], data: Group[]) {
+  trackTabViewed(groups: string[], data: Group[], numHits: number | null) {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
@@ -855,6 +861,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      total_issues_count: numHits,
       sort: this.getSort(),
     });
   }
@@ -1250,6 +1257,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
+            <DataConsentBanner source="issues" />
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>

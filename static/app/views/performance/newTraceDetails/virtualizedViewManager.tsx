@@ -6,19 +6,17 @@ import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
-import type {
-  TraceError,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
+  isTraceNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {
@@ -180,9 +178,10 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
+  horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
-  intervals: number[] = [];
+  intervals: (number | undefined)[] = [];
   // We want to render an indicator every 100px, but because we dont track resizing
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
@@ -208,6 +207,10 @@ export class VirtualizedViewManager {
   // Holds the span to px matrix so we dont keep recalculating it
   span_to_px: mat3 = mat3.create();
   row_depth_padding: number = 22;
+
+  // Smallest of time that can be displayed across the entire view.
+  private readonly MAX_ZOOM_PRECISION = 1;
+  private readonly ROW_PADDING_PX = 16;
 
   // Column configuration
   columns: {
@@ -236,6 +239,8 @@ export class VirtualizedViewManager {
     this.onWheelZoom = this.onWheelZoom.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
+    this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
+    this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
   on<K extends keyof VirtualizedViewManagerEvents>(
@@ -293,17 +298,10 @@ export class VirtualizedViewManager {
     this.recomputeSpanToPxMatrix();
   }
 
-  onContainerRef(container: HTMLElement | null) {
-    if (container) {
-      this.initialize(container);
-    } else {
-      this.teardown();
-    }
-  }
-
   dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
+
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -378,13 +376,47 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
+  private scrollbar_width: number = 0;
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+    this.draw();
+  }
+
+  registerContainerRef(container: HTMLElement | null) {
+    if (container) {
+      this.initialize(container);
+    } else {
+      this.teardown();
+    }
+  }
+
+  registerGhostRowRef(column: string, ref: HTMLElement | null) {
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
+      if (scrollableElement) {
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
+      }
+    }
+
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+    }
+  }
+
   registerList(list: VirtualizedList | null) {
     this.list = list;
   }
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.span_list.width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        this.columns.span_list.width;
+      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
     }
     this.indicator_container = ref;
   }
@@ -587,21 +619,30 @@ export class VirtualizedViewManager {
 
   zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
-    if (space[1] <= 0) {
-      // @TODO implement scrolling to 0 width spaces
-      return;
-    }
-
-    const distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let final_x = space[0] - this.to_origin;
+    let final_width = space[1];
     const distance_width = this.trace_view.width - space[1];
+
+    if (space[1] < this.MAX_ZOOM_PRECISION) {
+      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_width = this.MAX_ZOOM_PRECISION;
+    }
 
     const start_x = this.trace_view.x;
     const start_width = this.trace_view.width;
 
+    const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
+    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    // We need to clamp the duration to prevent the animation from being too slow,
+    // sometimes the distances are very large as traces can be hours in duration
+    const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
+
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      const progress = elapsed / 300;
+      const progress = elapsed / duration;
 
       const eased = easeOutSine(progress);
 
@@ -615,7 +656,7 @@ export class VirtualizedViewManager {
         this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
       } else {
         this.zoomIntoSpaceRaf = null;
-        this.setTraceView({x: space[0] - this.to_origin, width: space[1]});
+        this.setTraceView({x: final_x, width: final_width});
         this.draw();
       }
     };
@@ -688,14 +729,74 @@ export class VirtualizedViewManager {
   }
 
   setTraceView(view: {width?: number; x?: number}) {
+    // In cases where a trace might have a single error, there is no concept of a timeline
+    if (this.trace_view.width === 0) {
+      return;
+    }
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(
+      width,
+      this.MAX_ZOOM_PRECISION,
+      this.trace_space.width - this.trace_view.x
+    );
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
+  }
+
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = this.columns.list.width * 100 + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
+  onNewMaxRowWidth(max) {
+    this.syncHorizontalScrollbar(max);
+  }
+
+  syncHorizontalScrollbar(max: number) {
+    const child = this.horizontal_scrollbar_container?.children[0] as
+      | HTMLElement
+      | undefined;
+
+    if (child) {
+      child.style.width = max - this.scrollbar_width + this.ROW_PADDING_PX + 'px';
+    }
+  }
+
+  onHorizontalScrollbarScroll(_event: Event) {
+    if (this.isScrolling) {
+      return;
+    }
+
+    const scrollLeft = this.horizontal_scrollbar_container?.scrollLeft;
+    if (typeof scrollLeft !== 'number') {
+      return;
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
+
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const list = this.columns.list.column_refs[i];
+      if (list?.children?.[0]) {
+        (list.children[0] as HTMLElement).style.transform =
+          `translateX(${this.columns.list.translate[0]}px)`;
+      }
+    }
   }
 
   scrollSyncRaf: number | null = null;
@@ -733,6 +834,7 @@ export class VirtualizedViewManager {
     }
 
     this.scrollSyncRaf = window.requestAnimationFrame(() => {
+      this.horizontal_scrollbar_container!.scrollLeft = -this.columns.list.translate[0];
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -745,7 +847,7 @@ export class VirtualizedViewManager {
 
   clampRowTransform(transform: number): number {
     const columnWidth = this.columns.list.width * this.container_physical_space.width;
-    const max = this.row_measurer.max - columnWidth + 16;
+    const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.max < columnWidth) {
       return 0;
@@ -858,6 +960,7 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
+      this.horizontal_scrollbar_container!.scrollLeft = -pos;
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -869,6 +972,7 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0] = pos;
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
+        this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
     };
@@ -882,6 +986,19 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
+
+    this.container.style.setProperty(
+      '--list-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.list.width * 1000) / 1000
+    );
+    this.container.style.setProperty(
+      '--span-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.span_list.width * 1000) / 1000
+    );
+
+    this.row_measurer.on('max', this.onNewMaxRowWidth);
 
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -914,6 +1031,14 @@ export class VirtualizedViewManager {
   }
 
   recomputeTimelineIntervals() {
+    if (this.trace_view.width === 0) {
+      this.intervals[0] = 0;
+      this.intervals[1] = 0;
+      for (let i = 2; i < this.intervals.length; i++) {
+        this.intervals[i] = undefined;
+      }
+      return;
+    }
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
       tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
@@ -987,7 +1112,7 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    if (segments.length === 1 && segments[0] === 'trace:root') {
+    if (segments.length === 1 && segments[0] === 'trace-root') {
       rerender();
       this.scrollToRow(0);
       return Promise.resolve({index: 0, node: tree.root.children[0]});
@@ -1010,7 +1135,7 @@ export class VirtualizedViewManager {
         // that this is happening, we will perform a final check to see if we've actually already
         // arrived to the node in the previous search call.
         if (path) {
-          const [type, id] = path.split(':');
+          const [type, id] = path.split('-');
 
           if (
             type === 'span' &&
@@ -1035,9 +1160,10 @@ export class VirtualizedViewManager {
       if (isTransactionNode(current)) {
         const nextSegment = segments[segments.length - 1];
         if (
-          nextSegment?.startsWith('span:') ||
-          nextSegment?.startsWith('ag:') ||
-          nextSegment?.startsWith('ms:')
+          nextSegment?.startsWith('span-') ||
+          nextSegment?.startsWith('empty-') ||
+          nextSegment?.startsWith('ag-') ||
+          nextSegment?.startsWith('ms-')
         ) {
           await tree.zoomIn(current, true, {
             api,
@@ -1060,7 +1186,8 @@ export class VirtualizedViewManager {
       // and we should scroll the view to this node.
       const index = tree.list.findIndex(node => node === current);
       if (index === -1) {
-        throw new Error("Couldn't find node in list");
+        rerender();
+        throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
 
       rerender();
@@ -1088,7 +1215,7 @@ export class VirtualizedViewManager {
 
     const width = this.text_measurer.measure(text);
 
-    // precomput all anchor points aot, so we make the control flow more readable.
+    // precompute all anchor points aot, so we make the control flow more readable.
     // this wastes some cycles, but it's not a big deal as computers are fast when
     // it comes to simple arithmetic.
     const right_outside =
@@ -1097,6 +1224,7 @@ export class VirtualizedViewManager {
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
       width -
       TEXT_PADDING;
+
     const left_outside =
       this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
@@ -1155,8 +1283,24 @@ export class VirtualizedViewManager {
       // anchor it to the inside right place in the span.
       return [1, right_inside];
     }
+
     // While we have space on the right, place the text there
     if (space_right > 0) {
+      if (
+        // If the right edge of the span is within 10% to the right edge of the space,
+        // try and fit the text inside the span if possible. In case the span is too short
+        // to fit the text, anchor_left case above will take care of anchoring it to the left
+        // of the view.
+
+        // Note: the accurate way for us to determine if the text fits to the right side
+        // of the view would have been to compute the scaling matrix for a non zoomed view at 0,0
+        // origin and check if it fits into the distance of space right edge - span right edge. In practice
+        // however, it seems that a magical number works just fine.
+        span_right > this.trace_space.right * 0.9 &&
+        space_right / this.span_to_px[0] < width
+      ) {
+        return [1, right_inside];
+      }
       return [0, right_outside];
     }
 
@@ -1176,6 +1320,7 @@ export class VirtualizedViewManager {
       // anchor it to the inside left of the span
       return [1, left_inside];
     }
+
     return [0, right_outside];
   }
 
@@ -1184,23 +1329,39 @@ export class VirtualizedViewManager {
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
     if (this.divider) {
-      this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
-      }px)`;
+      this.divider.style.setProperty(
+        '--translate-x',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(
+          (list_width * (this.container_physical_space.width - this.scrollbar_width) -
+            DIVIDER_WIDTH / 2 -
+            1) *
+            10
+        ) / 10
+      );
     }
     if (this.indicator_container) {
-      this.indicator_container.style.width = span_list_width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
+      // @ts-expect-error we set number value type on purpose
+      this.indicator_container.style.setProperty('--translate-x', -this.scrollbar_width);
+      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
-    const listWidth = list_width * 100 + '%';
-    const spanWidth = span_list_width * 100 + '%';
+    if (this.container) {
+      this.container.style.setProperty(
+        '--list-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(list_width * 1000) / 1000
+      );
+      this.container.style.setProperty(
+        '--span-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(span_list_width * 1000) / 1000
+      );
+    }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list) list.style.width = listWidth;
-      const span = this.columns.span_list.column_refs[i];
-      if (span) span.style.width = spanWidth;
-
       const span_bar = this.span_bars[i];
       const span_arrow = this.span_arrows[i];
 
@@ -1343,11 +1504,45 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    // Renders timeline indicators and labels
     for (let i = 0; i < this.timeline_indicators.length; i++) {
       const indicator = this.timeline_indicators[i];
-      const interval = this.intervals[i];
+
+      // Special case for when the timeline is empty - we want to show the first and last
+      // timeline indicators as 0ms instead of just a single 0ms indicator as it gives better
+      // context to the user that start and end are both 0ms. If we were to draw a single 0ms
+      // indicator, it leaves ambiguity for the user to think that the end might be missing
+      if (i === 0 && this.intervals[0] === 0 && this.intervals[1] === 0) {
+        const first = this.timeline_indicators[0];
+        const last = this.timeline_indicators[1];
+
+        if (first && last) {
+          first.style.opacity = '1';
+          last.style.opacity = '1';
+          first.style.transform = `translateX(0)`;
+
+          // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
+          // side of the indicator, we need to offset it by the width of the label to make it look like
+          // it is at the end of the timeline
+          last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
+          const firstLabel = first.children[0] as HTMLElement | undefined;
+          if (firstLabel) {
+            firstLabel.textContent = '0.00ms';
+          }
+          const lastLabel = last.children[0] as HTMLElement | undefined;
+          const lastLine = last.children[1] as HTMLElement | undefined;
+          if (lastLine && lastLabel) {
+            lastLabel.textContent = '0.00ms';
+            lastLine.style.opacity = '0';
+            i = 1;
+          }
+          continue;
+        }
+      }
 
       if (indicator) {
+        const interval = this.intervals[i];
+
         if (interval === undefined) {
           indicator.style.opacity = '0';
           continue;
@@ -1368,6 +1563,8 @@ export class VirtualizedViewManager {
   }
 
   teardown() {
+    this.row_measurer.off('max', this.onNewMaxRowWidth);
+
     if (this.resize_observer) {
       this.resize_observer.disconnect();
     }
@@ -1378,7 +1575,6 @@ export class VirtualizedViewManager {
 // so we dont end up storing an infinite amount of elements
 class DOMWidthMeasurer<T> {
   cache: Map<T, number> = new Map();
-  elements: HTMLElement[] = [];
 
   queue: [T, HTMLElement][] = [];
   drainRaf: number | null = null;
@@ -1386,6 +1582,24 @@ class DOMWidthMeasurer<T> {
 
   constructor() {
     this.drain = this.drain.bind(this);
+  }
+
+  listeners: Record<'max', Set<(max: number) => void>> = {
+    max: new Set(),
+  };
+
+  on(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.add?.(cb);
+  }
+
+  off(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.delete?.(cb);
+  }
+
+  dispatch(max: number) {
+    for (const listener of this.listeners.max) {
+      listener(max);
+    }
   }
 
   enqueueMeasure(node: T, element: HTMLElement) {
@@ -1402,8 +1616,13 @@ class DOMWidthMeasurer<T> {
   }
 
   drain() {
-    for (const [node, element] of this.queue) {
-      this.measure(node, element);
+    while (this.queue.length > 0) {
+      const next = this.queue.pop()!;
+      const width = this.measure(next[0], next[1]);
+      if (width > this.max) {
+        this.max = width;
+        this.dispatch(this.max);
+      }
     }
   }
 
@@ -1413,12 +1632,9 @@ class DOMWidthMeasurer<T> {
       return cache;
     }
 
-    const width = element.getBoundingClientRect().width;
-    if (width > this.max) {
-      this.max = width;
-    }
-    this.cache.set(node, width);
-    return width;
+    const rect = element.getBoundingClientRect();
+    this.cache.set(node, rect.width);
+    return rect.width;
   }
 }
 
@@ -1457,7 +1673,7 @@ class TextMeasurer {
       this.number = Math.max(this.number, measurement.width);
     }
 
-    for (const duration of ['ns', 'ms', 's', 'm', 'h', 'd']) {
+    for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
       this.duration[duration] = this.ctx.measureText(duration).width;
     }
   }
@@ -1542,12 +1758,30 @@ export class VirtualizedList {
   }
 }
 
+function maybeToggleScrollbar(
+  container: HTMLElement,
+  containerHeight: number,
+  scrollHeight: number,
+  manager: VirtualizedViewManager
+) {
+  if (scrollHeight > containerHeight) {
+    container.style.overflowY = 'scroll';
+    container.style.scrollbarGutter = 'stable';
+    manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
+  } else {
+    container.style.overflowY = 'auto';
+    container.style.scrollbarGutter = 'auto';
+    manager.onScrollbarWidthChange(0);
+  }
+}
+
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
 }
+
 interface UseVirtualizedListResult {
   list: VirtualizedList;
   rendered: React.ReactNode[];
@@ -1625,6 +1859,13 @@ export const useVirtualizedList = (
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
+      maybeToggleScrollbar(
+        elements[0].target as HTMLElement,
+        scrollHeightRef.current,
+        itemsRef.current.length * 24,
+        managerRef.current
+      );
+
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
         items: itemsRef.current,
@@ -1665,6 +1906,13 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    maybeToggleScrollbar(
+      props.container,
+      scrollHeightRef.current,
+      props.items.length * 24,
+      props.manager
+    );
 
     const onScroll = event => {
       if (!list.current) {
@@ -1733,7 +1981,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length]);
+  }, [props.container, props.items, props.items.length, props.manager]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
@@ -1883,10 +2131,10 @@ function findInTreeFromSegment(
   start: TraceTreeNode<TraceTree.NodeValue>,
   segment: TraceTree.NodePath
 ): TraceTreeNode<TraceTree.NodeValue> | null {
-  const [type, id] = segment.split(':');
+  const [type, id] = segment.split('-');
 
   if (!type || !id) {
-    throw new TypeError('Node path must be in the format of `type:id`');
+    throw new TypeError('Node path must be in the format of `type-id`');
   }
 
   return TraceTreeNode.Find(start, node => {
@@ -1918,6 +2166,10 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
+    if (type === 'empty' && isNoDataNode(node)) {
+      return true;
+    }
+
     return false;
   });
 }
@@ -1926,15 +2178,15 @@ function hasEventWithEventId(
   node: TraceTreeNode<TraceTree.NodeValue>,
   eventId: string
 ): boolean {
-  // Search in errors
-  const errors: TraceError[] = isAutogroupedNode(node)
-    ? node.errors
-    : node.value && 'errors' in node.value && Array.isArray(node.value.errors)
-      ? node.value.errors
-      : [];
+  // Skip trace nodes since they accumulate all errors and performance issues
+  // in the trace and is not an event.
+  if (isTraceNode(node)) {
+    return false;
+  }
 
-  if (errors.length > 0) {
-    for (const e of errors) {
+  // Search in errors
+  if (node.errors.size > 0) {
+    for (const e of node.errors) {
       if (e.event_id === eventId) {
         return true;
       }
@@ -1942,16 +2194,8 @@ function hasEventWithEventId(
   }
 
   // Search in performance issues
-  const performance_issues: TracePerformanceIssue[] = isAutogroupedNode(node)
-    ? node.performance_issues
-    : node.value &&
-        'performance_issues' in node.value &&
-        Array.isArray(node.value.performance_issues)
-      ? node.value.performance_issues
-      : [];
-
-  if (performance_issues.length > 0) {
-    for (const p of performance_issues) {
+  if (node.performance_issues.size > 0) {
+    for (const p of node.performance_issues) {
       if (p.event_id === eventId) {
         return true;
       }

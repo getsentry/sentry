@@ -140,6 +140,13 @@ function GroupHeaderTabs({
         {t('Merged Issues')}
       </TabList.Item>
       <TabList.Item
+        key={Tab.RELATED_ISSUES}
+        hidden={!organizationFeatures.has('related-issues')}
+        to={`${baseUrl}related/${location.search}`}
+      >
+        {t('Related Issues')}
+      </TabList.Item>
+      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}

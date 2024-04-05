@@ -24,7 +24,6 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -435,6 +434,7 @@ def configure_sdk():
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "deliver-from-outbox-control",
+        "deliver-webhooks-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
@@ -469,7 +469,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
-            OpenAiIntegration(capture_prompts=True),
         ],
         spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,

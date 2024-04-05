@@ -39,6 +39,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
             constants.SPAN_IS_SEGMENT_ALIAS: filter_aliases.span_is_segment_converter,
+            constants.SPAN_OP: lambda search_filter: filter_aliases.lowercase_search(
+                self.builder, search_filter
+            ),
+            constants.SPAN_DESCRIPTION: lambda search_filter: filter_aliases.lowercase_search(
+                self.builder, search_filter
+            ),
         }
 
     @property
@@ -214,6 +220,22 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         args["interval"], alias
                     ),
                     private=True,
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
                 ),
             ]
         }

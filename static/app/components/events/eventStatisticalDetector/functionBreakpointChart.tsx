@@ -7,8 +7,8 @@ import type {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 

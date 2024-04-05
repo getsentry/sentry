@@ -18,14 +18,12 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.backup import expect_models, verify_models_in_output
 
 EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test
 class ExhaustiveTests(BackupTestCase):
     """
     Ensure that a database with all exportable models filled out still works.

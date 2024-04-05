@@ -10,7 +10,7 @@ from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -23,7 +23,6 @@ def additional_attachment_generator(integration, organization):
     return {"title": organization.slug, "text": integration.id}
 
 
-@region_silo_test
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
@@ -48,7 +47,9 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel"] == expected_channel
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_no_upgrade_notice_bot_app(self):
+        # TODO: make this a block kit test
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -74,6 +75,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == event.title
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_render_label(self):
         rule = self.get_rule(
             data={
@@ -106,7 +108,9 @@ class SlackNotifyActionTest(RuleTestCase):
             == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and notes fix this @colleen in notification"
         )
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_render_label_without_integration(self):
+        # TODO: make this a block kit test
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -386,7 +390,9 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     @mock.patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_additional_attachment(self, mock_record):
+        # TODO: make this a block kit test
         with mock.patch.dict(
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator},

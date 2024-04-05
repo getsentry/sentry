@@ -18,7 +18,7 @@ skip = "migrations"
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
+addopts = "--tb=short -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
@@ -64,6 +64,7 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+enable_error_code = ["ignore-without-code"]
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -99,8 +100,6 @@ module = [
   "google.resumable_media.common.*",
   "google.rpc.status_pb2.*",
   "google_crc32c.*",
-  "honcho.manager.*",
-  "honcho.printer.*",
   "kombu.*",
   "mistune.*",
   "onelogin.saml2.auth.*",
@@ -382,9 +381,7 @@ module = [
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
-    "sentry.monitors.endpoints.monitor_ingest_checkin_details",
     "sentry.monitors.endpoints.organization_monitor_index",
-    "sentry.monkey.pickle",
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.additional_attachment_manager",
@@ -616,28 +613,34 @@ disable_error_code = [
 ]
 # end: sentry modules with typing issues
 
-# beginning: stronger typing
+# begin: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "sentry.api.endpoints.issues.*",
     "sentry.buffer.base",
     "sentry.buffer.redis",
     "sentry.eventstore.reprocessing.redis",
-    "sentry.utils.redis",
-    "sentry.utils.redis_metrics",
-    "sentry.utils.locking.backends.redis",
-    "sentry.tasks.on_demand_metrics",
+    "sentry.issues.related.*",
     "sentry.nodestore.base",
-    "sentry.nodestore.models",
     "sentry.nodestore.bigtable.backend",
     "sentry.nodestore.django.backend",
     "sentry.nodestore.django.models",
     "sentry.nodestore.filesystem.backend",
-    "sentry.reprocessing2",
+    "sentry.nodestore.models",
     "sentry.relay.config.metric_extraction",
+    "sentry.reprocessing2",
+    "sentry.runner.*",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
-    "tests.sentry.tasks.test_on_demand_metrics",
+    "sentry.utils.locking.backends.redis",
+    "sentry.utils.redis",
+    "sentry.utils.redis_metrics",
+    "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.relay.config.test_metric_extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
+    "tools.*",
 ]
+disallow_any_generics = true
 disallow_untyped_defs = true
 # end: stronger typing

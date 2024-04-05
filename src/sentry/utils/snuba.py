@@ -143,6 +143,7 @@ SPAN_COLUMN_MAP = {
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
     "category": "sentry_tags[category]",
+    "span.category": "sentry_tags[category]",
     "span.status_code": "sentry_tags[status_code]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
@@ -152,6 +153,7 @@ SPAN_COLUMN_MAP = {
     "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

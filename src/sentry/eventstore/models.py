@@ -13,6 +13,7 @@ import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
+from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
@@ -24,7 +25,6 @@ from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
@@ -292,7 +292,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interfaces(self) -> Mapping[str, Interface]:
         return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
 
-    @memoize
+    @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
         return self.get_interfaces()
 
@@ -546,7 +546,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return data
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         """
         The internal search_message attribute is only used for search purposes.
@@ -777,7 +777,7 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         message = super().search_message
         # Include values from the occurrence in our search message as well, so that occurrences work

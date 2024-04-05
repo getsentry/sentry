@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import BinaryIO
+from typing import IO
 
 from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
@@ -40,7 +40,7 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest: BinaryIO,
+    dest: IO[bytes],
     scope: ExportScope,
     *,
     encryptor: Encryptor | None = None,
@@ -145,7 +145,7 @@ def _export(
 
 
 def export_in_user_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
@@ -171,7 +171,7 @@ def export_in_user_scope(
 
 
 def export_in_organization_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
@@ -198,7 +198,7 @@ def export_in_organization_scope(
 
 
 def export_in_config_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
@@ -223,7 +223,7 @@ def export_in_config_scope(
 
 
 def export_in_global_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,

@@ -71,6 +71,7 @@ EXPOSABLE_FEATURES = [
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
+    "organizations:continuous-profiling",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -248,6 +249,11 @@ class CardinalityLimit(TypedDict):
     namespace: str | None
 
 
+class CardinalityLimitOption(TypedDict):
+    rollout_rate: NotRequired[float]
+    limit: CardinalityLimit
+
+
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
@@ -280,13 +286,25 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             if id in passive_limits:
                 limit["passive"] = True
             cardinality_limits.append(limit)
+
+        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
+        for clo in clos:
+            rollout_rate = clo.get("rollout_rate", 1.0)
+            if (project.organization.id % 100000) / 100000 >= rollout_rate:
+                continue
+
+            try:
+                cardinality_limits.append(clo["limit"])
+            except KeyError:
+                pass
+
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
         timeout.check()
         if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type:ignore
+            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
@@ -828,9 +846,6 @@ def _get_project_config(
                 if _should_extract_abnormal_mechanism(project)
                 else EXTRACT_METRICS_VERSION
             ),
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
-            ),
         }
 
     performance_score_profiles = [
@@ -947,7 +962,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
         except Exception as e:
             return f"Content Error:{e}"
 

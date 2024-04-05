@@ -1,17 +1,8 @@
-from unittest.mock import Mock
-
 import pytest
 
 from sentry.eventstore.models import Event
 from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.testutils.helpers.options import override_options
-
-
-@pytest.fixture
-def record_analytics(monkeypatch):
-    mock = Mock()
-    monkeypatch.setattr("sentry.analytics.record", mock)
-    return mock
 
 
 @pytest.mark.parametrize(
@@ -120,38 +111,106 @@ def record_analytics(monkeypatch):
             """blah connection failed after <duration> <duration> <duration>""",
         ),
         (
+            "Hostname - 2 levels",
+            """Blocked 'connect' from 'gggggggdasdwefwewqqqfefwef.com'""",
+            """Blocked 'connect' from '<hostname>'""",
+        ),
+        (
+            "Hostname - 3 levels",
+            """Blocked 'font' from 'www.time.co'""",
+            """Blocked 'font' from '<hostname>'""",
+        ),
+        (
             "Uniq ID - sql savepoint",
             '''SQL: RELEASE SAVEPOINT "s140177518376768_x2"''',
-            '''SQL: RELEASE SAVEPOINT "<uniq_id>"''',
+            """SQL: RELEASE SAVEPOINT <uniq_id>""",
         ),
         (
             "Uniq ID - api gateway",
             """API gateway VdLchF7iDo8sVkg= blah""",
-            """API gateway <uniq_id>= blah""",
+            """API gateway <uniq_id> blah""",
         ),
         (
-            "Uniq ID - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
+            "Uniq ID - fb trace",
             """fbtrace_id Aba64NMEPMmBwi_cPLaGeeK AugPfq0jxGbto4u3kxn8u6p blah""",
             """fbtrace_id <uniq_id> <uniq_id> blah""",
         ),
         (
-            "Uniq ID - word with numerical pre/suffix",  # TODO: It is possible to have fbtrace_ids without integers.
+            "Uniq ID - word with numerical pre/suffix",
             """1password python3 abc123 123abc""",
             """1password python3 abc123 123abc""",
         ),
-        # (
-        #     "Quoted str w/ints - cloudflare trace",
-        #     """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
-        #     """cloudflare trace <uniq_id> <uniq_id> blah""",
-        # ),
-        # New cases to handle better
-        # ('''blah tcp://user:pass@email.com:10 had a problem''', '''blah <url> had a problem'''),
-        # ('''blah 0.0.0.0:10 had a problem''', '''blah <ip> had a problem'''),
-        # JWT. TODO: Handle truncated JWTs?
-        # ("JWT", '''blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c''', '''blah <jwt>'''),
+        (
+            "Uniq ID - cloudflare trace",
+            """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
+            """cloudflare trace <uniq_id> <uniq_id> blah""",
+        ),
+        (
+            "Uniq ID - JWT",
+            """blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c""",
+            """blah <uniq_id>""",
+        ),
+        (
+            "Uniq ID - Nothing to replace",
+            """I am the test words 1password python3 abc123 123abc""",
+            """I am the test words 1password python3 abc123 123abc""",
+        ),
+        (
+            "Uniq ID - react element",
+            """Permission denied to access property "__reactFiber$b6c78e70asw" """,
+            """Permission denied to access property <uniq_id> """,
+        ),
+        (
+            "Uniq ID - no change variable name",
+            """TypeError: Cannot read property 'startRTM' of undefined""",
+            """TypeError: Cannot read property 'startRTM' of undefined""",
+        ),
+        (
+            "Uniq ID - json ignored properly",
+            """[401,""]""",
+            """[<int>,""]""",
+        ),
+        (
+            "Uniq ID - no change",
+            """Blocked 'script' from 'wasm-eval:'""",
+            """Blocked 'script' from 'wasm-eval:'""",
+        ),
     ],
 )
-def test_normalize_message(name, input, expected, record_analytics):
+def test_normalize_message(name, input, expected):
+    event = Event(project_id=1, event_id="something")
+    with override_options(
+        {
+            "grouping.experiments.parameterization.uniq_id": 100,
+        }
+    ):
+        assert expected == normalize_message_for_grouping(input, event), f"Case {name} Failed"
+
+
+# These are test cases that we should fix
+@pytest.mark.xfail()
+@pytest.mark.parametrize(
+    ("name", "input", "expected"),
+    [
+        (
+            "URL - non-http protocol user/pass/port",
+            """blah tcp://user:pass@email.com:10 had a problem""",
+            """blah <url> had a problem""",
+        ),
+        ("URL - IP w/ port", """blah 0.0.0.0:10 had a problem""", """blah <ip> had a problem"""),
+        (
+            "Int - parens",
+            """Tb.Worker {"msg" => "(#239323) Received ...""",
+            """Tb.Worker {"msg" => "(#<int>) Received ...""",
+        ),
+        (
+            "Uniq ID - Snuba query",
+            """Error running query: SELECT (divide(plus(sumMergeIf((value AS _snuba_value), equals((arrayElement(tags.raw_value, indexOf(tags.key, 9223372036854776026)) AS `_snuba_tags_raw[9223372036854776026]`), 'satisfactory') AND equals((metric_id AS _snuba_metric_id), 9223372036854775936)), divide(sumMergeIf(_snuba_value, equals(`_snuba_tags_raw[9223372036854776026]`, 'tolerable') AND equals(_snuba_metric_id, 9223372036854775936)), 2)), sumMergeIf(_snuba_value, equals(_snuba_metric_id, 9223372036854775936))) AS `_snuba_c:transactions/on_demand@none`) FROM generic_metric_counters_aggregated_dist WHERE equals(granularity, 1) AND equals((org_id AS _snuba_org_id), 1383997) AND in((project_id AS _snuba_project_id), [6726638]) AND greaterOrEquals((timestamp AS _snuba_timestamp), toDateTime('2024-03-18T22:52:00', 'Universal')) AND less(_snuba_timestamp, toDateTime('2024-03-18T23:22:00', 'Universal')) AND equals((arrayElement(tags.raw_value, indexOf(tags.key, 9223372036854776069)) AS `_snuba_tags_raw[9223372036854776069]`), '2d896d92') AND in(_s...}""",
+            """Error running query: SELECT (divide(plus(sumMergeIf((value AS _snuba_value), equals((arrayElement(tags.raw_value, indexOf(tags.key, <int>)) AS `_snuba_tags_raw[<int>]`), 'satisfactory') AND equals((metric_id AS _snuba_metric_id), <int>)), divide(sumMergeIf(_snuba_value, equals(`_snuba_tags_raw[<int>]`, 'tolerable') AND equals(_snuba_metric_id, <int>)), 2)), sumMergeIf(_snuba_value, equals(_snuba_metric_id, <int>))) AS `_snuba_c:transactions/on_demand@none`) FROM generic_metric_counters_aggregated_dist WHERE equals(granularity, 1) AND equals((org_id AS _snuba_org_id), <int>) AND in((project_id AS _snuba_project_id), [<int>]) AND greaterOrEquals((timestamp AS _snuba_timestamp), toDateTime('2024-03-18T22:52:00', 'Universal')) AND less(_snuba_timestamp, toDateTime('<date>', 'Universal')) AND equals((arrayElement(tags.raw_value, indexOf(tags.key, <int>)) AS `_snuba_tags_raw[<int>]`), '<uniq_id>') AND in(_s...}""",
+        ),
+    ],
+)
+def test_fail_to_normalize_message(name, input, expected):
     event = Event(project_id=1, event_id="something")
     with override_options(
         {
