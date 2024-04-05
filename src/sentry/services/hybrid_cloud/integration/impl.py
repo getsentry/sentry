@@ -211,23 +211,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return [serialize_organization_integration(oi) for oi in ois]
 
-    def get_organization_context(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        integration, installs = self.get_organization_contexts(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-            external_id=external_id,
-        )
-
-        return integration, installs[0] if installs else None
-
     def get_organization_contexts(
         self,
         *,
