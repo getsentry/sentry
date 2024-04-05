@@ -107,12 +107,15 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     enabled: !isSpansOnly,
   });
 
+  const search = new MutableSearch('has:span.group');
+  search.addFilterValue('transaction', transaction);
+
   const {
     data: spansData,
     isLoading: isSpansDataLoading,
     isError: isSpansDataError,
   } = useSpanMetrics({
-    search: new MutableSearch(`transaction:${transaction} has:span.group`),
+    search,
     fields: [
       'span.op',
       'any(span.description)',
