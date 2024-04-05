@@ -3,6 +3,7 @@ import {Component, createRef, Fragment} from 'react';
 import type {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -389,9 +390,10 @@ class GridEditable<
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
-        isHighlighted={row === highlightedRowKey}
         data-test-id="grid-body-row"
       >
+        <InteractionStateLayer isHovered={row === highlightedRowKey} />
+
         {prependColumns?.map((item, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
             {item}
