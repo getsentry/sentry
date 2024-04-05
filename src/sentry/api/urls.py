@@ -151,9 +151,6 @@ from sentry.replays.endpoints.organization_replay_index import OrganizationRepla
 from sentry.replays.endpoints.organization_replay_selector_index import (
     OrganizationReplaySelectorIndexEndpoint,
 )
-from sentry.replays.endpoints.organization_replay_viewed_by import (
-    OrganizationReplayViewedByEndpoint,
-)
 from sentry.replays.endpoints.project_replay_accessibility_issues import (
     ProjectReplayAccessibilityIssuesEndpoint,
 )
@@ -166,6 +163,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
+from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -1929,11 +1927,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-replay-events-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
-        OrganizationReplayViewedByEndpoint.as_view(),
-        name="sentry-api-0-organization-replay-viewed-by",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/functions/$",
         OrganizationSentryFunctionEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-functions",
@@ -2407,6 +2400,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
+        ProjectReplayViewedByEndpoint.as_view(),
+        name="sentry-api-0-project-replay-viewed-by",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
