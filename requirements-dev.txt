@@ -7,6 +7,7 @@ docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.18.2
+openapi-pydantic==0.4.0
 pytest>=8
 pytest-cov>=4.0.0
 pytest-django>=4.8.0
