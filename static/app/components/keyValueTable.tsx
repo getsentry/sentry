@@ -12,7 +12,7 @@ type Props = {
 
 export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   display: grid;
-  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  grid-template-columns: 50% 50%;
   ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
