@@ -1535,6 +1535,13 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path="cache/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/cache/cacheLandingPage')
+          )}
+        />
+      </Route>
       <Route path="browser/">
         <Route path="interactions/">
           <IndexRoute

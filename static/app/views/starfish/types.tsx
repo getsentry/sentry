@@ -37,6 +37,7 @@ export enum SpanMetricsField {
   OS_NAME = 'os.name',
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
+  CACHE_HIT = 'cache.hit',
 }
 
 export type SpanNumberFields =
@@ -140,6 +141,7 @@ export enum SpanIndexedField {
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
+  CACHE_HIT = 'cache.hit',
 }
 
 export type IndexedResponse = {
@@ -172,6 +174,7 @@ export type IndexedResponse = {
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
+  [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
 };
 
 export type IndexedProperty = keyof IndexedResponse;

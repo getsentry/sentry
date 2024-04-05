@@ -53,6 +53,10 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
+  MODULE_TITLE as CACHE_MODULE_TITLE,
+  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
+} from 'sentry/views/performance/cache/settings';
+import {
   MODULE_TITLE as HTTP_MODULE_TITLE,
   releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
 } from 'sentry/views/performance/http/settings';
@@ -244,7 +248,9 @@ function Sidebar() {
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
           organization.features.includes('performance-screens-view') ||
-          organization.features.includes('performance-http-view')
+          organization.features.includes('performance-http-view') ||
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('starfish-browser-resource-module-ui')
         ) {
           return (
             <SidebarAccordion
@@ -281,6 +287,20 @@ function Sidebar() {
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
                   {...HTTPModuleBadgeProps}
+                />
+              </Feature>
+              <Feature features="performance-cache-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-cache">
+                      {CACHE_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  id="performance-cache"
+                  icon={<SubitemDot collapsed />}
+                  {...CacheModuleBadgeProps}
                 />
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
