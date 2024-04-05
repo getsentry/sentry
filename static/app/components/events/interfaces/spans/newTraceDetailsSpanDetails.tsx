@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
@@ -388,6 +388,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     ratio={span.exclusive_time / 1000 / duration}
                     duration={span.exclusive_time / 1000}
                     baseline={averageSpanSelfTimeInSeconds}
+                    baseDescription={t(
+                      'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
+                    )}
                   />
                 </Row>
               ) : null}

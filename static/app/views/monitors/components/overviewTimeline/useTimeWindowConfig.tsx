@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {useMonitorDates} from './useMonitorDates';
 import {getConfigFromTimeRange} from './utils';
 
@@ -8,8 +10,11 @@ interface Options {
   timelineWidth: number;
 }
 
-export function useTimewindowConfig({timelineWidth}: Options) {
+export function useTimeWindowConfig({timelineWidth}: Options) {
   const {since, until} = useMonitorDates();
 
-  return getConfigFromTimeRange(since, until, timelineWidth);
+  return useMemo(
+    () => getConfigFromTimeRange(since, until, timelineWidth),
+    [since, until, timelineWidth]
+  );
 }

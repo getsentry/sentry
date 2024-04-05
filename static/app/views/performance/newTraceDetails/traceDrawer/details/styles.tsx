@@ -4,9 +4,11 @@ import * as qs from 'query-string';
 
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 const DetailContainer = styled('div')`
   display: flex;
@@ -26,11 +28,18 @@ const FlexBox = styled('div')`
 
 const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
+  flex-wrap: wrap;
+  justify-content: end;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
   flex: none;
+  width: 50%;
+`;
+
+const TitleText = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Type = styled('div')`
@@ -40,7 +49,6 @@ const Type = styled('div')`
 const TitleOp = styled('div')`
   font-size: 15px;
   font-weight: bold;
-  max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -81,6 +89,8 @@ const Button = styled(CommonButton)`
 
 const HeaderContainer = styled(Title)`
   justify-content: space-between;
+  overflow: hidden;
+  width: 100%;
 `;
 
 function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
@@ -107,7 +117,11 @@ function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
   );
 }
 
-const DURATION_COMPARISON_STATUS_COLORS = {
+const DURATION_COMPARISON_STATUS_COLORS: {
+  equal: {light: ColorOrAlias; normal: ColorOrAlias};
+  faster: {light: ColorOrAlias; normal: ColorOrAlias};
+  slower: {light: ColorOrAlias; normal: ColorOrAlias};
+} = {
   faster: {
     light: 'green100',
     normal: 'green300',
@@ -127,6 +141,7 @@ const MIN_PCT_DURATION_DIFFERENCE = 10;
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
+  baseDescription?: string;
   ratio?: number;
 };
 
@@ -141,15 +156,32 @@ function Duration(props: DurationProps) {
 
   const delta = props.duration - props.baseline;
   const deltaPct = Math.round(Math.abs((delta / props.baseline) * 100));
-  const formattedAvgDuration = getDuration(props.baseline, 2, true);
   const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
+
+  const formattedBaseDuration = (
+    <Tooltip
+      title={props.baseDescription}
+      showUnderline
+      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+    >
+      {getDuration(props.baseline, 2, true)}
+    </Tooltip>
+  );
 
   const deltaText =
     status === 'equal'
-      ? t(`equal to the avg of %s`, `${deltaPct}%`, formattedAvgDuration)
+      ? tct(`equal to the avg of [formattedBaseDuration]`, {
+          formattedBaseDuration,
+        })
       : status === 'faster'
-        ? t(`%s faster than the avg of %s`, `${deltaPct}%`, formattedAvgDuration)
-        : t(`%s slower than the avg of %s`, `${deltaPct}%`, formattedAvgDuration);
+        ? tct(`[deltaPct] faster than the avg of [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          })
+        : tct(`[deltaPct] slower than the avg of [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          });
 
   return (
     <Fragment>
@@ -186,6 +218,7 @@ const TraceDrawerComponents = {
   IconBorder,
   EventDetailsLink,
   Button,
+  TitleText,
   Duration,
 };
 

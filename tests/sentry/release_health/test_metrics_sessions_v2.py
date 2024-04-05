@@ -61,27 +61,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         return response.data
 
-    def test_sessions_metrics_with_metrics_only_field(self):
-        """
-        Tests whether the request of a metrics-only field forwarded to the SessionsReleaseHealthBackend
-        is handled with an empty response.
-
-        This test is designed to show an edge-case that can happen in case the duplexer makes the wrong
-        decision with respect to which backend to choose for satisfying the query.
-        """
-        response = self.do_request(
-            {
-                "organization_slug": [self.organization1],
-                "project": [self.project1.id],
-                "field": ["crash_free_rate(session)"],
-                "groupBy": [],
-                "interval": "1d",
-            }
-        )
-
-        assert len(response.data["groups"]) == 0
-        assert response.status_code == 200
-
 
 @pytest.mark.parametrize(
     "input, expected_output, expected_status_filter",

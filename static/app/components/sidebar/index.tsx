@@ -53,7 +53,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
-  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
+  MODULE_TITLE as HTTP_MODULE_TITLE,
   releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
 } from 'sentry/views/performance/http/settings';
 
@@ -274,7 +274,11 @@ function Sidebar() {
               <Feature features="performance-http-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
+                  label={
+                    <GuideAnchor target="performance-http">
+                      {HTTP_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}

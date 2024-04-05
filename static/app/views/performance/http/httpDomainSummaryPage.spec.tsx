@@ -46,6 +46,8 @@ describe('HTTPSummaryPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
+    jest.clearAllMocks();
+
     domainTransactionsListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

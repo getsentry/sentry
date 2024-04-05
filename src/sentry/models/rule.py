@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from enum import Enum, IntEnum
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -109,6 +109,22 @@ class Rule(Model):
             "status": self.status,
             "environment": self.environment_id,
         }
+
+    def get_rule_action_details_by_uuid(self, rule_action_uuid: str) -> dict[str, Any] | None:
+        actions = self.data.get("actions", None)
+        if not actions:
+            return None
+
+        for action in actions:
+            action_uuid = action.get("uuid", None)
+            if action_uuid is None:
+                # This should not happen, but because the data object is a dictionary, it's better to be safe
+                continue
+
+            if action_uuid == rule_action_uuid:
+                return action
+
+        return None
 
 
 class RuleActivityType(Enum):

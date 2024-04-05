@@ -66,13 +66,13 @@ export function ErrorNodeDetails({
           >
             <IconFire size="md" />
           </TraceDrawerComponents.IconBorder>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value.title}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
