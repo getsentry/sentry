@@ -8,7 +8,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
@@ -25,12 +25,8 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 
 
 def process_message(message: Message[KafkaPayload]):
-    try:
-        segment = json.loads(message.payload.value)
-    except ValidationError:
-        logger.exception("Failed to deserialize segment payload")
-        return
-
+    value = message.payload.value
+    segment = json.loads(value)
     metrics.incr("detect_performance_issues.spans.count", len(segment["spans"]))
 
     process_segment(segment["spans"])
