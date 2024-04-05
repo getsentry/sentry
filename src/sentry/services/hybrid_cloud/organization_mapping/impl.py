@@ -116,7 +116,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             codecov_access=update.codecov_access,
         )
         if update.customer_id is not None:
-            update_dict["customer_id"] = update.customer_id[0]
+            update_dict["customer_id"] = update.customer_id.value
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping_is_valid = self._check_organization_mapping_integrity(

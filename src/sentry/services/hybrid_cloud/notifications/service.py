@@ -11,6 +11,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications import RpcGroupSubscriptionStatus
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
@@ -78,7 +79,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
+    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
         pass
 
     @rpc_method

@@ -52,6 +52,12 @@ class RpcFilter(RpcModel):
         )
 
 
+class RpcPrimaryKeyMapEntry(RpcModel):
+    new_pk: int
+    kind: ImportKind
+    slug: str | None
+
+
 class RpcPrimaryKeyMap(RpcModel):
     """
     Shadows `sentry.backup.dependencies.PrimaryKeyMap` for the purpose of passing it over an RPC
@@ -61,19 +67,31 @@ class RpcPrimaryKeyMap(RpcModel):
     converted to and from `PrimaryKeyMap` immediately on either side of the RPC call.
     """
 
-    # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = {}
+    mapping: dict[str, dict[int, RpcPrimaryKeyMapEntry]]
 
     def from_rpc(self) -> PrimaryKeyMap:
+        def from_rpc_entry(entry: RpcPrimaryKeyMapEntry) -> tuple[int, ImportKind, str | None]:
+            return entry.new_pk, entry.kind, entry.slug
+
+        converted = {
+            model_name: {pk: from_rpc_entry(entry) for (pk, entry) in pk_entries.items()}
+            for (model_name, pk_entries) in self.mapping.items()
+        }
         pk_map = PrimaryKeyMap()
-        pk_map.mapping = defaultdict(dict, self.mapping)
+        pk_map.mapping = defaultdict(dict, converted)
         return pk_map
 
     @classmethod
     def into_rpc(cls, base_map: PrimaryKeyMap) -> "RpcPrimaryKeyMap":
-        converted = cls()
-        converted.mapping = dict(base_map.mapping)
-        return converted
+        def to_rpc_entry(entry: tuple[int, ImportKind, str | None]) -> RpcPrimaryKeyMapEntry:
+            new_pk, kind, slug = entry
+            return RpcPrimaryKeyMapEntry(new_pk=new_pk, kind=kind, slug=slug)
+
+        converted = {
+            model_name: {pk: to_rpc_entry(t) for (pk, t) in pk_entries.items()}
+            for (model_name, pk_entries) in base_map.mapping.items()
+        }
+        return cls(mapping=converted)
 
 
 class RpcImportScope(str, Enum):

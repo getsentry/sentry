@@ -60,7 +60,7 @@ class RpcImportRetryTests(TestCase):
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
-                pk_map=RpcPrimaryKeyMap(),
+                pk_map=RpcPrimaryKeyMap(mapping={}),
                 json_data="""
                 [
                     {
@@ -120,7 +120,7 @@ class RpcImportRetryTests(TestCase):
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
-                pk_map=RpcPrimaryKeyMap(),
+                pk_map=RpcPrimaryKeyMap(mapping={}),
                 json_data="""
                 [
                     {
@@ -209,7 +209,7 @@ class RpcImportRetryTests(TestCase):
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
-                pk_map=RpcPrimaryKeyMap(),
+                pk_map=RpcPrimaryKeyMap(mapping={}),
                 json_data="""
                 [
                     {
@@ -274,7 +274,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data="[]",
         )
 
@@ -288,7 +288,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data="[]",
         )
 
@@ -300,7 +300,7 @@ class RpcImportErrorTests(TestCase):
             model_name=str(USER_MODEL_NAME),
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data="[]",
         )
 
@@ -313,7 +313,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data="[]",
         )
 
@@ -326,7 +326,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data="_",
         )
 
@@ -347,7 +347,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data=json_data,
         )
 
@@ -362,7 +362,7 @@ class RpcImportErrorTests(TestCase):
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             json_data=json_data,
         )
 
@@ -380,7 +380,7 @@ class RpcExportErrorTests(TestCase):
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             indent=2,
         )
 
@@ -393,7 +393,7 @@ class RpcExportErrorTests(TestCase):
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             indent=2,
         )
 
@@ -407,7 +407,7 @@ class RpcExportErrorTests(TestCase):
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             indent=2,
         )
 
@@ -420,7 +420,7 @@ class RpcExportErrorTests(TestCase):
             scope=None,
             from_pk=0,
             filter_by=[],
-            pk_map=RpcPrimaryKeyMap(),
+            pk_map=RpcPrimaryKeyMap(mapping={}),
             indent=2,
         )
 

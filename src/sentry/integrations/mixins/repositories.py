@@ -122,9 +122,9 @@ class RepositoryMixin:
 
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
-        _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
+        contexts = integration_service.get_organization_contexts(integration_id=self.model.id)
 
-        for install in installs:
+        for install in contexts.installs:
             repository_service.reinstall_repositories_for_integration(
                 organization_id=install.organization_id,
                 integration_id=self.model.id,
