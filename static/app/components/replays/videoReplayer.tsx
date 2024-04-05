@@ -97,6 +97,7 @@ export class VideoReplayer {
     this._trackList = [];
     this._videos = new WeakMap<any, HTMLVideoElement>();
     this._timer.stop();
+    this.wrapper.remove();
   }
 
   private addListeners(el: HTMLVideoElement, index: number): void {
