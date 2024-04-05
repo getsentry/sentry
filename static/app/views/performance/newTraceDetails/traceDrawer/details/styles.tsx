@@ -26,11 +26,18 @@ const FlexBox = styled('div')`
 
 const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
+  flex-wrap: wrap;
+  justify-content: end;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
   flex: none;
+  width: 50%;
+`;
+
+const TitleText = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Type = styled('div')`
@@ -40,7 +47,6 @@ const Type = styled('div')`
 const TitleOp = styled('div')`
   font-size: 15px;
   font-weight: bold;
-  max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -81,6 +87,8 @@ const Button = styled(CommonButton)`
 
 const HeaderContainer = styled(Title)`
   justify-content: space-between;
+  overflow: hidden;
+  width: 100%;
 `;
 
 function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
@@ -186,6 +194,7 @@ const TraceDrawerComponents = {
   IconBorder,
   EventDetailsLink,
   Button,
+  TitleText,
   Duration,
 };
 
