@@ -13,10 +13,10 @@ import {
 type Props = {
   data: MemoryInfoContext | null;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
-export function MemoryInfoEventContext({data, event, meta}: Props) {
+export function MemoryInfoEventContext({data, event, meta = {}}: Props) {
   if (!data) {
     return null;
   }

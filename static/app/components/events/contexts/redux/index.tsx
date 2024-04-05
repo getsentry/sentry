@@ -8,7 +8,7 @@ type Props = {
   alias: string;
   data: Record<string, any>;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 export function ReduxContext({data}: Props) {

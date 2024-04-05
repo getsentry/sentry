@@ -12,7 +12,7 @@ import {GPUKnownDataType} from './types';
 type Props = {
   data: GPUData;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 export const gpuKnownDataValues = [
@@ -27,7 +27,7 @@ export const gpuKnownDataValues = [
 
 const gpuIgnoredDataValues = [];
 
-export function GPUEventContext({data, meta}: Props) {
+export function GPUEventContext({data, meta = {}}: Props) {
   const gpuValues = [...gpuKnownDataValues];
 
   if (data.vendor_id > 0) {

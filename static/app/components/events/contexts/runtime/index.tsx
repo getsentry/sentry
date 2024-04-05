@@ -12,7 +12,7 @@ import {RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 type Props = {
   data: RuntimeData;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 export const runtimeKnownDataValues = [
@@ -22,7 +22,7 @@ export const runtimeKnownDataValues = [
 
 const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
-export function RuntimeEventContext({data, meta}: Props) {
+export function RuntimeEventContext({data, meta = {}}: Props) {
   return (
     <Fragment>
       <ContextBlock

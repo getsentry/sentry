@@ -12,7 +12,7 @@ import {OperatingSystemIgnoredDataType, OperatingSystemKnownDataType} from './ty
 type Props = {
   data: OperatingSystemKnownData;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 export const operatingSystemKnownDataValues = [
@@ -24,7 +24,7 @@ export const operatingSystemKnownDataValues = [
 
 const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
-export function OperatingSystemEventContext({data, meta}: Props) {
+export function OperatingSystemEventContext({data, meta = {}}: Props) {
   return (
     <Fragment>
       <ContextBlock

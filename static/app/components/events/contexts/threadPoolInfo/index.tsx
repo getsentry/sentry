@@ -13,10 +13,10 @@ import {
 type Props = {
   data: ThreadPoolInfoContext | null;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
-export function ThreadPoolInfoEventContext({data, event, meta}: Props) {
+export function ThreadPoolInfoEventContext({data, event, meta = {}}: Props) {
   if (!data) {
     return null;
   }

@@ -18,10 +18,10 @@ const PROFILE_KNOWN_DATA_VALUES = [ProfileContextKey.PROFILE_ID];
 interface ProfileContextProps {
   data: ProfileContext & Record<string, any>;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 }
 
-export function ProfileEventContext({event, data, meta}: ProfileContextProps) {
+export function ProfileEventContext({event, data, meta = {}}: ProfileContextProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);

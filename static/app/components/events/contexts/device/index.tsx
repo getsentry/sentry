@@ -14,12 +14,12 @@ import {getInferredData} from './utils';
 type Props = {
   data: DeviceContext;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 const deviceIgnoredDataValues = [];
 
-export function DeviceEventContext({data, event, meta}: Props) {
+export function DeviceEventContext({data, event, meta = {}}: Props) {
   const inferredData = getInferredData(data);
 
   return (

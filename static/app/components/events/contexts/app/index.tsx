@@ -12,7 +12,7 @@ import {AppKnownDataType} from './types';
 type Props = {
   data: AppData;
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 export const appKnownDataValues = [
@@ -28,7 +28,7 @@ export const appKnownDataValues = [
 
 const appIgnoredDataValues = [];
 
-export function AppEventContext({data, event, meta}: Props) {
+export function AppEventContext({data, event, meta = {}}: Props) {
   return (
     <Fragment>
       <ContextBlock
