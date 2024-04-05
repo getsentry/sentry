@@ -329,7 +329,7 @@ class RedisBuffer(Buffer):
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
-            - Perform an incrby on countersif is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+            - Perform an incrby on counters if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             - Perform a set (last write wins) on extra
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
