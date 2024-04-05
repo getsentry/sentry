@@ -104,11 +104,6 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
 
     context: ProduceSegmentContext = message.payload
 
-    metrics.incr(
-        "spans.process_spans.should_process_segments",
-        int(context.should_process_segments),
-    )
-
     if context.should_process_segments:
         with sentry_sdk.start_transaction(
             op="process", name="spans.process.produce_segment"
@@ -123,7 +118,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             sentry_sdk.set_measurement("segments.count", len(keys))
 
             example_segment = None
-
+            total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
             with txn.start_child(op="process", description="produce_fetched_segments"):
@@ -131,12 +126,12 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
                     for segment in segments:
-                        num_spans = len(segment)
-                        metrics.incr("process_spans.spans.read.count", num_spans)
-                        if num_spans > 0:
+                        total_spans_read += len(segment)
+                        if len(segment) > 0:
                             example_segment = segment[0]
                         produce_segment_to_kafka(segment)
 
+            metrics.incr("process_spans.spans.read.count", total_spans_read)
             if example_segment:
                 txn.set_tag("sample_span", example_segment)
 
