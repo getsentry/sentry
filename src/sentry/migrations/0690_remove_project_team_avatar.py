@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0688_add_project_flag_high_priority_alerts"),
+        ("sentry", "0689_drop_config_from_cron_checkin"),
     ]
 
     operations = [
