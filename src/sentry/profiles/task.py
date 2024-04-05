@@ -474,6 +474,7 @@ def symbolicate(
             stacktraces=stacktraces,
             modules=[{"uuid": m["uuid"], "type": "proguard"} for m in modules],
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+            apply_source_context=False,
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
