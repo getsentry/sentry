@@ -342,6 +342,14 @@ class TestRedisBuffer:
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.buf
 
+    def test_process_batch(self):
+        """Test that the registry's callbacks are invoked when we process a batch"""
+        mock = Mock()
+        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+        self.buf.process_batch()
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.buf
+
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
