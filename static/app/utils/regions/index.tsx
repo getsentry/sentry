@@ -51,8 +51,12 @@ export function getRegionDataFromOrganization(
   };
 }
 
+export function getRegions(): Region[] {
+  return ConfigStore.get('regions') ?? [];
+}
+
 export function getRegionChoices(): [string, string][] {
-  const regions = ConfigStore.get('regions') ?? [];
+  const regions = getRegions();
 
   return regions.map(region => {
     const {url} = region;
@@ -64,7 +68,7 @@ export function getRegionChoices(): [string, string][] {
 }
 
 export function shouldDisplayRegions(): boolean {
-  const regionCount = (ConfigStore.get('regions') ?? []).length;
+  const regionCount = getRegions().length;
   return (
     ConfigStore.get('features').has('organizations:multi-region-selector') &&
     regionCount > 1
