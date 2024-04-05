@@ -355,6 +355,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
+    id: 'nintendo',
+    name: 'Nintendo',
+    type: 'framework',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/nintendo',
+  },
+  {
     id: 'node',
     name: 'Node.js',
     type: 'language',

@@ -25,7 +25,28 @@ def _backfill_alert_rule_projects(apps, schema_editor):
             )
             continue
 
-        alert_rule = snuba_query.alertrule_set.get()
+        alert_rule_set = list(snuba_query.alertrule_set.all())
+        if not len(alert_rule_set):
+            logger.warning(
+                "QuerySubscription + SnubaQuery found with no alert_rule",
+                extra={
+                    "query_subscription_id": subscription.id,
+                    "snuba_query_id": snuba_query.id,
+                },
+            )
+            continue
+        elif len(alert_rule_set) > 1:
+            logger.warning(
+                "QuerySubscription + SnubaQuery found with multiple alert_rules",
+                extra={
+                    "query_subscription_id": subscription.id,
+                    "snuba_query_id": snuba_query.id,
+                    "alert_rule_ids": [alert_rule.id for alert_rule in alert_rule_set],
+                },
+            )
+
+        # Default to the first alert rule
+        alert_rule = alert_rule_set[0]
 
         existing_alert_rule_projects = list(AlertRuleProjects.objects.filter(alert_rule=alert_rule))
         should_create_new = True

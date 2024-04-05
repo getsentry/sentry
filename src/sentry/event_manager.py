@@ -50,23 +50,29 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
-from sentry.grouping.ingest import (
+from sentry.grouping.ingest.config import (
+    is_in_transition,
+    project_uses_optimized_grouping,
+    update_grouping_config_if_needed,
+)
+from sentry.grouping.ingest.hashing import (
+    find_existing_grouphash,
+    find_existing_grouphash_new,
+    get_hash_values,
+    maybe_run_background_grouping,
+    maybe_run_secondary_grouping,
+    run_primary_grouping,
+)
+from sentry.grouping.ingest.metrics import (
+    record_calculation_metric_with_result,
+    record_hash_calculation_metrics,
+    record_new_group_metrics,
+)
+from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
     check_for_group_creation_load_shed,
     extract_hashes,
-    find_existing_grouphash,
-    find_existing_grouphash_new,
-    get_hash_values,
-    is_in_transition,
-    maybe_run_background_grouping,
-    maybe_run_secondary_grouping,
-    project_uses_optimized_grouping,
-    record_calculation_metric_with_result,
-    record_hash_calculation_metrics,
-    record_new_group_metrics,
-    run_primary_grouping,
-    update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
@@ -405,6 +411,7 @@ class EventManager:
         start_time: int | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
+        has_attachments: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -480,7 +487,15 @@ class EventManager:
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
-                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
+                return self.save_error_events(
+                    project,
+                    job,
+                    projects,
+                    metric_tags,
+                    raw,
+                    cache_key,
+                    has_attachments=has_attachments,
+                )
 
     @sentry_sdk.tracing.trace
     def save_error_events(
@@ -491,6 +506,7 @@ class EventManager:
         metric_tags: MutableTags,
         raw: bool = False,
         cache_key: str | None = None,
+        has_attachments: bool = False,
     ) -> Event:
         jobs = [job]
 
@@ -527,9 +543,12 @@ class EventManager:
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
         # based on the group counter.
-        with metrics.timer("event_manager.get_attachments"):
-            with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
-                attachments = get_attachments(cache_key, job)
+        if has_attachments:
+            with metrics.timer("event_manager.get_attachments"):
+                with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
+                    attachments = get_attachments(cache_key, job)
+        else:
+            attachments = []
 
         try:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
@@ -575,8 +594,9 @@ class EventManager:
             group_id=group_info.group.id, environment_id=job["environment"].id
         )
 
-        with metrics.timer("event_manager.filter_attachments_for_group"):
-            attachments = filter_attachments_for_group(attachments, job)
+        if attachments:
+            with metrics.timer("event_manager.filter_attachments_for_group"):
+                attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
@@ -623,7 +643,7 @@ class EventManager:
         # We do not need this for reprocessed events as for those we update the
         # group_id on existing models in post_process_group, which already does
         # this because of indiv. attachments.
-        if not is_reprocessed:
+        if not is_reprocessed and attachments:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
 
@@ -1443,8 +1463,8 @@ def _save_aggregate(
             metrics.timer("event_manager.create_group_transaction") as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            span.set_tag("create_group_transaction.outcome", "no_group")
-            metric_tags["create_group_transaction.outcome"] = "no_group"
+            span.set_tag("outcome", "wait_for_lock")
+            metric_tags["outcome"] = "wait_for_lock"
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
@@ -1482,8 +1502,8 @@ def _save_aggregate(
                 is_new = True
                 is_regression = False
 
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metric_tags["create_group_transaction.outcome"] = "new_group"
+                span.set_tag("outcome", "new_group")
+                metric_tags["outcome"] = "new_group"
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
@@ -1768,8 +1788,8 @@ def create_group_with_grouphashes(
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
-        span.set_tag("create_group_transaction.outcome", "no_group")
-        metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
+        span.set_tag("outcome", "wait_for_lock")
+        metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
         # attached. We thus want to create a new group, but we need to guard against another
@@ -1796,8 +1816,8 @@ def create_group_with_grouphashes(
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("create_group_transaction.outcome", "new_group")
-            metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
+            span.set_tag("outcome", "new_group")
+            metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
             group = _create_group(project, event, **group_processing_kwargs)
