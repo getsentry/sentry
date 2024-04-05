@@ -472,7 +472,7 @@ def symbolicate(
         return symbolicator.process_jvm(
             exceptions=[],
             stacktraces=stacktraces,
-            modules=modules,
+            modules=[{"uuid": m["uuid"], "type": "proguard"} for m in modules],
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
         )
     return symbolicator.process_payload(
