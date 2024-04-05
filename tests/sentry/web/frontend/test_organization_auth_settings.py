@@ -687,12 +687,6 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             "x509cert": "to bar_x509_cert",
         }
 
-        """
-{"idp":{"entity_id":"http://www.okta.com/exk2148vfoqFZ8qvz0h8",
-"sso_url":"https://dev-517249.oktapreview.com/app/sentry/exk2148vfoqFZ8qvz0h8/sso/saml","slo_url":null,
-"x509cert":"MIIDpDCCAoygAwIBAgIGAY5YtedBMA0GCSqGSIb3DQEBCwUAMIGSMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEUMBIGA1UECwwLU1NPUHJvdmlkZXIxEzARBgNVBAMMCmRldi01MTcyNDkxHDAaBgkqhkiG9w0BCQEWDWluZm9Ab2t0YS5jb20wHhcNMjQwMzE5MjE1NDAwWhcNMzQwMzE5MjE1NDU5WjCBkjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoMBE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRMwEQYDVQQDDApkZXYtNTE3MjQ5MRwwGgYJKoZIhvcNAQkBFg1pbmZvQG9rdGEuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1ioQdAp+GasgbBT1bfBr0w6SNcitFkv67ZC0iEzD7n8PCm1gDCqB9ZkFeAx0UjHHLDBnasqcQ2TT4ocOr+jjjj1tCDcAq+3Cc+s6iXL8ibmo4CxOAJNtiRCpU6wMKcQKjW3X4aEs/sS4eaTEXDfc02pWb3SfHNB7zr5iieRWccG0eb7uFKUDvbBmVLJ2DigF881t/yquDrqycLP9Q7+fgBPRIz31cm/bBSLfIj22O5y4mjkhFnBpMZ9JBK+da7hj/lBd7tui6YaoIszXEFDsjL8KwC5aJguGLr2OGS3pqMhHK48lkITQ8lp1KdaQabPY1cxh0bnsCo5fNAvMfyoXKwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAvGm0MQIx3LJKmvGUaFlYKEMaC6zvBap9agVAjwc5qcgDXIxJdwg2ve4dDvmMLo4Tm/+rom7dClfB0lsnIoroPlJNrbGibQy5TdJ2eYagOCtHvQKWCiwR4BcRtziYV9JegQX9/zTiTxuv8G6dDD0O3n0EdGqC7K4J8bG5Aq1mGvot+9+TuaTcHZiL+hYLEhbmdFN5hVDBX2zbKyXA6EiNR/RNqLVvar/Bl9jasthByjqNdDsfqmhekS9UnX3eWD1WyUe4FJMEuTSuhpFQhmeGclhuGa+bDx+GFKzXwdZM1AxtpKYXfoZtEb3Lx1JVUa1OfZ6f8DA06KzRWjQnOdw83"},"auth_attributes":{"email":["nathan.hsieh@sentry.io"],"firstName":["Nathan"],"lastName":["Hsieh"],"identifier":["00u16twt7obBJCjXv0h8"]},"attribute_mapping":{"identifier":"identifier","user_email":"email","first_name":"firstName","last_name":"lastName"}}
-        """
-
 
 dummy_generic_provider_config = {
     "idp": {

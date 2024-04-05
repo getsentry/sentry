@@ -170,14 +170,14 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                     if key == "x509cert":
                         original_idp = form.initial.get("idp", {})
                         if original_idp.get("x509cert", "") != value:
-                            provider.update_config(
-                                {
-                                    **provider.config,
-                                    "idp": {
-                                        **original_idp,
-                                        "x509cert": value,
-                                    },
-                                }
+                            auth_provider.config["idp"] = {
+                                **original_idp,
+                                "x509cert": value,
+                            }
+                            auth_service.update_provider_config(
+                                organization_id=organization.id,
+                                auth_provider_id=auth_provider.id,
+                                config=auth_provider.config,
                             )
                             changed_data["x509cert"] = f"to {value}"
                     elif form.initial.get(key) != value:
