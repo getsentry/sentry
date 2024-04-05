@@ -328,7 +328,7 @@ export function TransactionNodeDetails({
               duration={durationInSeconds}
               baseline={avgDurationInSeconds}
               baseDescription={
-                'Average duration for this transaction across its project, over the last 24 hours'
+                'Average duration for this transaction over the last 24 hours'
               }
             />
           </Row>
