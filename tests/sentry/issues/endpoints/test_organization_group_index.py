@@ -3,7 +3,6 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
-import pytest
 from dateutil.parser import parse as parse_datetime
 from django.urls import reverse
 from django.utils import timezone
@@ -2666,7 +2665,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 )
                 assert mock_query.call_count == 0
 
-    @pytest.mark.skip(reason="Need to fix")
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,

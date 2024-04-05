@@ -130,13 +130,13 @@ COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	pytest \
+	pytest  --collect-only -q \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) > testlist
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
