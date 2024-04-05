@@ -25,6 +25,8 @@ import type {
   MetricMeta,
   MetricsDataIntervalLadder,
   MetricsOperation,
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponseLastMeta,
   MRI,
   UseCase,
 } from 'sentry/types/metrics';
@@ -446,4 +448,12 @@ export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
   }
 
   return {statsPeriod: '14d'};
+}
+
+export function areResultsLimited(response: MetricsQueryApiResponse) {
+  const lastMetaEntries = response.meta.map(
+    meta => meta[meta.length - 1]
+  ) as MetricsQueryApiResponseLastMeta[];
+
+  return lastMetaEntries.some(meta => meta.has_more);
 }
