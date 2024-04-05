@@ -8,7 +8,11 @@ from django.urls import reverse
 from sentry import audit_log, auth
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
+from sentry.auth.providers.dummy import (
+    PLACEHOLDER_TEMPLATE,
+    DummySAML2Provider,
+    dummy_provider_config,
+)
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
@@ -395,6 +399,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             )
 
     def test_edit_sso_settings(self):
+        # EDITING SSO SETTINGS
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -606,7 +611,90 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         )
 
 
-dummy_provider_config = {
+@control_silo_test
+class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
+    provider = DummySAML2Provider
+    provider_name = "saml2_dummy"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user("foobar@sentry.io")
+        # self.organization = self.create_organization(owner=self.user, name="saml2-org")
+        # self.auth_provider_inst = AuthProvider.objects.create(
+        #     provider=self.provider_name,
+        #     config=dummy_provider_config,
+        #     organization_id=self.organization.id,
+        # )
+
+    def create_org_and_auth_provider(self, provider_name="saml2_dummy"):
+        self.user.update(is_managed=True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = self.create_organization(name="foo", owner=self.user)
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider=provider_name
+        )
+        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
+        return organization, auth_provider
+
+    def create_om_and_link_sso(self, organization):
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
+        return om
+
+    def test_edit_sso_settings(self):
+        # EDITING SSO SETTINGS
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        assert not getattr(auth_provider.flags, "allow_unlinked")
+        assert organization.default_role == "member"
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature("organizations:sso-basic"), outbox_runner():
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": False,
+                    "default_role": "owner",
+                    "x509cert": "bar_x509_cert",
+                },
+            )
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert getattr(auth_provider.flags, "allow_unlinked")
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "owner"
+
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).first()
+
+        assert result.data == {
+            "require_link": "to False",
+            "default_role": "to owner",
+            "x509cert": "to bar_x509_cert",
+        }
+
+        """
+{"idp":{"entity_id":"http://www.okta.com/exk2148vfoqFZ8qvz0h8",
+"sso_url":"https://dev-517249.oktapreview.com/app/sentry/exk2148vfoqFZ8qvz0h8/sso/saml","slo_url":null,
+"x509cert":"MIIDpDCCAoygAwIBAgIGAY5YtedBMA0GCSqGSIb3DQEBCwUAMIGSMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEUMBIGA1UECwwLU1NPUHJvdmlkZXIxEzARBgNVBAMMCmRldi01MTcyNDkxHDAaBgkqhkiG9w0BCQEWDWluZm9Ab2t0YS5jb20wHhcNMjQwMzE5MjE1NDAwWhcNMzQwMzE5MjE1NDU5WjCBkjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoMBE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRMwEQYDVQQDDApkZXYtNTE3MjQ5MRwwGgYJKoZIhvcNAQkBFg1pbmZvQG9rdGEuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1ioQdAp+GasgbBT1bfBr0w6SNcitFkv67ZC0iEzD7n8PCm1gDCqB9ZkFeAx0UjHHLDBnasqcQ2TT4ocOr+jjjj1tCDcAq+3Cc+s6iXL8ibmo4CxOAJNtiRCpU6wMKcQKjW3X4aEs/sS4eaTEXDfc02pWb3SfHNB7zr5iieRWccG0eb7uFKUDvbBmVLJ2DigF881t/yquDrqycLP9Q7+fgBPRIz31cm/bBSLfIj22O5y4mjkhFnBpMZ9JBK+da7hj/lBd7tui6YaoIszXEFDsjL8KwC5aJguGLr2OGS3pqMhHK48lkITQ8lp1KdaQabPY1cxh0bnsCo5fNAvMfyoXKwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAvGm0MQIx3LJKmvGUaFlYKEMaC6zvBap9agVAjwc5qcgDXIxJdwg2ve4dDvmMLo4Tm/+rom7dClfB0lsnIoroPlJNrbGibQy5TdJ2eYagOCtHvQKWCiwR4BcRtziYV9JegQX9/zTiTxuv8G6dDD0O3n0EdGqC7K4J8bG5Aq1mGvot+9+TuaTcHZiL+hYLEhbmdFN5hVDBX2zbKyXA6EiNR/RNqLVvar/Bl9jasthByjqNdDsfqmhekS9UnX3eWD1WyUe4FJMEuTSuhpFQhmeGclhuGa+bDx+GFKzXwdZM1AxtpKYXfoZtEb3Lx1JVUa1OfZ6f8DA06KzRWjQnOdw83"},"auth_attributes":{"email":["nathan.hsieh@sentry.io"],"firstName":["Nathan"],"lastName":["Hsieh"],"identifier":["00u16twt7obBJCjXv0h8"]},"attribute_mapping":{"identifier":"identifier","user_email":"email","first_name":"firstName","last_name":"lastName"}}
+        """
+
+
+dummy_generic_provider_config = {
     "idp": {
         "entity_id": "https://example.com/saml/metadata/1234",
         "x509cert": "foo_x509_cert",
@@ -622,8 +710,8 @@ dummy_provider_config = {
 }
 
 
-class DummySAML2Provider(GenericSAML2Provider):
-    name = "dummy"
+class DummyGenericSAML2Provider(GenericSAML2Provider):
+    name = "saml2_generic_dummy"
 
     def get_saml_setup_pipeline(self):
         return []
@@ -633,9 +721,9 @@ class DummySAML2Provider(GenericSAML2Provider):
 
 
 @control_silo_test
-class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
-    provider = DummySAML2Provider
-    provider_name = "saml2_dummy"
+class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
+    provider = DummyGenericSAML2Provider
+    provider_name = "saml2_generic_dummy"
 
     def setUp(self):
         super().setUp()

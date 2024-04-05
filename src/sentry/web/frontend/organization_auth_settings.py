@@ -34,7 +34,6 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
-    # TODO: include SAML cert field
     class AuthProviderSettingsForm(forms.Form):
         disabled = provider.is_partner
         require_link = forms.BooleanField(
@@ -66,7 +65,8 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             disabled=disabled,
         )
 
-        if provider.is_saml:
+        if provider.is_saml and provider.name != "SAML2":
+            # Generic SAML2 provider already includes the certificate field in it's own configure view
             x509cert = forms.CharField(
                 label="x509 public certificate",
                 widget=forms.Textarea,
@@ -83,7 +83,8 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
 
     if provider.is_saml:
-        certificate = auth_provider.config.get("idp", {}).get("x509cert", "")
+        initial_idp = auth_provider.config.get("idp", {})
+        certificate = initial_idp.get("x509cert", "")
         initial["x509cert"] = certificate
 
     form = AuthProviderSettingsForm(
@@ -166,7 +167,20 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             if form.initial != form.cleaned_data:
                 changed_data = {}
                 for key, value in form.cleaned_data.items():
-                    if form.initial.get(key) != value:
+                    if key == "x509cert":
+                        original_idp = form.initial.get("idp", {})
+                        if original_idp.get("x509cert", "") != value:
+                            provider.update_config(
+                                {
+                                    **provider.config,
+                                    "idp": {
+                                        **original_idp,
+                                        "x509cert": value,
+                                    },
+                                }
+                            )
+                            changed_data["x509cert"] = f"to {value}"
+                    elif form.initial.get(key) != value:
                         changed_data[key] = f"to {value}"
 
                 self.create_audit_entry(
@@ -227,9 +241,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 return HttpResponseBadRequest()
 
             helper = AuthHelper(
-                request=request,
+                request=request,  # this has all our form data
                 organization=organization,
-                provider_key=provider_key,
+                provider_key=provider_key,  # okta, google, onelogin, etc
                 flow=AuthHelper.FLOW_SETUP_PROVIDER,
             )
 
