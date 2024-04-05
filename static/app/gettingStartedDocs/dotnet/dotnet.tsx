@@ -57,11 +57,7 @@ SentrySdk.Init(options =>
     options.Debug = true;
 
     // This option is recommended. It enables Sentry's "Release Health" feature.
-    options.AutoSessionTracking = true;
-
-    // This option is recommended for client applications only. It ensures all threads use the same global scope.
-    // If you're writing a background service of any kind, you should remove this.
-    options.IsGlobalModeEnabled = true;${
+    options.AutoSessionTracking = true;${
       params.isPerformanceSelected
         ? `
 
