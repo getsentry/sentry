@@ -16,8 +16,6 @@ PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     project_ids = buffer.get_list(PROJECT_ID_BUFFER_LIST_KEY)
 
-    # Get actual projects in bulk query, is this too many projects
-    # to fetch at once and keep in memory?
     project_mapping = Project.objects.in_bulk(set(project_ids))
 
     for project_id, project in project_mapping.items():
@@ -30,5 +28,5 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         )
 
 
-def apply_delayed(project: Project, rule_group_pairs: Mapping[str, int]):
+def apply_delayed(project: Project, rule_group_pairs: Mapping[str, int]) -> None:
     pass
