@@ -93,7 +93,6 @@ def submit_process(
 
 @dataclass(frozen=True)
 class SaveEventTaskKind:
-    is_highcpu: bool = False
     has_attachments: bool = False
     from_reprocessing: bool = False
 
@@ -112,8 +111,6 @@ def submit_save_event(
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
         task = save_event_attachments
-    elif task_kind.is_highcpu:
-        task = save_event_highcpu
     else:
         task = save_event
 
@@ -226,7 +223,6 @@ def _do_preprocess_event(
     task_kind = SaveEventTaskKind(
         has_attachments=has_attachments,
         from_reprocessing=from_reprocessing,
-        is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
     )
     submit_save_event(
         task_kind,
@@ -350,7 +346,6 @@ def do_process_event(
         task_kind = SaveEventTaskKind(
             from_reprocessing=from_reprocessing,
             has_attachments=has_attachments,
-            is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
         )
         submit_save_event(
             task_kind,
@@ -941,6 +936,7 @@ def save_event_attachments(
     )
 
 
+# TODO(swatinem): remove this (and related queue) once the backing worker deployment is gone
 @instrumented_task(
     name="sentry.tasks.store.save_event_highcpu",
     queue="events.save_event_highcpu",

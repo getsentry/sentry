@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from io import BytesIO
 from threading import Event, Thread
 from time import sleep, time
-from typing import IO
+from typing import IO, Any
 
 import click
 
@@ -375,7 +375,7 @@ def compare(
     # the way.
     def load_data(
         side: Side, src: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes]
-    ) -> json.JSONData:
+    ) -> dict[str, Any]:
         decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the
@@ -385,6 +385,7 @@ def compare(
                 input: IO[bytes] = BytesIO(decrypt_encrypted_tarball(src, decryptor))
             except DecryptionError as e:
                 click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
+                raise
         else:
             input = src
 
@@ -393,22 +394,29 @@ def compare(
             data = json.load(input)
         except json.JSONDecodeError:
             click.echo(f"Invalid {side.name} JSON", err=True)
+            raise
 
         return data
 
-    with left:
-        left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
-    with right:
-        right_data = load_data(Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms)
+    try:
+        with left:
+            left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
+        with right:
+            right_data = load_data(
+                Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms
+            )
 
-    printer = InputOutputPrinter()
-    res = validate(left_data, right_data, get_default_comparators())
-    if res:
-        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
-        write_findings(findings_file, res.findings, printer)
-    else:
-        click.echo("\n\nDone, found 0 differences!")
-        write_findings(findings_file, [], printer)
+        printer = InputOutputPrinter()
+        res = validate(left_data, right_data, get_default_comparators())
+        if res:
+            click.echo(f"\n\nDone, found {len(res.findings)} differences:")
+            write_findings(findings_file, res.findings, printer)
+        else:
+            click.echo("\n\nDone, found 0 differences!")
+            write_findings(findings_file, [], printer)
+    except (DecryptionError, json.JSONDecodeError):
+        # Already reported to the user from the `load_data` function.
+        pass
 
 
 @backup.command(name="decrypt")
@@ -449,9 +457,9 @@ def decrypt(
         decrypted = decrypt_encrypted_tarball(src, decryptor)
     except DecryptionError as e:
         click.echo(f"Invalid tarball: {str(e)}", err=True)
-
-    with dest:
-        dest.write(decrypted)
+    else:
+        with dest:
+            dest.write(decrypted)
 
 
 @backup.command(name="encrypt")
@@ -492,10 +500,10 @@ def encrypt(
         data = json.load(src)
     except json.JSONDecodeError:
         click.echo("Invalid input JSON", err=True)
-
-    encrypted = create_encrypted_export_tarball(data, encryptor)
-    with dest:
-        dest.write(encrypted.getbuffer())
+    else:
+        encrypted = create_encrypted_export_tarball(data, encryptor)
+        with dest:
+            dest.write(encrypted.getbuffer())
 
 
 @click.group(name="import")

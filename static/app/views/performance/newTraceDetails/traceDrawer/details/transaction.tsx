@@ -292,13 +292,13 @@ export function TransactionNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value['transaction.op']}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
@@ -327,6 +327,9 @@ export function TransactionNodeDetails({
             <TraceDrawerComponents.Duration
               duration={durationInSeconds}
               baseline={avgDurationInSeconds}
+              baseDescription={
+                'Average duration for this transaction over the last 24 hours'
+              }
             />
           </Row>
           {parentTransaction ? (
