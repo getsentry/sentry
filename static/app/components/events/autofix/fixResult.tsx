@@ -102,7 +102,7 @@ export function AutofixResult({autofixData, onRetry}: Props) {
 
 const ResultPanel = styled(Panel)`
   padding: ${space(2)};
-  margin: 0;
+  margin: ${space(2)} 0 0 0;
 `;
 
 const PreviewContent = styled('div')`
