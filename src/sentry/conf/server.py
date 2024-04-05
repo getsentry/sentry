@@ -844,6 +844,7 @@ CELERY_QUEUES_REGION = [
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
+    Queue("buffers.process_pending_batch", routing_key="buffers.process_pending_batch"),
     Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
     Queue("code_owners", routing_key="code_owners"),
