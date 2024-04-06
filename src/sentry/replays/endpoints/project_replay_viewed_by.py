@@ -57,11 +57,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         # query for user ids who viewed the replay
-        filter_params = self.get_filter_params(request, project)
-        # TODO: do we need this range filter?
-        if not filter_params["start"] or not filter_params["end"]:
-            return Response(status=404)
-
+        filter_params = self.get_filter_params(request, project, date_filter_optional=False)
         viewed_by_ids: list[int] = query_replay_viewed_by_ids(
             project_id=project.id,
             replay_id=replay_id,
@@ -69,12 +65,10 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             end=filter_params["end"],
             organization=project.organization,
         )
-        if not viewed_by_ids:
-            return Response(status=404)
 
-        # query + serialize User objects from postgres
+        # query + serialize the User objects from postgres
         response = generate_viewed_by_response(
-            replay_id=replay_id, viewed_by_ids=viewed_by_ids, actor=request.user
+            replay_id=replay_id, viewed_by_ids=viewed_by_ids, request_user=request.user
         )
         return Response({"data": response}, status=200)
 

@@ -7,13 +7,11 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.api.serializers.models.user import UserSerializer, UserSerializerResponse
+from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.models.user import User
 from sentry.replays.validators import VALID_FIELD_SET
-
-# from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-# from sentry.services.hybrid_cloud.user.service import user_service
-
-user_serializer = UserSerializer()
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -39,7 +37,7 @@ class BrowserResponseType(TypedDict, total=False):
 
 
 class UserResponseType(TypedDict, total=False):
-    id: str | None  # string uint64
+    id: str | None
     username: str | None
     email: str | None
     ip: str | None
@@ -288,3 +286,26 @@ def extract_click_fields(
 
     list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
     return list_of_dicts
+
+
+def generate_viewed_by_response(
+    replay_id: str,
+    viewed_by_ids: list[int],
+    request_user: User,
+) -> ReplayViewedByResponse:
+    """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
+    global user_serializer
+
+    # TODO: what happens if a viewed_by_id is invalid or unauthorized?
+    # what happens if viewed_by_ids is empty?
+    # -> ask author of serialize_many or trace the code
+
+    serialized_users = user_service.serialize_many(
+        filter=dict(user_ids=[viewed_by_ids]),
+        as_user=serialize_rpc_user(request_user),  # as_user checks we have auth for these users
+    )
+
+    return {
+        "id": replay_id,
+        "viewed_by": serialized_users,
+    }

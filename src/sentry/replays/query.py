@@ -588,7 +588,6 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
     "viewed_by_ids": ["viewed_by_ids"],
-    "viewed_by_id": ["viewed_by_ids"],
     "has_viewed": ["viewed_by_ids"],
 }
 
@@ -738,8 +737,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_infos",
     ),
     "viewed_by_ids": Function(
-        "groupUniqArray",
-        parameters=[Column("viewed_by_id")],
+        "groupUniqArrayIf",
+        parameters=[
+            Column("viewed_by_id"),
+            Function("greater", parameters=[Column("viewed_by_id"), 0]),
+        ],
         alias="viewed_by_ids",
     ),
 }
