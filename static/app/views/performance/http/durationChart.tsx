@@ -1,3 +1,5 @@
+import type {PropsOf} from '@emotion/react';
+
 import type {Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
@@ -9,9 +11,10 @@ interface Props {
   isLoading: boolean;
   series: Series[];
   error?: Error | null;
+  scatterPlot?: PropsOf<typeof Chart>['scatterPlot'];
 }
 
-export function DurationChart({series, isLoading, error}: Props) {
+export function DurationChart({series, scatterPlot, isLoading, error}: Props) {
   return (
     <ChartPanel title={getDurationChartTitle('http')}>
       <Chart
@@ -23,6 +26,7 @@ export function DurationChart({series, isLoading, error}: Props) {
           bottom: '0',
         }}
         data={series}
+        scatterPlot={scatterPlot}
         loading={isLoading}
         error={error}
         chartColors={[AVG_COLOR]}
