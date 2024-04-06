@@ -14,35 +14,54 @@ import ConfigStore from 'sentry/stores/configStore';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
-const fakePublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw5Or1zsGE1XJTL4q+1c4
-Ztu8+7SC/exrnEYlWH+LVLI8TVyuGwDTAXrgKHGwaMM5ZnjijP5i8+ph8lfLrybT
-l+2D81qPIqagEtNMDaHqUDm5Tq7I2qvxkJ5YuDLawRUPccKMwWlIDR2Gvfe3efce
-870EicPsExz4uPOkNXGHJZ/FwCQrLo87MXFeqrqj+0Cf+qwCQSCW9qFWe5cj+zqt
-eeJa0qflcHHQzxK4/EKKpl/hkt4zi0aE/PuJgvJz2KB+X3+LzekTy90LzW3VhR4y
-IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
-8wIDAQAB
------END PUBLIC KEY-----`;
-const fakeRegionName = 'Narnia';
-const fakeRegionUrl = 'https://example.com';
+
+const fakeOrgSlug = 'test-org';
+const fakePromoCode = 'free-hugs';
+const fakePublicKey = `FAKE-PK-ANY`;
+
+type FakeRegion = {
+  name: string;
+  publicKey: string;
+  url: string;
+};
+
+const fakeRegions: {[key: string]: FakeRegion} = {
+  Earth: {
+    name: 'earth',
+    url: 'https://earth.example.com',
+    publicKey: 'FAKE-PK-EARTH',
+  },
+  Moon: {
+    name: 'moon',
+    url: 'https://moon.example.com',
+    publicKey: 'FAKE-PK-MOON',
+  },
+};
 
 describe('Relocation', function () {
-  let fetchExistingRelocation: jest.Mock;
-  let fetchPublicKey: jest.Mock;
+  let fetchExistingRelocations: jest.Mock;
+  let fetchPublicKeys: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.asyncDelay = undefined;
     sessionStorage.clear();
 
-    ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-    ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
+    ConfigStore.set('regions', [
+      {name: fakeRegions.Earth.name, url: fakeRegions.Earth.url},
+      {name: fakeRegions.Moon.name, url: fakeRegions.Moon.url},
+    ]);
+    ConfigStore.set('relocationConfig', {
+      selectableRegions: [fakeRegions.Earth.name, fakeRegions.Moon.name],
+    });
 
-    fetchExistingRelocation = MockApiClient.addMockResponse({
+    // For tests that don't care about the difference between our "earth" and "moon" regions, we can
+    // re-use the same mock responses, with the same generic public key for both.
+    fetchExistingRelocations = MockApiClient.addMockResponse({
       url: '/relocations/',
       body: [],
     });
-    fetchPublicKey = MockApiClient.addMockResponse({
+    fetchPublicKeys = MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
       body: {
         public_key: fakePublicKey,
@@ -93,7 +112,7 @@ describe('Relocation', function () {
   describe('Get Started', function () {
     it('renders', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText('Basic information needed to get started')
@@ -106,7 +125,7 @@ describe('Relocation', function () {
 
     it('redirects to `in-progress` page if user already has active relocation', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -115,7 +134,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -123,60 +142,60 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/in-progress/');
     });
 
     it('should prevent user from going to the next step if no org slugs or region are entered', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
     });
 
     it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       const fetchPromoCode = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs',
+        url: `/promocodes-external/${fakePromoCode}`,
         method: 'GET',
         statusCode: 200,
       });
 
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
-      await userEvent.type(screen.getByLabelText('promocode'), 'free-hugs');
+      await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalled());
-      expect(addErrorMessage).not.toHaveBeenCalledWith();
+      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
+      expect(addErrorMessage).not.toHaveBeenCalled();
     });
 
     it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       const fetchPromoCode = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs',
+        url: `/promocodes-external/${fakePromoCode}`,
         method: 'GET',
         statusCode: 403,
       });
 
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
-      await userEvent.type(screen.getByLabelText('promocode'), 'free-hugs');
+      await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
@@ -184,11 +203,19 @@ describe('Relocation', function () {
 
     it('should show loading indicator and error message if existing relocation retrieval failed', async function () {
       MockApiClient.clearMockResponses();
-      const failingFetchExistingRelocation = MockApiClient.addMockResponse({
-        url: '/relocations/',
+
+      // Note: only one fails, but that is enough.
+      const failingFetchExistingEarthRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
+        url: `/relocations/`,
         statusCode: 400,
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      const successfulFetchExistingMoonRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Moon.url,
+        url: '/relocations/',
+        body: [],
+      });
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -196,23 +223,34 @@ describe('Relocation', function () {
       });
 
       await waitForRenderError('get-started');
-      await waitFor(() => expect(failingFetchExistingRelocation).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(failingFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
+      );
+      await waitFor(() =>
+        expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(1)
+      );
 
-      expect(fetchPublicKey).toHaveBeenCalledTimes(1);
+      expect(fetchPublicKeys).toHaveBeenCalledTimes(2);
       expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
       expect(screen.queryByLabelText('org-slugs')).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
-      const successfulFetchExitingRelocation = MockApiClient.addMockResponse({
+      const successfulFetchExistingEarthRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
         url: '/relocations/',
         body: [],
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(screen.getByTestId('get-started')).toBeInTheDocument());
 
-      expect(successfulFetchExitingRelocation).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(successfulFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
+      );
+      await waitFor(() =>
+        expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(2)
+      );
       expect(screen.queryByLabelText('org-slugs')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
@@ -223,14 +261,16 @@ describe('Relocation', function () {
       sessionStorage.setItem(
         'relocationOnboarding',
         JSON.stringify({
-          regionUrl: fakeRegionUrl,
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
         })
       );
     });
 
     it('should show instructions if key retrieval was successful', async function () {
       await waitForRenderSuccess('public-key');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText("Save Sentry's public key to your machine")
@@ -250,35 +290,48 @@ describe('Relocation', function () {
 
     it('should show loading indicator and error message if key retrieval failed', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [],
       });
-      const failingFetchPublicKey = MockApiClient.addMockResponse({
-        url: '/publickeys/relocations/',
+
+      // Note: only one fails, but that is enough.
+      const failingFetchEarthPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
+        url: `/publickeys/relocations/`,
         statusCode: 400,
+      });
+      const successfulFetchMoonPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Moon.url,
+        url: '/publickeys/relocations/',
+        body: {
+          public_key: fakeRegions.Moon.publicKey,
+        },
       });
 
       await waitForRenderError('public-key');
-      await waitFor(() => expect(failingFetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(failingFetchEarthPublicKey).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(1));
 
-      expect(fetchExistingRelocation).toHaveBeenCalledTimes(1);
+      expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
       expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
       expect(screen.queryByText('key.pub')).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
-      const successfulFetchPublicKey = MockApiClient.addMockResponse({
+      const successfulFetchEarthPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
         url: '/publickeys/relocations/',
         body: {
-          public_key: fakePublicKey,
+          public_key: fakeRegions.Earth.publicKey,
         },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      await waitFor(() => expect(successfulFetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(successfulFetchEarthPublicKey).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(screen.getByTestId('public-key')).toBeInTheDocument());
 
-      expect(fetchExistingRelocation).toHaveBeenCalledTimes(1);
+      expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
       expect(screen.queryByText('key.pub')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
@@ -287,7 +340,7 @@ describe('Relocation', function () {
   describe('Encrypt Backup', function () {
     it('renders', async function () {
       await waitForRenderSuccess('encrypt-backup');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText(
@@ -298,6 +351,17 @@ describe('Relocation', function () {
   });
 
   describe('Upload Backup', function () {
+    beforeEach(function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+    });
+
     it('renders', async function () {
       await waitForRenderSuccess('upload-backup');
       expect(
@@ -338,6 +402,15 @@ describe('Relocation', function () {
     });
 
     it('fails to starts relocation job if some form data is missing', async function () {
+      // Remove `orgSlugs` from session storage; this will act as the "missing form data".
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+
       const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
@@ -367,8 +440,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -381,7 +454,7 @@ describe('Relocation', function () {
       await waitFor(() =>
         expect(postRelocation).toHaveBeenCalledWith(
           '/relocations/',
-          expect.objectContaining({host: fakeRegionUrl, method: 'POST'})
+          expect.objectContaining({host: fakeRegions.Earth.url, method: 'POST'})
         )
       );
       expect(addSuccessMessage).toHaveBeenCalledWith(
@@ -399,8 +472,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -410,7 +483,7 @@ describe('Relocation', function () {
         new File(['hello'], 'hello.tar', {type: 'file'})
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(postRelocation).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'You already have an in-progress relocation job.'
       );
@@ -424,8 +497,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -435,7 +508,7 @@ describe('Relocation', function () {
         new File(['hello'], 'hello.tar', {type: 'file'})
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(postRelocation).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
@@ -449,8 +522,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -460,7 +533,7 @@ describe('Relocation', function () {
         new File(['hello'], 'hello.tar', {type: 'file'})
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(postRelocation).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
     });
 
@@ -472,8 +545,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await userEvent.type(screen.getByLabelText('org-slugs'), 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -483,7 +556,7 @@ describe('Relocation', function () {
         new File(['hello'], 'hello.tar', {type: 'file'})
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(postRelocation).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
@@ -493,7 +566,7 @@ describe('Relocation', function () {
   describe('In Progress', function () {
     it('renders', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -502,7 +575,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -517,15 +590,15 @@ describe('Relocation', function () {
 
     it('redirects to `get-started` page if there is no existing relocation', async function () {
       await waitForRenderSuccess('in-progress');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
 
     it('redirects to `get-started` page if there is no active relocation', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -534,7 +607,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -542,8 +615,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('in-progress');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });

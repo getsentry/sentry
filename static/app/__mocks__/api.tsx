@@ -38,6 +38,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
   method: string;
   statusCode: number;
   url: string;
+  host: string;
   /**
    * Whether to return mocked api responses directly, or with a setTimeout delay.
    *
@@ -138,6 +139,7 @@ class Client implements ApiNamespace.Client {
 
     Client.mockResponses.unshift([
       {
+        host: '',
         url: '',
         status: 200,
         statusCode: 200,
@@ -161,6 +163,9 @@ class Client implements ApiNamespace.Client {
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
+      if (response.host && (options.host || '') !== response.host) {
+        return false;
+      }
       if (url !== response.url) {
         return false;
       }
