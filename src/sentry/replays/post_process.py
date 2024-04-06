@@ -94,7 +94,7 @@ def generate_restricted_fieldset(
         yield from response
 
 
-def _strip_dashes(field: str) -> str:
+def _strip_dashes(field: str | None) -> str:
     if field:
         return field.replace("-", "")
     return field
@@ -103,29 +103,35 @@ def _strip_dashes(field: str) -> str:
 def generate_normalized_output(
     response: list[dict[str, Any]],
 ) -> Generator[ReplayDetailsResponse, None, None]:
-    """For each payload in the response strip "agg_" prefixes."""
+    """Skip archives, strip "agg_" prefixes, compute/nest new fields, and"""
+
     for item in response:
+
         ret_item: ReplayDetailsResponse = {}
-        if item["isArchived"]:
+        if item.get("isArchived"):
             yield _archived_row(item["replay_id"], item["project_id"])  # type: ignore[misc]
             continue
 
-        ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
+        # required fields
         ret_item["project_id"] = str(item["project_id"])
-        ret_item["trace_ids"] = item.pop("traceIds", [])
-        ret_item["error_ids"] = item.pop("errorIds", [])
-        ret_item["environment"] = item.pop("agg_environment", None)
+
+        # modified + renamed fields
+        ret_item["id"] = _strip_dashes(item.get("replay_id", None))
+        ret_item["environment"] = item.get("agg_environment", None)
+        ret_item["releases"] = list(filter(bool, item.get("releases", [])))
+
+        # computed fields
         ret_item["tags"] = dict_unique_list(
             zip(
-                item.pop("tk", None) or [],
-                item.pop("tv", None) or [],
+                item.get("tk", None) or [],
+                item.get("tv", None) or [],
             )
         )
         ret_item["user"] = {
-            "id": item.pop("user_id", None),
-            "username": item.pop("user_username", None),
-            "email": item.pop("user_email", None),
-            "ip": item.pop("user_ip", None),
+            "id": item.get("user_id", None),
+            "username": item.get("user_username", None),
+            "email": item.get("user_email", None),
+            "ip": item.get("user_ip", None),
         }
         ret_item["user"]["display_name"] = (
             ret_item["user"]["username"]
@@ -134,53 +140,51 @@ def generate_normalized_output(
             or ret_item["user"]["ip"]
         )
         ret_item["sdk"] = {
-            "name": item.pop("sdk_name", None),
-            "version": item.pop("sdk_version", None),
+            "name": item.get("sdk_name", None),
+            "version": item.get("sdk_version", None),
         }
         ret_item["os"] = {
-            "name": item.pop("os_name", None),
-            "version": item.pop("os_version", None),
+            "name": item.get("os_name", None),
+            "version": item.get("os_version", None),
         }
         ret_item["browser"] = {
-            "name": item.pop("browser_name", None),
-            "version": item.pop("browser_version", None),
+            "name": item.get("browser_name", None),
+            "version": item.get("browser_version", None),
         }
         ret_item["device"] = {
-            "name": item.pop("device_name", None),
-            "brand": item.pop("device_brand", None),
-            "model": item.pop("device_model", None),
-            "family": item.pop("device_family", None),
+            "name": item.get("device_name", None),
+            "brand": item.get("device_brand", None),
+            "model": item.get("device_model", None),
+            "family": item.get("device_family", None),
         }
-
-        item.pop("agg_urls", None)
-        ret_item["urls"] = item.pop("urls_sorted", None)
-
-        ret_item["is_archived"] = bool(item.pop("isArchived", 0))
-
-        item.pop("clickClass", None)
-        item.pop("click_selector", None)
-        ret_item["activity"] = item.pop("activity", None)
-        # don't need clickClass or click_selector
-        #  for the click field, as they are only used for searching.
-        # (click.classes contains the full list of classes for a click)
         ret_item["clicks"] = extract_click_fields(item)
-        ret_item["count_dead_clicks"] = item.pop("count_dead_clicks", None)
-        ret_item["count_errors"] = item.pop("count_errors", None)
-        ret_item["count_rage_clicks"] = item.pop("count_rage_clicks", None)
-        ret_item["count_segments"] = item.pop("count_segments", None)
-        ret_item["count_urls"] = item.pop("count_urls", None)
-        ret_item["dist"] = item.pop("dist", None)
-        ret_item["duration"] = item.pop("duration", None)
-        ret_item["finished_at"] = item.pop("finished_at", None)
-        ret_item["platform"] = item.pop("platform", None)
-        ret_item["releases"] = list(filter(bool, item.pop("releases", [])))
-        ret_item["replay_type"] = item.pop("replay_type", "session")
-        ret_item["started_at"] = item.pop("started_at", None)
 
-        ret_item["warning_ids"] = item.pop("warning_ids", None)
-        ret_item["info_ids"] = item.pop("info_ids", None)
-        ret_item["count_infos"] = item.pop("count_infos", None)
-        ret_item["count_warnings"] = item.pop("count_warnings", None)
+        # optional fields
+        ret_item["trace_ids"] = item.get("traceIds", [])
+        ret_item["error_ids"] = item.get("errorIds", [])
+        ret_item["urls"] = item.get("urls_sorted", None)
+        ret_item["is_archived"] = item.get("isArchived", None)
+        ret_item["activity"] = item.get("activity", None)
+        ret_item["count_dead_clicks"] = item.get("count_dead_clicks", None)
+        ret_item["count_errors"] = item.get("count_errors", None)
+        ret_item["count_rage_clicks"] = item.get("count_rage_clicks", None)
+        ret_item["count_segments"] = item.get("count_segments", None)
+        ret_item["count_urls"] = item.get("count_urls", None)
+        ret_item["dist"] = item.get("dist", None)
+        ret_item["duration"] = item.get("duration", None)
+        ret_item["finished_at"] = item.get("finished_at", None)
+        ret_item["platform"] = item.get("platform", None)
+        ret_item["replay_type"] = item.get("replay_type", "session")
+        ret_item["started_at"] = item.get("started_at", None)
+        ret_item["warning_ids"] = item.get("warning_ids", None)
+        ret_item["info_ids"] = item.get("info_ids", None)
+        ret_item["count_infos"] = item.get("count_infos", None)
+        ret_item["count_warnings"] = item.get("count_warnings", None)
+
+        # excluded fields: agg_urls, clickClass, click_selector
+        # Don't need clickClass and click_selector for the click field, as they are only used for searching.
+        # (click.classes contains the full list of classes for a click)
+
         yield ret_item
 
 
