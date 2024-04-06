@@ -104,36 +104,3 @@ def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -
             }
         ),
     )
-
-
-@instrumented_task(
-    name="sentry.replays.tasks.publish_replay_viewed",
-    queue="replays.replay_viewed",
-    default_retry_delay=5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-)
-def publish_replay_viewed(project_id: int, replay_id: str, viewed_by_id: int) -> None:
-    publisher = initialize_replays_publisher(is_async=False)
-
-    ts: float = time.time()
-    payload: dict[str, Any] = {
-        "type": "replay_viewed",
-        "viewed_by_id": viewed_by_id,
-        "timestamp": ts,
-    }
-
-    publisher.publish(
-        "ingest-replay-events",
-        json.dumps(
-            {
-                "type": "replay_event",
-                "start_time": int(ts),
-                "replay_id": replay_id,
-                "project_id": project_id,
-                "segment_id": None,
-                "retention_days": 30,
-                "payload": list(json.dumps(payload).encode()),
-            }
-        ),
-    )

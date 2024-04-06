@@ -1,4 +1,6 @@
+import time
 import uuid
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -19,9 +21,10 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.post_process import ReplayViewedByResponse, generate_viewed_by_response
 from sentry.replays.query import query_replay_viewed_by_ids
-from sentry.replays.tasks import publish_replay_viewed
+from sentry.utils import json
 
 
 @region_silo_endpoint
@@ -95,7 +98,27 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
-        publish_replay_viewed.delay(
-            project_id=project.id, replay_id=replay_id, viewed_by_id=request.user.id
+        publisher = initialize_replays_publisher(is_async=False)
+        ts: float = time.time()
+
+        payload: dict[str, Any] = {
+            "type": "replay_viewed",
+            "viewed_by_id": request.user.id,
+            "timestamp": ts,
+        }
+        publisher.publish(
+            "ingest-replay-events",
+            json.dumps(
+                {
+                    "type": "replay_event",
+                    "start_time": int(ts),
+                    "replay_id": replay_id,
+                    "project_id": project.id,
+                    "segment_id": None,
+                    "retention_days": 30,
+                    "payload": list(json.dumps(payload).encode()),
+                }
+            ),
         )
+
         return Response(status=200)
