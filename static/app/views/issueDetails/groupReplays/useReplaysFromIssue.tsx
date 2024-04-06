@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-export default function useReplayFromIssue({
+export default function useReplaysFromIssue({
   group,
   location,
   organization,
@@ -62,7 +62,7 @@ export default function useReplayFromIssue({
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
-      range: '14d',
+      range: '90d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
