@@ -39,7 +39,7 @@ export default function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
-            statsPeriod: '14d',
+            statsPeriod: '90d',
             environment: location.query.environment,
             project: ALL_ACCESS_PROJECTS,
           },
