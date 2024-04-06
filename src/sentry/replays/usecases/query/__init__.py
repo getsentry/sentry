@@ -15,7 +15,7 @@ found in the function.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, cast
 
@@ -151,7 +151,7 @@ def query_using_optimized_search(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+) -> tuple[list, bool]:
     tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
@@ -351,15 +351,15 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
         return {"organization_id": organization.id}
 
 
-def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
-    if not replay_ids:
+def _make_ordered(ordered_replay_ids: list[str], results: Iterable[Any]) -> list[Any]:
+    if not ordered_replay_ids:
         return []
     elif not results:
         return []
 
     replay_id_to_index = {}
     i = 0
-    for replay_id in replay_ids:
+    for replay_id in ordered_replay_ids:
         if replay_id not in replay_id_to_index:
             replay_id_to_index[replay_id] = i
             i += 1

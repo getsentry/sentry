@@ -54,12 +54,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
         try:
             filter_params = self.get_filter_params(
-                request, organization, project_ids=ALL_ACCESS_PROJECTS
+                request,
+                organization,
+                project_ids=ALL_ACCESS_PROJECTS,
+                date_filter_optional=False,
             )
         except NoProjects:
-            return Response(status=404)
-
-        if not filter_params["start"] or not filter_params["end"]:
             return Response(status=404)
 
         try:
