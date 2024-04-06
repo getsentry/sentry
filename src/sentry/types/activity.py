@@ -31,6 +31,7 @@ class ActivityType(Enum):
     SET_ESCALATING = 25
 
     SET_PRIORITY = 26
+    DELETED_ATTACHMENT = 27
 
 
 # Warning: This must remain in this EXACT order.
