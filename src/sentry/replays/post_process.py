@@ -7,9 +7,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer, UserSerializerResponse
-from sentry.models.user import User
 from sentry.replays.validators import VALID_FIELD_SET
 
 # from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
@@ -91,17 +89,10 @@ class ReplayViewedByResponse(TypedDict):
 
 
 def process_raw_response(
-    response: list[dict[str, Any]],
-    fields: list[str],
-    actor_uid: int | None = None,
+    response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
-    # actor_uid (user_id) is used to check a replay's viewed status
-    return list(
-        generate_restricted_fieldset(
-            fields, generate_normalized_output(response, actor_uid=actor_uid)
-        )
-    )
+    return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
@@ -123,7 +114,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]], actor_uid: int | None = None
+    response: list[dict[str, Any]]
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
@@ -203,14 +194,7 @@ def generate_normalized_output(
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)
         ret_item["count_warnings"] = item.pop("count_warnings", None)
-
-        # TODO: why are we using pop for all of these? The performance is probably worse than get
-        has_viewed = False
-        if actor_uid is not None:
-            if viewed_by_ids := item.pop("viewed_by_ids", None):
-                has_viewed = actor_uid in viewed_by_ids
-        ret_item["has_viewed"] = has_viewed
-
+        ret_item["has_viewed"] = item.get("has_viewed", False)
         yield ret_item
 
 
@@ -218,32 +202,6 @@ def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[st
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
-
-
-def generate_viewed_by_response(
-    replay_id: str,
-    viewed_by_ids: list[int],
-    actor: User,
-) -> ReplayViewedByResponse:
-    """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
-    global user_serializer
-
-    # TODO: what happens if a viewed_by_id is invalid or unauthorized?
-
-    # method 1: hybrid cloud user_service. Based on GroupSeenSerializer. No way
-    # users = user_service.serialize_many(
-    #     filter=dict(user_ids=[viewed_by_ids]),
-    #     as_user=serialize_rpc_user(actor),  # as_user checks we have auth for these users
-    # )
-
-    # method 2: api.serializers
-    users = User.objects.filter(id__in=viewed_by_ids)
-    serialized_users = serialize(users, user=actor, serializer=user_serializer)
-
-    return {
-        "id": replay_id,
-        "viewed_by": serialized_users,
-    }
 
 
 def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:

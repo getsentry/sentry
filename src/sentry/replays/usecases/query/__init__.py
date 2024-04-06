@@ -151,6 +151,7 @@ def query_using_optimized_search(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None = None,
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -212,6 +213,7 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_end=period_stop,
+            request_user_id=request_user_id,
         ),
         tenant_id,
         referrer="replays.query.browse_query",
@@ -285,6 +287,7 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
+    request_user_id: int | None = None,
 ) -> Query:
     """
     Return a query to fetch every replay in the set.
@@ -292,13 +295,25 @@ def make_full_aggregation_query(
     Arguments
     fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
     """
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
+    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
 
     def _select_from_fields() -> list[Column | Function]:
         if fields:
-            return select_from_fields(list(set(fields)))
+            select_cols = []
+            non_parametrized_fields = set(fields)
+            # temporary hard-coded solution for fields that need context, for ex request authorization
+            if "has_viewed" in non_parametrized_fields:
+                non_parametrized_fields.remove("has_viewed")
+                if request_user_id is not None:
+                    select_cols.append(compute_has_viewed(request_user_id))
+            select_cols.extend(select_from_fields(list(non_parametrized_fields)))
+
         else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values())
+            select_cols = list(QUERY_ALIAS_COLUMN_MAP.values())
+            if request_user_id:
+                select_cols.append(compute_has_viewed(request_user_id))
+
+        return select_cols
 
     return Query(
         match=Entity("replays"),

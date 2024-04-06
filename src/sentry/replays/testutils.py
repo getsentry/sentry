@@ -119,7 +119,7 @@ def mock_expected_response(
         "count_errors": kwargs.pop("count_errors", 0),
         "count_warnings": kwargs.pop("count_warnings", 0),
         "count_infos": kwargs.pop("count_infos", 0),
-        "has_viewed": False,
+        "has_viewed": kwargs.pop("has_viewed", False),
     }
 
 
