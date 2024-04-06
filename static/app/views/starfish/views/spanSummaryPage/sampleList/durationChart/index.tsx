@@ -1,5 +1,3 @@
-import {useTheme} from '@emotion/react';
-
 import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -19,7 +17,7 @@ import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -53,7 +51,6 @@ function DurationChart({
   platform,
   additionalFilters,
 }: Props) {
-  const theme = useTheme();
   const {setPageError} = usePageAlert();
   const pageFilter = usePageFilters();
 
@@ -119,28 +116,7 @@ function DurationChart({
     }),
   };
 
-  const sampledSpanDataSeries: Series[] = spans.map(
-    ({
-      timestamp,
-      [SPAN_SELF_TIME]: duration,
-      'transaction.id': transaction_id,
-      span_id,
-    }) => {
-      const {symbol, color} = getSampleChartSymbol(duration, avg, theme);
-      return {
-        data: [
-          {
-            name: timestamp,
-            value: duration,
-          },
-        ],
-        symbol,
-        color,
-        symbolSize: span_id === highlightedSpanId ? 19 : 14,
-        seriesName: transaction_id.substring(0, 8),
-      };
-    }
-  );
+  const sampledSpanDataSeries = useSampleScatterPlotSeries(spans, avg, highlightedSpanId);
 
   const getSample = (timestamp: string, duration: number) => {
     return spans.find(s => s.timestamp === timestamp && s[SPAN_SELF_TIME] === duration);
