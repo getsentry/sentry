@@ -1,7 +1,8 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useMemo, useReducer, useRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -20,9 +21,14 @@ import type {
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import useApi from 'sentry/utils/useApi';
 import {
   type DispatchingReducerMiddleware,
   useDispatchingReducer,
@@ -31,6 +37,10 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  loadTraceViewPreferences,
+  storeTraceViewPreferences,
+} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -46,7 +56,10 @@ import {TraceReducer, type TraceReducerState} from './traceState';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {VirtualizedViewManager} from './virtualizedViewManager';
+import {
+  type ViewManagerScrollAnchor,
+  VirtualizedViewManager,
+} from './virtualizedViewManager';
 
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
@@ -122,6 +135,8 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
+  const api = useApi();
+  const organization = props.organization;
   const {projects} = useProjects();
   const rootEvent = useTraceRootEvent(props.trace);
   const loadingTraceRef = useRef<TraceTree | null>(null);
@@ -189,6 +204,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const preferences = useMemo(() => loadTraceViewPreferences(), []);
+
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
     TraceReducer,
     {
@@ -198,6 +215,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         node: null,
       },
       search: {
+        node: null,
         query: initialQuery,
         resultIteratorIndex: null,
         resultIndex: null,
@@ -205,14 +223,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         status: undefined,
         resultsLookup: new Map(),
       },
-      preferences: {
-        list: {width: 0.5},
-        layout: 'drawer bottom',
-        drawer: {
-          minimized: false,
-          sizes: {['drawer bottom']: 0.3},
-        },
-      },
+      preferences,
       tabs: {
         tabs: STATIC_DRAWER_TABS,
         current_tab: STATIC_DRAWER_TABS[0] ?? null,
@@ -238,10 +249,8 @@ function TraceViewContent(props: TraceViewContentProps) {
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
     return traceDispatch({
-      type: 'initialize roving reducer',
+      type: 'set roving count',
       items: tree.list.length - 1,
-      index: null,
-      node: null,
     });
   }, [tree.list.length, traceDispatch]);
 
@@ -277,120 +286,223 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
-    (query: string) => {
+    (query: string, reposition_strategy: 'automatic' | 'none') => {
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      const previousNode = traceStateRef.current.rovingTabIndex.node;
+      const previouslySelectedNode =
+        traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node;
 
       searchingRaf.current = searchInTraceTree(
         tree,
         query,
-        previousNode,
+        previouslySelectedNode,
         ([matches, lookup, previousNodePosition]) => {
           // If the user had focused a row, clear it and focus into the search result.
           if (traceStateRef.current.rovingTabIndex.index !== null) {
             traceDispatch({type: 'clear roving index'});
           }
 
-          const resultIteratorIndex: number | undefined =
-            typeof previousNodePosition?.resultIteratorIndex === 'number'
-              ? previousNodePosition.resultIteratorIndex
-              : matches.length > 0
-                ? 0
-                : undefined;
+          if (reposition_strategy === 'none') {
+            traceDispatch({
+              type: 'set results',
+              results: matches,
+              resultsLookup: lookup,
+              resultIteratorIndex: previousNodePosition?.resultIteratorIndex,
+              resultIndex: previousNodePosition?.resultIndex,
+              previousNode: previousNodePosition,
+              node: previouslySelectedNode,
+            });
+          }
 
-          const resultIndex: number | undefined =
-            typeof previousNodePosition?.resultIndex === 'number'
-              ? previousNodePosition.resultIndex
-              : matches.length > 0
-                ? matches[0].index
-                : undefined;
+          if (reposition_strategy === 'automatic') {
+            const resultIteratorIndex: number | undefined =
+              typeof previousNodePosition?.resultIteratorIndex === 'number'
+                ? previousNodePosition.resultIteratorIndex
+                : matches.length > 0
+                  ? 0
+                  : undefined;
 
-          traceDispatch({
-            type: 'set results',
-            results: matches,
-            resultsLookup: lookup,
-            resultIteratorIndex: resultIteratorIndex,
-            resultIndex: resultIndex,
-          });
+            const resultIndex: number | undefined =
+              typeof previousNodePosition?.resultIndex === 'number'
+                ? previousNodePosition.resultIndex
+                : matches.length > 0
+                  ? matches[0].index
+                  : undefined;
+
+            const node: TraceTreeNode<TraceTree.NodeValue> | null = previousNodePosition
+              ? previouslySelectedNode
+              : matches.length > 0
+                ? matches[0].value
+                : null;
+
+            traceDispatch({
+              type: 'set results',
+              results: matches,
+              resultsLookup: lookup,
+              resultIteratorIndex: resultIteratorIndex,
+              resultIndex: resultIndex,
+              previousNode: previousNodePosition,
+              node,
+            });
+          }
         }
       );
     },
     [traceDispatch, tree]
   );
 
+  // We need to heavily debounce query string updates because the rest of the app is so slow
+  // to rerender that it causes the search to drop frames on every keystroke...
+  const QUERY_STRING_STATE_DEBOUNCE = 300;
+  const queryStringAnimationTimeoutRef = useRef<{id: number} | null>(null);
+  const setRowAsFocused = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue> | null,
+      event: React.MouseEvent<HTMLElement> | null,
+      index: number | null,
+      debounce: number = QUERY_STRING_STATE_DEBOUNCE
+    ) => {
+      // sync query string with the clicked node
+      if (node) {
+        if (queryStringAnimationTimeoutRef.current) {
+          cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
+        }
+        queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
+          const {eventId: _eventId, ...query} = qs.parse(location.search);
+          browserHistory.replace({
+            pathname: location.pathname,
+            query: {
+              ...query,
+              node: node.path,
+            },
+          });
+          queryStringAnimationTimeoutRef.current = null;
+        }, debounce);
+
+        if (
+          traceStateRef.current.search.resultsLookup.has(node) &&
+          typeof index === 'number'
+        ) {
+          const result = traceStateRef.current.search.resultsLookup.get(node)!;
+
+          traceDispatch({
+            type: 'set search iterator index',
+            resultIndex: index,
+            resultIteratorIndex: result,
+          });
+        }
+
+        if (isTraceNode(node)) {
+          traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
+          return;
+        }
+
+        traceDispatch({
+          type: 'activate tab',
+          payload: node,
+          pin_previous: event?.metaKey,
+        });
+      }
+    },
+    [traceDispatch]
+  );
+
+  //
   const onRowClick = useCallback(
     (
       node: TraceTreeNode<TraceTree.NodeValue> | null,
       event: React.MouseEvent<HTMLElement> | null,
       index: number | null
     ) => {
-      // Sync qs with the clicked node
-      if (node) {
-        previouslyFocusedNodeRef.current = node;
-        const {eventId: _eventId, ...query} = qs.parse(location.search);
-        browserHistory.replace({
-          pathname: location.pathname,
-          query: {
-            ...query,
-            node: node.path,
-          },
-        });
+      if (node === null || index === null) {
+        traceDispatch({type: 'clear roving index'});
+        return;
       }
 
-      if (node && typeof index === 'number') {
+      setRowAsFocused(node, event, null, 0);
+
+      if (traceStateRef.current.search.resultsLookup.has(node)) {
+        const idx = traceStateRef.current.search.resultsLookup.get(node)!;
         traceDispatch({
-          type: 'set roving index',
-          index: index,
-          node: node,
+          type: 'set search iterator index',
+          resultIndex: index,
+          resultIteratorIndex: idx,
         });
-      }
-      if (!node) {
-        traceDispatch({type: 'clear clicked tab'});
-        return;
+      } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+        traceDispatch({type: 'clear search iterator index'});
       }
 
-      if (isTraceNode(node)) {
-        traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
-        return;
-      }
-
-      traceDispatch({type: 'activate tab', payload: node, pin_previous: event?.metaKey});
+      traceDispatch({
+        type: 'set roving index',
+        action_source: 'click',
+        index,
+        node,
+      });
     },
-
-    [traceDispatch]
+    [setRowAsFocused, traceDispatch]
   );
 
   // Scrolls to row in trace view
-  const onScrollRowIntoView = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>, index?: number, anchor?: 'top') => {
-      if (index === undefined) {
-        index = tree.list.indexOf(node);
-      }
-
-      // @TODO we usually know this at render time, we should not have to search for it
-      if (index === -1) {
+  const scrollRowIntoView = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      index?: number,
+      anchor?: ViewManagerScrollAnchor
+    ) => {
+      // Last node we scrolled to is the same as the node we want to scroll to
+      if (previouslyScrolledToNodeRef.current === node) {
         return;
       }
 
+      if (index === undefined) {
+        // @TODO we usually know this at render time, we should not have to search for it
+        index = tree.list.indexOf(node);
+      }
+
+      if (index === -1) {
+        Sentry.captureMessage('Cannot scroll to a node that does not exist in the tree');
+        return;
+      }
+
+      const offset = 48;
       viewManager.scrollToRow(index, anchor);
-
-      const offset =
-        node.depth >= (previouslyScrolledToNodeRef.current?.depth ?? 0)
-          ? viewManager.trace_physical_space.width / 2
-          : 0;
-
       previouslyScrolledToNodeRef.current = node;
 
       if (viewManager.isOutsideOfViewOnKeyDown(node, offset)) {
         viewManager.scrollRowIntoViewHorizontally(node, 0, offset, 'measured');
       }
-
-      viewManager.onScrollEndOutOfBoundsCheck();
     },
     [tree, viewManager]
+  );
+
+  const onTabScrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      if (node === null) {
+        return;
+      }
+
+      previouslyFocusedNodeRef.current = null;
+      viewManager
+        .scrollToPath(tree, node.path, rerender, {
+          api,
+          organization,
+          anchor: 'center if outside',
+        })
+        .then(maybeNode => {
+          if (maybeNode) {
+            traceDispatch({
+              type: 'set roving index',
+              node: maybeNode.node,
+              index: maybeNode.index,
+              action_source: 'click',
+            });
+            setRowAsFocused(maybeNode.node, null, null, 0);
+          }
+        });
+    },
+    [api, organization, setRowAsFocused, tree, viewManager, traceDispatch]
   );
 
   const onTraceLoad = useCallback(
@@ -401,12 +513,23 @@ function TraceViewContent(props: TraceViewContentProps) {
     ) => {
       // If the trace loaded with a node that we should scroll to,
       // scroll to it and mark it as clicked
-      if (node && index) {
-        onScrollRowIntoView(node, index, 'top');
-        onRowClick(node, null, index);
+      if (node !== null && index !== null) {
+        // console.log('queue', viewManager.row_measurer.queue.length);
+        // console.log('max', viewManager.row_measurer.max);
+        window.requestAnimationFrame(() => {
+          viewManager.scrollRowIntoViewHorizontallyOnLoad(node, () => {
+            previouslyFocusedNodeRef.current = null;
+            setRowAsFocused(node, null, index);
+            traceDispatch({type: 'set roving index', node, index, action_source: 'load'});
+          });
+        });
+      }
+
+      if (traceStateRef.current.search.query) {
+        onTraceSearch(traceStateRef.current.search.query, 'none');
       }
     },
-    [onRowClick, onScrollRowIntoView]
+    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager]
   );
 
   // Setup the middleware for the trace reducer
@@ -416,27 +539,35 @@ function TraceViewContent(props: TraceViewContentProps) {
     >['before action'] = (_state, action) => {
       const query = action.type === 'set query' ? action.query : undefined;
       if (action.type === 'set query' && query) {
-        onTraceSearch(query);
+        onTraceSearch(query, 'automatic');
       }
     };
 
     const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
       typeof TraceReducer
-    >['before next state'] = (prevState, nextState, _action) => {
+    >['before next state'] = (prevState, nextState, action) => {
       // If eithef of the focused nodes that the user had clicked on is changing
       // as a result of a user action that is not a click, scroll that row into view
-      // console.log('Before next state', 'previous', prevState, 'next', nextState, action);
       const {node: nextRovingNode, index: nextRovingTabIndex} = nextState.rovingTabIndex;
+      const {resultIndex: nextSearchResultIndex} = nextState.search;
+
+      // Some actions are dispatched without knowing the next state, for example
+      // roving index changes on keydown and searh iterator changes. When that happens,
+      // we want to sync react to these actions before the next state is updated.
       if (
+        action.type === 'set roving index' &&
+        action.action_source !== 'click' &&
         nextRovingNode &&
         typeof nextRovingTabIndex === 'number' &&
         prevState.rovingTabIndex.node !== nextRovingNode
       ) {
-        onScrollRowIntoView(nextRovingNode, nextRovingTabIndex);
+        setRowAsFocused(nextRovingNode, null, nextRovingTabIndex);
+        if (action.type === 'set roving index' && action.action_source === 'keyboard') {
+          scrollRowIntoView(nextRovingNode, nextRovingTabIndex);
+        }
 
-        if (nextState.search.resultsLookup.has(tree.list[nextRovingTabIndex])) {
+        if (nextState.search.resultsLookup.has(nextRovingNode)) {
           const idx = traceStateRef.current.search.resultsLookup.get(nextRovingNode)!;
-
           traceDispatch({
             type: 'set search iterator index',
             resultIndex: nextRovingTabIndex,
@@ -445,6 +576,14 @@ function TraceViewContent(props: TraceViewContentProps) {
         } else if (nextState.search.resultIteratorIndex !== null) {
           traceDispatch({type: 'clear search iterator index'});
         }
+      } else if (
+        typeof nextSearchResultIndex === 'number' &&
+        prevState.search.resultIndex !== nextSearchResultIndex &&
+        action.type !== 'set search iterator index'
+      ) {
+        const nextNode = tree.list[nextSearchResultIndex];
+        setRowAsFocused(nextNode, null, nextSearchResultIndex);
+        scrollRowIntoView(nextNode, nextSearchResultIndex);
       }
     };
 
@@ -455,25 +594,38 @@ function TraceViewContent(props: TraceViewContentProps) {
       traceStateEmitter.off('before action', beforeTraceAction);
       traceStateEmitter.off('before next state', beforeTraceNextStateDispatch);
     };
-  }, [tree, onTraceSearch, traceStateEmitter, traceDispatch, onScrollRowIntoView]);
+  }, [
+    tree,
+    onTraceSearch,
+    traceStateEmitter,
+    traceDispatch,
+    setRowAsFocused,
+    scrollRowIntoView,
+  ]);
 
-  // Setup the middleware for the view manager
+  // Setup the middleware for the view manager and store the list width as a preference
   useLayoutEffect(() => {
-    function onDividerResizeEnd(_list_width: number) {
-      // @TODO store this on state
+    function onDividerResizeEnd(list_width: number) {
+      traceDispatch({
+        type: 'set list width',
+        payload: list_width,
+      });
     }
     viewManager.on('divider resize end', onDividerResizeEnd);
-
     return () => {
       viewManager.off('divider resize end', onDividerResizeEnd);
     };
-  }, [viewManager]);
+  }, [viewManager, traceDispatch]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
   }, [traceState.search.query]);
+
   useTraceQueryParamStateSync(traceQueryStateSync);
+  useLayoutEffect(() => {
+    storeTraceViewPreferences(traceState.preferences);
+  }, [traceState.preferences]);
 
   // Setup outside click handler so that we can clear the currently clicked node
   const onOutsideTraceContainerClick = useCallback(() => {
@@ -497,8 +649,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     traceDispatch({type: 'clear'});
   }, [tree, traceDispatch]);
 
-  const traceContainerRef = useRef<HTMLElement | null>(null);
-  useOnClickOutside(traceContainerRef, onOutsideTraceContainerClick);
+  const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
+  useOnClickOutside(traceGridRef, onOutsideTraceContainerClick);
 
   return (
     <TraceExternalLayout>
@@ -523,10 +675,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           <TraceSearchInput trace_dispatch={traceDispatch} trace_state={traceState} />
           <TraceResetZoomButton viewManager={viewManager} />
         </TraceToolbar>
-        <TraceGrid
-          layout={traceState.preferences.layout}
-          ref={r => (traceContainerRef.current = r)}
-        >
+        <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
           <Trace
             trace={tree}
             rerender={rerender}
@@ -552,11 +701,12 @@ function TraceViewContent(props: TraceViewContentProps) {
 
           <TraceDrawer
             trace={tree}
+            traceGridRef={traceGridRef}
             traces={props.trace}
             manager={viewManager}
-            onScrollToNode={onScrollRowIntoView}
             trace_state={traceState}
             trace_dispatch={traceDispatch}
+            onTabScrollToNode={onTabScrollToNode}
             rootEventResults={rootEvent}
             traceEventView={props.traceEventView}
           />
@@ -568,7 +718,7 @@ function TraceViewContent(props: TraceViewContentProps) {
 
 function TraceResetZoomButton(props: {viewManager: VirtualizedViewManager}) {
   return (
-    <Button size="xs" onClick={props.viewManager.resetZoom}>
+    <Button size="xs" onClick={() => props.viewManager.resetZoom()}>
       {t('Reset Zoom')}
     </Button>
   );

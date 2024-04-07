@@ -64,12 +64,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (!event.currentTarget.value) {
+      if (!event.target.value) {
         trace_dispatch({type: 'clear query'});
         return;
       }
 
-      trace_dispatch({type: 'set query', query: event.currentTarget.value});
+      trace_dispatch({type: 'set query', query: event.target.value});
     },
     [trace_dispatch]
   );
@@ -112,12 +112,16 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
   return (
     <StyledSearchBar>
-      <InputGroup.LeadingItems disablePointerEvents>
+      <InputGroup.LeadingItems>
         <InvisiblePlaceholder />
         {status?.[1] === 'loading' ? (
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator data-test-id="trace-search-loading" size={12} />
         ) : (
-          <StyledSearchIcon color="subText" size={'xs'} />
+          <StyledSearchIcon
+            data-test-id="trace-search-success"
+            color="subText"
+            size={'xs'}
+          />
         )}
       </InputGroup.LeadingItems>
       <InputGroup.Input
@@ -131,7 +135,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         onKeyDown={onKeyDown}
       />
       <InputGroup.TrailingItems>
-        <StyledTrailingText>
+        <StyledTrailingText data-test-id="trace-search-result-iterator">
           {`${
             props.trace_state.search.query && !props.trace_state.search.results?.length
               ? t('no results')

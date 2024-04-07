@@ -1,5 +1,7 @@
 // These are the icons used in the TraceDetails component - their SVGs path values have been copied
-// and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the components rerender.
+// and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the
+// components rerended, which causes frame drops and performance issues that result in white
+// row flashes when scrolling.
 function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
     <svg

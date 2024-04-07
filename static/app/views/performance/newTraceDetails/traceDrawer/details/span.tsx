@@ -21,7 +21,7 @@ import {TraceDrawerComponents} from './styles';
 export function SpanNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
@@ -49,7 +49,7 @@ export function SpanNodeDetails({
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink

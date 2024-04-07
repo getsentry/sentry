@@ -25,6 +25,11 @@ export type TraceSearchAction =
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
+      node: TraceTreeNode<TraceTree.NodeValue> | null;
+      previousNode: {
+        resultIndex: number | undefined;
+        resultIteratorIndex: number | undefined;
+      } | null;
       results: ReadonlyArray<TraceResult>;
       resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
       type: 'set results';
@@ -33,6 +38,7 @@ export type TraceSearchAction =
     };
 
 export type TraceSearchState = {
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
   query: string | undefined;
   // Index in the list/tree
   resultIndex: number | null;
@@ -56,6 +62,7 @@ export function traceSearchReducer(
   switch (action.type) {
     case 'clear query': {
       return {
+        node: null,
         query: undefined,
         resultIteratorIndex: null,
         results: null,
@@ -70,6 +77,7 @@ export function traceSearchReducer(
       }
       return {
         ...state,
+        node: state.results[0].value,
         resultIteratorIndex: 0,
         resultIndex: state.results[0].index,
       };
@@ -82,6 +90,7 @@ export function traceSearchReducer(
         ...state,
         resultIteratorIndex: state.results.length - 1,
         resultIndex: state.results[state.results.length - 1].index,
+        node: state.results[state.results.length - 1].value,
       };
     }
     case 'go to next match': {
@@ -93,6 +102,7 @@ export function traceSearchReducer(
           ...state,
           resultIteratorIndex: 0,
           resultIndex: state.results[0].index,
+          node: state.results[0].value,
         };
       }
       if (!state.results) return state;
@@ -107,6 +117,7 @@ export function traceSearchReducer(
         ...state,
         resultIteratorIndex: next,
         resultIndex: state.results[next].index,
+        node: state.results[next].value,
       };
     }
     case 'go to previous match': {
@@ -118,6 +129,7 @@ export function traceSearchReducer(
           ...state,
           resultIteratorIndex: state.results.length - 1,
           resultIndex: state.results[state.results.length - 1].index,
+          node: state.results[state.results.length - 1].value,
         };
       }
       if (!state.results) return state;
@@ -132,6 +144,7 @@ export function traceSearchReducer(
         ...state,
         resultIteratorIndex: previous,
         resultIndex: state.results[previous].index,
+        node: state.results[previous].value,
       };
     }
     case 'set results': {
@@ -140,6 +153,7 @@ export function traceSearchReducer(
         status: [performance.now(), 'success'],
         results: action.results,
         resultIteratorIndex: action.resultIteratorIndex ?? null,
+        node: action.node ?? null,
         resultIndex: action.resultIndex ?? null,
         resultsLookup: action.resultsLookup,
       };
@@ -155,6 +169,7 @@ export function traceSearchReducer(
     case 'set search iterator index': {
       return {
         ...state,
+        node: state.results?.[action.resultIteratorIndex]?.value ?? null,
         resultIteratorIndex: action.resultIteratorIndex,
         resultIndex: action.resultIndex,
       };
@@ -165,10 +180,11 @@ export function traceSearchReducer(
         ...state,
         resultIteratorIndex: null,
         resultIndex: null,
+        node: null,
       };
 
     case 'clear': {
-      return {...state, resultIteratorIndex: null, resultIndex: null};
+      return {...state, node: null, resultIteratorIndex: null, resultIndex: null};
     }
 
     default: {

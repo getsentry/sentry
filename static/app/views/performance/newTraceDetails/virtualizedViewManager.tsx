@@ -143,6 +143,13 @@ interface VirtualizedViewManagerEvents {
  * Children components should call the appropriate register*Ref methods to register their
  * HTML elements.
  */
+
+export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
+export type ViewManagerScrollToOptions = {
+  anchor: ViewManagerScrollAnchor;
+  api: Client;
+  organization: Organization;
+};
 export class VirtualizedViewManager {
   // Represents the space of the entire trace, for example
   // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
@@ -171,7 +178,7 @@ export class VirtualizedViewManager {
   resize_observer: ResizeObserver | null = null;
   list: VirtualizedList | null = null;
 
-  isScrolling: boolean = false;
+  scrolling_source: 'list' | 'fake scrollbar' | null = null;
   start_virtualized_index: number = 0;
 
   // HTML refs that we need to keep track of such
@@ -749,7 +756,7 @@ export class VirtualizedViewManager {
 
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.list.width * 100 + '%';
+      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
       ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
     } else {
       if (this.horizontal_scrollbar_container) {
@@ -773,12 +780,17 @@ export class VirtualizedViewManager {
       | undefined;
 
     if (child) {
-      child.style.width = max - this.scrollbar_width + this.ROW_PADDING_PX + 'px';
+      child.style.width =
+        Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
     }
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
-    if (this.isScrolling) {
+    if (!this.scrolling_source) {
+      this.scrolling_source = 'fake scrollbar';
+    }
+
+    if (this.scrolling_source !== 'fake scrollbar') {
       return;
     }
 
@@ -801,7 +813,11 @@ export class VirtualizedViewManager {
 
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
-    if (this.isScrolling) {
+    if (!this.scrolling_source) {
+      this.scrolling_source = 'list';
+    }
+
+    if (this.scrolling_source !== 'list') {
       return;
     }
 
@@ -837,7 +853,6 @@ export class VirtualizedViewManager {
     }
 
     this.scrollSyncRaf = window.requestAnimationFrame(() => {
-      this.horizontal_scrollbar_container!.scrollLeft = -this.columns.list.translate[0];
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -845,12 +860,19 @@ export class VirtualizedViewManager {
             `translateX(${this.columns.list.translate[0]}px)`;
         }
       }
+      this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
+        this.columns.list.translate[0]
+      );
     });
   }
 
   clampRowTransform(transform: number): number {
     const columnWidth = this.columns.list.width * this.container_physical_space.width;
     const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
+
+    if (this.row_measurer.queue.length > 0) {
+      this.row_measurer.drain();
+    }
 
     if (this.row_measurer.max < columnWidth) {
       return 0;
@@ -888,6 +910,7 @@ export class VirtualizedViewManager {
 
   onScrollEndOutOfBoundsCheck() {
     this.scrollEndSyncRaf = null;
+    this.scrolling_source = null;
 
     const translation = this.columns.list.translate[0];
     let min = Number.POSITIVE_INFINITY;
@@ -927,6 +950,7 @@ export class VirtualizedViewManager {
       // this is unlikely to happen, but we should trigger a sync measure event if it does
       return false;
     }
+
     const translation = this.columns.list.translate[0];
 
     return (
@@ -934,6 +958,12 @@ export class VirtualizedViewManager {
       translation + node.depth * this.row_depth_padding + offset_px >
         this.columns.list.width * this.container_physical_space.width
     );
+  }
+
+  isOutsideOfViewOnLoad(node: TraceTreeNode<any>): boolean {
+    const translation = this.columns.list.translate[0];
+    const left = node.depth * this.row_depth_padding;
+    return left > translation / 2;
   }
 
   scrollRowIntoViewHorizontally(
@@ -949,12 +979,43 @@ export class VirtualizedViewManager {
     this.animateScrollColumnTo(newTransform, duration);
   }
 
+  scrollRowIntoViewHorizontallyOnLoad(node: TraceTreeNode<any>, cb: () => void) {
+    if (!this.row_measurer.queue.length) {
+      this.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
+    }
+
+    window.requestAnimationFrame(() => {
+      // allow react to flush the updates to the DOM. At this point the
+      // row will be rendered and measured by the row_measurer
+      cb();
+      if (this.isOutsideOfViewOnLoad(node)) {
+        this.scrollRowIntoViewHorizontally(node, 0, this.ROW_PADDING_PX + 48, 'measured');
+      }
+    });
+  }
+
   bringRowIntoViewAnimation: number | null = null;
   animateScrollColumnTo(x: number, duration: number) {
     const start = performance.now();
 
     const startPosition = this.columns.list.translate[0];
     const distance = x - startPosition;
+
+    if (duration === 0) {
+      this.horizontal_scrollbar_container!.scrollLeft = -x;
+      this.columns.list.translate[0] = x;
+
+      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+        const list = this.columns.list.column_refs[i];
+        if (list?.children?.[0]) {
+          (list.children[0] as HTMLElement).style.transform =
+            `translateX(${this.columns.list.translate[0]}px)`;
+        }
+      }
+
+      dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
+      return;
+    }
 
     const animate = (now: number) => {
       const elapsed = now - start;
@@ -978,6 +1039,8 @@ export class VirtualizedViewManager {
         this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
+
+      dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
     };
 
     this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
@@ -1076,7 +1139,7 @@ export class VirtualizedViewManager {
     eventId: string,
     tree: TraceTree,
     rerender: () => void,
-    {api, organization}: {api: Client; organization: Organization}
+    options: ViewManagerScrollToOptions
   ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
     const node = findInTreeByEventId(tree.root, eventId);
 
@@ -1084,29 +1147,27 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    return this.scrollToPath(tree, node.path, rerender, {api, organization}).then(
-      async result => {
-        // When users are coming off an eventID link, we want to fetch the children
-        // of the node that the eventID points to. This is because the eventID link
-        // only points to the transaction, but we want to fetch the children of the
-        // transaction to show the user the list of spans in that transaction
-        if (result?.node?.canFetch) {
-          await tree.zoomIn(result.node, true, {api, organization}).catch(_e => {
-            Sentry.captureMessage('Failed to fetch children of eventId on mount');
-          });
-          return result;
-        }
-
-        return null;
+    return this.scrollToPath(tree, node.path, rerender, options).then(async result => {
+      // When users are coming off an eventID link, we want to fetch the children
+      // of the node that the eventID points to. This is because the eventID link
+      // only points to the transaction, but we want to fetch the children of the
+      // transaction to show the user the list of spans in that transaction
+      if (result?.node?.canFetch) {
+        await tree.zoomIn(result.node, true, options).catch(_e => {
+          Sentry.captureMessage('Failed to fetch children of eventId on mount');
+        });
+        return result;
       }
-    );
+
+      return null;
+    });
   }
 
   scrollToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
-    {api, organization}: {api: Client; organization: Organization}
+    options: ViewManagerScrollToOptions
   ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
     const segments = [...scrollQueue];
     const list = this.list;
@@ -1125,7 +1186,7 @@ export class VirtualizedViewManager {
     // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-    const scrollToRow = async (): Promise<{
+    const recurseToRow = async (): Promise<{
       index: number;
       node: TraceTreeNode<TraceTree.NodeValue>;
     } | null | null> => {
@@ -1168,21 +1229,18 @@ export class VirtualizedViewManager {
           nextSegment?.startsWith('ag-') ||
           nextSegment?.startsWith('ms-')
         ) {
-          await tree.zoomIn(current, true, {
-            api,
-            organization,
-          });
-          return scrollToRow();
+          await tree.zoomIn(current, true, options);
+          return recurseToRow();
         }
       }
 
       if (isAutogroupedNode(current) && segments.length > 0) {
         tree.expand(current, true);
-        return scrollToRow();
+        return recurseToRow();
       }
 
       if (segments.length > 0) {
-        return scrollToRow();
+        return recurseToRow();
       }
 
       // We are at the last path segment (the node that the user clicked on)
@@ -1194,14 +1252,14 @@ export class VirtualizedViewManager {
       }
 
       rerender();
-      this.scrollToRow(index);
+      this.scrollToRow(index, options.anchor);
       return {index, node: current};
     };
 
-    return scrollToRow();
+    return recurseToRow();
   }
 
-  scrollToRow(index: number, anchor?: 'top') {
+  scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.list) {
       return;
     }
@@ -1619,13 +1677,17 @@ class DOMWidthMeasurer<T> {
   }
 
   drain() {
+    const startMax = this.max;
     while (this.queue.length > 0) {
       const next = this.queue.pop()!;
       const width = this.measure(next[0], next[1]);
       if (width > this.max) {
         this.max = width;
-        this.dispatch(this.max);
       }
+    }
+
+    if (this.max !== startMax) {
+      this.dispatch(this.max);
     }
   }
 
@@ -1648,8 +1710,6 @@ class TextMeasurer {
   drainRaf: number | null = null;
   cache: Map<string, number> = new Map();
 
-  ctx: CanvasRenderingContext2D;
-
   number: number = 0;
   dot: number = 0;
   duration: Record<string, number> = {};
@@ -1661,23 +1721,31 @@ class TextMeasurer {
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      throw new Error('Canvas 2d context is not available');
+      for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
+        // If for some reason we fail to create a canvas context, we can
+        // use a fallback value for the durations. It shouldnt happen,
+        // but it's better to have a fallback than to crash the entire app.
+        // I've made a couple manual measurements to determine a good fallback
+        // and 6.5px per letter seems like a reasonable approximation.
+        const PX_PER_LETTER = 6.5;
+        this.duration[duration] = duration.length * PX_PER_LETTER;
+      }
+      return;
     }
 
     canvas.width = 50 * window.devicePixelRatio ?? 1;
     canvas.height = 50 * window.devicePixelRatio ?? 1;
-    this.ctx = ctx;
 
     ctx.font = '11px' + theme.text.family;
 
-    this.dot = this.ctx.measureText('.').width;
+    this.dot = ctx.measureText('.').width;
     for (let i = 0; i < 10; i++) {
-      const measurement = this.ctx.measureText(i.toString());
+      const measurement = ctx.measureText(i.toString());
       this.number = Math.max(this.number, measurement.width);
     }
 
     for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
-      this.duration[duration] = this.ctx.measureText(duration).width;
+      this.duration[duration] = ctx.measureText(duration).width;
     }
   }
 
@@ -1729,35 +1797,52 @@ class TextMeasurer {
   }
 }
 
+// Jest does not implement scroll updates, however since we have the
+// middleware to handle scroll updates, we can dispatch a scroll event ourselves
+function dispatchJestScrollUpdate(container: HTMLElement) {
+  if (process.env.NODE_ENV !== 'test') return;
+  // since we do not tightly control how browsers handle event dispatching, dispatch it async
+  window.requestAnimationFrame(() => {
+    container.dispatchEvent(new CustomEvent('scroll'));
+  });
+}
+
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, anchor?: 'top') {
+  scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.container) {
       return;
     }
 
+    const position = index * 24;
     if (anchor === 'top') {
-      this.container.scrollTop = index * 24;
+      this.container.scrollTop = position;
       return;
     }
 
-    const position = index * 24;
     const top = this.container.scrollTop;
     const height = this.scrollHeight;
 
+    // Element is above the view
     if (position < top) {
-      // Row is above the view
-      this.container.scrollTop = index * 24;
+      this.container.scrollTop =
+        anchor === 'center if outside' ? position - height / 2 : position;
+      // Element below the view
     } else if (position > top + height) {
-      // Row is under the view
-      this.container.scrollTop = index * 24 - height + 24;
+      const at_bottom = index * 24 - height + 24;
+      this.container.scrollTop =
+        anchor === 'center if outside' ? at_bottom - height / 2 : at_bottom;
     } else {
-      return;
+      // Element is in view
+      if (anchor === 'center') {
+        this.container.scrollTop = position - height / 2;
+      }
     }
+    dispatchJestScrollUpdate(this.container);
   }
 }
 
@@ -1926,7 +2011,7 @@ export const useVirtualizedList = (
         window.cancelAnimationFrame(rafId.current);
       }
 
-      managerRef.current.isScrolling = true;
+      managerRef.current.scrolling_source = 'list';
       managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
       rafId.current = window.requestAnimationFrame(() => {
@@ -1958,7 +2043,7 @@ export const useVirtualizedList = (
         styleCache.current?.clear();
         renderCache.current?.clear();
 
-        managerRef.current.isScrolling = false;
+        managerRef.current.scrolling_source = null;
 
         const recomputedItems = findRenderedItems({
           scrollTop: scrollTopRef.current,
@@ -1979,6 +2064,7 @@ export const useVirtualizedList = (
         }
       }, 50);
     };
+
     props.container.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {

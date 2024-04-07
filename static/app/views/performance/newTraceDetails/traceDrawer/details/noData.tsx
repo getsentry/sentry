@@ -29,7 +29,7 @@ export function NoDataDetails(props: TraceTreeNodeDetailsProps<NoDataNode>) {
         </TraceDrawerComponents.IconTitleWrapper>
 
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => props.scrollToNode(props.node)}>
+          <Button size="xs" onClick={_e => props.onTabScrollToNode(props.node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

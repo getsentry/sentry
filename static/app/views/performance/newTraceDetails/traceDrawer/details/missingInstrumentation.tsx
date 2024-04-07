@@ -15,7 +15,7 @@ import {TraceDrawerComponents} from './styles';
 export function MissingInstrumentationNodeDetails({
   node,
   onParentClick,
-  scrollToNode,
+  onTabScrollToNode,
 }: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const theme = useTheme();
   const parentTransaction = node.parent_transaction;
@@ -34,7 +34,7 @@ export function MissingInstrumentationNodeDetails({
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

@@ -126,7 +126,7 @@ interface TraceProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     index: number | null
   ) => void;
-  onTraceSearch: (query: string) => void;
+  onTraceSearch: (query: string, reposition_strategy: 'automatic' | 'none') => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
   scrollQueueRef: React.MutableRefObject<{
@@ -213,6 +213,7 @@ export function Trace({
       ? manager.scrollToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
           api,
           organization,
+          anchor: 'center',
         })
       : scrollQueueRef.current.eventId
         ? manager.scrollToEventID(
@@ -222,6 +223,7 @@ export function Trace({
             {
               api,
               organization,
+              anchor: 'center',
             }
           )
         : Promise.resolve(null);
@@ -229,9 +231,8 @@ export function Trace({
     promise
       .then(maybeNode => {
         onTraceLoad(trace, maybeNode?.node ?? null, maybeNode?.index ?? null);
-
         if (!maybeNode) {
-          Sentry.captureMessage('Failled to find and scroll to node in tree');
+          Sentry.captureMessage('Failed to find and scroll to node in tree');
           return;
         }
       })
@@ -277,7 +278,7 @@ export function Trace({
           // If a query exists, we want to reapply the search after zooming in
           // so that new nodes are also highlighted if they match a query
           if (traceStateRef.current.search.query) {
-            onTraceSearch(traceStateRef.current.search.query);
+            onTraceSearch(traceStateRef.current.search.query, 'none');
           }
 
           treePromiseStatusRef.current!.set(node, 'success');
@@ -303,7 +304,7 @@ export function Trace({
       if (traceStateRef.current.search.query) {
         // If a query exists, we want to reapply the search after expanding
         // so that new nodes are also highlighted if they match a query
-        onTraceSearch(traceStateRef.current.search.query);
+        onTraceSearch(traceStateRef.current.search.query, 'none');
       }
     },
     [onTraceSearch]
@@ -331,6 +332,7 @@ export function Trace({
           type: 'set roving index',
           index: nextIndex,
           node: treeRef.current.list[nextIndex],
+          action_source: 'keyboard',
         });
       }
       if (event.key === 'ArrowLeft') {
@@ -363,7 +365,6 @@ export function Trace({
           style={n.style}
           node={n.item}
           theme={theme}
-          projects={projectLookup}
           manager={manager}
         />
       ) : (
@@ -372,7 +373,7 @@ export function Trace({
           index={n.index}
           organization={organization}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          tabIndex={trace_state.rovingTabIndex.index ?? -1}
+          tabIndex={trace_state.rovingTabIndex.node === n.item ? 0 : -1}
           isSearchResult={trace_state.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={trace_state.search.resultIndex}
           style={n.style}
@@ -397,11 +398,13 @@ export function Trace({
       scrollQueueRef,
       previouslyFocusedNodeRef,
       onRowKeyDown,
+      onRowClick,
       organization,
       projectLookup,
-      trace_state.rovingTabIndex.index,
+      trace_state.rovingTabIndex.node,
       trace_state.search.resultIteratorIndex,
       trace_state.search.resultsLookup,
+      trace_state.search.resultIndex,
       theme,
       trace_id,
       trace.type,
@@ -430,7 +433,6 @@ export function Trace({
         ref={r => manager.registerHorizontalScrollBarContainerRef(r)}
       >
         <div className="TraceScrollbarScroller" />
-        <div className="TraceScrollbarHandle" />
       </div>
       <div className="TraceDivider" ref={r => manager.registerDividerRef(r)} />
       <div
@@ -538,11 +540,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`Autogrouped TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -632,11 +634,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -744,11 +746,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -858,11 +860,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -933,11 +935,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -1018,11 +1020,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName} Errored`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -1089,11 +1091,11 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === props.index
+          props.tabIndex === 0
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
-        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        tabIndex={props.tabIndex}
         className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
@@ -1153,7 +1155,6 @@ function RenderPlaceholderRow(props: {
   index: number;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
-  projects: Record<Project['slug'], Project['platform']>;
   style: React.CSSProperties;
   theme: Theme;
 }) {
@@ -1735,12 +1736,13 @@ const TraceStylingWrapper = styled('div')`
   }
 
   .TraceScrollbarContainer {
-    height: 26px;
-    position: absolute;
     left: 0;
     top: 0;
-    overflow: auto;
+    height: 26px;
+    position: absolute;
+    overflow-x: auto;
     overscroll-behavior: none;
+    will-change: transform;
 
     .TraceScrollbarScroller {
       height: 1px;
@@ -1971,8 +1973,7 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &:focus,
-    &[tabindex='0'] {
+    &:focus {
       background-color: var(--row-background-focused);
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
@@ -1995,8 +1996,7 @@ const TraceStylingWrapper = styled('div')`
         }
       }
 
-      &:focus,
-      &[tabindex='0'] {
+      &:focus {
         box-shadow: inset 0 0 0 1px ${p => p.theme.red300} !important;
 
         .TraceLeftColumn {

@@ -15,9 +15,15 @@ export type TraceRovingTabIndexAction =
       node: TraceTreeNode<TraceTree.NodeValue> | null;
       type: 'initialize roving reducer';
     }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set roving index'}
+  | {
+      action_source: 'click' | 'keyboard' | 'load';
+      index: number;
+      node: TraceTreeNode<TraceTree.NodeValue>;
+      type: 'set roving index';
+    }
   | {type: 'clear'}
-  | {type: 'clear roving index'};
+  | {type: 'clear roving index'}
+  | {items: number; type: 'set roving count'};
 
 export type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
 
@@ -28,6 +34,9 @@ export function traceRovingTabIndexReducer(
   switch (action.type) {
     case 'initialize roving reducer': {
       return {index: action.index, items: action.items, node: action.node};
+    }
+    case 'set roving count': {
+      return {...state, items: action.items};
     }
     case 'set roving index':
       return {...state, node: action.node, index: action.index};

@@ -17,7 +17,7 @@ export function SiblingAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  scrollToNode,
+  onTabScrollToNode,
 }: TraceTreeNodeDetailsProps<SiblingAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
@@ -40,7 +40,7 @@ export function SiblingAutogroupNodeDetails({
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

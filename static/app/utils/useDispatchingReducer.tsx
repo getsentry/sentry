@@ -77,6 +77,29 @@ class Emitter<R extends React.Reducer<any, any>> {
   }
 }
 
+function update<R extends React.Reducer<any, any>>(
+  state: ReducerState<R>,
+  actions: ReducerAction<R>[],
+  reducer: R,
+  emitter: Emitter<R>
+) {
+  if (!actions.length) {
+    return state;
+  }
+
+  let start = state;
+
+  while (actions.length > 0) {
+    const next = actions.shift()!;
+    emitter.emit('before action', start, next);
+    const nextState = reducer(start, next);
+    emitter.emit('before next state', start, nextState, next);
+    start = nextState;
+  }
+
+  return start;
+}
+
 export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   reducer: R,
   initialState: ReducerState<R>,
@@ -94,27 +117,8 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   reducerRef.current = reducer;
 
   const actionQueue = useRef<ReducerAction<R>[]>([]);
-
-  // Drains the setState queue and returns the final state
-  const drainQueue = useMemo(() => {
-    return function drain(): ReducerState<R> {
-      let start = stateRef.current;
-
-      while (actionQueue.current.length > 0) {
-        const next = actionQueue.current.shift()!;
-        emitter.emit('before action', start, next);
-        const nextState = reducerRef.current(start, next);
-        emitter.emit('before next state', start, nextState, next);
-        start = nextState;
-      }
-
-      return start;
-    };
-    // Emitter is stable and can be ignored
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const updatesRef = useRef<number | null>(null);
+
   const wrappedDispatch = useCallback(
     (a: ReducerAction<R>) => {
       // @TODO it is possible for a dispatched action to throw an error
@@ -126,8 +130,13 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
       if (updatesRef.current !== null) {
         window.cancelAnimationFrame(updatesRef.current);
       }
-      updatesRef.current = window.requestAnimationFrame(() => {
-        setState(drainQueue());
+
+      window.requestAnimationFrame(() => {
+        setState(s => {
+          const next = update(s, actionQueue.current, reducerRef.current, emitter);
+          stateRef.current = next;
+          return next;
+        });
       });
     },
     // Emitter is stable and can be ignored

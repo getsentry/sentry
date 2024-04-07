@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -41,6 +41,10 @@ const Title = styled(FlexBox)`
 const TitleText = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
+
+function TitleWithTestId(props: PropsWithChildren<{}>) {
+  return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
+}
 
 const Type = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
@@ -208,7 +212,7 @@ const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
-  Title,
+  Title: TitleWithTestId,
   Type,
   TitleOp,
   HeaderContainer,
