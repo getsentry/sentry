@@ -286,25 +286,22 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
-    (query: string, reposition_strategy: 'automatic' | 'none') => {
+    (query: string, activeNode: TraceTreeNode<TraceTree.NodeValue> | null) => {
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      const previouslySelectedNode =
-        traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node;
-
       searchingRaf.current = searchInTraceTree(
         tree,
         query,
-        previouslySelectedNode,
+        activeNode,
         ([matches, lookup, previousNodePosition]) => {
           // If the user had focused a row, clear it and focus into the search result.
           if (traceStateRef.current.rovingTabIndex.index !== null) {
             traceDispatch({type: 'clear roving index'});
           }
 
-          if (reposition_strategy === 'none') {
+          if (activeNode === null) {
             traceDispatch({
               type: 'set results',
               results: matches,
@@ -312,41 +309,39 @@ function TraceViewContent(props: TraceViewContentProps) {
               resultIteratorIndex: previousNodePosition?.resultIteratorIndex,
               resultIndex: previousNodePosition?.resultIndex,
               previousNode: previousNodePosition,
-              node: previouslySelectedNode,
+              node: activeNode,
             });
           }
 
-          if (reposition_strategy === 'automatic') {
-            const resultIteratorIndex: number | undefined =
-              typeof previousNodePosition?.resultIteratorIndex === 'number'
-                ? previousNodePosition.resultIteratorIndex
-                : matches.length > 0
-                  ? 0
-                  : undefined;
-
-            const resultIndex: number | undefined =
-              typeof previousNodePosition?.resultIndex === 'number'
-                ? previousNodePosition.resultIndex
-                : matches.length > 0
-                  ? matches[0].index
-                  : undefined;
-
-            const node: TraceTreeNode<TraceTree.NodeValue> | null = previousNodePosition
-              ? previouslySelectedNode
+          const resultIteratorIndex: number | undefined =
+            typeof previousNodePosition?.resultIteratorIndex === 'number'
+              ? previousNodePosition.resultIteratorIndex
               : matches.length > 0
-                ? matches[0].value
-                : null;
+                ? 0
+                : undefined;
 
-            traceDispatch({
-              type: 'set results',
-              results: matches,
-              resultsLookup: lookup,
-              resultIteratorIndex: resultIteratorIndex,
-              resultIndex: resultIndex,
-              previousNode: previousNodePosition,
-              node,
-            });
-          }
+          const resultIndex: number | undefined =
+            typeof previousNodePosition?.resultIndex === 'number'
+              ? previousNodePosition.resultIndex
+              : matches.length > 0
+                ? matches[0].index
+                : undefined;
+
+          const node: TraceTreeNode<TraceTree.NodeValue> | null = previousNodePosition
+            ? activeNode
+            : matches.length > 0
+              ? matches[0].value
+              : null;
+
+          traceDispatch({
+            type: 'set results',
+            results: matches,
+            resultsLookup: lookup,
+            resultIteratorIndex: resultIteratorIndex,
+            resultIndex: resultIndex,
+            previousNode: previousNodePosition,
+            node,
+          });
         }
       );
     },
@@ -505,28 +500,36 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, organization, setRowAsFocused, tree, viewManager, traceDispatch]
   );
 
+  // Callback that is invoked when the trace loads and reaches its initialied state,
+  // that is when the trace tree data and any data that the trace depends on is loaded
+  // For example when we are loading the view with a span path param, this will be
+  // invoked after the span data has been loaded and the span is in the tree
   const onTraceLoad = useCallback(
     (
       _trace: TraceTree,
-      node: TraceTreeNode<TraceTree.NodeValue> | null,
-      index: number | null
+      nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
+      indexOfNodeToScrollTo: number | null
     ) => {
       // If the trace loaded with a node that we should scroll to,
       // scroll to it and mark it as clicked
-      if (node !== null && index !== null) {
-        // console.log('queue', viewManager.row_measurer.queue.length);
-        // console.log('max', viewManager.row_measurer.max);
+      if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         window.requestAnimationFrame(() => {
-          viewManager.scrollRowIntoViewHorizontallyOnLoad(node, () => {
+          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+          viewManager.scrollRowIntoViewHorizontallyOnLoad(nodeToScrollTo, () => {
             previouslyFocusedNodeRef.current = null;
-            setRowAsFocused(node, null, index);
-            traceDispatch({type: 'set roving index', node, index, action_source: 'load'});
+          });
+          setRowAsFocused(nodeToScrollTo, null, indexOfNodeToScrollTo);
+          traceDispatch({
+            type: 'set roving index',
+            node: nodeToScrollTo,
+            index: indexOfNodeToScrollTo,
+            action_source: 'load',
           });
         });
       }
 
       if (traceStateRef.current.search.query) {
-        onTraceSearch(traceStateRef.current.search.query, 'none');
+        onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo);
       }
     },
     [setRowAsFocused, traceDispatch, onTraceSearch, viewManager]
@@ -536,10 +539,10 @@ function TraceViewContent(props: TraceViewContentProps) {
   useLayoutEffect(() => {
     const beforeTraceAction: DispatchingReducerMiddleware<
       typeof TraceReducer
-    >['before action'] = (_state, action) => {
+    >['before action'] = (state, action) => {
       const query = action.type === 'set query' ? action.query : undefined;
       if (action.type === 'set query' && query) {
-        onTraceSearch(query, 'automatic');
+        onTraceSearch(query, state.rovingTabIndex.node ?? state.search.node);
       }
     };
 

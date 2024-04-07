@@ -509,6 +509,44 @@ describe('trace view', () => {
         );
       });
     });
+
+    it('triggers search on load', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?search=transaction-op-5',
+        },
+      });
+      await pageloadTestSetup();
+
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      expect(searchInput).toHaveValue('transaction-op-5');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
+    });
+    it('triggers search on load but does not steal focus from node param', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?search=transaction-op-5&node=txn-0',
+        },
+      });
+      const {container} = await pageloadTestSetup();
+
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      expect(searchInput).toHaveValue('transaction-op-5');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
+
+      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(rows[1]).toHaveFocus();
+    });
   });
 
   describe('keyboard navigation', () => {
@@ -603,6 +641,113 @@ describe('trace view', () => {
         'special-span'
       );
     });
+
+    it('arrowup on first node jumps to start', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[0]);
+
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await userEvent.keyboard('{arrowup}');
+
+      expect(await findByText(container, /transaction-op-9999/i)).toBeInTheDocument();
+
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[rows.length - 1]).toHaveFocus();
+      });
+    });
+
+    it('arrowdown on last node jumps to start', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[0]);
+
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await userEvent.keyboard('{arrowup}');
+
+      expect(await findByText(container, /transaction-op-9999/i)).toBeInTheDocument();
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[rows.length - 1]).toHaveFocus();
+      });
+
+      await userEvent.keyboard('{arrowdown}');
+      expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
+
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
+      });
+    });
+    it('tab scrolls to next node', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[0]);
+
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await userEvent.keyboard('{tab}');
+
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[1]).toHaveFocus();
+      });
+    });
+    it('shift+tab scrolls to previous node', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[1]);
+
+      await waitFor(() => expect(rows[1]).toHaveFocus());
+      await userEvent.keyboard('{Shift>}{tab}{/Shift}');
+
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
+      });
+    });
+    it('arrowdown+shift scrolls to the end of the list', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[0]);
+
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
+
+      expect(await findByText(container, /transaction-op-9999/i)).toBeInTheDocument();
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[rows.length - 1]).toHaveFocus();
+      });
+    });
+
+    it('arrowup+shift scrolls to the start of the list', async () => {
+      const {container} = await keyboardNavigationTestSetup();
+
+      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rows[0]);
+
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
+
+      expect(await findByText(container, /transaction-op-9999/i)).toBeInTheDocument();
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[rows.length - 1]).toHaveFocus();
+      });
+
+      await userEvent.keyboard('{Shift>}{arrowup}{/Shift}');
+      expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
+      });
+    });
   });
 
   describe('search', () => {
@@ -657,6 +802,10 @@ describe('trace view', () => {
         });
       }
     });
+    // @TODO I am torn on this because left-right
+    // should probably also move the input cursor...
+    // it.todo("supports expanding with arrowright")
+    // it.todo("supports collapsing with arrowleft")
     it('search roving updates the element in the drawer', async () => {
       await searchTestSetup();
 
@@ -761,19 +910,19 @@ describe('trace view', () => {
       await scrollToEnd();
       // Click on a random row in the list that is not a search result
       await userEvent.click(rows[5]);
-      // await waitFor(() => {
-      //   expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-      //     '-/2'
-      //   );
-      // });
-      // await scrollToEnd();
-      // // Click on a the row in the list that is a search result
-      // await userEvent.click(rows[2]);
-      // await waitFor(() => {
-      //   expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-      //     '1/2'
-      //   );
-      // });
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '-/2'
+        );
+      });
+      await scrollToEnd();
+      // Click on a the row in the list that is a search result
+      await userEvent.click(rows[2]);
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/2'
+        );
+      });
     });
     it('during search, expanding a row retriggers search', async () => {
       mockTraceMetaResponse();
@@ -875,5 +1024,15 @@ describe('trace view', () => {
       await searchToUpdate();
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
     });
+  });
+
+  describe('tabs', () => {
+    it.todo('clicking on a node spawns a new tab when none is selected');
+    it.todo('pinning a tab and clicking on a new node spawns a new tab');
+    it.todo(
+      'clicking on a node that is already open in a tab, switches to that tab and does not spawn a new one'
+    );
+    it.todo('clicking show in view scrolls to the node');
+    it.todo('clickin on parent transaction spawns a new tab');
   });
 });

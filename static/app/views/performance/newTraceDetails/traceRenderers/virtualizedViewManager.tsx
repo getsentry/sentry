@@ -6,6 +6,10 @@ import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
 import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isNoDataNode,
@@ -825,23 +829,19 @@ export class VirtualizedViewManager {
     return transform;
   }
 
-  scrollEndSyncRaf: number | null = null;
+  scrollEndSyncRaf: {id: number} | null = null;
   enqueueOnScrollEndOutOfBoundsCheck() {
+    if (this.bringRowIntoViewAnimation !== null) {
+      // Dont enqueue updates while view is scrolling
+      return;
+    }
     if (this.scrollEndSyncRaf !== null) {
-      window.cancelAnimationFrame(this.scrollEndSyncRaf);
+      cancelAnimationTimeout(this.scrollEndSyncRaf);
     }
 
-    const start = performance.now();
-    const rafCallback = (now: number) => {
-      const elapsed = now - start;
-      if (elapsed > 300) {
-        this.onScrollEndOutOfBoundsCheck();
-      } else {
-        this.scrollEndSyncRaf = window.requestAnimationFrame(rafCallback);
-      }
-    };
-
-    this.scrollEndSyncRaf = window.requestAnimationFrame(rafCallback);
+    this.scrollEndSyncRaf = requestAnimationTimeout(() => {
+      this.onScrollEndOutOfBoundsCheck();
+    }, 300);
   }
 
   onScrollEndOutOfBoundsCheck() {
@@ -938,9 +938,6 @@ export class VirtualizedViewManager {
     const distance = x - startPosition;
 
     if (duration === 0) {
-      this.horizontal_scrollbar_container!.scrollLeft = -x;
-      this.columns.list.translate[0] = x;
-
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -949,6 +946,10 @@ export class VirtualizedViewManager {
         }
       }
 
+      this.columns.list.translate[0] = x;
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container!.scrollLeft = -x;
+      }
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
       return;
     }
@@ -960,7 +961,6 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
-      this.horizontal_scrollbar_container!.scrollLeft = -pos;
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -972,6 +972,7 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0] = pos;
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
+        this.bringRowIntoViewAnimation = null;
         this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
@@ -1183,12 +1184,9 @@ export class VirtualizedViewManager {
       // and we should scroll the view to this node.
       const index = tree.list.findIndex(node => node === current);
       if (index === -1) {
-        rerender();
         throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
 
-      rerender();
-      this.scrollToRow(index, options.anchor);
       return {index, node: current};
     };
 
@@ -1571,6 +1569,7 @@ export class VirtualizedViewManager {
 // Jest does not implement scroll updates, however since we have the
 // middleware to handle scroll updates, we can dispatch a scroll event ourselves
 function dispatchJestScrollUpdate(container: HTMLElement) {
+  if (!container) return;
   if (process.env.NODE_ENV !== 'test') return;
   // since we do not tightly control how browsers handle event dispatching, dispatch it async
   window.requestAnimationFrame(() => {
@@ -1598,20 +1597,17 @@ export class VirtualizedList {
     const top = this.container.scrollTop;
     const height = this.scrollHeight;
 
-    // Element is above the view
-    if (position < top) {
+    if (anchor === 'center') {
+      this.container.scrollTop = position - height / 2;
+    } else if (position < top) {
+      // Element is above the view
       this.container.scrollTop =
         anchor === 'center if outside' ? position - height / 2 : position;
-      // Element below the view
     } else if (position > top + height) {
+      // Element below the view
       const at_bottom = index * 24 - height + 24;
       this.container.scrollTop =
         anchor === 'center if outside' ? at_bottom - height / 2 : at_bottom;
-    } else {
-      // Element is in view
-      if (anchor === 'center') {
-        this.container.scrollTop = position - height / 2;
-      }
     }
     dispatchJestScrollUpdate(this.container);
   }
