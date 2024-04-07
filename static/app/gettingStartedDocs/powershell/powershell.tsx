@@ -62,19 +62,13 @@ $transaction.Finish() # Mark the transaction as finished and send it to Sentry`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct(
-      'Sentry for PowerShell module supports PowerShell 7.2+ on Windows, macOS, and Linux as well as Windows PowerShell 5.1+.',
-      {
-        strong: <strong />,
-        link: <ExternalLink href="https://docs.sentry.io/platforms/powershell/" />,
-      }
+    t(
+      'Sentry for PowerShell module supports PowerShell 7.2+ on Windows, macOS, and Linux as well as Windows PowerShell 5.1+.'
     ),
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct('Install the module:', {
-        strong: <strong />,
-      }),
+      description: t('Install the module:'),
       configurations: [
         {
           partialLoading: params.sourcePackageRegistries.isLoading,
@@ -93,10 +87,7 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Initialize the SDK as early as possible.', {
-        sentrySdkCode: <code />,
-        programCode: <code />,
-      }),
+      description: tct('Initialize the SDK as early as possible.'),
       configurations: [
         {
           language: 'powershell',
@@ -149,7 +140,6 @@ const onboarding: OnboardingConfig = {
                     <ExternalLink href="https://github.com/getsentry/sentry-powershell/tree/main/samples" />
                   ),
                   code: <code />,
-                  strong: <strong />,
                 })}
               </ListItem>
               <ListItem>
