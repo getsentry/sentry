@@ -7,11 +7,11 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
-  type VirtualizedList,
+  VirtualizedList,
   VirtualizedViewManager,
-} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
-import {TraceTree} from './traceTree';
+import {TraceTree} from '../traceModels/traceTree';
 
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
   return {
@@ -321,6 +321,7 @@ describe('VirtualizedViewManger', () => {
       const result = await manager.scrollToPath(tree, tree.list[0].path, () => void 0, {
         api: api,
         organization,
+        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[0]);
@@ -345,6 +346,7 @@ describe('VirtualizedViewManger', () => {
       const result = await manager.scrollToPath(tree, ['txn-event_id'], () => void 0, {
         api: api,
         organization,
+        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[2]);
@@ -387,6 +389,7 @@ describe('VirtualizedViewManger', () => {
         {
           api: api,
           organization,
+          anchor: 'top',
         }
       );
 
@@ -422,6 +425,7 @@ describe('VirtualizedViewManger', () => {
         {
           api: api,
           organization,
+          anchor: 'top',
         }
       );
 
@@ -458,6 +462,7 @@ describe('VirtualizedViewManger', () => {
         {
           api: api,
           organization,
+          anchor: 'top',
         }
       );
 
@@ -509,6 +514,7 @@ describe('VirtualizedViewManger', () => {
         {
           api: api,
           organization,
+          anchor: 'top',
         }
       );
 
@@ -535,6 +541,7 @@ describe('VirtualizedViewManger', () => {
             {
               api: api,
               organization,
+              anchor: 'top',
             }
           );
 
@@ -561,6 +568,7 @@ describe('VirtualizedViewManger', () => {
             {
               api: api,
               organization,
+              anchor: 'top',
             }
           );
 
@@ -588,6 +596,7 @@ describe('VirtualizedViewManger', () => {
           {
             api: api,
             organization,
+            anchor: 'top',
           }
         );
 
@@ -629,6 +638,7 @@ describe('VirtualizedViewManger', () => {
           {
             api: api,
             organization,
+            anchor: 'top',
           }
         );
 
@@ -667,6 +677,7 @@ describe('VirtualizedViewManger', () => {
           {
             api: api,
             organization,
+            anchor: 'top',
           }
         );
 
@@ -699,6 +710,7 @@ describe('VirtualizedViewManger', () => {
       const result = await manager.scrollToPath(tree, ['error-ded'], () => void 0, {
         api: api,
         organization,
+        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[2]);

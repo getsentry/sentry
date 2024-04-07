@@ -24,8 +24,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import type {TraceTree} from './traceModels/traceTree';
 import {isTraceNode} from './guards';
-import type {TraceTree} from './traceTree';
 
 function TraceHeaderEmptyTrace() {
   return (

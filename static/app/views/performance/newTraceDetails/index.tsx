@@ -38,6 +38,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {
+  ViewManagerScrollAnchor,
+  VirtualizedViewManager,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -46,6 +50,7 @@ import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
+import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {searchInTraceTree} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
@@ -53,13 +58,8 @@ import {Trace} from './trace';
 import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
-import {TraceTree, type TraceTreeNode} from './traceTree';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {
-  type ViewManagerScrollAnchor,
-  VirtualizedViewManager,
-} from './virtualizedViewManager';
 
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();

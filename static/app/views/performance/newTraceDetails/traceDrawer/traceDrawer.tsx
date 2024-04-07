@@ -29,6 +29,7 @@ import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceSearch/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -37,9 +38,12 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../traceModels/traceTree';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';

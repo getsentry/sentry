@@ -8,7 +8,10 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type ParentAutogroupNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type ParentAutogroupNode,
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';

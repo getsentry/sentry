@@ -3,7 +3,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface UseTransactionProps {
   node: TraceTreeNode<TraceTree.Transaction>;

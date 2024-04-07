@@ -17,7 +17,7 @@ import Tags from 'sentry/views/discover/tags';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
 
 import {isTraceNode} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
 import {IssueList} from '../details/issues/issues';
 
 type TraceDetailsProps = {

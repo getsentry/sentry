@@ -20,6 +20,11 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
+import {useVirtualizedList} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
+import {
+  VirtualizedRow,
+  VirtualizedViewManager,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -29,6 +34,12 @@ import {
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
 
+import {
+  makeTraceNodeBarColor,
+  ParentAutogroupNode,
+  type TraceTree,
+  type TraceTreeNode,
+} from './traceModels/traceTree';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -40,17 +51,6 @@ import {
   isTransactionNode,
 } from './guards';
 import {TraceIcons} from './icons';
-import {
-  makeTraceNodeBarColor,
-  ParentAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from './traceTree';
-import {
-  useVirtualizedList,
-  type VirtualizedRow,
-  type VirtualizedViewManager,
-} from './virtualizedViewManager';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
