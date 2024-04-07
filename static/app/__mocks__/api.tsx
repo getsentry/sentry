@@ -34,11 +34,11 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
+  host: string;
   match: MatchCallable[];
   method: string;
   statusCode: number;
   url: string;
-  host: string;
   /**
    * Whether to return mocked api responses directly, or with a setTimeout delay.
    *
