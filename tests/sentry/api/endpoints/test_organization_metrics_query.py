@@ -5,12 +5,10 @@ import pytest
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-query"
@@ -76,7 +74,6 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
-        assert "intervals" not in response.data
         assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
         assert response.data["meta"] == [
             [
@@ -92,6 +89,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 },
             ]
         ]
+        assert response.data["intervals"] == []
 
     def test_query_with_disabled_org(self):
         with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):

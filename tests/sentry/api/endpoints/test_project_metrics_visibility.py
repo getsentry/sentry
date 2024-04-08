@@ -6,10 +6,9 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-metrics-visibility"
 

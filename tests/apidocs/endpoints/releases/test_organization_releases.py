@@ -1,14 +1,15 @@
 from datetime import UTC, datetime
 
+import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.release import Release
-from sentry.testutils.silo import region_silo_test
+
+pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationReleasesDocsTest(APIDocsTestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)

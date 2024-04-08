@@ -21,7 +21,7 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-function ReplayLayout({isVideoReplay}: {isVideoReplay?: boolean}) {
+function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const {getLayout} = useReplayLayout();
   const layout = getLayout() ?? LayoutKey.TOPBAR;
 
@@ -45,7 +45,7 @@ function ReplayLayout({isVideoReplay}: {isVideoReplay?: boolean}) {
     <ErrorBoundary mini>
       <ReplayController
         toggleFullscreen={toggleFullscreen}
-        hideFastForward={isVideoReplay}
+        disableSettings={isVideoReplay}
       />
     </ErrorBoundary>
   );
@@ -60,9 +60,9 @@ function ReplayLayout({isVideoReplay}: {isVideoReplay?: boolean}) {
   }
 
   const focusArea = (
-    <FluidPanel title={<SmallMarginFocusTabs />}>
+    <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
-        <FocusArea />
+        <FocusArea isVideoReplay={isVideoReplay} />
       </ErrorBoundary>
     </FluidPanel>
   );

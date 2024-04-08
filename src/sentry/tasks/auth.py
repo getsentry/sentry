@@ -3,6 +3,8 @@ from __future__ import annotations
 import abc
 import logging
 
+from django.db import router
+from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log, features, options
@@ -16,6 +18,7 @@ from sentry.services.hybrid_cloud.organization.service import organization_servi
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound
 from sentry.utils.audit import create_audit_entry_from_user
@@ -60,7 +63,9 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
 @instrumented_task(
     name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
 )
-def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
+def email_unlink_notifications(
+    org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
+):
     try:
         org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
@@ -68,10 +73,13 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
         logger.warning("Could not send SSO unlink emails: %s", e)
         return
 
-    user = user_service.get_user(user_id=actor_id)
-    if not user:
-        logger.warning("sso.unlink.email_failure.could_not_find_user", extra={"user_id": actor_id})
-        return
+    with unguarded_write(using=router.db_for_write(OrganizationMember)):
+        # Flags are not replicated -- these updates are safe to skip outboxes
+        OrganizationMember.objects.filter(organization_id=org_id).update(
+            flags=F("flags")
+            .bitand(~OrganizationMember.flags["sso:linked"])
+            .bitand(~OrganizationMember.flags["sso:invalid"])
+        )
 
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
@@ -80,7 +88,7 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # intermittently -- force an ordering in your test!
     members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
     for member in members:
-        member.send_sso_unlink_email(user, provider)
+        member.send_sso_unlink_email(sending_user_email, provider)
 
 
 class OrganizationComplianceTask(abc.ABC):

@@ -354,19 +354,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -459,16 +446,7 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
-            else:
-                logger.info(
-                    "group.update_group_status.priority_not_updated",
-                    extra={
-                        "group_id": group.id,
-                        "from_substatus": from_substatus,
-                        "activity_type": activity_type,
-                        "new_substatus": substatus,
-                    },
-                )
+
             modified_groups_list.append(group)
 
         Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])

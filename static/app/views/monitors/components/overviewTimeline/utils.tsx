@@ -1,8 +1,6 @@
-import moment from 'moment';
-
 import {getFormat} from 'sentry/utils/dates';
 
-import type {TimeWindow, TimeWindowOptions} from './types';
+import type {TimeWindow, TimeWindowConfig} from './types';
 
 // Stores the elapsed minutes for each selectable resolution
 export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
@@ -12,43 +10,119 @@ export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
   '30d': 60 * 24 * 30,
 };
 
-export function getStartFromTimeWindow(end: Date, timeWindow: TimeWindow): Date {
-  const start = moment(end).subtract(resolutionElapsedMinutes[timeWindow], 'minute');
+/**
+ * The minimum pixels to allocate to the reference start time label which
+ * always includes date, time, and timezone.
+ */
+const TIMELABEL_WIDTH_FULL = 115;
 
-  return start.toDate();
-}
+/**
+ * The minimum pixels to allocate to each time label when it is a full date.
+ */
+const TIMELABEL_WIDTH_DATE = 110;
 
-// The pixels to allocate to each time label based on (MMM DD HH:SS AM/PM)
-const TIMELABEL_WIDTH = 100;
+/**
+ * The minimum pixels to allocate to each time label when it's a timestaamp.
+ */
+const TIMELABEL_WIDTH_TIME = 100;
 
+const ONE_HOUR = 60;
+
+/**
+ * Acceptable minute durations between time labels. These will be used to
+ * computed the timeMarkerInterval of the TimeWindow when the start and end
+ * times fit into these buckets.
+ */
+const CLAMPED_MINUTE_RANGES = [
+  1,
+  5,
+  10,
+  20,
+  30,
+  ONE_HOUR,
+  ONE_HOUR * 2,
+  ONE_HOUR * 4,
+  ONE_HOUR * 8,
+  ONE_HOUR * 12,
+];
+
+/**
+ * Compute the TimeWindowConfig given the timeline date boundaries and the width
+ * of the timeline.
+ */
 export function getConfigFromTimeRange(
   start: Date,
   end: Date,
   timelineWidth: number
-): TimeWindowOptions {
-  // Acceptable intervals between time labels, in minutes
-  const minuteRanges = [1, 10, 30, 60, 4 * 60, 8 * 60, 12 * 60];
-  const startEndMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-  const timeLabelMinutes = startEndMinutes * (TIMELABEL_WIDTH / timelineWidth);
-  const subMinutePxBuckets = startEndMinutes < timelineWidth;
+): TimeWindowConfig {
+  const elapsedMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
-  for (const minutes of minuteRanges) {
-    if (minutes >= Math.floor(timeLabelMinutes)) {
-      return {
-        dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
-        elapsedMinutes: startEndMinutes,
-        timeMarkerInterval: minutes,
-        dateTimeProps: {timeOnly: true},
-      };
-    }
+  // Display only the time (no date) when the window is less than 24 hours
+  const timeOnly = elapsedMinutes <= ONE_HOUR * 24;
+
+  // When one pixel represents less than at least one minute we also want to
+  // display second values on our labels.
+  const displaySeconds = elapsedMinutes < timelineWidth;
+
+  function computeMarkerInterval(pixels: number) {
+    const minutesPerPixel = elapsedMinutes / timelineWidth;
+    return minutesPerPixel * pixels;
   }
 
-  // Calculate days between each time label interval for larger time ranges
-  const timeLabelIntervalDays = Math.ceil(timeLabelMinutes / (60 * 24));
+  // This is smallest minute value that we are willing to space our ticks
+  const minMarkerWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
+
+  const minimumMarkerInterval = computeMarkerInterval(minMarkerWidth);
+  const referenceMarkerInterval = computeMarkerInterval(TIMELABEL_WIDTH_FULL);
+
+  const intervals = {referenceMarkerInterval, minimumMarkerInterval};
+
+  for (const minutes of CLAMPED_MINUTE_RANGES) {
+    if (minutes < minimumMarkerInterval) {
+      continue;
+    }
+
+    return {
+      start,
+      end,
+      elapsedMinutes,
+      timelineWidth,
+      intervals: {...intervals, normalMarkerInterval: minutes},
+      dateTimeProps: {timeOnly},
+      dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
+    };
+  }
+
+  // Calculate the days in between each tick marker at the minimum time
+  const normalMarkerInterval =
+    Math.ceil(minimumMarkerInterval / (ONE_HOUR * 24)) * ONE_HOUR * 24;
+
   return {
-    dateLabelFormat: getFormat(),
-    elapsedMinutes: startEndMinutes,
-    timeMarkerInterval: timeLabelIntervalDays * 60 * 24,
+    start,
+    end,
+    elapsedMinutes,
+    timelineWidth,
+    intervals: {...intervals, normalMarkerInterval},
     dateTimeProps: {dateOnly: true},
+    dateLabelFormat: getFormat(),
   };
+}
+
+/**
+ * Aligns the given date to the start of a unit (minute, hour, day) based on
+ * the minuteInterval size. This will align to the right side of the boundary
+ *
+ * 01:53:43 (10m interval) => 01:54:00
+ * 01:32:00 (2hr interval) => 02:00:00
+ */
+export function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
+  if (minuteInterval < 60) {
+    return date.minute(date.minutes() - (date.minutes() % minuteInterval)).seconds(0);
+  }
+
+  if (minuteInterval < 60 * 24) {
+    return date.startOf('hour');
+  }
+
+  return date.startOf('day');
 }

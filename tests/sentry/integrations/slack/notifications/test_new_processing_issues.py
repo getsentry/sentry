@@ -13,6 +13,7 @@ from sentry.web.frontend.debug.debug_new_processing_issues_email import get_issu
 
 class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_new_processing_issue(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is held back in reprocessing
@@ -87,6 +88,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
 
     @responses.activate
     @with_feature("organizations:customer-domains")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_new_processing_issue_customer_domains(self):
         notification = NewProcessingIssuesActivityNotification(
             Activity(

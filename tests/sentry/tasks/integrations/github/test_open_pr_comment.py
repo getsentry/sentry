@@ -23,7 +23,6 @@ from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestI
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.json import JSONData
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
@@ -82,7 +81,6 @@ class CreateEventTestCase(TestCase):
         )
 
 
-@region_silo_test
 class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -128,6 +126,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
+            {"filename": "wow.rb", "changes": 100, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -141,6 +140,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "bop.php", "changes": 100, "status": "modified"},
+            {"filename": "wow.rb", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -255,7 +255,6 @@ class TestSafeForComment(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -384,7 +383,6 @@ class TestGetFilenames(GithubCommentTestCase):
         assert sentry_filenames == set(correct_filenames)
 
 
-@region_silo_test
 class TestGetCommentIssues(CreateEventTestCase):
     def setUp(self):
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
@@ -430,7 +428,6 @@ class TestGetCommentIssues(CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["other.planet", "world"]
 
-    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
     def test_php_simple(self):
         # should match function name exactly or namespace::functionName
         group_id_1 = [
@@ -456,6 +453,33 @@ class TestGetCommentIssues(CreateEventTestCase):
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["namespace/other/test::planet", "world"]
+
+    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
+    def test_ruby_simple(self):
+        # should match function name exactly or class.functionName
+        group_id_1 = [
+            self._create_event(
+                function_names=["test.planet", "test/component.blue"],
+                filenames=["baz.rb", "foo.rb"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["test/component.blue", "world"],
+                filenames=["foo.rb", "baz.rb"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = get_top_5_issues_by_count_for_file(
+            [self.project], ["baz.rb"], ["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["test.planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]
@@ -687,7 +711,6 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
 
 
-@region_silo_test
 class TestFormatComment(TestCase):
     def setUp(self):
         super().setUp()

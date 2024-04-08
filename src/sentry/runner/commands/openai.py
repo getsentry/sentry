@@ -1,5 +1,6 @@
 # The sentry utils json cannot pretty print
-import json  # noqa
+import json  # noqa: S003
+from typing import IO
 
 import click
 
@@ -8,7 +9,7 @@ import click
 @click.option("--event", type=click.File("r"))
 @click.option("--model", default="gpt-3.5-turbo")
 @click.option("--dump-prompt", is_flag=True)
-def openai(event, model, dump_prompt):
+def openai(event: IO[str], model: str, dump_prompt: bool) -> None:
     """
     Runs the OpenAI assistent against a JSON event payload.
     """

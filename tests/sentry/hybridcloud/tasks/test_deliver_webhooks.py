@@ -512,7 +512,7 @@ class DrainMailboxParallelTest(TestCase):
             status=200,
             body="",
         )
-        records = create_payloads(3, "github:123")
+        records = create_payloads(20, "github:123")
 
         # Make old records
         for record in records:

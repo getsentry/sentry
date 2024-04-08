@@ -6,10 +6,8 @@ from django.urls import reverse
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SCIMDetailGetTest(SCIMTestCase):
     def test_team_details_404(self):
         url = reverse(
@@ -77,7 +75,6 @@ class SCIMDetailGetTest(SCIMTestCase):
         assert response.status_code == 403, response.data
 
 
-@region_silo_test
 class SCIMDetailPatchTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
@@ -307,7 +304,6 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
 
-@region_silo_test
 class SCIMDetailDeleteTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "delete"

@@ -200,6 +200,22 @@ class MsTeamsWebhookMixin:
             or self.infer_team_id_from_channel_data(data=data) is not None
         )
 
+    @classmethod
+    def is_new_integration_installation_event(cls, data: Mapping[str, Any]) -> bool:
+        try:
+            raw_event_type = data["type"]
+            event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
+            if event_type != MsTeamsEvents.INSTALLATION_UPDATE:
+                return False
+
+            action = data.get("action", None)
+            if action is None or action != "add":
+                return False
+
+            return True
+        except Exception:
+            return False
+
 
 class MsTeamsEvents(Enum):
     INSTALLATION_UPDATE = "installationUpdate"
@@ -219,7 +235,7 @@ class MsTeamsEvents(Enum):
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

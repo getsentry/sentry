@@ -4,10 +4,8 @@ from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class CreateOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "put"
@@ -124,7 +122,6 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         ).exists()
 
 
-@region_silo_test
 class DeleteOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "delete"

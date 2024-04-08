@@ -9,13 +9,13 @@ import pytest
 
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
-from sentry.grouping.ingest import (
+from sentry.grouping.ingest.hashing import (
     _calculate_primary_hash,
     _calculate_secondary_hash,
     find_existing_grouphash,
     find_existing_grouphash_new,
-    record_calculation_metric_with_result,
 )
+from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -50,11 +50,11 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_existing_grouphash_new,
         ) as find_existing_grouphash_new_spy,
         mock.patch(
-            "sentry.grouping.ingest._calculate_primary_hash",
+            "sentry.grouping.ingest.hashing._calculate_primary_hash",
             wraps=wrapped_calculate_primary_hash,
         ) as calculate_primary_hash_spy,
         mock.patch(
-            "sentry.grouping.ingest._calculate_secondary_hash",
+            "sentry.grouping.ingest.hashing._calculate_secondary_hash",
             wraps=wrapped_calculate_secondary_hash,
         ) as calculate_secondary_hash_spy,
         mock.patch(

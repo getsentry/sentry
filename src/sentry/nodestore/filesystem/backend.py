@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-import sentry_sdk
 from django.conf import settings
 
 from sentry.nodestore.base import NodeStorage
@@ -27,7 +26,6 @@ class FileSystemNodeStorage(NodeStorage):
         with open(self.node_path(id), "rb") as file:
             return file.read()
 
-    @sentry_sdk.tracing.trace
     def _set_bytes(self, id: str, data: bytes, ttl: timedelta | None = None) -> None:
         with open(self.node_path(id), "wb") as file:
             file.write(data)
