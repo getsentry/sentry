@@ -30,6 +30,8 @@ def process_message(message: Message[KafkaPayload]):
     segment = _deserialize_segment(value)
     metrics.incr("detect_performance_issues.spans.count", len(segment["spans"]))
 
+    assert len(segment["spans"]) > 0
+
     process_segment(segment["spans"])
 
 
