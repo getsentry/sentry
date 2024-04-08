@@ -172,7 +172,7 @@ def test_sdk_crash_is_reported_with_native_paths(
 @decorators
 def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
     event_data = get_crash_event()
-    set_path(event_data, "sdk", "version", value="0.4.1-beta.0")
+    set_path(event_data, "sdk", "version", value="0.6.1-beta.0")
     event = store_event(data=event_data)
 
     configs[1].organization_allowlist = [event.project.organization_id]
@@ -190,7 +190,7 @@ def test_too_low_min_sdk_version_not_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
 ):
     event_data = get_crash_event()
-    set_path(event_data, "sdk", "version", value="0.3.9")
+    set_path(event_data, "sdk", "version", value="0.5.9")
     event = store_event(data=event_data)
 
     configs[1].organization_allowlist = [event.project.organization_id]

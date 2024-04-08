@@ -221,7 +221,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.native.unity",
                 "sentry.native.unreal",
             ],
-            min_sdk_version="0.4.0",
+            # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
+            min_sdk_version="0.6.0",
             system_library_path_patterns={
                 # well known locations for unix paths
                 r"/lib/**",
