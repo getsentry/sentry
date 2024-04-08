@@ -22,7 +22,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_get_replay_viewed_by1(self):
+    def test_get_replay_viewed_by(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
