@@ -79,7 +79,7 @@ export default function MonitorCreateForm() {
   }
 
   function changeScheduleType(type: ScheduleType) {
-    form.current.setValue('config.schedule_type', type);
+    form.current.setValue('config.scheduleType', type);
   }
 
   return (
@@ -92,7 +92,7 @@ export default function MonitorCreateForm() {
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
-        'config.schedule_type': DEFAULT_SCHEDULE_CONFIG.scheduleType,
+        'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
       }}
       onSubmitSuccess={onCreateMonitor}
       submitLabel={t('Create')}
@@ -121,7 +121,7 @@ export default function MonitorCreateForm() {
         <ScheduleOptions>
           <Observer>
             {() => {
-              const currScheduleType = form.current.getValue('config.schedule_type');
+              const currScheduleType = form.current.getValue('config.scheduleType');
               const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
               const parsedSchedule = form.current.getError('config.schedule')
                 ? ''
@@ -199,7 +199,7 @@ export default function MonitorCreateForm() {
         </ScheduleOptions>
         <Observer>
           {() => {
-            const scheduleType = form.current.getValue('config.schedule_type');
+            const scheduleType = form.current.getValue('config.scheduleType');
             const cronSchedule = form.current.getValue('config.schedule');
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
