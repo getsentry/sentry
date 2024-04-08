@@ -69,6 +69,9 @@ def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
 
+    # don't want this to be accidentally run from getsentry
+    assert repo == "sentry"
+
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
     print(f"ensuring {repo} venv at {venv_dir}...")
@@ -172,7 +175,7 @@ python3 -m tools.fast_editable --path .
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
-            f"{venv_dir}/bin/{repo}",
+            f"{venv_dir}/bin/sentry",
             "devservices",
             "up",
             "redis",
