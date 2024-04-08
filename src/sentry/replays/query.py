@@ -115,7 +115,7 @@ def query_replay_viewed_by_ids(
     else:
         project_ids = [project_id]
 
-    agg_snuba_response = execute_query(
+    return execute_query(
         query=make_full_aggregation_query(
             fields=["viewed_by_ids"],
             replay_ids=[replay_id],
@@ -125,9 +125,7 @@ def query_replay_viewed_by_ids(
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.viewed_by_query",
-    )
-    snuba_response = agg_snuba_response["data"][0]
-    return snuba_response["viewed_by_ids"]
+    )["data"]
 
 
 def query_replays_count(

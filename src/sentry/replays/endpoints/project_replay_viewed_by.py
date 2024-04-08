@@ -58,18 +58,31 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
         # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
-        viewed_by_ids: list[int] = query_replay_viewed_by_ids(
+
+        # If no rows were found then the replay does not exist and a 404 is returned.
+        viewed_by_ids_response: list[dict[str, int]] = query_replay_viewed_by_ids(
             project_id=project.id,
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
             organization=project.organization,
         )
+        if not viewed_by_ids_response:
+            return Response(status=404)
+
+        # If a row was returned but it contained no viewed-by-ids we can skip the lookup
+        # step and return the empty set.
+        viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
+        if not viewed_by_ids:
+            return Response({"data": []}, status=200)
 
         # query + serialize the User objects from postgres
         response = generate_viewed_by_response(
-            replay_id=replay_id, viewed_by_ids=viewed_by_ids, request_user=request.user
+            replay_id=replay_id,
+            viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
+            request_user=request.user,
         )
+
         return Response({"data": response}, status=200)
 
     @extend_schema(
