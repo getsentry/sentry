@@ -111,7 +111,7 @@ jobs:
 
       - name: Collect test data
         if: ${{ !cancelled() }}
-        uses: getsentry/action-collect-test-data@065ceeadfef85baee7cbd97269a26665d787af26 # v0.2.0
+        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
         with:
           path: .artifacts/pytest.json
           gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}/instance${{ steps.setup.outputs.matrix-instance-number }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
@@ -279,7 +279,7 @@ jobs:
 
       - name: Collect test data
         if: ${{ !cancelled() }}
-        uses: getsentry/action-collect-test-data@065ceeadfef85baee7cbd97269a26665d787af26 # v0.2.0
+        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
         with:
           path: .artifacts/pytest.monolith-dbs.json
           gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
