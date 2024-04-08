@@ -124,7 +124,7 @@ export default function MonitorCreateForm() {
               const currScheduleType = form.current.getValue('config.scheduleType');
               const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
               const parsedSchedule = form.current.getError('config.schedule')
-                ? ''
+                ? null
                 : crontabAsText(
                     form.current.getValue('config.schedule')?.toString() ?? ''
                   );
@@ -156,7 +156,9 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                        <CronstrueText>{parsedSchedule}</CronstrueText>
+                        <CronstrueText>
+                          {parsedSchedule ?? t('(invalid schedule)')}
+                        </CronstrueText>
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
