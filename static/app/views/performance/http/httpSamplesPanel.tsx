@@ -38,6 +38,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -142,6 +143,11 @@ export function HTTPSamplesPanel() {
     enabled: query.panel === 'duration' && durationAxisMax > 0,
     referrer: 'api.starfish.http-module-samples-panel-samples',
   });
+
+  const sampledSpanDataSeries = useSampleScatterPlotSeries(
+    samplesData,
+    domainTransactionMetrics?.[0]?.['avg(span.self_time)']
+  );
 
   const handleClose = () => {
     router.replace({
@@ -277,6 +283,7 @@ export function HTTPSamplesPanel() {
                       markLine: AverageValueMarkLine(),
                     },
                   ]}
+                  scatterPlot={sampledSpanDataSeries}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />

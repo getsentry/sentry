@@ -30,6 +30,8 @@ export type Series = {
   markLine?: LineSeriesOption['markLine'];
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
+  symbol?: LineSeriesOption['symbol'];
+  symbolSize?: LineSeriesOption['symbolSize'];
   z?: number;
 };
 
