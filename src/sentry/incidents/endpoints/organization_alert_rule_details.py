@@ -302,6 +302,8 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
+    # TODO: add activations details to get response
+
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

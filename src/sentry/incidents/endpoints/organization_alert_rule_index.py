@@ -403,6 +403,8 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    # TODO: add activation count to GET response
+
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
