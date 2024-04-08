@@ -629,6 +629,7 @@ module = [
     "sentry.relay.config.metric_extraction",
     "sentry.reprocessing2",
     "sentry.runner.*",
+    "sentry.search.events.datasets.*",
     "sentry.snuba.metrics.extraction",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
