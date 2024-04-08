@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.team import Team, TeamStatus
@@ -37,11 +38,20 @@ class TeamEndpoint(Endpoint):
 
     def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
         try:
-            team = (
-                Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
-                .select_related("organization")
-                .get()
-            )
+            if options.get("api.id-or-slug-enabled"):
+                team = (
+                    Team.objects.filter(
+                        organization__slug__id_or_slug=organization_slug, slug__id_or_slug=team_slug
+                    )
+                    .select_related("organization")
+                    .get()
+                )
+            else:
+                team = (
+                    Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
+                    .select_related("organization")
+                    .get()
+                )
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
