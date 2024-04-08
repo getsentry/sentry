@@ -279,12 +279,26 @@ register(
 )
 
 # API
-# Killswitch for apis to work with id or slug as path parameters
+# GA Option for endpoints to work with id or slug as path parameters
 register(
     "api.id-or-slug-enabled",
-    default=False,
     type=Bool,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable EA endpoints to work with id or slug as path parameters
+register(
+    "api.id-or-slug-enabled-ea-endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# EA option limiting to certain specific organizations for endpoints where organization is available
+register(
+    "api.id-or-slug-enabled-ea-org",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # API Tokens
@@ -2099,6 +2113,26 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.sdk_crash_detection.native.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.native.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # END: SDK Crash Detection
 
 register(
@@ -2341,6 +2375,11 @@ register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.detect-performance-issues-consumer.enable",
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
