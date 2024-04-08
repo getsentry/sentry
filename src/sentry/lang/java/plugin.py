@@ -312,18 +312,14 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         def exceptions_differ(a, b):
             return a.get("type") != b.get("type") or a.get("module") != b.get("module")
 
+        python_stacktraces = [
+            sinfo.stacktrace for sinfo in self.stacktrace_infos if sinfo.stacktrace is not None
+        ]
+
         different_frames = []
-        for symbolicator_stacktrace, stacktrace_info in zip(
-            symbolicator_stacktraces, self.stacktrace_infos
+        for symbolicator_stacktrace, python_stacktrace in zip(
+            symbolicator_stacktraces, python_stacktraces
         ):
-            if stacktrace_info.container is None:
-                continue
-
-            python_stacktrace = stacktrace_info.container.get("stacktrace", None)
-
-            if python_stacktrace is None:
-                continue
-
             for symbolicator_frame, python_frame in zip(
                 symbolicator_stacktrace, python_stacktrace["frames"]
             ):
