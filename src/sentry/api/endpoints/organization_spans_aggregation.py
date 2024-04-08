@@ -45,6 +45,12 @@ class EventSpans(TypedDict):
     spans: list[EventSpan]
 
 
+class SpanSample(TypedDict):
+    transaction: str | None
+    trace: str | None
+    span: str
+
+
 AggregateSpanRow = TypedDict(
     "AggregateSpanRow",
     {
@@ -61,7 +67,9 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
+        # samples is deprecated in favour of sample_spans
         "samples": set[tuple[Optional[str], str]],
+        "sample_spans": list[SpanSample],
     },
 )
 
@@ -72,6 +80,7 @@ class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: dict[str, AggregateSpanRow] = {}
         self.current_transaction: str | None = None
+        self.current_trace: str | None = None
 
     def fingerprint_nodes(
         self,
@@ -142,10 +151,29 @@ class BaseAggregateSpans:
                 else node["avg(relative_offset)"]
             )
             node["count()"] += 1
+            # TODO: will need a better way to check we don't add dupes once samples is gone
             if len(node["samples"]) < 5:
                 node["samples"].add((self.current_transaction, span_tree["span_id"]))
+                node["sample_spans"].append(
+                    SpanSample(
+                        {
+                            "transaction": self.current_transaction,
+                            "span": span_tree["span_id"],
+                            "trace": self.current_trace,
+                        }
+                    )
+                )
         else:
             sample = {(self.current_transaction, span_tree["span_id"])}
+            span_sample = [
+                SpanSample(
+                    {
+                        "transaction": self.current_transaction,
+                        "span": span_tree["span_id"],
+                        "trace": self.current_trace,
+                    }
+                )
+            ]
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
@@ -165,6 +193,7 @@ class BaseAggregateSpans:
                 ),
                 "count()": 1,
                 "samples": sample,
+                "sample_spans": span_sample,
             }
 
         # Handles sibling spans that have the same group
@@ -191,6 +220,8 @@ class AggregateIndexedSpans(BaseAggregateSpans):
             spans = event["spans"]
 
             self.current_transaction = event["transaction_id"]
+            self.current_trace = event["trace_id"]
+
             for span_ in spans:
                 span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
@@ -233,6 +264,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
             span_tree = {}
 
             self.current_transaction = event["event_id"]
+            self.current_trace = event["contexts"]["trace"]["trace_id"]
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,
@@ -334,7 +366,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 builder = SpansIndexedQueryBuilder(
                     dataset=Dataset.SpansIndexed,
                     params=params,
-                    selected_columns=["transaction_id", "count()"],
+                    selected_columns=["transaction_id", "trace_id", "count()"],
                     query=query,
                     limit=100,
                 )
