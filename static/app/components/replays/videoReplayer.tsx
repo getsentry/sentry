@@ -104,11 +104,9 @@ export class VideoReplayer {
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
+    el.addEventListener('seeking', event => {
+      // Centers the video when seeking
+      this._callbacks.onLoaded(event);
     });
     el.addEventListener('play', event => {
       if (index === this._currentIndex) {
@@ -326,7 +324,6 @@ export class VideoReplayer {
       this._currentVideo.style.display = 'none';
     }
 
-    // TODO: resize video if it changes orientation
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
