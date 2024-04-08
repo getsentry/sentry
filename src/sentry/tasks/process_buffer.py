@@ -10,15 +10,15 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
-def get_process_lock(partition: str = None):
+def get_process_lock(lock_name: str, partition: str = None):
     from sentry.locks import locks
 
     if partition is None:
-        lock_key = "buffer:process_pending"
+        lock_key = f"buffer:{lock_name}"
     else:
-        lock_key = f"buffer:process_pending:{partition}"
+        lock_key = f"buffer:{lock_name}:{partition}"
 
-    return locks.get(lock_key, duration=60, name="process_pending")
+    return locks.get(lock_key, duration=60, name=lock_name)
 
 
 @instrumented_task(
@@ -30,7 +30,7 @@ def process_pending(partition=None):
     """
     from sentry import buffer
 
-    lock = get_process_lock(partition)
+    lock = get_process_lock("process_pending", partition)
 
     try:
         with lock.acquire():
@@ -46,11 +46,9 @@ def process_pending_batch(partition=None):
     """
     Process pending buffers in a batch.
     """
-
-    # TODO(ceo): There isn't actually a task in server.py for this yet. will need to add that and put this behind a flag when we're ready
     from sentry import buffer
 
-    lock = get_process_lock(partition)
+    lock = get_process_lock("process_pending_batch", partition)
 
     try:
         with lock.acquire():

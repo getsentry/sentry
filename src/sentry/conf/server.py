@@ -1019,6 +1019,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "buffers.process_pending"},
     },
+    "flush-buffers-batch": {
+        "task": "sentry.tasks.process_buffer.process_pending_batch",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
+    },
     "sync-options": {
         "task": "sentry.tasks.options.sync_options",
         # Run every 10 seconds
@@ -1797,6 +1803,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-trace-explorer": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
+    # Enable processing slow issue alerts
+    "organizations:process-slow-alerts": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program
