@@ -2377,7 +2377,7 @@ class ProfilesSnubaTestCase(
 class ReplaysSnubaTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        # assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replay):
         response = requests.post(
