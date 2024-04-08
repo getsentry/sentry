@@ -528,7 +528,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.xfail
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
             (1, "/hello", self.now()),
@@ -979,7 +978,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["limit"] == SNUBA_QUERY_LIMIT
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 3)
     def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
         self,
