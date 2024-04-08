@@ -4,4 +4,5 @@ export const DOMAIN_STATUS_PAGE_URLS = {
   '*.atlassian.net': 'https://status.atlassian.com/api',
   '*.googleapis.com': 'https://status.cloud.google.com',
   '*.codecov.io': 'https://status.codecov.com',
+  '*.sentry.io': 'https://status.sentry.io',
 };
