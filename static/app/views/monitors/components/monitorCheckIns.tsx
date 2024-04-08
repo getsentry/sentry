@@ -11,7 +11,8 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
-import StatusIndicator, {
+import {
+  StatusIndicator,
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
