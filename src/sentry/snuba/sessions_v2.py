@@ -21,7 +21,11 @@ from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 
-dropped_outcomes = [Outcome.INVALID.api_name(), Outcome.RATE_LIMITED.api_name()]
+dropped_outcomes = [
+    Outcome.INVALID.api_name(),
+    Outcome.RATE_LIMITED.api_name(),
+    Outcome.CARDINALITY_LIMITED.api_name(),
+]
 
 
 """
