@@ -28,6 +28,12 @@ type TracePreferencesState = {
   };
 };
 
+export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
+  'drawer left': 0.33,
+  'drawer right': 0.33,
+  'drawer bottom': 0.5,
+};
+
 const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
