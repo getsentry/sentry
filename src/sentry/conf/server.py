@@ -2015,10 +2015,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
     # Starfish: extract metrics from the spans
-    "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
+    "projects:span-metrics-extraction": True,
     "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
