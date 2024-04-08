@@ -33,7 +33,7 @@ class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
         if not query_results or len(query_results) == 0:
             return {"series": [], "totals": []}
 
-        series = self.transform_result(query_results[0].result["series"]["data"])
-        totals = self.transform_result(query_results[0].result["totals"]["data"])
+        series = self.transform_result(query_results[0].series)
+        totals = self.transform_result(query_results[0].totals)
 
         return {"series": series, "totals": totals}
