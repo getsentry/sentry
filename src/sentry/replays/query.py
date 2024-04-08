@@ -559,6 +559,7 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
+    "has_viewed": ["has_viewed"],
 }
 
 
@@ -757,9 +758,16 @@ def collect_aliases(fields: list[str]) -> list[str]:
     return list(result)
 
 
-def select_from_fields(fields: list[str]) -> list[Column | Function]:
+def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
     """Return a list of columns to select."""
-    return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+    selection = []
+    for alias in collect_aliases(fields):
+        if alias == "has_viewed":
+            selection.append(compute_has_viewed(user_id))
+        else:
+            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+
+    return selection
 
 
 def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
@@ -770,7 +778,11 @@ def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, No
             yield from _extract_children(child)
 
 
-def compute_has_viewed(viewed_by_id: int) -> Function:
+def compute_has_viewed(viewed_by_id: int | None) -> Function:
+    if viewed_by_id is None:
+        # Return the literal "false" if no user-id was specified.
+        return Function("equals", parameters=[1, 2])
+
     return Function(
         "greater",
         parameters=[

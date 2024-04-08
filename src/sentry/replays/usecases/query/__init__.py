@@ -287,28 +287,16 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
-    request_user_id: int | None = None,
+    request_user_id: int | None,
 ) -> Query:
     """Return a query to fetch every replay in the set."""
     from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
 
     def _select_from_fields() -> list[Column | Function]:
         if fields:
-            select_cols = []
-            non_parametrized_fields = set(fields)
-            # temporary hard-coded solution for fields that need context, for ex request authorization
-            if "has_viewed" in non_parametrized_fields:
-                non_parametrized_fields.remove("has_viewed")
-                if request_user_id is not None:
-                    select_cols.append(compute_has_viewed(request_user_id))
-            select_cols.extend(select_from_fields(list(non_parametrized_fields)))
-
+            return select_from_fields(list(set(fields)), user_id=request_user_id)
         else:
-            select_cols = list(QUERY_ALIAS_COLUMN_MAP.values())
-            if request_user_id:
-                select_cols.append(compute_has_viewed(request_user_id))
-
-        return select_cols
+            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
 
     return Query(
         match=Entity("replays"),
