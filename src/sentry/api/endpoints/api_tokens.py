@@ -15,7 +15,7 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
@@ -50,7 +50,7 @@ class ApiTokensEndpoint(Endpoint):
         """
         # Get the user id for the user that made the current request as a baseline default
         user_id = request.user.id
-        if is_active_superuser(request):
+        if has_elevated_mode(request):
             datastore = request.GET if request.GET else request.data
             # If a userId override is not found, use the id for the user who made the request
             user_id = datastore.get("userId", user_id)
