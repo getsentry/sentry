@@ -29,7 +29,7 @@ import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceSearch/virtualizedViewManager';
+import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -235,12 +235,15 @@ export function TraceDrawer(props: TraceDrawerProps) {
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
         props.traceGridRef.style.gridTemplateColumns = `1fr`;
         props.traceGridRef.style.gridTemplateRows = `1fr minmax(${27}px, 0%)`;
+        size.current = 27;
       } else if (traceStateRef.current.preferences.layout === 'drawer left') {
         props.traceGridRef.style.gridTemplateColumns = `minmax(${0}px, 0%) 1fr`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
+        size.current = 0;
       } else {
         props.traceGridRef.style.gridTemplateColumns = `1fr minmax(${0}px, 0%)`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
+        size.current = 0;
       }
       initializedRef.current = true;
     }

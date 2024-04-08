@@ -88,7 +88,6 @@ function update<R extends React.Reducer<any, any>>(
   }
 
   let start = state;
-
   while (actions.length > 0) {
     const next = actions.shift()!;
     emitter.emit('before action', start, next);

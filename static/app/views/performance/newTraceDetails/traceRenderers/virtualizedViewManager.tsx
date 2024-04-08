@@ -76,6 +76,7 @@ type EventStore = {
 };
 interface VirtualizedViewManagerEvents {
   ['divider resize end']: (list_width: number) => void;
+  ['virtualized list init']: () => void;
 }
 
 /**
@@ -107,6 +108,9 @@ export class VirtualizedViewManager {
 
   events: EventStore = {
     ['divider resize end']: new Set<VirtualizedViewManagerEvents['divider resize end']>(),
+    ['virtualized list init']: new Set<
+      VirtualizedViewManagerEvents['virtualized list init']
+    >(),
   };
 
   row_measurer: TraceRowWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
@@ -188,6 +192,14 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
+  }
+
+  once<K extends keyof VirtualizedViewManagerEvents>(eventName: K, cb: Function) {
+    const wrapper = (...args: any[]) => {
+      cb(...args);
+      this.off(eventName, wrapper);
+    };
+    this.on(eventName, wrapper);
   }
 
   on<K extends keyof VirtualizedViewManagerEvents>(
@@ -880,7 +892,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>, offset_px: number): boolean {
+  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>): boolean {
     const width = this.row_measurer.cache.get(node);
     if (width === undefined) {
       // this is unlikely to happen, but we should trigger a sync measure event if it does
@@ -891,15 +903,9 @@ export class VirtualizedViewManager {
 
     return (
       translation + node.depth * this.row_depth_padding < 0 ||
-      translation + node.depth * this.row_depth_padding + offset_px >
-        this.columns.list.width * this.container_physical_space.width
+      translation + node.depth * this.row_depth_padding >
+        (this.columns.list.width * this.container_physical_space.width) / 2
     );
-  }
-
-  isOutsideOfViewOnLoad(node: TraceTreeNode<any>): boolean {
-    const translation = this.columns.list.translate[0];
-    const left = node.depth * this.row_depth_padding;
-    return left > translation / 2;
   }
 
   scrollRowIntoViewHorizontally(
@@ -913,21 +919,6 @@ export class VirtualizedViewManager {
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 
     this.animateScrollColumnTo(newTransform, duration);
-  }
-
-  scrollRowIntoViewHorizontallyOnLoad(node: TraceTreeNode<any>, cb: () => void) {
-    if (!this.row_measurer.queue.length) {
-      this.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
-    }
-
-    window.requestAnimationFrame(() => {
-      // allow react to flush the updates to the DOM. At this point the
-      // row will be rendered and measured by the row_measurer
-      cb();
-      if (this.isOutsideOfViewOnLoad(node)) {
-        this.scrollRowIntoViewHorizontally(node, 0, this.ROW_PADDING_PX + 48, 'measured');
-      }
-    });
   }
 
   bringRowIntoViewAnimation: number | null = null;
@@ -948,7 +939,7 @@ export class VirtualizedViewManager {
 
       this.columns.list.translate[0] = x;
       if (this.horizontal_scrollbar_container) {
-        this.horizontal_scrollbar_container!.scrollLeft = -x;
+        this.horizontal_scrollbar_container.scrollLeft = -x;
       }
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
       return;
@@ -1187,6 +1178,7 @@ export class VirtualizedViewManager {
         throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
 
+      rerender();
       return {index, node: current};
     };
 
@@ -1611,13 +1603,6 @@ export class VirtualizedList {
     }
     dispatchJestScrollUpdate(this.container);
   }
-}
-
-export interface VirtualizedRow {
-  index: number;
-  item: TraceTreeNode<TraceTree.NodeValue>;
-  key: number;
-  style: React.CSSProperties;
 }
 
 function findInTreeFromSegment(

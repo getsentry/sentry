@@ -20,11 +20,11 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
-import {useVirtualizedList} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
 import {
+  useVirtualizedList,
   VirtualizedRow,
-  VirtualizedViewManager,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
+import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -117,9 +117,9 @@ interface TraceProps {
   forceRerender: number;
   manager: VirtualizedViewManager;
   onRowClick: (
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
-    event: React.MouseEvent<HTMLElement> | null,
-    index: number | null
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    event: React.MouseEvent<HTMLElement>,
+    index: number
   ) => void;
   onTraceLoad: (
     trace: TraceTree,
@@ -231,6 +231,7 @@ export function Trace({
     promise
       .then(maybeNode => {
         onTraceLoad(trace, maybeNode?.node ?? null, maybeNode?.index ?? null);
+
         if (!maybeNode) {
           Sentry.captureMessage('Failed to find and scroll to node in tree');
           return;
@@ -356,9 +357,9 @@ export function Trace({
     );
   }, [projects]);
 
-  const render = useCallback(
+  const renderLoadingRow = useCallback(
     (n: VirtualizedRow) => {
-      return trace.type !== 'trace' || scrollQueueRef.current ? (
+      return (
         <RenderPlaceholderRow
           key={n.key}
           index={n.index}
@@ -367,7 +368,14 @@ export function Trace({
           theme={theme}
           manager={manager}
         />
-      ) : (
+      );
+    },
+    [manager, theme]
+  );
+
+  const renderVirtualizedRow = useCallback(
+    (n: VirtualizedRow) => {
+      return (
         <RenderRow
           key={n.key}
           index={n.index}
@@ -412,12 +420,18 @@ export function Trace({
     ]
   );
 
+  const render = useMemo(() => {
+    return trace.type !== 'trace' || scrollQueueRef.current
+      ? r => renderLoadingRow(r)
+      : r => renderVirtualizedRow(r);
+  }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
+
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
   const virtualizedList = useVirtualizedList({
     manager,
     items: trace.list,
     container: scrollContainer,
-    render,
+    render: render,
   });
 
   return (
@@ -482,7 +496,7 @@ export function Trace({
         })}
       </div>
       <div ref={r => setScrollContainer(r)}>
-        <div>{virtualizedList.rendered}</div>
+        <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
         <div className="TraceRow Hidden">
           <div
             className="TraceLeftColumn"
@@ -1964,7 +1978,8 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight,
-    &:focus {
+    &:focus,
+    &[tabindex='0'] {
       outline: none;
       background-color: var(--row-background-focused);
 
@@ -1973,7 +1988,8 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &:focus {
+    &:focus,
+    &[tabindex='0'] {
       background-color: var(--row-background-focused);
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 

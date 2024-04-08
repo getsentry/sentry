@@ -7,10 +7,15 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   VirtualizedList,
-  VirtualizedRow,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
+export interface VirtualizedRow {
+  index: number;
+  item: TraceTreeNode<TraceTree.NodeValue>;
+  key: number;
+  style: React.CSSProperties;
+}
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
@@ -142,6 +147,8 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    managerRef.current.dispatch('virtualized list init');
 
     maybeToggleScrollbar(
       props.container,

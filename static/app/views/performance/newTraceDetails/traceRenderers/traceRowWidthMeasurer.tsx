@@ -1,5 +1,16 @@
 // The backing cache should be a proper LRU cache,
 // so we dont end up storing an infinite amount of elements
+
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+type EventStore<T> = {
+  [K in keyof TraceRowWidthMeasurerEvents<T>]: Set<TraceRowWidthMeasurerEvents<T>[K]>;
+};
+interface TraceRowWidthMeasurerEvents<T> {
+  ['max']: (max: number) => void;
+  ['row measure']: (row: T) => void;
+  ['row measure end']: () => void;
+}
+
 export class TraceRowWidthMeasurer<T> {
   cache: Map<T, number> = new Map();
   queue: [T, HTMLElement][] = [];
@@ -10,21 +21,48 @@ export class TraceRowWidthMeasurer<T> {
     this.drain = this.drain.bind(this);
   }
 
-  listeners: Record<'max', Set<(max: number) => void>> = {
+  listeners: EventStore<T> = {
     max: new Set(),
+    'row measure': new Set(),
+    'row measure end': new Set(),
   };
 
-  on(event: 'max', cb: (max: number) => void) {
-    this.listeners?.[event]?.add?.(cb);
+  once<K extends keyof TraceRowWidthMeasurerEvents<T>>(
+    event: K,
+    cb: (max: number) => void
+  ) {
+    const listener = (...args: any[]) => {
+      cb(...(args as ArgumentTypes<typeof cb>));
+      this.off(event, listener);
+    };
+    this.on(event, listener);
   }
 
-  off(event: 'max', cb: (max: number) => void) {
-    this.listeners?.[event]?.delete?.(cb);
+  on<K extends keyof TraceRowWidthMeasurerEvents<T>>(
+    eventName: K,
+    cb: TraceRowWidthMeasurerEvents<T>[K]
+  ): void {
+    this.listeners?.[eventName]?.add?.(cb);
   }
 
-  dispatch(max: number) {
-    for (const listener of this.listeners.max) {
-      listener(max);
+  off<K extends keyof TraceRowWidthMeasurerEvents<T>>(
+    eventName: K,
+    cb: TraceRowWidthMeasurerEvents<T>[K]
+  ): void {
+    this.listeners?.[eventName]?.delete?.(cb);
+  }
+
+  dispatch<K extends keyof TraceRowWidthMeasurerEvents<T>>(
+    event: K,
+    ...args: ArgumentTypes<TraceRowWidthMeasurerEvents<T>[K]>
+  ): void {
+    if (!this.listeners[event] || this.listeners[event].size === 0) {
+      return;
+    }
+
+    for (const handler of this.listeners[event]) {
+      // @ts-expect-error
+      handler(...args);
     }
   }
 
@@ -43,17 +81,21 @@ export class TraceRowWidthMeasurer<T> {
 
   drain() {
     const startMax = this.max;
+
     while (this.queue.length > 0) {
       const next = this.queue.pop()!;
       const width = this.measure(next[0], next[1]);
+
       if (width > this.max) {
         this.max = width;
       }
     }
 
     if (this.max !== startMax) {
-      this.dispatch(this.max);
+      this.dispatch('max', this.max);
     }
+
+    this.dispatch('row measure end');
   }
 
   measure(node: T, element: HTMLElement): number {

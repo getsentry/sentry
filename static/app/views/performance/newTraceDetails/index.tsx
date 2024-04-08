@@ -295,43 +295,25 @@ function TraceViewContent(props: TraceViewContentProps) {
         tree,
         query,
         activeNode,
-        ([matches, lookup, previousNodePosition]) => {
-          // If the user had focused a row, clear it and focus into the search result.
-          if (traceStateRef.current.rovingTabIndex.index !== null) {
-            traceDispatch({type: 'clear roving index'});
-          }
-
-          if (activeNode === null) {
+        ([matches, lookup, activeNodePosition]) => {
+          if (activeNodePosition) {
             traceDispatch({
               type: 'set results',
               results: matches,
               resultsLookup: lookup,
-              resultIteratorIndex: previousNodePosition?.resultIteratorIndex,
-              resultIndex: previousNodePosition?.resultIndex,
-              previousNode: previousNodePosition,
+              resultIteratorIndex: activeNodePosition?.resultIteratorIndex,
+              resultIndex: activeNodePosition?.resultIndex,
+              previousNode: activeNodePosition,
               node: activeNode,
             });
+            return;
           }
 
-          const resultIteratorIndex: number | undefined =
-            typeof previousNodePosition?.resultIteratorIndex === 'number'
-              ? previousNodePosition.resultIteratorIndex
-              : matches.length > 0
-                ? 0
-                : undefined;
-
-          const resultIndex: number | undefined =
-            typeof previousNodePosition?.resultIndex === 'number'
-              ? previousNodePosition.resultIndex
-              : matches.length > 0
-                ? matches[0].index
-                : undefined;
-
-          const node: TraceTreeNode<TraceTree.NodeValue> | null = previousNodePosition
-            ? activeNode
-            : matches.length > 0
-              ? matches[0].value
-              : null;
+          // @TODO: If previous node is not in the results set, this will fail
+          // and we will jump focus to the first row, which we do not want to do.
+          const resultIndex: number | undefined = matches?.[0]?.index;
+          const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
+          const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
 
           traceDispatch({
             type: 'set results',
@@ -339,7 +321,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultsLookup: lookup,
             resultIteratorIndex: resultIteratorIndex,
             resultIndex: resultIndex,
-            previousNode: previousNodePosition,
+            previousNode: activeNodePosition,
             node,
           });
         }
@@ -356,6 +338,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     (
       node: TraceTreeNode<TraceTree.NodeValue> | null,
       event: React.MouseEvent<HTMLElement> | null,
+      resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       index: number | null,
       debounce: number = QUERY_STRING_STATE_DEBOUNCE
     ) => {
@@ -365,27 +348,29 @@ function TraceViewContent(props: TraceViewContentProps) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
+          const currentQueryStringPath = qs.parse(location.search).node;
+          const nextNodePath = node.path;
+          // Updating the query string with the same path is problematic because it causes
+          // the entire sentry app to rerender, which is enough to cause jank and drop frames
+          if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
+            return;
+          }
           const {eventId: _eventId, ...query} = qs.parse(location.search);
           browserHistory.replace({
             pathname: location.pathname,
             query: {
               ...query,
-              node: node.path,
+              node: nextNodePath,
             },
           });
           queryStringAnimationTimeoutRef.current = null;
         }, debounce);
 
-        if (
-          traceStateRef.current.search.resultsLookup.has(node) &&
-          typeof index === 'number'
-        ) {
-          const result = traceStateRef.current.search.resultsLookup.get(node)!;
-
+        if (resultsLookup.has(node) && typeof index === 'number') {
           traceDispatch({
             type: 'set search iterator index',
             resultIndex: index,
-            resultIteratorIndex: result,
+            resultIteratorIndex: resultsLookup.get(node)!,
           });
         }
 
@@ -404,19 +389,13 @@ function TraceViewContent(props: TraceViewContentProps) {
     [traceDispatch]
   );
 
-  //
   const onRowClick = useCallback(
     (
-      node: TraceTreeNode<TraceTree.NodeValue> | null,
-      event: React.MouseEvent<HTMLElement> | null,
-      index: number | null
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      event: React.MouseEvent<HTMLElement>,
+      index: number
     ) => {
-      if (node === null || index === null) {
-        traceDispatch({type: 'clear roving index'});
-        return;
-      }
-
-      setRowAsFocused(node, event, null, 0);
+      setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
         const idx = traceStateRef.current.search.resultsLookup.get(node)!;
@@ -439,11 +418,11 @@ function TraceViewContent(props: TraceViewContentProps) {
     [setRowAsFocused, traceDispatch]
   );
 
-  // Scrolls to row in trace view
   const scrollRowIntoView = useCallback(
     (
       node: TraceTreeNode<TraceTree.NodeValue>,
-      index?: number,
+      index: number,
+      event_source: 'keyboard' | 'programmatic scroll',
       anchor?: ViewManagerScrollAnchor
     ) => {
       // Last node we scrolled to is the same as the node we want to scroll to
@@ -451,25 +430,33 @@ function TraceViewContent(props: TraceViewContentProps) {
         return;
       }
 
-      if (index === undefined) {
-        // @TODO we usually know this at render time, we should not have to search for it
-        index = tree.list.indexOf(node);
-      }
-
       if (index === -1) {
         Sentry.captureMessage('Cannot scroll to a node that does not exist in the tree');
         return;
       }
 
-      const offset = 48;
+      // Always scroll to the row vertically
       viewManager.scrollToRow(index, anchor);
       previouslyScrolledToNodeRef.current = node;
 
-      if (viewManager.isOutsideOfViewOnKeyDown(node, offset)) {
-        viewManager.scrollRowIntoViewHorizontally(node, 0, offset, 'measured');
+      if (!viewManager.row_measurer.cache.has(node)) {
+        viewManager.row_measurer.once('row measure end', () => {
+          if (
+            event_source === 'keyboard' &&
+            !viewManager.isOutsideOfViewOnKeyDown(node)
+          ) {
+            return;
+          }
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
+        });
+      } else {
+        if (event_source === 'keyboard' && !viewManager.isOutsideOfViewOnKeyDown(node)) {
+          return;
+        }
+        viewManager.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
       }
     },
-    [tree, viewManager]
+    [viewManager]
   );
 
   const onTabScrollToNode = useCallback(
@@ -487,13 +474,20 @@ function TraceViewContent(props: TraceViewContentProps) {
         })
         .then(maybeNode => {
           if (maybeNode) {
+            viewManager.scrollToRow(maybeNode.index, 'center if outside');
             traceDispatch({
               type: 'set roving index',
               node: maybeNode.node,
               index: maybeNode.index,
               action_source: 'click',
             });
-            setRowAsFocused(maybeNode.node, null, null, 0);
+            setRowAsFocused(
+              maybeNode.node,
+              null,
+              traceStateRef.current.search.resultsLookup,
+              null,
+              0
+            );
           }
         });
     },
@@ -501,30 +495,37 @@ function TraceViewContent(props: TraceViewContentProps) {
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
-  // that is when the trace tree data and any data that the trace depends on is loaded
-  // For example when we are loading the view with a span path param, this will be
-  // invoked after the span data has been loaded and the span is in the tree
+  // that is when the trace tree data and any data that the trace depends on is loaded,
+  // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(
     (
       _trace: TraceTree,
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
-      // If the trace loaded with a node that we should scroll to,
-      // scroll to it and mark it as clicked
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
-        window.requestAnimationFrame(() => {
-          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
-          viewManager.scrollRowIntoViewHorizontallyOnLoad(nodeToScrollTo, () => {
-            previouslyFocusedNodeRef.current = null;
-          });
-          setRowAsFocused(nodeToScrollTo, null, indexOfNodeToScrollTo);
-          traceDispatch({
-            type: 'set roving index',
-            node: nodeToScrollTo,
-            index: indexOfNodeToScrollTo,
-            action_source: 'load',
-          });
+        viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+
+        // At load time, we want to scroll the row into view, but we need to ensure
+        // that the row had been measured first, else we can exceed the bounds of the container.
+        scrollRowIntoView(
+          nodeToScrollTo,
+          indexOfNodeToScrollTo,
+          'programmatic scroll',
+          'center'
+        );
+
+        setRowAsFocused(
+          nodeToScrollTo,
+          null,
+          traceStateRef.current.search.resultsLookup,
+          indexOfNodeToScrollTo
+        );
+        traceDispatch({
+          type: 'set roving index',
+          node: nodeToScrollTo,
+          index: indexOfNodeToScrollTo,
+          action_source: 'load',
         });
       }
 
@@ -532,7 +533,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo);
       }
     },
-    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager]
+    [setRowAsFocused, traceDispatch, onTraceSearch, scrollRowIntoView, viewManager]
   );
 
   // Setup the middleware for the trace reducer
@@ -564,13 +565,19 @@ function TraceViewContent(props: TraceViewContentProps) {
         typeof nextRovingTabIndex === 'number' &&
         prevState.rovingTabIndex.node !== nextRovingNode
       ) {
-        setRowAsFocused(nextRovingNode, null, nextRovingTabIndex);
+        // When the roving tabIndex updatesm mark the node as focused and sync search results
+        setRowAsFocused(
+          nextRovingNode,
+          null,
+          nextState.search.resultsLookup,
+          nextRovingTabIndex
+        );
         if (action.type === 'set roving index' && action.action_source === 'keyboard') {
-          scrollRowIntoView(nextRovingNode, nextRovingTabIndex);
+          scrollRowIntoView(nextRovingNode, nextRovingTabIndex, 'keyboard', undefined);
         }
 
         if (nextState.search.resultsLookup.has(nextRovingNode)) {
-          const idx = traceStateRef.current.search.resultsLookup.get(nextRovingNode)!;
+          const idx = nextState.search.resultsLookup.get(nextRovingNode)!;
           traceDispatch({
             type: 'set search iterator index',
             resultIndex: nextRovingTabIndex,
@@ -584,9 +591,20 @@ function TraceViewContent(props: TraceViewContentProps) {
         prevState.search.resultIndex !== nextSearchResultIndex &&
         action.type !== 'set search iterator index'
       ) {
+        // If the search result index changes, mark the node as focused and scroll it into view
         const nextNode = tree.list[nextSearchResultIndex];
-        setRowAsFocused(nextNode, null, nextSearchResultIndex);
-        scrollRowIntoView(nextNode, nextSearchResultIndex);
+        setRowAsFocused(
+          nextNode,
+          null,
+          nextState.search.resultsLookup,
+          nextSearchResultIndex
+        );
+        scrollRowIntoView(
+          nextNode,
+          nextSearchResultIndex,
+          'programmatic scroll',
+          undefined
+        );
       }
     };
 

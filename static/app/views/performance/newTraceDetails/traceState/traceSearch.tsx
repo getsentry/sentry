@@ -225,7 +225,6 @@ export function searchInTraceTree(
 
   function search() {
     const ts = performance.now();
-
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i];
 
