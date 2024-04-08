@@ -110,7 +110,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForTransaction(transactionName);
 
   const hasTransactionSummaryCleanupFlag = organization.features.includes(
