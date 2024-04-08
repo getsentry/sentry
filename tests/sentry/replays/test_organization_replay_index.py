@@ -148,6 +148,35 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
+    def test_get_replays_viewed(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay_viewed(seq2_timestamp, project.id, replay1_id, self.user.id))
+
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=20)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay2_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 2
+
+            # Assert the first replay was viewed and the second replay was not.
+            assert response_data["data"][0]["has_viewed"] is True
+            assert response_data["data"][1]["has_viewed"] is False
+
     def test_get_replays_browse_screen_fields(self):
         """Test replay response with fields requested in production."""
         project = self.create_project(teams=[self.team])
