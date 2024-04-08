@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
@@ -6,7 +6,7 @@ from sentry.sentry_metrics.querying.data.transformation.base import QueryResults
 
 
 class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
-    def transform_result(self, result: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    def transform_result(self, result: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         ret_val = []
 
         for item in result:
@@ -23,7 +23,7 @@ class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
 
         return ret_val
 
-    def transform(self, query_results: list[QueryResult]) -> Mapping[str, Any]:
+    def transform(self, query_results: Sequence[QueryResult]) -> Mapping[str, Any]:
         """
         Transforms the query results into the format returned by outcomes queries.
         Performs necessary mappings to match that format such as outcome.id -> outcome
