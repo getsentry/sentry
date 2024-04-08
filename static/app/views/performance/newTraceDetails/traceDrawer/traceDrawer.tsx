@@ -29,7 +29,7 @@ import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -199,6 +199,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      props.onTabScrollToNode(node);
       props.trace_dispatch({
         type: 'activate tab',
         payload: node,
@@ -356,11 +357,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 <TraceVitals trace={props.trace} />
               ) : (
                 <TraceTreeNodeDetails
-                  onTabScrollToNode={props.onTabScrollToNode}
-                  organization={organization}
-                  node={props.trace_state.tabs.current_tab.node}
                   manager={props.manager}
+                  organization={organization}
                   onParentClick={onParentClick}
+                  node={props.trace_state.tabs.current_tab.node}
+                  onTabScrollToNode={props.onTabScrollToNode}
                 />
               )
             ) : null}
@@ -561,7 +562,6 @@ const TabsHeightContainer = styled('div')<{
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
   height: ${p => (p.hasIndicators ? '44px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   flex-direction: column;
   justify-content: end;

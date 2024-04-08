@@ -7,7 +7,6 @@ function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
     <svg
       viewBox="0 0 16 16"
       style={{
-        transition: 'transform 120ms ease-in-out',
         transform: `rotate(${props.direction === 'up' ? 0 : props.direction === 'down' ? 180 : -90}deg)`,
       }}
     >

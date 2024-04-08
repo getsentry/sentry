@@ -1,8 +1,5 @@
-// The backing cache should be a proper LRU cache,
-
 import theme from 'sentry/utils/theme';
 
-// so we dont end up storing an infinite amount of elements
 export class TraceTextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;

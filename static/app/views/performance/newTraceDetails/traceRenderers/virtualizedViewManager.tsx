@@ -27,35 +27,6 @@ type ViewColumn = {
   width: number;
 };
 
-export function computeTimelineIntervals(
-  view: TraceView,
-  targetInterval: number,
-  results: (number | undefined)[]
-): void {
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
-
-  let x = Math.ceil(view.x / interval) * interval;
-  let idx = -1;
-  if (x > 0) {
-    x -= interval;
-  }
-  while (x <= view.right) {
-    results[++idx] = x;
-    x += interval;
-  }
-
-  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
-    results[++idx] = undefined;
-  }
-}
-
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 type EventStore = {
   [K in keyof VirtualizedViewManagerEvents]: Set<VirtualizedViewManagerEvents[K]>;
@@ -1429,6 +1400,35 @@ function dispatchJestScrollUpdate(container: HTMLElement) {
   });
 }
 
+function computeTimelineIntervals(
+  view: TraceView,
+  targetInterval: number,
+  results: (number | undefined)[]
+): void {
+  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+  let interval = minInterval;
+
+  if (targetInterval / interval > 5) {
+    interval *= 5;
+  } else if (targetInterval / interval > 2) {
+    interval *= 2;
+  }
+
+  let x = Math.ceil(view.x / interval) * interval;
+  let idx = -1;
+  if (x > 0) {
+    x -= interval;
+  }
+  while (x <= view.right) {
+    results[++idx] = x;
+    x += interval;
+  }
+
+  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
+    results[++idx] = undefined;
+  }
+}
+
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
@@ -1440,27 +1440,38 @@ export class VirtualizedList {
       return;
     }
 
-    const position = index * 24;
-    if (anchor === 'top') {
-      this.container.scrollTop = position;
-      return;
-    }
+    let position = index * 24;
 
     const top = this.container.scrollTop;
     const height = this.scrollHeight;
 
-    if (anchor === 'center') {
-      this.container.scrollTop = position - height / 2;
-    } else if (position < top) {
-      // Element is above the view
-      this.container.scrollTop =
-        anchor === 'center if outside' ? position - height / 2 : position;
-    } else if (position > top + height) {
-      // Element below the view
-      const at_bottom = index * 24 - height + 24;
-      this.container.scrollTop =
-        anchor === 'center if outside' ? at_bottom - height / 2 : at_bottom;
+    if (anchor === 'top') {
+      position = index * 24;
+    } else if (anchor === 'center') {
+      position = position - height / 2;
+    } else if (anchor === 'center if outside') {
+      if (position < top) {
+        // Element is above the view
+        position = position - height / 2;
+      } else if (position > top + height) {
+        // Element below the view
+        position = position - height / 2;
+      } else {
+        // Element is inside the view
+        return;
+      }
+    } else {
+      // If no anchor is provided, we default to 'auto'
+      if (position < top) {
+        position = position;
+      } else if (position > top + height) {
+        position = index * 24 - height + 24;
+      } else {
+        return;
+      }
     }
+
+    this.container.scrollTop = position;
     dispatchJestScrollUpdate(this.container);
   }
 }

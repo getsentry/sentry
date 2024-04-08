@@ -1,6 +1,3 @@
-// The backing cache should be a proper LRU cache,
-// so we dont end up storing an infinite amount of elements
-
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 type EventStore<T> = {
   [K in keyof TraceRowWidthMeasurerEvents<T>]: Set<TraceRowWidthMeasurerEvents<T>[K]>;

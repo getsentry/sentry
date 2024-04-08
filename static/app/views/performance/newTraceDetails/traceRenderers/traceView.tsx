@@ -1,5 +1,7 @@
 import {mat3} from 'gl-matrix';
 
+// Computes the transformation matrix that is used to render scaled
+// elements to the DOM and draw the view.
 export class TraceView {
   public x: number;
   public y: number;

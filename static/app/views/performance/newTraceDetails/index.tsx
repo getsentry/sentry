@@ -2,7 +2,6 @@ import type React from 'react';
 import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -422,16 +421,11 @@ function TraceViewContent(props: TraceViewContentProps) {
     (
       node: TraceTreeNode<TraceTree.NodeValue>,
       index: number,
-      event_source: 'keyboard' | 'programmatic scroll',
-      anchor?: ViewManagerScrollAnchor
+      anchor?: ViewManagerScrollAnchor,
+      force?: boolean
     ) => {
       // Last node we scrolled to is the same as the node we want to scroll to
-      if (previouslyScrolledToNodeRef.current === node) {
-        return;
-      }
-
-      if (index === -1) {
-        Sentry.captureMessage('Cannot scroll to a node that does not exist in the tree');
+      if (previouslyScrolledToNodeRef.current === node && !force) {
         return;
       }
 
@@ -444,19 +438,16 @@ function TraceViewContent(props: TraceViewContentProps) {
       // accurately narrows zooms to the start of the node as the new width will be updated
       if (!viewManager.row_measurer.cache.has(node)) {
         viewManager.row_measurer.once('row measure end', () => {
-          if (
-            event_source === 'keyboard' &&
-            !viewManager.isOutsideOfViewOnKeyDown(node)
-          ) {
+          if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
             return;
           }
-          viewManager.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         });
       } else {
-        if (event_source === 'keyboard' && !viewManager.isOutsideOfViewOnKeyDown(node)) {
+        if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
           return;
         }
-        viewManager.scrollRowIntoViewHorizontally(node, 0, 0, 'measured');
+        viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
       }
     },
     [viewManager]
@@ -468,19 +459,15 @@ function TraceViewContent(props: TraceViewContentProps) {
         return;
       }
 
-      // We call scrollToPath because we want to ensure that the node is visible
+      // We call expandToNode because we want to ensure that the node is
+      // visible and may not have been collapsed/hidden by the user
       TraceTree.ExpandToPath(tree, node.path, rerender, {
         api,
         organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
-          scrollRowIntoView(
-            maybeNode.node,
-            maybeNode.index,
-            'programmatic scroll',
-            'center if outside'
-          );
+          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
           traceDispatch({
             type: 'set roving index',
             node: maybeNode.node,
@@ -514,12 +501,7 @@ function TraceViewContent(props: TraceViewContentProps) {
 
         // At load time, we want to scroll the row into view, but we need to ensure
         // that the row had been measured first, else we can exceed the bounds of the container.
-        scrollRowIntoView(
-          nodeToScrollTo,
-          indexOfNodeToScrollTo,
-          'programmatic scroll',
-          'center'
-        );
+        scrollRowIntoView(nodeToScrollTo, indexOfNodeToScrollTo, 'center');
 
         setRowAsFocused(
           nodeToScrollTo,
@@ -579,7 +561,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           nextRovingTabIndex
         );
         if (action.type === 'set roving index' && action.action_source === 'keyboard') {
-          scrollRowIntoView(nextRovingNode, nextRovingTabIndex, 'keyboard', undefined);
+          scrollRowIntoView(nextRovingNode, nextRovingTabIndex, undefined);
         }
 
         if (nextState.search.resultsLookup.has(nextRovingNode)) {
@@ -605,12 +587,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           nextState.search.resultsLookup,
           nextSearchResultIndex
         );
-        scrollRowIntoView(
-          nextNode,
-          nextSearchResultIndex,
-          'programmatic scroll',
-          undefined
-        );
+        scrollRowIntoView(nextNode, nextSearchResultIndex, 'center if outside');
       }
     };
 
