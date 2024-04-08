@@ -58,8 +58,8 @@ class MetricsQueriesPlan:
     For example, you could define a simple query "a: max(mri_1)" and use it in the formula as "$a".
     """
 
-    queries: Mapping[str, str] | None = None
-    formulas: Sequence[FormulaDefinition] | None = None
+    queries: Mapping[str, str]
+    formulas: Sequence[FormulaDefinition]
 
     def get_replaced_formulas(self) -> Sequence[FormulaDefinition]:
         """
