@@ -1285,14 +1285,6 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def bulk_store_sessions(self, sessions):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
-            ).status_code
-            == 200
-        )
-
     def build_session(self, **kwargs):
         session = {
             "session_id": str(uuid4()),
@@ -1319,9 +1311,6 @@ class SnubaTestCase(BaseTestCase):
             kwargs[key] = getattr(val, attr, val)
         session.update(kwargs)
         return session
-
-    def store_session(self, session):
-        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
