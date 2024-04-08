@@ -149,6 +149,10 @@ export function GridLineOverlay({
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
   const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
 
+  // Skip first gridline, this will be represented as a border on the
+  // LabelsContainer
+  markers.shift();
+
   return (
     <Overlay ref={overlayRef} className={className}>
       {timelineCursor}
@@ -164,7 +168,7 @@ export function GridLineOverlay({
 
 const Overlay = styled('div')`
   grid-row: 1;
-  grid-column: 3;
+  grid-column: 3/-1;
   height: 100%;
   width: 100%;
   position: absolute;
@@ -172,13 +176,15 @@ const Overlay = styled('div')`
 `;
 
 const GridLineContainer = styled('div')`
-  margin-left: -1px;
   position: relative;
   height: 100%;
   z-index: 1;
 `;
 
 const LabelsContainer = styled('div')`
+  grid-row: 1;
+  grid-column: 3/-1;
+  box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;
 `;

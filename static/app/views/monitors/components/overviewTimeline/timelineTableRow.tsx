@@ -341,6 +341,7 @@ const TimelineContainer = styled('div')`
   flex-direction: column;
   gap: ${space(4)};
   contain: content;
+  grid-column: 3/-1;
 `;
 
 const TimelineEnvOuterContainer = styled('div')`
