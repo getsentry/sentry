@@ -254,7 +254,7 @@ def mock_replay_click(
 
 
 def mock_replay_viewed(
-    timestamp: int,
+    timestamp: float,
     project_id: str,
     replay_id: str,
     viewed_by_id: int,
@@ -262,7 +262,7 @@ def mock_replay_viewed(
 ) -> dict[str, Any]:
     return {
         "type": "replay_event",
-        "start_time": timestamp,
+        "start_time": int(timestamp),
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": retention_days,
