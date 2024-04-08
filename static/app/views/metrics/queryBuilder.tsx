@@ -2,6 +2,8 @@ import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import {ComboBox} from 'sentry/components/comboBox';
+import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tag} from 'sentry/components/tag';
@@ -19,13 +21,11 @@ import {
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -73,8 +73,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {data: meta} = useMetricsMeta(pageFilters.selection);
-  const breakpoints = useBreakpoints();
+  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(pageFilters.selection);
   const mriMode = useMriMode();
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
@@ -90,9 +89,25 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-    return meta
+    const result = meta
       .filter(metric => isShownByDefault(metric) || isSelected(metric))
       .sort(metric => (isSelected(metric) ? -1 : 1));
+
+    // Add the selected metric to the top of the list if it's not already there
+    if (result[0]?.mri !== metricsQuery.mri) {
+      const parsedMri = parseMRI(metricsQuery.mri)!;
+      return [
+        {
+          mri: metricsQuery.mri,
+          type: parsedMri.type,
+          unit: parsedMri.unit,
+          operations: getOpsForMRI(metricsQuery.mri, meta),
+        },
+        ...result,
+      ];
+    }
+
+    return result;
   }, [meta, metricsQuery.mri]);
 
   const selectedMeta = useMemo(() => {
@@ -160,7 +175,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const mriOptions = useMemo(
     () =>
-      displayedMetrics.map<SelectOption<MRI>>(metric => ({
+      displayedMetrics.map<ComboBoxOption<MRI>>(metric => ({
         label: mriMode ? metric.mri : formatMRI(metric.mri),
         // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
         textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
@@ -181,18 +196,14 @@ export const QueryBuilder = memo(function QueryBuilder({
     <QueryBuilderWrapper>
       <FlexBlock>
         <MetricSelect
-          searchable
+          aria-label={t('Metric')}
+          placeholder={t('Select a metric')}
           sizeLimit={100}
           size="md"
-          triggerLabel={middleEllipsis(
-            formatMRI(metricsQuery.mri) ?? '',
-            breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
-            /\.|-|_/
-          )}
+          isLoading={isMetaLoading}
           options={mriOptions}
           value={metricsQuery.mri}
           onChange={handleMRIChange}
-          shouldUseVirtualFocus
         />
         <FlexBlock>
           <OpSelect
@@ -256,7 +267,7 @@ const FlexBlock = styled('div')`
   flex-wrap: wrap;
 `;
 
-const MetricSelect = styled(CompactSelect)`
+const MetricSelect = styled(ComboBox)`
   min-width: 200px;
   & > button {
     width: 100%;
