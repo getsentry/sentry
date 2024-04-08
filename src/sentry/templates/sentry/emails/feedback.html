@@ -79,26 +79,13 @@
     {% else %}
       <table class="event-list">
         <tr>
-            <th colspan="2">User Feedback</th>
-        </tr>
-        <tr>
           <td class="event-detail">
             <div class="issue">
               {% with type=event.get_event_type metadata=group.get_event_metadata transaction=event.transaction %}
                   <div class="event-type default">
-                    <h3>
-                      {% if issue_title %}
-                      <a href="{% absolute_uri link %}">{{ issue_title|truncatechars:40 }}</a>
-                      {% else %}
-                      <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a>
-                      {% endif %}
-                      {% if     culprit %}
-                        <span class="event-subtitle">{{ culprit }}</span>
-                      {% elif transaction %}
+                      {% if transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
-                      <br />
-                      <br />
                       {% if metadata.name and metadata.contact_email %}
                       <p><strong>{{ metadata.name }}</strong> <a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
                       {% elif metadata.name %}
@@ -107,6 +94,11 @@
                       <p><a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
                       {% endif %}
                       <br />
+
+                      {% if subtitle %}
+                      <h3>Message</h3>
+                        <div class="inner"><div class="note-body"><p>{{ subtitle }}</p></div></div>
+                      {% endif %}
                       <div class="event">
                         <div class="event-id">ID: {{ event.event_id }}</div>
                         {% if timezone %}
@@ -115,11 +107,6 @@
                             <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
                         {% endif %}
                       </div>
-                      {% if subtitle %}
-                      <h3>Message</h3>
-                        <div class="inner"><div class="note-body"><p>{{ subtitle }}</p></div></div>
-                      {% endif %}
-                    </h3>
                   </div>
               {% endwith %}
             </div>
