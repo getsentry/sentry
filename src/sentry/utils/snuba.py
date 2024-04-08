@@ -153,6 +153,7 @@ SPAN_COLUMN_MAP = {
     "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -978,9 +979,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+        scope = sentry_sdk.Scope.get_current_scope()
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(

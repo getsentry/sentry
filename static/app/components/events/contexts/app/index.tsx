@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import type {Event} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getAppKnownDataDetails} from './getAppKnownDataDetails';
 import type {AppData} from './types';
@@ -12,6 +12,7 @@ import {AppKnownDataType} from './types';
 type Props = {
   data: AppData;
   event: Event;
+  meta?: Record<string, any>;
 };
 
 export const appKnownDataValues = [
@@ -27,8 +28,8 @@ export const appKnownDataValues = [
 
 const appIgnoredDataValues = [];
 
-export function AppEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.app ?? {};
+export function AppEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'app');
   return (
     <Fragment>
       <ContextBlock
