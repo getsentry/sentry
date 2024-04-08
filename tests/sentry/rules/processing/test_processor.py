@@ -37,7 +37,7 @@ EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCo
 
 
 class MockConditionTrue(EventCondition):
-    id = "tests.sentry.rules.test_processor.MockConditionTrue"
+    id = "tests.sentry.rules.processing.test_processor.MockConditionTrue"
     label = "Mock condition which always passes."
 
     def passes(self, event, state):
@@ -341,7 +341,7 @@ class RuleProcessorTest(TestCase):
         [
             "sentry.mail.actions.NotifyEmailAction",
             "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "tests.sentry.rules.test_processor.MockConditionTrue",
+            "tests.sentry.rules.processing.test_processor.MockConditionTrue",
         ],
     )
     def test_slow_conditions_evaluate_last(self):
@@ -351,7 +351,7 @@ class RuleProcessorTest(TestCase):
             data={
                 "conditions": [
                     {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"},
-                    {"id": "tests.sentry.rules.test_processor.MockConditionTrue"},
+                    {"id": "tests.sentry.rules.processing.test_processor.MockConditionTrue"},
                 ],
                 "action_match": "any",
                 "actions": [EMAIL_ACTION_DATA],
@@ -378,7 +378,7 @@ class RuleProcessorTest(TestCase):
 
 
 class MockFilterTrue(EventFilter):
-    id = "tests.sentry.rules.test_processor.MockFilterTrue"
+    id = "tests.sentry.rules.processing.test_processor.MockFilterTrue"
     label = "Mock filter which always passes."
 
     def passes(self, event, state):
@@ -386,7 +386,7 @@ class MockFilterTrue(EventFilter):
 
 
 class MockFilterFalse(EventFilter):
-    id = "tests.sentry.rules.test_processor.MockFilterFalse"
+    id = "tests.sentry.rules.processing.test_processor.MockFilterFalse"
     label = "Mock filter which never passes."
 
     def passes(self, event, state):
@@ -397,8 +397,8 @@ class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
         "sentry.rules.conditions.every_event.EveryEventCondition",
-        "tests.sentry.rules.test_processor.MockFilterTrue",
-        "tests.sentry.rules.test_processor.MockFilterFalse",
+        "tests.sentry.rules.processing.test_processor.MockFilterTrue",
+        "tests.sentry.rules.processing.test_processor.MockFilterFalse",
     )
 
     def setUp(self):
@@ -408,7 +408,7 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -438,7 +438,7 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterFalse"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterFalse"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         self.rule = Rule.objects.create(
@@ -563,7 +563,7 @@ class RuleProcessorTestFilters(TestCase):
 
     @mock.patch("sentry.rules.processing.processor.RuleProcessor.logger")
     def test_invalid_predicate(self, mock_logger):
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
