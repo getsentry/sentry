@@ -182,6 +182,7 @@ export const GridBody = styled('tbody')`
 
 export const GridRow = styled('tr')`
   display: grid;
+  position: relative;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
 
