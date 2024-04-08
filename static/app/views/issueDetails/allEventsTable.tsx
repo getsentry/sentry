@@ -149,6 +149,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'id',
     'transaction',
     'title',
+    'timestamp',
     'release',
     'environment',
     'user.display',
@@ -156,13 +157,13 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'os',
     ...platformSpecificFields,
     ...(isPerfIssue ? ['transaction.duration'] : []),
-    'timestamp',
   ];
 
   const columnTitles: string[] = [
     t('event id'),
     t('transaction'),
     t('title'),
+    t('timestamp'),
     t('release'),
     t('environment'),
     t('user'),
@@ -170,7 +171,6 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     t('os'),
     ...platformSpecificColumnTitles,
     ...(isPerfIssue ? [t('total duration')] : []),
-    t('timestamp'),
     t('minidump'),
   ];
 
