@@ -22,17 +22,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {MockTimelineVisualization} from 'sentry/views/monitors/components/mockTimelineVisualization';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {ScheduleType} from 'sentry/views/monitors/types';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
+
+import {MockTimelineVisualization} from './mockTimelineVisualization';
 import {
   DEFAULT_CRONTAB,
   DEFAULT_MONITOR_TYPE,
   mapMonitorFormErrors,
   transformMonitorFormData,
-} from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {ScheduleType} from 'sentry/views/monitors/types';
-import {getScheduleIntervals} from 'sentry/views/monitors/utils';
-import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
+} from './monitorForm';
 
 const DEFAULT_SCHEDULE_CONFIG = {
   scheduleType: 'crontab',
