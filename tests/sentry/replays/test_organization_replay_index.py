@@ -634,8 +634,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                "viewed_by_id:1",
-                "!viewed_by_id:2",
                 "replay_type:session",
                 "error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
                 "error_id:a3a62ef6ac86415b83c2416fc2f76db1",
@@ -705,6 +703,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:2",
                 "count_infos:>1",
                 "count_infos:<3",
+                "viewed_by_id:1",
+                "!viewed_by_id:2",
             ]
 
             for query in queries:
