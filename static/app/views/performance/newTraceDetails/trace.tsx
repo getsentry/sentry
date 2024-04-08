@@ -493,7 +493,10 @@ export function Trace({
           );
         })}
       </div>
-      <div ref={r => setScrollContainer(r)}>
+      <div
+        ref={r => setScrollContainer(r)}
+        data-test-id="trace-virtualized-list-scroll-container"
+      >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
         <div className="TraceRow Hidden">
           <div

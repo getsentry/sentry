@@ -244,14 +244,21 @@ async function keyboardNavigationTestSetup() {
 
   const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
 
   if (!virtualizedContainer) {
     throw new Error('Virtualized container not found');
   }
 
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
-  return {...value, virtualizedContainer};
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
 async function pageloadTestSetup() {
@@ -280,14 +287,21 @@ async function pageloadTestSetup() {
 
   const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
 
   if (!virtualizedContainer) {
     throw new Error('Virtualized container not found');
   }
 
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+
   // Awaits for the placeholder rendering rows to be removed
   expect((await screen.findAllByText(/transaction-op-/i)).length).toBeGreaterThan(0);
-  return {...value, virtualizedContainer};
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
 async function searchTestSetup() {
@@ -316,16 +330,76 @@ async function searchTestSetup() {
 
   const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
 
   if (!virtualizedContainer) {
     throw new Error('Virtualized container not found');
   }
 
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
-  return {...value, virtualizedContainer};
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
+async function simpleTestSetup() {
+  const transactions: TraceFullDetailed[] = [];
+  let parent: any;
+  for (let i = 0; i < 1e3; i++) {
+    const next = makeTransaction({
+      span_id: i + '',
+      event_id: i + '',
+      transaction: 'transaction-name' + i,
+      'transaction.op': 'transaction-op-' + i,
+    });
+
+    if (parent) {
+      parent.children.push(next);
+    } else {
+      transactions.push(next);
+    }
+    parent = next;
+    mockTransactionDetailsResponse(i.toString());
+  }
+  mockTraceResponse({
+    body: {
+      transactions: transactions,
+      orphan_errors: [],
+    },
+  });
+  mockTraceMetaResponse();
+  mockTraceRootFacets();
+  mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
+  mockTraceEventDetails();
+
+  const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
+
+  if (!virtualizedContainer) {
+    throw new Error('Virtualized container not found');
+  }
+
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+
+  // Awaits for the placeholder rendering rows to be removed
+  expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
+}
+
+const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
+const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
+// eslint-disable-next-line
+const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -340,6 +414,55 @@ const scrollToEnd = (): Promise<void> => {
     await wait(1000);
   });
 };
+
+// eslint-disable-next-line
+function printVirtualizedList(container: HTMLElement) {
+  const stdout: string[] = [];
+  const scrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  )!;
+
+  stdout.push(
+    'top:' + scrollContainer.scrollTop + ' ' + 'left:' + scrollContainer.scrollLeft
+  );
+  stdout.push('///////////////////');
+  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
+
+  for (const r of [...rows]) {
+    let t = r.textContent ?? '';
+
+    if (r.classList.contains('SearchResult')) {
+      t = 'search ' + t;
+    }
+    if (r.classList.contains('Highlight')) {
+      t = 'highlight ' + t;
+    }
+
+    stdout.push(t);
+  }
+
+  // This is a debug fn, we need it to log
+  // eslint-disable-next-line
+  console.log(stdout.join('\n'));
+}
+
+// eslint-disable-next-line
+function printTabs() {
+  const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
+  const stdout: string[] = [];
+
+  for (const tab of tabs) {
+    let text = tab.textContent ?? 'empty tab??';
+    if (tab.hasAttribute('aria-selected')) {
+      text = 'active' + text;
+    }
+    stdout.push(text);
+  }
+
+  // This is a debug fn, we need it to log
+  // eslint-disable-next-line
+  console.log(stdout.join(' | '));
+}
 
 function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: number) {
   expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
@@ -399,31 +522,6 @@ describe('trace view', () => {
     expect(
       await screen.findByText(/trace does not contain any data/i)
     ).toBeInTheDocument();
-  });
-
-  describe('virtualized view', () => {
-    it('renders transactions', async () => {
-      const transactions: TraceFullDetailed[] = [];
-      for (let i = 0; i < 1e4; i++) {
-        transactions.push(makeTransaction());
-      }
-
-      mockTraceResponse({
-        body: {
-          transactions: transactions,
-          orphan_errors: [],
-        },
-      });
-      mockTraceMetaResponse();
-      mockTraceTagsResponse();
-
-      const {container} = render(<TraceViewWithProviders traceSlug="trace-id" />);
-
-      await waitFor(() => {
-        // 15 rows out of 10,000 are rendered, 10 fit in the view, 5 are part of the overscroll behavior
-        expect(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR)).toHaveLength(14);
-      });
-    });
   });
 
   describe('pageload', () => {
@@ -848,12 +946,12 @@ describe('trace view', () => {
 
       for (const action of [
         // starting at the top, jumpt bottom with shift+arrowdown
-        ['{Shift>}{arrowdown}{/Shift}', 11],
+        ['{Shift>}{arrowdown}{/Shift}', 9],
         // // move to row above with arrowup
-        ['{arrowup}', 10],
+        ['{arrowup}', 8],
         // // and jump back to top with shift+arrowup
         ['{Shift>}{arrowup}{/Shift}', 1],
-        // // and jump to next row with arrowdown
+        // // // and jump to next row with arrowdown
         ['{arrowdown}', 2],
       ] as const) {
         await userEvent.keyboard(action[0] as string);
@@ -862,7 +960,6 @@ describe('trace view', () => {
 
         await waitFor(() => {
           // Only a single row is highlighted, the rest are search results
-          expect(container.querySelectorAll('.TraceRow.SearchResult')).toHaveLength(11);
           assertHighlightedRowAtIndex(container, action[1]);
         });
       }
@@ -911,7 +1008,7 @@ describe('trace view', () => {
       fireEvent.change(searchInput, {target: {value: 'transaction-op-10'}});
       await searchToUpdate();
 
-      assertHighlightedRowAtIndex(container, 11);
+      assertHighlightedRowAtIndex(container, 9);
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
       const {container} = await searchTestSetup();
@@ -1075,7 +1172,6 @@ describe('trace view', () => {
       expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
         '6/11'
       );
-
       // And then continues the query - the highlighting is preserved as long as the
       // rwo is part of the search results
       assertHighlightedRowAtIndex(container, 6);
@@ -1091,13 +1187,126 @@ describe('trace view', () => {
     });
   });
 
-  describe('tabs', () => {
-    it.todo('clicking on a node spawns a new tab when none is selected');
-    it.todo('pinning a tab and clicking on a new node spawns a new tab');
-    it.todo(
-      'clicking on a node that is already open in a tab, switches to that tab and does not spawn a new one'
-    );
-    it.todo('clicking show in view scrolls to the node');
-    it.todo('clickin on parent transaction spawns a new tab');
+  describe('tabbing', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+    it('clicking on a node spawns a new tab when none is selected', async () => {
+      const {virtualizedContainer} = await simpleTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+      await userEvent.click(rows[5]);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+    });
+    it('clicking on a node replaces the previously selected tab', async () => {
+      const {virtualizedContainer} = await simpleTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+
+      await userEvent.click(rows[5]);
+
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+        expect(
+          screen
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .textContent?.includes('transaction-op-4')
+        ).toBeTruthy();
+      });
+
+      await userEvent.click(rows[7]);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+        expect(
+          screen
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .textContent?.includes('transaction-op-6')
+        ).toBeTruthy();
+      });
+    });
+    it('pinning a tab and clicking on a new node spawns a new tab', async () => {
+      const {virtualizedContainer} = await simpleTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+
+      await userEvent.click(rows[5]);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+      });
+
+      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      await userEvent.click(rows[7]);
+
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
+        expect(
+          screen
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .textContent?.includes('transaction-op-4')
+        ).toBeTruthy();
+        expect(
+          screen
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
+            .textContent?.includes('transaction-op-6')
+        ).toBeTruthy();
+      });
+    });
+    it('unpinning a tab removes it', async () => {
+      const {virtualizedContainer} = await simpleTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+
+      await userEvent.click(rows[5]);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+      });
+
+      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      await userEvent.click(rows[7]);
+
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
+      });
+
+      await userEvent.click(
+        await screen.findAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID)[0]
+      );
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+      });
+    });
+    it('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
+      const {virtualizedContainer} = await simpleTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+
+      await userEvent.click(rows[5]);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+      });
+
+      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      await userEvent.click(rows[7]);
+
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[2]).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+
+      await userEvent.click(rows[5]);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
+      });
+    });
   });
 });

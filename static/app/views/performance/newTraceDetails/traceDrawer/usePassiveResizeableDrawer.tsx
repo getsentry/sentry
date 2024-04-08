@@ -5,6 +5,7 @@ export interface UsePassiveResizableDrawerOptions {
   initialSize: number;
   min: number;
   onResize: (size: number, min: number, user: boolean) => void;
+  ref?: React.RefObject<HTMLElement>;
 }
 
 /**

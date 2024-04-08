@@ -34,6 +34,7 @@ import type {
   TraceReducerAction,
   TraceReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState';
+import {TRACE_DRAWER_DEFAULT_SIZES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {
   getTraceTabTitle,
   type TraceTabsReducerState,
@@ -229,6 +230,35 @@ export function TraceDrawer(props: TraceDrawerProps) {
     drawerOptions,
   ]);
 
+  const onDoubleClickResetToDefault = useCallback(() => {
+    if (!traceStateRef.current.preferences.drawer.minimized) {
+      onMinimizeClick();
+      return;
+    }
+
+    trace_dispatch({type: 'minimize drawer', payload: false});
+    const initialSize = TRACE_DRAWER_DEFAULT_SIZES[props.trace_state.preferences.layout];
+    const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
+      width: 0,
+      height: 0,
+    };
+
+    const containerSize =
+      props.trace_state.preferences.layout === 'drawer bottom' ? height : width;
+    const drawer_size = containerSize * initialSize;
+
+    onResize(drawer_size, drawerOptions.min, true, false);
+    size.current = drawer_size;
+  }, [
+    size,
+    onMinimizeClick,
+    onResize,
+    drawerOptions.min,
+    props.trace_state.preferences.layout,
+    props.traceGridRef,
+    trace_dispatch,
+  ]);
+
   const initializedRef = useRef(false);
   useLayoutEffect(() => {
     if (initializedRef.current) return;
@@ -284,9 +314,10 @@ export function TraceDrawer(props: TraceDrawerProps) {
       />
       <TabsHeightContainer
         layout={props.trace_state.preferences.layout}
+        onDoubleClick={onDoubleClickResetToDefault}
         hasIndicators={hasIndicators}
       >
-        <TabsLayout>
+        <TabsLayout data-test-id="trace-drawer-tabs">
           <TabActions>
             <TabLayoutControlItem>
               <TraceLayoutMinimizeButton
@@ -308,9 +339,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   tab={n}
                   index={i}
                   theme={theme}
+                  trace={props.trace}
                   trace_state={props.trace_state}
                   trace_dispatch={props.trace_dispatch}
-                  trace={props.trace}
                   onTabScrollToNode={props.onTabScrollToNode}
                   pinned
                 />
@@ -384,12 +415,16 @@ interface TraceDrawerTabProps {
 }
 function TraceDrawerTab(props: TraceDrawerTabProps) {
   const node = props.tab.node;
+
   if (typeof node === 'string') {
     const root = props.trace.root.children[0];
     return (
       <Tab
+        data-test-id="trace-drawer-tab"
         className={typeof props.tab.node === 'string' ? 'Static' : ''}
-        active={props.tab === props.trace_state.tabs.current_tab}
+        aria-selected={
+          props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
+        }
         onClick={() => {
           if (props.tab.node !== 'vitals') {
             props.onTabScrollToNode(root);
@@ -410,7 +445,8 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
 
   return (
     <Tab
-      active={props.tab === props.trace_state.tabs.current_tab}
+      data-test-id="trace-drawer-tab"
+      aria-selected={props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'}
       onClick={() => {
         props.onTabScrollToNode(node);
         props.trace_dispatch({type: 'activate tab', payload: props.index});
@@ -601,12 +637,12 @@ const TabLayoutControlItem = styled('li')`
   margin: 0;
 `;
 
-const Tab = styled('li')<{active: boolean}>`
+const Tab = styled('li')`
   height: 100%;
   border-top: 2px solid transparent;
   display: flex;
   align-items: center;
-  border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : 'transparent')};
+  border-bottom: 2px solid transparent;
   padding: 0 ${space(0.25)};
   position: relative;
 
@@ -627,13 +663,16 @@ const Tab = styled('li')<{active: boolean}>`
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : p.theme.blue200)};
+    border-bottom: 2px solid ${p => p.theme.blue200};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
       transform: scale(1);
       opacity: 1;
     }
+  }
+  &[aria-selected='true']:hover {
+    border-bottom: 2px solid ${p => p.theme.blue400};
   }
 `;
 
@@ -714,7 +753,11 @@ function TabPinButton(props: {
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   return (
-    <PinButton size="zero" onClick={props.onClick}>
+    <PinButton
+      size="zero"
+      data-test-id="trace-drawer-tab-pin-button"
+      onClick={props.onClick}
+    >
       <StyledIconPin size="xs" isSolid={props.pinned} />
     </PinButton>
   );
