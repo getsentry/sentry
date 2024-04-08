@@ -18,5 +18,6 @@ export default function hydratedSelectorData(data, clickType?): DeadRageSelector
     element: d.dom_element.split(/[#.[]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
+    component_name: d.component_name,
   }));
 }
