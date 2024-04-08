@@ -312,6 +312,8 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         def exceptions_differ(a, b):
             return a.get("type") != b.get("type") or a.get("module") != b.get("module")
 
+        # During symbolication, empty stacktrace_infos are disregarded. We need to do that here as well or results
+        # won't line up.
         python_stacktraces = [
             sinfo.stacktrace for sinfo in self.stacktrace_infos if sinfo.stacktrace is not None
         ]
