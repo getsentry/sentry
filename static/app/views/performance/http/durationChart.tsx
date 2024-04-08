@@ -1,4 +1,4 @@
-import type {PropsOf} from '@emotion/react';
+import type {ComponentProps} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
@@ -11,7 +11,7 @@ interface Props {
   isLoading: boolean;
   series: Series[];
   error?: Error | null;
-  scatterPlot?: PropsOf<typeof Chart>['scatterPlot'];
+  scatterPlot?: ComponentProps<typeof Chart>['scatterPlot'];
 }
 
 export function DurationChart({series, scatterPlot, isLoading, error}: Props) {
