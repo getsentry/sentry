@@ -305,6 +305,7 @@ export function TransactionNodeDetails({
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
+            organization={organization}
             eventId={node.value.event_id}
             projectSlug={node.metadata.project_slug}
           />

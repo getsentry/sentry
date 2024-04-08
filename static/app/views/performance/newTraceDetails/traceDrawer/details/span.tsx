@@ -53,6 +53,7 @@ export function SpanNodeDetails({
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
+            organization={organization}
             eventId={node.value.event.eventID}
             projectSlug={node.metadata.project_slug}
           />
