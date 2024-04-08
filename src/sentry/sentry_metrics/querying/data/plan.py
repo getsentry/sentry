@@ -93,6 +93,9 @@ class MetricsQueriesPlan:
 class MetricsQueriesPlanBuilder:
     """
     Represents a builder for creating a `MetricsQueriesPlan` incrementally.
+
+    As a design decision, the invocation order of the methods doesn't change the final result since we are not
+    computing any values when adding queries or formulas.
     """
 
     def __init__(self):
