@@ -115,12 +115,7 @@ export class VideoReplayer {
     });
 
     // Finished loading data, ready to play
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
-
+    el.addEventListener('loadeddata', () => {
       // Only call this for current segment as we preload multiple
       // segments simultaneously
       if (index === this._currentIndex) {
@@ -329,7 +324,6 @@ export class VideoReplayer {
       this._currentVideo.style.display = 'none';
     }
 
-    // TODO: resize video if it changes orientation
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
