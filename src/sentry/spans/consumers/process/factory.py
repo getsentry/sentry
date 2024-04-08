@@ -70,7 +70,10 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         with txn.start_child(op="deserialize"):
             span = _deserialize_span(payload_value)
 
-        segment_id = span["segment_id"]
+        segment_id = span.get("segment_id", None)
+        if segment_id is None:
+            return None
+
         trace_id = span["trace_id"]
 
         txn.set_tag("trace.id", trace_id)
