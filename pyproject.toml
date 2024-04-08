@@ -627,10 +627,15 @@ module = [
     "sentry.nodestore.django.models",
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
+    "sentry.ratelimits.*",
     "sentry.relay.config.metric_extraction",
     "sentry.reprocessing2",
     "sentry.runner.*",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.auto_remove_inbox",
+    "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.codeowners.*",
+    "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.utils.locking.backends.redis",
@@ -640,6 +645,11 @@ module = [
     "tests.sentry.relay.config.test_metric_extraction",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tools.*",
+    # "sentry.search.events.*",
+    # "sentry.search.snuba.*",
+    #"sentry.tasks.commits",
+    #"sentry.tasks.post_process",
+    #"sentry.tasks.unmerge",
 ]
 disallow_any_generics = true
 disallow_untyped_defs = true
