@@ -143,7 +143,7 @@ describe('Sudo Modal', function () {
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // Should return w/ `sudoRequired` and trigger the the modal to open
+    // Should return w/ `sudoRequired` and trigger the modal to open
     new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input

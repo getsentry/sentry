@@ -7,11 +7,10 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
-import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
-import {alignDateToBoundary} from './utils';
+import type {TimeWindowConfig} from './types';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
@@ -44,6 +43,25 @@ interface TimeMarker {
    * The position in pixels of the tick
    */
   position: number;
+}
+
+/**
+ * Aligns the given date to the start of a unit (minute, hour, day) based on
+ * the minuteInterval size. This will align to the right side of the boundary
+ *
+ * 01:53:43 (10m interval) => 01:54:00
+ * 01:32:00 (2hr interval) => 02:00:00
+ */
+function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
+  if (minuteInterval < 60) {
+    return date.minute(date.minutes() - (date.minutes() % minuteInterval)).seconds(0);
+  }
+
+  if (minuteInterval < 60 * 24) {
+    return date.startOf('hour');
+  }
+
+  return date.startOf('day');
 }
 
 function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
@@ -149,6 +167,10 @@ export function GridLineOverlay({
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
   const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
 
+  // Skip first gridline, this will be represented as a border on the
+  // LabelsContainer
+  markers.shift();
+
   return (
     <Overlay ref={overlayRef} className={className}>
       {timelineCursor}
@@ -164,7 +186,7 @@ export function GridLineOverlay({
 
 const Overlay = styled('div')`
   grid-row: 1;
-  grid-column: 3;
+  grid-column: 3/-1;
   height: 100%;
   width: 100%;
   position: absolute;
@@ -172,13 +194,15 @@ const Overlay = styled('div')`
 `;
 
 const GridLineContainer = styled('div')`
-  margin-left: -1px;
   position: relative;
   height: 100%;
   z-index: 1;
 `;
 
 const LabelsContainer = styled('div')`
+  grid-row: 1;
+  grid-column: 3/-1;
+  box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;
 `;

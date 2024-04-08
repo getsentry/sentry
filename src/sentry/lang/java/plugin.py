@@ -316,8 +316,13 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         for symbolicator_stacktrace, stacktrace_info in zip(
             symbolicator_stacktraces, self.stacktrace_infos
         ):
-            # NOTE: lets hope that `stacktrace_info` has the already processed frames
-            python_stacktrace = stacktrace_info.container.get("stacktrace")
+            if stacktrace_info.container is None:
+                continue
+
+            python_stacktrace = stacktrace_info.container.get("stacktrace", None)
+
+            if python_stacktrace is None:
+                continue
 
             for symbolicator_frame, python_frame in zip(
                 symbolicator_stacktrace, python_stacktrace["frames"]

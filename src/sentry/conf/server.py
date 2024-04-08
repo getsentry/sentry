@@ -2333,14 +2333,6 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
-# Release Health
-SENTRY_RELEASE_HEALTH = "sentry.release_health.metrics.MetricsReleaseHealthBackend"
-SENTRY_RELEASE_HEALTH_OPTIONS: dict[str, Any] = {}
-
-# Release Monitor
-SENTRY_RELEASE_MONITOR = "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend"
-SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
-
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
@@ -4008,9 +4000,12 @@ SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
-if ngrok_host and SILO_MODE != "REGION":
+if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
-    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+    SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
+    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
