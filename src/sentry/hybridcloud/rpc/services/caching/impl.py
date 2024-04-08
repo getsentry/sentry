@@ -3,7 +3,11 @@ from typing import TypeVar
 
 from django.core.cache import cache
 
-from sentry.hybridcloud.models.cacheversion import CacheVersionBase, RegionCacheVersion
+from sentry.hybridcloud.models.cacheversion import (
+    CacheVersionBase,
+    ControlCacheVersion,
+    RegionCacheVersion,
+)
 from sentry.hybridcloud.rpc.services.caching import ControlCachingService, RegionCachingService
 from sentry.silo import SiloMode
 
@@ -34,6 +38,8 @@ def _versioned_key(key: str, version: int) -> str:
 def _version_model(mode: SiloMode) -> type[CacheVersionBase]:
     if mode == SiloMode.REGION:
         return RegionCacheVersion
+    if mode == SiloMode.CONTROL:
+        return ControlCacheVersion
     raise ValueError
 
 
