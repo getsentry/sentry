@@ -58,25 +58,9 @@ If you're using `--ingest` and relay isn't being started make sure `settings.SEN
 
 To use a siloed dev environment with ngrok you'll need to make a few application
 configuration changes. Assuming your ngrok domain is `acme` you can use the `--ngrok`
-flag to use a configuration preset that assumes you also have ngrok running:
-
-```sh
-sentry devserver --ngrok=acme.ngrok.dev --silo=control
-```
-
-:warning: You only need to use `--ngrok` on the control silo instance.
-
-Then start ngrok with the desired hostname:
-
-```bash
-ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost"
-```
-
-_Note:_ Some UI functionality relies on directly accessing the region silo API, so you may also need to expose it as well.
-
-## Using ngrok configuration file
-
-If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
+flag to use a configuration preset that assumes you also have ngrok running. Because
+multiple silos requires multiple ngrok domains. First create a configuration file
+for ngrok:
 
 ```yml
 version: '2'
@@ -84,18 +68,25 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
   control-silo:
     proto: http
-    hostname: yourdomain.ngrok.io
+    hostname: acme.ngrok.io
     host_header: 'rewrite'
     addr: 8000
   region-silo:
     proto: http
-    hostname: us.yourdomain.ngrok.io
+    hostname: us.acme.ngrok.io
     addr: 8010
     host_header: 'rewrite'
 ```
 
-Now you can spin up all the tunnels in the file with:
+Now you can spin up both tunnels in the file with:
 
 ```sh
 ngrok start --all
+```
+
+Now start your siloed servers:
+
+```sh
+sentry devserver --ngrok=acme.ngrok.dev --silo=control
+sentry devserver --ngrok=acme.ngrok.dev --silo=region
 ```
