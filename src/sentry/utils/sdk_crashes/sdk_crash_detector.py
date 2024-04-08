@@ -111,7 +111,9 @@ class SDKCrashDetector:
         for field in self.fields_containing_paths:
             for pattern in path_patters:
                 field_with_path = frame.get(field)
-                if field_with_path and glob_match(field_with_path, pattern, ignorecase=True):
+                if field_with_path and glob_match(
+                    field_with_path, pattern, ignorecase=True, doublestar=True, path_normalize=True
+                ):
                     return True
 
         return False

@@ -84,7 +84,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
-            system_library_path_patterns={r"/System/Library/*", r"/usr/lib/*"},
+            system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
                     r"*sentrycrash*",
@@ -117,8 +117,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
             min_sdk_version="4.0.0",
             system_library_path_patterns={
-                r"*/react-native/Libraries/*",
-                r"*/react-native-community/*",
+                r"**/react-native/Libraries/**",
+                r"**/react-native-community/**",
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
