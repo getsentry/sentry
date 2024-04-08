@@ -363,7 +363,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": SessionMRI.RAW_ERROR.value * 21,
+            "name": "s:sessions/error@" + ("none" * 50),
             "tags": {
                 "environment": "production",
                 "session.status": "errored",

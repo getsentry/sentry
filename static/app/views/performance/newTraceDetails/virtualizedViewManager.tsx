@@ -11,6 +11,7 @@ import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -177,6 +178,7 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
+  horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
   intervals: (number | undefined)[] = [];
@@ -208,6 +210,7 @@ export class VirtualizedViewManager {
 
   // Smallest of time that can be displayed across the entire view.
   private readonly MAX_ZOOM_PRECISION = 1;
+  private readonly ROW_PADDING_PX = 16;
 
   // Column configuration
   columns: {
@@ -236,6 +239,8 @@ export class VirtualizedViewManager {
     this.onWheelZoom = this.onWheelZoom.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
+    this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
+    this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
   on<K extends keyof VirtualizedViewManagerEvents>(
@@ -293,17 +298,10 @@ export class VirtualizedViewManager {
     this.recomputeSpanToPxMatrix();
   }
 
-  onContainerRef(container: HTMLElement | null) {
-    if (container) {
-      this.initialize(container);
-    } else {
-      this.teardown();
-    }
-  }
-
   dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
+
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -378,13 +376,47 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
+  private scrollbar_width: number = 0;
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+    this.draw();
+  }
+
+  registerContainerRef(container: HTMLElement | null) {
+    if (container) {
+      this.initialize(container);
+    } else {
+      this.teardown();
+    }
+  }
+
+  registerGhostRowRef(column: string, ref: HTMLElement | null) {
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
+      if (scrollableElement) {
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
+      }
+    }
+
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+    }
+  }
+
   registerList(list: VirtualizedList | null) {
     this.list = list;
   }
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.span_list.width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        this.columns.span_list.width;
+      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
     }
     this.indicator_container = ref;
   }
@@ -602,8 +634,10 @@ export class VirtualizedViewManager {
     const start_width = this.trace_view.width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
-    const duration = 200 + 100 * Math.abs(p * p);
+    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    // We need to clamp the duration to prevent the animation from being too slow,
+    // sometimes the distances are very large as traces can be hours in duration
+    const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
 
     const start = performance.now();
     const rafCallback = (now: number) => {
@@ -713,6 +747,58 @@ export class VirtualizedViewManager {
     this.recomputeSpanToPxMatrix();
   }
 
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = this.columns.list.width * 100 + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
+  onNewMaxRowWidth(max) {
+    this.syncHorizontalScrollbar(max);
+  }
+
+  syncHorizontalScrollbar(max: number) {
+    const child = this.horizontal_scrollbar_container?.children[0] as
+      | HTMLElement
+      | undefined;
+
+    if (child) {
+      child.style.width = max - this.scrollbar_width + this.ROW_PADDING_PX + 'px';
+    }
+  }
+
+  onHorizontalScrollbarScroll(_event: Event) {
+    if (this.isScrolling) {
+      return;
+    }
+
+    const scrollLeft = this.horizontal_scrollbar_container?.scrollLeft;
+    if (typeof scrollLeft !== 'number') {
+      return;
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
+
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const list = this.columns.list.column_refs[i];
+      if (list?.children?.[0]) {
+        (list.children[0] as HTMLElement).style.transform =
+          `translateX(${this.columns.list.translate[0]}px)`;
+      }
+    }
+  }
+
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (this.isScrolling) {
@@ -748,6 +834,7 @@ export class VirtualizedViewManager {
     }
 
     this.scrollSyncRaf = window.requestAnimationFrame(() => {
+      this.horizontal_scrollbar_container!.scrollLeft = -this.columns.list.translate[0];
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -760,7 +847,7 @@ export class VirtualizedViewManager {
 
   clampRowTransform(transform: number): number {
     const columnWidth = this.columns.list.width * this.container_physical_space.width;
-    const max = this.row_measurer.max - columnWidth + 16;
+    const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.max < columnWidth) {
       return 0;
@@ -873,6 +960,7 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
+      this.horizontal_scrollbar_container!.scrollLeft = -pos;
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -884,6 +972,7 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0] = pos;
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
+        this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
     };
@@ -897,6 +986,19 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
+
+    this.container.style.setProperty(
+      '--list-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.list.width * 1000) / 1000
+    );
+    this.container.style.setProperty(
+      '--span-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.span_list.width * 1000) / 1000
+    );
+
+    this.row_measurer.on('max', this.onNewMaxRowWidth);
 
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -1010,7 +1112,7 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    if (segments.length === 1 && segments[0] === 'trace:root') {
+    if (segments.length === 1 && segments[0] === 'trace-root') {
       rerender();
       this.scrollToRow(0);
       return Promise.resolve({index: 0, node: tree.root.children[0]});
@@ -1033,7 +1135,7 @@ export class VirtualizedViewManager {
         // that this is happening, we will perform a final check to see if we've actually already
         // arrived to the node in the previous search call.
         if (path) {
-          const [type, id] = path.split(':');
+          const [type, id] = path.split('-');
 
           if (
             type === 'span' &&
@@ -1058,9 +1160,10 @@ export class VirtualizedViewManager {
       if (isTransactionNode(current)) {
         const nextSegment = segments[segments.length - 1];
         if (
-          nextSegment?.startsWith('span:') ||
-          nextSegment?.startsWith('ag:') ||
-          nextSegment?.startsWith('ms:')
+          nextSegment?.startsWith('span-') ||
+          nextSegment?.startsWith('empty-') ||
+          nextSegment?.startsWith('ag-') ||
+          nextSegment?.startsWith('ms-')
         ) {
           await tree.zoomIn(current, true, {
             api,
@@ -1083,7 +1186,8 @@ export class VirtualizedViewManager {
       // and we should scroll the view to this node.
       const index = tree.list.findIndex(node => node === current);
       if (index === -1) {
-        throw new Error("Couldn't find node in list");
+        rerender();
+        throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
 
       rerender();
@@ -1225,20 +1329,39 @@ export class VirtualizedViewManager {
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
     if (this.divider) {
-      this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
-      }px)`;
+      this.divider.style.setProperty(
+        '--translate-x',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(
+          (list_width * (this.container_physical_space.width - this.scrollbar_width) -
+            DIVIDER_WIDTH / 2 -
+            1) *
+            10
+        ) / 10
+      );
     }
     if (this.indicator_container) {
-      this.indicator_container.style.width = span_list_width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
+      // @ts-expect-error we set number value type on purpose
+      this.indicator_container.style.setProperty('--translate-x', -this.scrollbar_width);
+      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
+    }
+
+    if (this.container) {
+      this.container.style.setProperty(
+        '--list-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(list_width * 1000) / 1000
+      );
+      this.container.style.setProperty(
+        '--span-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(span_list_width * 1000) / 1000
+      );
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list) list.style.width = list_width * 100 + '%';
-      const span = this.columns.span_list.column_refs[i];
-      if (span) span.style.width = span_list_width * 100 + '%';
-
       const span_bar = this.span_bars[i];
       const span_arrow = this.span_arrows[i];
 
@@ -1440,6 +1563,8 @@ export class VirtualizedViewManager {
   }
 
   teardown() {
+    this.row_measurer.off('max', this.onNewMaxRowWidth);
+
     if (this.resize_observer) {
       this.resize_observer.disconnect();
     }
@@ -1450,7 +1575,6 @@ export class VirtualizedViewManager {
 // so we dont end up storing an infinite amount of elements
 class DOMWidthMeasurer<T> {
   cache: Map<T, number> = new Map();
-  elements: HTMLElement[] = [];
 
   queue: [T, HTMLElement][] = [];
   drainRaf: number | null = null;
@@ -1458,6 +1582,24 @@ class DOMWidthMeasurer<T> {
 
   constructor() {
     this.drain = this.drain.bind(this);
+  }
+
+  listeners: Record<'max', Set<(max: number) => void>> = {
+    max: new Set(),
+  };
+
+  on(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.add?.(cb);
+  }
+
+  off(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.delete?.(cb);
+  }
+
+  dispatch(max: number) {
+    for (const listener of this.listeners.max) {
+      listener(max);
+    }
   }
 
   enqueueMeasure(node: T, element: HTMLElement) {
@@ -1474,8 +1616,13 @@ class DOMWidthMeasurer<T> {
   }
 
   drain() {
-    for (const [node, element] of this.queue) {
-      this.measure(node, element);
+    while (this.queue.length > 0) {
+      const next = this.queue.pop()!;
+      const width = this.measure(next[0], next[1]);
+      if (width > this.max) {
+        this.max = width;
+        this.dispatch(this.max);
+      }
     }
   }
 
@@ -1485,12 +1632,9 @@ class DOMWidthMeasurer<T> {
       return cache;
     }
 
-    const width = element.getBoundingClientRect().width;
-    if (width > this.max) {
-      this.max = width;
-    }
-    this.cache.set(node, width);
-    return width;
+    const rect = element.getBoundingClientRect();
+    this.cache.set(node, rect.width);
+    return rect.width;
   }
 }
 
@@ -1529,7 +1673,7 @@ class TextMeasurer {
       this.number = Math.max(this.number, measurement.width);
     }
 
-    for (const duration of ['ns', 'ms', 's', 'm', 'h', 'd']) {
+    for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
       this.duration[duration] = this.ctx.measureText(duration).width;
     }
   }
@@ -1614,12 +1758,30 @@ export class VirtualizedList {
   }
 }
 
+function maybeToggleScrollbar(
+  container: HTMLElement,
+  containerHeight: number,
+  scrollHeight: number,
+  manager: VirtualizedViewManager
+) {
+  if (scrollHeight > containerHeight) {
+    container.style.overflowY = 'scroll';
+    container.style.scrollbarGutter = 'stable';
+    manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
+  } else {
+    container.style.overflowY = 'auto';
+    container.style.scrollbarGutter = 'auto';
+    manager.onScrollbarWidthChange(0);
+  }
+}
+
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
 }
+
 interface UseVirtualizedListResult {
   list: VirtualizedList;
   rendered: React.ReactNode[];
@@ -1697,6 +1859,13 @@ export const useVirtualizedList = (
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
+      maybeToggleScrollbar(
+        elements[0].target as HTMLElement,
+        scrollHeightRef.current,
+        itemsRef.current.length * 24,
+        managerRef.current
+      );
+
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
         items: itemsRef.current,
@@ -1737,6 +1906,13 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    maybeToggleScrollbar(
+      props.container,
+      scrollHeightRef.current,
+      props.items.length * 24,
+      props.manager
+    );
 
     const onScroll = event => {
       if (!list.current) {
@@ -1805,7 +1981,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length]);
+  }, [props.container, props.items, props.items.length, props.manager]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
@@ -1955,10 +2131,10 @@ function findInTreeFromSegment(
   start: TraceTreeNode<TraceTree.NodeValue>,
   segment: TraceTree.NodePath
 ): TraceTreeNode<TraceTree.NodeValue> | null {
-  const [type, id] = segment.split(':');
+  const [type, id] = segment.split('-');
 
   if (!type || !id) {
-    throw new TypeError('Node path must be in the format of `type:id`');
+    throw new TypeError('Node path must be in the format of `type-id`');
   }
 
   return TraceTreeNode.Find(start, node => {
@@ -1988,6 +2164,10 @@ function findInTreeFromSegment(
 
     if (type === 'error' && isTraceErrorNode(node)) {
       return node.value.event_id === id;
+    }
+
+    if (type === 'empty' && isNoDataNode(node)) {
+      return true;
     }
 
     return false;

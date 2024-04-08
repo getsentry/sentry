@@ -252,7 +252,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
   testResultsProcessor: JEST_TEST_BALANCER

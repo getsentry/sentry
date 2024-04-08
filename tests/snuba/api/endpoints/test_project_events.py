@@ -97,3 +97,29 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == 1
             assert response.data[0]["eventID"] == event.event_id
+
+    def test_sample(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event_1 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+        event_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+        response = self.client.get(url, {"sample": "true"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert [event["eventID"] for event in response.data] == sorted(
+            [event_1.event_id, event_2.event_id]
+        )

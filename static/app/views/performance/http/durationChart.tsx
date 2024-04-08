@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+
 import type {Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
@@ -7,11 +9,12 @@ import {getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';
 
 interface Props {
   isLoading: boolean;
-  series: Series;
+  series: Series[];
   error?: Error | null;
+  scatterPlot?: ComponentProps<typeof Chart>['scatterPlot'];
 }
 
-export function DurationChart({series, isLoading, error}: Props) {
+export function DurationChart({series, scatterPlot, isLoading, error}: Props) {
   return (
     <ChartPanel title={getDurationChartTitle('http')}>
       <Chart
@@ -22,7 +25,8 @@ export function DurationChart({series, isLoading, error}: Props) {
           top: '8px',
           bottom: '0',
         }}
-        data={[series]}
+        data={series}
+        scatterPlot={scatterPlot}
         loading={isLoading}
         error={error}
         chartColors={[AVG_COLOR]}

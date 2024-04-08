@@ -20,9 +20,16 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
 }
 
 const tickConfig: TimeWindowConfig = {
+  start: new Date('2023-06-15T11:00:00Z'),
+  end: new Date('2023-06-15T12:00:00Z'),
   dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
-  timeMarkerInterval: 10,
+  intervals: {
+    normalMarkerInterval: 10,
+    referenceMarkerInterval: 20,
+    minimumMarkerInterval: 5,
+  },
+  timelineWidth: 1000,
   dateTimeProps: {timeOnly: true},
 };
 

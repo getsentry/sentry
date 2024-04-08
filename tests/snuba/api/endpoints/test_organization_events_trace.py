@@ -1571,7 +1571,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1},
+                data={},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -1584,7 +1584,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1, "limit": 200},
+                data={"limit": 200},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -1611,7 +1611,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         """Can't use detailed with useSpans, so this should actually just 400"""
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1, "detailed": 1},
+                data={"detailed": 1},
             )
 
         assert response.status_code == 400, response.content
@@ -1629,7 +1629,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1},
+                data={},
             )
 
         assert sorted(
@@ -1649,7 +1649,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={
-                    "project": -1,
                     "timestamp": self.root_event.timestamp,
                     # Limit of one means the only result is the target event
                     "limit": 1,
@@ -1666,7 +1665,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={
-                    "project": -1,
                     "timestamp": self.root_event.timestamp,
                     "statsPeriod": "90d",
                 },
@@ -1682,7 +1680,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1},
+                data={},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -1692,6 +1690,20 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert root["measurements"]["lcp"]["type"] == "duration"
         assert root["measurements"]["fid"]["value"] == 3.5
         assert root["measurements"]["fid"]["type"] == "duration"
+
+    def test_project_param(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            # If project is included we should still return the entire trace
+            response = self.client_get(
+                data={"project": self.project.id},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
 
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):

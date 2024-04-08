@@ -23,27 +23,21 @@ export default function Stories({location}: Props) {
   return (
     <OrganizationContainer>
       <Layout>
-        <div
-          style={{
-            gridArea: 'aside',
-            display: 'flex',
-            gap: `${space(2)}`,
-            flexDirection: 'column',
-          }}
-        >
+        <StoryHeader style={{gridArea: 'head'}} />
+
+        <Sidebar style={{gridArea: 'aside'}}>
           <Input
             placeholder="Search files by name"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
-          <Sidebar>
+          <TreeContainer>
             <StoryTree
               files={storiesContext()
                 .files()
                 .filter(s => s.toLowerCase().includes(searchTerm))}
             />
-          </Sidebar>
-        </div>
-        <StoryHeader style={{gridArea: 'head'}} />
+          </TreeContainer>
+        </Sidebar>
 
         {story.error ? (
           <VerticalScroll style={{gridArea: 'body'}}>
@@ -78,7 +72,15 @@ const Layout = styled('div')`
 `;
 
 const Sidebar = styled('aside')`
-  overflow: auto;
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const TreeContainer = styled('div')`
+  overflow: scroll;
+  flex-grow: 1;
 `;
 
 const VerticalScroll = styled('main')`

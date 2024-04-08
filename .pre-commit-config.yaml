@@ -82,6 +82,11 @@ repos:
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
         language: pygrep
         types: [python]
+      - id: sort-stronger-mypy-list
+        name: sort stronger mypy list
+        entry: python3 -m tools.mypy_helpers.sort_stronger_modules
+        files: ^pyproject\.toml$
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]

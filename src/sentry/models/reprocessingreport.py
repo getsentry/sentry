@@ -11,7 +11,7 @@ class ReprocessingReport(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     event_id = models.CharField(max_length=32, null=True)
-    datetime = models.DateTimeField(default=timezone.now)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "sentry"

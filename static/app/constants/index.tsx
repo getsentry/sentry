@@ -80,30 +80,34 @@ export const ORG_ROLES: OrgRole[] = [
   {
     id: 'member',
     name: 'Member',
-    allowed: true,
+    isAllowed: true,
     desc: 'Members can view and act on events, as well as view most other data within the organization.',
     minimumTeamRole: 'contributor',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'admin',
     name: 'Admin',
-    allowed: true,
+    isAllowed: true,
     desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'manager',
     name: 'Manager',
-    allowed: true,
+    isAllowed: true,
     desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'owner',
     name: 'Organization Owner',
-    allowed: true,
+    isAllowed: true,
     desc: 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
 ];
 
@@ -365,6 +369,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

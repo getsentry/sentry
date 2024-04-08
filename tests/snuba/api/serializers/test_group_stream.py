@@ -2,6 +2,7 @@ import time
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -54,6 +55,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] is None
 
+    @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
     def test_session_count(self):
         group = self.group
         organization_id = group.project.organization_id

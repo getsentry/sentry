@@ -89,6 +89,10 @@ export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFram
   return Boolean(frame && 'category' in frame && frame.category === 'issue');
 }
 
+export function isClickFrame(frame: ReplayFrame): frame is ClickFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'ui.click');
+}
+
 export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');

@@ -1,3 +1,5 @@
+import {createEvent, fireEvent} from 'sentry-test/reactTestingLibrary';
+
 import {VideoReplayer} from './videoReplayer';
 
 // XXX: Not quite sure the best way to mock RAF - here we use fake timers
@@ -7,6 +9,7 @@ import {VideoReplayer} from './videoReplayer';
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
 jest.useFakeTimers();
+jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {
@@ -83,6 +86,7 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
@@ -107,8 +111,13 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     const playPromise = inst.play(18100);
+    // @ts-expect-error private
+    const video = inst.getVideo(2)!;
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);
@@ -130,6 +139,7 @@ describe('VideoReplayer - no starting gap', () => {
       // so can't check that onFinished is called
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
@@ -151,6 +161,7 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     const playPromise = inst.play(0);
     jest.advanceTimersByTime(2500);
@@ -169,6 +180,7 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -202,6 +214,7 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -274,9 +287,10 @@ describe('VideoReplayer - with starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     // @ts-expect-error private
-    expect(inst._currentIndex).toEqual(undefined);
+    expect(inst._currentIndex).toEqual(0);
     const playPromise = inst.play(1500);
     jest.advanceTimersByTime(2000);
     await playPromise;
@@ -296,8 +310,13 @@ describe('VideoReplayer - with starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     const playPromise = inst.play(18100);
+    // @ts-expect-error private
+    const video = inst.getVideo(2)!;
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);
@@ -319,6 +338,7 @@ describe('VideoReplayer - with starting gap', () => {
       // so can't check that onFinished is called
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from

@@ -8,7 +8,11 @@ from django.urls import reverse
 from sentry import audit_log, auth
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
+from sentry.auth.providers.dummy import (
+    PLACEHOLDER_TEMPLATE,
+    DummySAML2Provider,
+    dummy_provider_config,
+)
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
@@ -299,6 +303,28 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert "Action Required" in message.subject
         assert "Single Sign-On has been disabled" in message.body
 
+    def test_reinvite_provider(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        # Create an unlinked member
+        user_two = self.create_user(email="unlinked@example.com")
+        self.create_member(user=user_two, organization=organization)
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+        with self.tasks(), self.feature("organizations:sso-basic"):
+            resp = self.client.post(path, {"op": "reinvite"})
+
+        assert resp.status_code == 302
+        assert resp["Location"] == path
+
+        # We should send emails about SSO changes
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert "Action Required" in message.subject
+        assert "Single Sign-On has been configured" in message.body
+        assert message.to == [user_two.email]
+
     @with_feature("organizations:sso-basic")
     def test_disable_partner_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
@@ -373,6 +399,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             )
 
     def test_edit_sso_settings(self):
+        # EDITING SSO SETTINGS
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -584,7 +611,78 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         )
 
 
-dummy_provider_config = {
+@control_silo_test
+class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
+    provider = DummySAML2Provider
+    provider_name = "saml2_dummy"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user("foobar@sentry.io")
+
+    def create_org_and_auth_provider(self, provider_name="saml2_dummy"):
+        self.user.update(is_managed=True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = self.create_organization(name="foo", owner=self.user)
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider=provider_name
+        )
+        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
+        return organization, auth_provider
+
+    def create_om_and_link_sso(self, organization):
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
+        return om
+
+    def test_edit_sso_settings(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        assert not getattr(auth_provider, "config")
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature("organizations:sso-basic"), outbox_runner():
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": False,
+                    "default_role": "owner",
+                    "x509cert": "bar_x509_cert",
+                },
+            )
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(
+            organization_id=organization.id, id=auth_provider.id
+        )
+        assert getattr(auth_provider, "config") == {
+            "idp": {
+                "x509cert": "bar_x509_cert",
+            }
+        }
+
+        audit_logs = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).first()
+
+        assert audit_logs.data == {
+            "x509cert": "to bar_x509_cert",
+            "default_role": "to owner",
+            "require_link": "to False",
+        }
+
+
+dummy_generic_provider_config = {
     "idp": {
         "entity_id": "https://example.com/saml/metadata/1234",
         "x509cert": "foo_x509_cert",
@@ -600,8 +698,8 @@ dummy_provider_config = {
 }
 
 
-class DummySAML2Provider(GenericSAML2Provider):
-    name = "dummy"
+class DummyGenericSAML2Provider(GenericSAML2Provider):
+    name = "saml2_generic_dummy"
 
     def get_saml_setup_pipeline(self):
         return []
@@ -611,9 +709,9 @@ class DummySAML2Provider(GenericSAML2Provider):
 
 
 @control_silo_test
-class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
-    provider = DummySAML2Provider
-    provider_name = "saml2_dummy"
+class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
+    provider = DummyGenericSAML2Provider
+    provider_name = "saml2_generic_dummy"
 
     def setUp(self):
         super().setUp()

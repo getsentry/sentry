@@ -76,6 +76,7 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
+from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
@@ -85,6 +86,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
 
@@ -290,6 +293,22 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:metric-alert-ignore-archived")
+    def test_is_unresolved_query(self):
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="is:unresolved",
+            projects=[self.project],
+        )
+        event = self.create_event(self.now - timedelta(minutes=1))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=3))
+        self.create_event(self.now - timedelta(minutes=4))
+
+        event.group.update(status=GroupStatus.UNRESOLVED)
+        assert get_incident_aggregates(incident) == {"count": 4}
+
 
 class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
     def setUp(self):
@@ -444,10 +463,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
         # TODO: backfill projects so all monitor_types include 'projects' fk
-        for monitor_type, expected_projects in [
-            (None, 0),
-            (AlertRuleMonitorType.CONTINUOUS, 0),
-            (AlertRuleMonitorType.ACTIVATED, 1),
+        for monitor_type in [
+            None,
+            AlertRuleMonitorType.CONTINUOUS,
+            AlertRuleMonitorType.ACTIVATED,
         ]:
             name = "hello"
             query = "level:error"
@@ -494,7 +513,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.threshold_type == threshold_type.value
             assert alert_rule.resolve_threshold == resolve_threshold
             assert alert_rule.threshold_period == threshold_period
-            assert alert_rule.projects.all().count() == expected_projects
+            # We now create an AlertRuleProject for all rule monitor types
+            assert alert_rule.projects.all().count() == 1
 
     def test_create_activated_alert_rule_errors_without_condition(self):
         name = "hello"
@@ -796,6 +816,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
+        assert self.alert_rule.projects.all().count() == 2
+        assert self.alert_rule.projects.all()[0] == updated_projects[0]
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id

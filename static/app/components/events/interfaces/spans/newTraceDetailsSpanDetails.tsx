@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
@@ -25,13 +25,12 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
@@ -39,6 +38,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
+import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -372,7 +372,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           <table className="table key-value">
             <tbody>
               <Row title={t('Duration')}>
-                <strong>{getDuration(duration, 2, true)}</strong>
+                <TraceDrawerComponents.Duration
+                  duration={duration}
+                  baseline={undefined}
+                />
               </Row>
               {span.exclusive_time ? (
                 <Row
@@ -381,11 +384,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     'The time spent exclusively in this span, excluding the total duration of its children'
                   )}
                 >
-                  <TraceDrawerComponents.DurationComparison
-                    isComparingSelfDuration
-                    totalDuration={duration}
-                    selfDuration={span.exclusive_time / 1000}
+                  <TraceDrawerComponents.Duration
+                    ratio={span.exclusive_time / 1000 / duration}
+                    duration={span.exclusive_time / 1000}
                     baseline={averageSpanSelfTimeInSeconds}
+                    baseDescription={t(
+                      'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
+                    )}
                   />
                 </Row>
               ) : null}
@@ -522,20 +527,20 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
+                    {value >= 1024 && <span>{` (${value} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
-                    {maybeStringify(value)}
+                    <GeneralSpanDetailsValue value={value} />
                   </Row>
                 ) : null
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  <GeneralSpanDetailsValue value={span[key]} />
                 </Row>
               ))}
             </tbody>
@@ -591,13 +596,6 @@ function SpanHTTPInfo({span}: {span: RawSpanType}) {
 
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
   return <OpsDot style={{backgroundColor: timing.color}} />;
-}
-
-function maybeStringify(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return JSON.stringify(value, null, 4);
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`

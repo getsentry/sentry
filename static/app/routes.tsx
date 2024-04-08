@@ -1490,6 +1490,16 @@ function buildRoutes() {
     </Route>
   );
 
+  const aiAnalyticsRoutes = (
+    <Route
+      path="/ai-analytics/"
+      component={make(() => import('sentry/views/aiAnalytics'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -1522,6 +1532,13 @@ function buildRoutes() {
           path="domains/"
           component={make(
             () => import('sentry/views/performance/http/httpDomainSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path="cache/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/cache/cacheLandingPage')
           )}
         />
       </Route>
@@ -1816,6 +1833,12 @@ function buildRoutes() {
           )}
         />
         <Route
+          path={TabPaths[Tab.RELATED_ISSUES]}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupRelatedIssues'))
+          )}
+        />
+        <Route
           path={TabPaths[Tab.MERGED]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
         />
@@ -2029,10 +2052,10 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/metrics/"
-        component={make(() => import('sentry/views/ddm'))}
+        component={make(() => import('sentry/views/metrics'))}
         withOrgPath
       >
-        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />
@@ -2145,6 +2168,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {aiAnalyticsRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

@@ -11,6 +11,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -236,7 +237,11 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
@@ -246,9 +251,16 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if not organization_slug:
             raise ResourceDoesNotExist
 
-        organization_context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=request.user.id
-        )
+        if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            # It is ok that `get_organization_by_id` doesn't check for visibility as we
+            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
+            organization_context = organization_service.get_organization_by_id(
+                id=int(organization_slug), user_id=request.user.id
+            )
+        else:
+            organization_context = organization_service.get_organization_by_slug(
+                slug=str(organization_slug), only_visible=False, user_id=request.user.id
+            )
         if organization_context is None:
             raise ResourceDoesNotExist
 
@@ -516,8 +528,16 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """
+        We temporarily allow the organization_slug to be an integer as it actually can be both slug or id
+        Eventually, we will rename this method to organization_id_or_slug
+        """
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
@@ -527,7 +547,10 @@ class OrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                organization = Organization.objects.get_from_cache(id=organization_slug)
+            else:
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 

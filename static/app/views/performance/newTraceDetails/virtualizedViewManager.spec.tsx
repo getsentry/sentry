@@ -342,7 +342,7 @@ describe('VirtualizedViewManger', () => {
 
       manager.list = makeList();
 
-      const result = await manager.scrollToPath(tree, ['txn:event_id'], () => void 0, {
+      const result = await manager.scrollToPath(tree, ['txn-event_id'], () => void 0, {
         api: api,
         organization,
       });
@@ -376,13 +376,13 @@ describe('VirtualizedViewManger', () => {
       manager.list = makeList();
 
       expect(tree.list[tree.list.length - 1].path).toEqual([
-        'txn:event_id',
-        'txn:child',
-        'txn:root',
+        'txn-event_id',
+        'txn-child',
+        'txn-root',
       ]);
       const result = await manager.scrollToPath(
         tree,
-        ['txn:event_id', 'txn:child', 'txn:root'],
+        ['txn-event_id', 'txn-child', 'txn-root'],
         () => void 0,
         {
           api: api,
@@ -417,7 +417,43 @@ describe('VirtualizedViewManger', () => {
 
       const result = await manager.scrollToPath(
         tree,
-        ['span:span_id', 'txn:event_id'],
+        ['span-span_id', 'txn-event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(tree.list[1].zoomedIn).toBe(true);
+      expect(result?.node).toBe(tree.list[2]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+    });
+
+    it('scrolls to empty data node of expanded transaction', async () => {
+      manager.list = makeList();
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              event_id: 'event_id',
+              project_slug: 'project',
+              children: [],
+            }),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent(undefined, []),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        ['empty-node', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -468,7 +504,7 @@ describe('VirtualizedViewManger', () => {
 
       const result = await manager.scrollToPath(
         tree,
-        ['span:other_child_span', 'txn:child_event_id', 'txn:event_id'],
+        ['span-other_child_span', 'txn-child_event_id', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -494,7 +530,7 @@ describe('VirtualizedViewManger', () => {
 
           const result = await manager.scrollToPath(
             tree,
-            [`ag:${headOrTailId}`, 'txn:event_id'],
+            [`ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
@@ -520,7 +556,7 @@ describe('VirtualizedViewManger', () => {
 
           const result = await manager.scrollToPath(
             tree,
-            ['span:middle_span', `ag:${headOrTailId}`, 'txn:event_id'],
+            ['span-middle_span', `ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
@@ -547,7 +583,7 @@ describe('VirtualizedViewManger', () => {
 
         const result = await manager.scrollToPath(
           tree,
-          ['span:middle_span', `ag:first_span`, 'txn:event_id'],
+          ['span-middle_span', `ag-first_span`, 'txn-event_id'],
           () => void 0,
           {
             api: api,
@@ -588,7 +624,7 @@ describe('VirtualizedViewManger', () => {
 
         const result = await manager.scrollToPath(
           tree,
-          ['ms:first_span', 'txn:event_id'],
+          ['ms-first_span', 'txn-event_id'],
           () => void 0,
           {
             api: api,
@@ -626,7 +662,7 @@ describe('VirtualizedViewManger', () => {
 
         const result = await manager.scrollToPath(
           tree,
-          ['ms:second_span', 'txn:event_id'],
+          ['ms-second_span', 'txn-event_id'],
           () => void 0,
           {
             api: api,
@@ -660,7 +696,7 @@ describe('VirtualizedViewManger', () => {
         })
       );
 
-      const result = await manager.scrollToPath(tree, ['error:ded'], () => void 0, {
+      const result = await manager.scrollToPath(tree, ['error-ded'], () => void 0, {
         api: api,
         organization,
       });

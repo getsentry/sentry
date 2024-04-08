@@ -9,12 +9,18 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 
+/**
+ * Ensure the tooltip does not overlap with the navigation button at the right
+ * of the timeline.
+ */
+const TOOLTIP_RIGHT_CLAMP_OFFSET = 40;
+
 interface Options {
   /**
-   * Function used to compute the text of the cursor tooltip. Recieves the %
-   * value the cursor is within the container.
+   * Function used to compute the text of the cursor tooltip. Receives the
+   * offset value within the container.
    */
-  labelText: (percentPosition: number) => string;
+  labelText: (positionX: number) => string;
   /**
    * May be set to false to disable rendering the timeline cursor
    */
@@ -68,10 +74,14 @@ function useTimelineCursor<E extends HTMLElement>({
           return;
         }
 
+        if (!isInsideContainer) {
+          return;
+        }
+
         const offset = e.clientX - containerRect.left;
         const tooltipWidth = labelRef.current.offsetWidth;
 
-        labelRef.current.innerText = labelText(offset / containerRect.width);
+        labelRef.current.innerText = labelText(offset);
 
         containerRef.current.style.setProperty('--cursorOffset', `${offset}px`);
         containerRef.current.style.setProperty('--cursorMax', `${containerRect.width}px`);
@@ -149,7 +159,10 @@ const CursorLabel = styled(Overlay)`
   left: clamp(
     0px,
     calc(var(--cursorOffset) + ${TOOLTIP_OFFSET}px),
-    calc(var(--cursorMax) - var(--cursorLabelWidth) - ${TOOLTIP_OFFSET}px)
+    calc(
+      var(--cursorMax) - var(--cursorLabelWidth) - ${TOOLTIP_RIGHT_CLAMP_OFFSET}px -
+        ${TOOLTIP_OFFSET}px
+    )
   );
 `;
 
