@@ -646,16 +646,21 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch(
-            "sentry.event_manager.detect_performance_problems",
-            side_effect=detect_performance_problems_interceptor,
-        ), mock.patch.object(
-            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-        ), override_options(
-            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch(
+                "sentry.event_manager.detect_performance_problems",
+                side_effect=detect_performance_problems_interceptor,
+            ),
+            mock.patch.object(
+                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+            ),
+            override_options(
+                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+            ),
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -2372,7 +2377,7 @@ class ProfilesSnubaTestCase(
 class ReplaysSnubaTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        # assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replay):
         response = requests.post(

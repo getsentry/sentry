@@ -9,6 +9,7 @@ from sentry.replays.testutils import (
     mock_expected_response,
     mock_replay,
     mock_replay_click,
+    mock_replay_viewed,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
@@ -597,10 +598,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(
             self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
         )
+        self.store_replays(
+            mock_replay_viewed(seq1_timestamp, project.id, replay1_id, viewed_by_id=1)
+        )
 
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
+                "viewed_by_id:1",
+                "!viewed_by_id:2",
                 "replay_type:session",
                 "error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
                 "error_id:a3a62ef6ac86415b83c2416fc2f76db1",
