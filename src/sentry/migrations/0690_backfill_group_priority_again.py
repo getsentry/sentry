@@ -123,7 +123,7 @@ def update_group_priority(apps, schema_editor):
         substatus,
         priority,
     ) in RangeQuerySetWrapperWithProgressBarApprox(
-        Group.objects.filter(id__gt=last_processed_id, priority__isnull=True).values_list(
+        Group.objects.filter(id__gt=last_processed_id).values_list(
             "id", "data", "level", "type", "substatus", "priority"
         ),
         result_value_getter=lambda item: item[0],
