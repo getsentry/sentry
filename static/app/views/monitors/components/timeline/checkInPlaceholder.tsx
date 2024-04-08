@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 const SPACING = 15;
 
-export function TimelinePlaceholder() {
+export function CheckInPlaceholder() {
   return (
     <PlaceholderSvg xmlns="http://www.w3.org/2000/svg" width="100%" height="14px">
       <defs>

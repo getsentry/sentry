@@ -1,7 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconFix, IconMute} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconFire,
+  IconFix,
+  IconMute,
+  IconTimer,
+  IconUnsubscribed,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -10,11 +17,31 @@ import {
   MonitorStatus,
   type StatusNotice,
 } from 'sentry/views/monitors/types';
-import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
 interface Props {
   monitorEnv: MonitorEnvironment;
 }
+
+export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
+  ok: {
+    icon: <IconCheckmark color="successText" />,
+    color: 'successText',
+  },
+  error: {
+    icon: <IconFire color="errorText" />,
+    color: 'errorText',
+  },
+  active: {
+    icon: <IconTimer color="subText" />,
+    color: 'subText',
+    label: t('Waiting For Check-In'),
+  },
+  disabled: {
+    icon: <IconUnsubscribed color="subText" size="xs" />,
+    color: 'subText',
+    label: t('Muted'),
+  },
+};
 
 const userNotifiedDisplay: StatusNotice = {
   label: t(

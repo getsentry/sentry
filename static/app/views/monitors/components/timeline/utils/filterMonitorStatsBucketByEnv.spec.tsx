@@ -1,5 +1,6 @@
-import type {MonitorBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {filterMonitorStatsBucketByEnv} from 'sentry/views/monitors/utils/filterMonitorStatsBucketByEnv';
+import type {MonitorBucket} from '../types';
+
+import {filterMonitorStatsBucketByEnv} from './filterMonitorStatsBucketByEnv';
 
 describe('filterMonitorStatsBucketByEnvs', function () {
   it('filters away environments', function () {

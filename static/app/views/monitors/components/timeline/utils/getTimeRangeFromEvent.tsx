@@ -1,8 +1,16 @@
 import moment from 'moment';
 
 import type {Event} from 'sentry/types';
-import type {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {resolutionElapsedMinutes} from 'sentry/views/monitors/components/overviewTimeline/utils';
+
+import type {TimeWindow} from '../types';
+
+// Stores the elapsed minutes for each selectable resolution
+export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
+  '1h': 60,
+  '24h': 60 * 24,
+  '7d': 60 * 24 * 7,
+  '30d': 60 * 24 * 30,
+};
 
 /**
  * Given a cron event, current time, and time window, attempt to return a

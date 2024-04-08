@@ -1,5 +1,6 @@
-import type {MonitorBucketEnvMapping} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {CHECKIN_STATUS_PRECEDENT} from 'sentry/views/monitors/utils/constants';
+import type {MonitorBucketEnvMapping} from '../types';
+
+import {CHECKIN_STATUS_PRECEDENT} from './constants';
 
 /**
  * Given two env mappings e.g. {prod: {ok: 1, missed: 0, etc..}}

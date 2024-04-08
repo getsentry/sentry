@@ -1,14 +1,6 @@
 import {getFormat} from 'sentry/utils/dates';
 
-import type {TimeWindow, TimeWindowConfig} from './types';
-
-// Stores the elapsed minutes for each selectable resolution
-export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
-  '1h': 60,
-  '24h': 60 * 24,
-  '7d': 60 * 24 * 7,
-  '30d': 60 * 24 * 30,
-};
+import type {TimeWindowConfig} from '../types';
 
 /**
  * The minimum pixels to allocate to the reference start time label which
@@ -50,6 +42,7 @@ const CLAMPED_MINUTE_RANGES = [
  * Compute the TimeWindowConfig given the timeline date boundaries and the width
  * of the timeline.
  */
+
 export function getConfigFromTimeRange(
   start: Date,
   end: Date,
@@ -106,23 +99,4 @@ export function getConfigFromTimeRange(
     dateTimeProps: {dateOnly: true},
     dateLabelFormat: getFormat(),
   };
-}
-
-/**
- * Aligns the given date to the start of a unit (minute, hour, day) based on
- * the minuteInterval size. This will align to the right side of the boundary
- *
- * 01:53:43 (10m interval) => 01:54:00
- * 01:32:00 (2hr interval) => 02:00:00
- */
-export function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
-  if (minuteInterval < 60) {
-    return date.minute(date.minutes() - (date.minutes() % minuteInterval)).seconds(0);
-  }
-
-  if (minuteInterval < 60 * 24) {
-    return date.startOf('hour');
-  }
-
-  return date.startOf('day');
 }

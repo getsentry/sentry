@@ -14,23 +14,20 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
-import {useMonitorStats} from './overviewTimeline/useMonitorStats';
-import {useTimeWindowConfig} from './overviewTimeline/useTimeWindowConfig';
+import {OverviewRow} from './overviewTimeline/overviewRow';
+import {GridLineOverlay, GridLineTimeLabels} from './timeline/gridLines';
+import {useMonitorStats} from './timeline/hooks/useMonitorStats';
+import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
 
 interface Props {
   monitor: Monitor;
   organization: Organization;
 }
 
-export function CronDetailsTimeline({monitor, organization}: Props) {
+export function DetailsTimeline({monitor, organization}: Props) {
   const {location} = useRouter();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -111,7 +108,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
         timeWindowConfig={timeWindowConfig}
         width={timelineWidth}
       />
-      <TimelineTableRow
+      <OverviewRow
         monitor={monitor}
         bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}

@@ -2,7 +2,7 @@ import {type BaseButtonProps, Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import type {DateNavigation} from './useDateNavigation';
+import type {DateNavigation} from './hooks/useDateNavigation';
 
 interface Props extends BaseButtonProps {
   dateNavigation: DateNavigation;

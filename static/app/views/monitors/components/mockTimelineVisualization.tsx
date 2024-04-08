@@ -9,14 +9,12 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MockCheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {TimelinePlaceholder} from 'sentry/views/monitors/components/overviewTimeline/timelinePlaceholder';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
 import {ScheduleType} from 'sentry/views/monitors/types';
+
+import {CheckInPlaceholder} from './timeline/checkInPlaceholder';
+import {MockCheckInTimeline} from './timeline/checkInTimeline';
+import {GridLineOverlay, GridLineTimeLabels} from './timeline/gridLines';
+import {getConfigFromTimeRange} from './timeline/utils/getConfigFromTimeRange';
 
 interface ScheduleConfig {
   cronSchedule?: FieldValue;
@@ -96,7 +94,7 @@ export function MockTimelineVisualization({schedule}: Props) {
           {errorMessage ? (
             <Placeholder testId="error-placeholder" height="100px" />
           ) : (
-            <TimelinePlaceholder />
+            <CheckInPlaceholder />
           )}
         </Fragment>
       ) : (
