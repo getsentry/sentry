@@ -43,7 +43,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
     def create_monitor_and_env(
         self, name="test monitor", organization_id=None, project_id=None, environment_id=None
     ):
-        self.tasks
         if organization_id is None:
             organization_id = self.organization.id
         if project_id is None:
