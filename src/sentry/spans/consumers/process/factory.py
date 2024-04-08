@@ -67,7 +67,11 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        span = _deserialize_span(payload_value)
+        txn.set_tag("partition_index", partition)
+
+        with txn.start_child(op="deserialize"):
+            span = _deserialize_span(payload_value)
+
         segment_id = span["segment_id"]
         trace_id = span["trace_id"]
 
@@ -75,11 +79,12 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         txn.set_tag("segment.id", segment_id)
         sentry_sdk.set_measurement("num_keys", len(span))
 
-        client = RedisSpansBuffer()
+        with txn.start_child(op="process", description="write_span"):
+            client = RedisSpansBuffer()
 
-        should_process_segments = client.write_span_and_check_processing(
-            project_id, segment_id, timestamp, partition, payload_value
-        )
+            should_process_segments = client.write_span_and_check_processing(
+                project_id, segment_id, timestamp, partition, payload_value
+            )
 
         metrics.incr("process_spans.spans.write.count")
 
@@ -108,6 +113,8 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
         ) as txn:
             client = RedisSpansBuffer()
             payload_context = {}
+
+            txn.set_tag("partition_index", context.partition)
 
             with txn.start_child(op="process", description="fetch_unprocessed_segments"):
                 keys = client.get_unprocessed_segments_and_prune_bucket(
