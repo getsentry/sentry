@@ -294,7 +294,7 @@ export function getExpandedResults(
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
-  // update the columns according the the expansion above
+  // update the columns according the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
       column === null

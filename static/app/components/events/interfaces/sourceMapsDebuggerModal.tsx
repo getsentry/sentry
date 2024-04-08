@@ -950,7 +950,7 @@ function ReleaseSourceFileMatchingChecklistItem({
         {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
-            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the the stack frame path.',
+            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
             {
               link: (
                 <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/" />

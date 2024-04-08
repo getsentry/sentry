@@ -24,7 +24,7 @@ describe('UnsubscribeIssue', function () {
     });
   });
 
-  it('loads data from the the API based on URL parameters', async function () {
+  it('loads data from the API based on URL parameters', async function () {
     const {router, routerProps, routerContext} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},
