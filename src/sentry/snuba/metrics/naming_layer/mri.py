@@ -53,19 +53,6 @@ from sentry.snuba.metrics.utils import (
     MetricUnit,
 )
 
-
-def _build_namespace_regex() -> str:
-    """
-    Builds a namespace regex for matching MRIs based on the declared use case ids in the
-    product.
-    """
-    use_case_ids = []
-    for use_case_id in UseCaseID:
-        use_case_ids.append(use_case_id.value)
-
-    return rf"({'|'.join(use_case_ids)})"
-
-
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
