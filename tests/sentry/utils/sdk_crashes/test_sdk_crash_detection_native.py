@@ -93,7 +93,7 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             False,
         ),
         (
-            "sentry__public",
+            "sentry__module_level",
             "/usr/lib/something.so",
             True,
         ),
