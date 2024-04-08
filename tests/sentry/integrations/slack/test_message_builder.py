@@ -977,10 +977,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     def test_block_kit_truncates_long_query(self):
-        # text = "a" * 5000
-        # block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
-        # assert "a" * 253 + "..." in block["text"]["text"]
-
         event = self.store_event(
             data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
         )
