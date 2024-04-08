@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 
 from django.conf import settings
-from django.db import connection, migrations
+from django.db import connection
 from psycopg2.extras import execute_values
 
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -169,10 +169,4 @@ class Migration(CheckedMigration):
         ("sentry", "0643_add_date_modified_col_dashboard_widget_query"),
     ]
 
-    operations = [
-        migrations.RunPython(
-            update_group_priority,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_groupedmessage"]},
-        ),
-    ]
+    operations = []
