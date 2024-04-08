@@ -9,35 +9,11 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
-from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-def parametrize_backend(cls):
-    """
-    hack to parametrize test-classes by backend. Ideally we'd move
-    over to pytest-style tests so we can use `pytest.mark.parametrize`, but
-    hopefully we won't have more than one backend in the future.
-    """
-
-    assert isinstance(cls.backend, SessionsReleaseHealthBackend)
-
-    newcls = type(
-        f"{cls.__name__}MetricsLayer",
-        (BaseMetricsTestCase, cls),
-        {
-            "__doc__": f"Repeat tests from {cls} with metrics layer",
-            "backend": MetricsReleaseHealthBackend(),
-            "adjust_interval": True,  # HACK interval adjustment for new MetricsLayer implementation
-        },
-    )
-    globals()[newcls.__name__] = newcls
-
-    return cls
 
 
 def format_timestamp(dt):
@@ -57,10 +33,8 @@ def make_24h_stats(ts, adjust_start=False):
     return ret_val
 
 
-@parametrize_backend
-class SnubaSessionsTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-    adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -876,8 +850,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
 
-@parametrize_backend
-class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
+class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
     """
     TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
     `currentCrashFreeRate` and `previousCrashFreeRate` for each project
@@ -896,7 +869,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
 
-    backend = SessionsReleaseHealthBackend()
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -1023,9 +996,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
-@parametrize_backend
-class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def test_empty(self):
         # Test no errors when no session data
@@ -1120,9 +1092,8 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         )
 
 
-@parametrize_backend
-class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
@@ -1162,9 +1133,8 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
 
 
-@parametrize_backend
-class CheckNumberOfSessions(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -1445,9 +1415,8 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@parametrize_backend
-class InitWithoutUserTestCase(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()

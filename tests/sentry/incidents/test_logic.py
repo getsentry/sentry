@@ -84,7 +84,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -310,13 +310,13 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         assert get_incident_aggregates(incident) == {"count": 4}
 
 
-class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
+class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Sessions
+        self.dataset = Dataset.Metrics
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -334,14 +334,6 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         incident_aggregates = get_incident_aggregates(incident)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
-
-
-class GetCrashRateMetricsIncidentAggregatesTest(
-    GetCrashRateIncidentAggregatesTest, BaseMetricsTestCase
-):
-    def setUp(self):
-        super().setUp()
-        self.dataset = Dataset.Metrics
 
 
 @freeze_time()
