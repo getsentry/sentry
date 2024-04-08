@@ -253,6 +253,33 @@ def mock_replay_click(
     }
 
 
+def mock_replay_viewed(
+    timestamp: datetime.datetime,
+    project_id: str,
+    replay_id: str,
+    viewed_by_id: int,
+    retention_days: int = 30,
+) -> dict[str, Any]:
+    return {
+        "type": "replay_event",
+        "start_time": sec(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": retention_days,
+        "payload": list(
+            bytes(
+                json.dumps(
+                    {
+                        "type": "replay_viewed",
+                        "timestamp": timestamp,
+                        "viewed_by_id": viewed_by_id,
+                    }
+                ).encode()
+            )
+        ),
+    }
+
+
 def mock_segment_init(
     timestamp: datetime.datetime,
     href: str = "http://localhost/",
