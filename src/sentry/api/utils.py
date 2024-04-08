@@ -355,7 +355,7 @@ def method_dispatch(**dispatch_mapping):
         return handler(request, *args, **kwargs)
 
     # This allows us to surface the mapping when iterating through the URL patterns
-    # Check `tes_id_or_slug_path_params.py` for usage
+    # Check `test_id_or_slug_path_params.py` for usage
     dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
 
     if dispatch_mapping.get("csrf_exempt"):

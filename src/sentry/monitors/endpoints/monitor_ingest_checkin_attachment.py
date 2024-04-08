@@ -147,12 +147,6 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         ):
             raise ResourceDoesNotExist
 
-        if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
-            if project.organization.id != organization.id:
-                raise ResourceDoesNotExist
-        elif project.organization.slug != organization_slug:
-            raise ResourceDoesNotExist
-
         # Check project permission. Required for Token style authentication
         self.check_object_permissions(request, project)
 
