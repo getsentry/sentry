@@ -21,8 +21,6 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 logger = logging.getLogger(__name__)
 
-VERSION = 1
-
 CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 
 # Grammar is defined in EBNF syntax.
@@ -179,12 +177,8 @@ class FingerprintingRules:
         self,
         rules,
         changelog=None,
-        version=None,
         bases: Sequence[str] | None = None,
     ):
-        if version is None:
-            version = VERSION
-        self.version = version
         self.rules = rules
         self.changelog = changelog
         self.bases = bases or []
@@ -208,19 +202,15 @@ class FingerprintingRules:
 
     @classmethod
     def _from_config_structure(cls, data, bases=None):
-        version = data["version"]
-        if version != VERSION:
-            raise ValueError("Unknown version")
         return cls(
             rules=[Rule._from_config_structure(x) for x in data["rules"]],
-            version=version,
             bases=bases,
         )
 
     def _to_config_structure(self, include_builtin=False):
         rules = self.iter_rules(include_builtin=include_builtin)
 
-        return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
+        return {"rules": [x._to_config_structure() for x in rules]}
 
     def to_json(self, include_builtin=False):
         return self._to_config_structure(include_builtin=include_builtin)
