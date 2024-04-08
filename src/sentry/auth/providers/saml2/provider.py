@@ -290,7 +290,7 @@ class SAML2Provider(Provider, abc.ABC):
             error_msg_keys = ", ".join(repr(key) for key in sorted(raw_attributes.keys()))
             raise IdentityNotValid(
                 _(
-                    f"Failed to map SAML attributes. Assertion returned the following attribute keys: {error_msg_keys}"
+                    f"Failed to map SAML attributes for: {error_msg_keys}. Please check your map attribute input values."
                 )
             )
 
