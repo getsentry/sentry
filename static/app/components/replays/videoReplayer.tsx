@@ -104,11 +104,9 @@ export class VideoReplayer {
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
+    el.addEventListener('seeked', event => {
+      // Centers the video when seeking
+      this._callbacks.onLoaded(event);
     });
     el.addEventListener('play', event => {
       if (index === this._currentIndex) {
@@ -117,7 +115,12 @@ export class VideoReplayer {
     });
 
     // Finished loading data, ready to play
-    el.addEventListener('loadeddata', () => {
+    el.addEventListener('loadeddata', event => {
+      // Used to correctly set the dimensions of the first frame
+      if (this._currentIndex === undefined && index === 0) {
+        this._callbacks.onLoaded(event);
+      }
+
       // Only call this for current segment as we preload multiple
       // segments simultaneously
       if (index === this._currentIndex) {
