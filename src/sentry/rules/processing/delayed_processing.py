@@ -27,5 +27,5 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         )
 
 
-def apply_delayed(project: Project, rule_group_pairs: Mapping[str, int]) -> None:
+def apply_delayed(project: Project, rule_group_pairs: Mapping[str, str]) -> None:
     pass
