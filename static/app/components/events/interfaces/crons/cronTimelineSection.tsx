@@ -18,8 +18,8 @@ import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimel
 import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
 import {
+  GridLineLabels,
   GridLineOverlay,
-  GridLineTimeLabels,
 } from 'sentry/views/monitors/components/timeline/gridLines';
 import type {
   MonitorBucketData,
@@ -139,7 +139,7 @@ const TimelineContainer = styled(Panel)`
   align-items: center;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
+const StyledGridLineTimeLabels = styled(GridLineLabels)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

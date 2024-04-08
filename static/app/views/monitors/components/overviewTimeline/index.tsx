@@ -18,7 +18,7 @@ import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
 import {DateNavigator} from '../timeline/dateNavigator';
-import {GridLineOverlay, GridLineTimeLabels} from '../timeline/gridLines';
+import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
 import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
 import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
@@ -135,7 +135,10 @@ export function OverviewTimeline({monitorList}: Props) {
             borderless
           />
         </HeaderControlsLeft>
-        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+        <AlignedGridLineLabels
+          timeWindowConfig={timeWindowConfig}
+          width={timelineWidth}
+        />
         <HeaderControlsRight>
           <DateNavigator
             dateNavigation={dateNavigation}
@@ -145,7 +148,7 @@ export function OverviewTimeline({monitorList}: Props) {
           />
         </HeaderControlsRight>
       </Header>
-      <GridLineOverlay
+      <AlignedGridLineOverlay
         stickyCursor
         allowZoom
         showCursor={!isLoading}
@@ -171,11 +174,6 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 }
 
-const MonitorListPanel = styled(Panel)`
-  display: grid;
-  grid-template-columns: 350px 135px 1fr max-content;
-`;
-
 const Header = styled(Sticky)`
   display: grid;
   grid-column: 1/-1;
@@ -195,6 +193,27 @@ const Header = styled(Sticky)`
   }
 `;
 
+const TimelineWidthTracker = styled('div')`
+  position: absolute;
+  width: 100%;
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const AlignedGridLineLabels = styled(GridLineLabels)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const MonitorListPanel = styled(Panel)`
+  display: grid;
+  grid-template-columns: 350px 135px 1fr max-content;
+`;
+
 const HeaderControlsLeft = styled('div')`
   grid-column: 1/3;
   display: flex;
@@ -207,11 +226,4 @@ const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
   padding: ${space(1.5)} ${space(2)};
-`;
-
-const TimelineWidthTracker = styled('div')`
-  position: absolute;
-  width: 100%;
-  grid-row: 1;
-  grid-column: 3/-1;
 `;
