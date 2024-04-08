@@ -24,10 +24,10 @@ class ProcessDelayedAlertConditionsTest(TestCase):
         }
 
         mock_buffer = Mock()
-        mock_buffer.get_list.return_value = self.buffer_mapping.keys()
+        mock_buffer.get_set.return_value = self.buffer_mapping.keys()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
-        mock_buffer.get_queue.side_effect = self.get_rulegroup_event_mapping_from_input
+        mock_buffer.get_hash.side_effect = self.get_rulegroup_event_mapping_from_input
 
         process_delayed_alert_conditions(mock_buffer)
 
