@@ -6,7 +6,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 class Migration(CheckedMigration):
     initial = True
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = []
 
