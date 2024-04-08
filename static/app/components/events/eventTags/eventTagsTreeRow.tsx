@@ -86,7 +86,7 @@ export default function EventTagsTreeRow({
           )}
         </TreeValue>
         {hasTagErrors ? (
-          <TreeValueErrors>
+          <TreeValueErrors data-test-id="tag-tree-row-errors">
             <AnnotatedTextErrors errors={tagErrors} />
           </TreeValueErrors>
         ) : (
@@ -269,7 +269,7 @@ const TreeValueTrunk = styled('div')`
 `;
 
 const TreeValue = styled('div')`
-  padding-top: ${space(0.25)};
+  padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
