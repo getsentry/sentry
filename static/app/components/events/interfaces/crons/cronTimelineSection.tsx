@@ -15,12 +15,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
+import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/timeline/gridLines';
-import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import type {
   MonitorBucketData,
   TimeWindow,
