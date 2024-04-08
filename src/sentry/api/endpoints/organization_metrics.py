@@ -31,6 +31,7 @@ from sentry.sentry_metrics.querying.data import (
     MetricsQueriesPlan,
     run_metrics_queries_plan,
 )
+from sentry.sentry_metrics.querying.data.plan import MetricsQueriesPlanBuilder
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -442,21 +443,21 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         Extracts the metrics queries plan from the request payload.
         """
         # TODO: maybe we could use a serializer to read the body of the request.
-        metrics_queries_plan = MetricsQueriesPlan()
+        builder = MetricsQueriesPlanBuilder()
 
         queries = request.data.get("queries") or []
         for query in queries:
-            metrics_queries_plan.declare_query(name=query["name"], mql=query["mql"])
+            builder.declare_query(name=query["name"], mql=query["mql"])
 
         formulas = request.data.get("formulas") or []
         for formula in formulas:
-            metrics_queries_plan.apply_formula(
+            builder.apply_formula(
                 mql=formula["mql"],
                 order=self._validate_order(formula.get("order")),
                 limit=self._validate_limit(formula.get("limit")),
             )
 
-        return metrics_queries_plan
+        return builder.build()
 
     def _get_query_type_from_request(self, request: Request) -> QueryType:
         include_series = (request.GET.get("includeSeries") or "true") == "true"

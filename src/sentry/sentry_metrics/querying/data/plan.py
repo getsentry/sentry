@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
@@ -48,9 +49,7 @@ class FormulaDefinition:
         return replace(self, mql=replaced_mql_formula)
 
 
-# TODO: maybe we want to evaluate a form of builder pattern where we can control the
-#  chaining of methods, so that we make sure that declaration strictly happens before formula
-#  definition.
+@dataclass(frozen=True)
 class MetricsQueriesPlan:
     """
     Represents a plan containing a series of queries and formulas to execute. The queries are defined as variables and
@@ -59,33 +58,10 @@ class MetricsQueriesPlan:
     For example, you could define a simple query "a: max(mri_1)" and use it in the formula as "$a".
     """
 
-    def __init__(self):
-        self._queries: dict[str, str] = {}
-        self._formulas: list[FormulaDefinition] = []
+    queries: Mapping[str, str]
+    formulas: Sequence[FormulaDefinition]
 
-    def declare_query(self, name: str, mql: str) -> "MetricsQueriesPlan":
-        """
-        Declares a query with a name and the mql definition.
-
-        Returns:
-            The MetricsQueriesPlan instance in which the query was added.
-        """
-        self._queries[name] = mql
-        return self
-
-    def apply_formula(
-        self, mql: str, order: QueryOrder | None = None, limit: int | None = None
-    ) -> "MetricsQueriesPlan":
-        """
-        Applies an mql formula on the queries that were previously declared.
-
-        Returns:
-            The MetricsQueriesPlan instance in which the formula was added.
-        """
-        self._formulas.append(FormulaDefinition(mql=mql, order=order, limit=limit))
-        return self
-
-    def get_replaced_formulas(self) -> list[FormulaDefinition]:
+    def get_replaced_formulas(self) -> Sequence[FormulaDefinition]:
         """
         Returns a list of formulas with the variables replaced with the actual mql query string.
 
@@ -99,7 +75,7 @@ class MetricsQueriesPlan:
         Returns:
             A list of FormulaDefinition objects whose formulas have been replaced.
         """
-        return list(map(lambda formula: formula.replace_variables(self._queries), self._formulas))
+        return list(map(lambda formula: formula.replace_variables(self.queries), self.formulas))
 
     def is_empty(self) -> bool:
         """
@@ -108,7 +84,43 @@ class MetricsQueriesPlan:
         Returns:
             A boolean which is True when the plan is empty, or False otherwise.
         """
-        return not self._formulas
+        return not self.formulas
+
+
+class MetricsQueriesPlanBuilder:
+    """
+    Represents a builder for creating a `MetricsQueriesPlan` incrementally.
+    """
+
+    def __init__(self):
+        self._queries: dict[str, str] = {}
+        self._formulas: list[FormulaDefinition] = []
+
+    def declare_query(self, name: str, mql: str) -> "MetricsQueriesPlanBuilder":
+        """
+        Declares a query with a name and the mql definition.
+
+        Returns:
+            The MetricsQueriesPlan instance in which the query was added.
+        """
+        self._queries[name] = mql
+        return self
+
+    def apply_formula(
+        self, mql: str, order: QueryOrder | None = None, limit: int | None = None
+    ) -> "MetricsQueriesPlanBuilder":
+        """
+        Defines an mql formula that will be executed. The formula can reference previously defined queries using the
+        `$query_name` syntax.
+
+        Returns:
+            The MetricsQueriesPlan instance in which the formula was added.
+        """
+        self._formulas.append(FormulaDefinition(mql=mql, order=order, limit=limit))
+        return self
+
+    def build(self) -> MetricsQueriesPlan:
+        return MetricsQueriesPlan(queries=self._queries, formulas=self._formulas)
 
 
 @dataclass(frozen=True)

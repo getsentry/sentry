@@ -13,6 +13,7 @@ from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
+    MetricsQueriesPlanBuilder,
     run_metrics_queries_plan,
 )
 from sentry.sentry_metrics.querying.errors import (
@@ -137,10 +138,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_no_formulas(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "transaction:/bar")
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1)
+        builder = MetricsQueriesPlanBuilder().declare_query("query_1", query_1)
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -164,10 +165,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("min", None, 0.0),
         ):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
-            plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+            builder = (
+                MetricsQueriesPlanBuilder()
+                .declare_query("query_1", query_1)
+                .apply_formula("$query_1")
+            )
 
             results = self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -189,10 +194,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_infinite_value(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1 / 0")
+        builder = (
+            MetricsQueriesPlanBuilder()
+            .declare_query("query_1", query_1)
+            .apply_formula("$query_1 / 0")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -214,10 +223,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -244,10 +255,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_only_totals(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -272,10 +285,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_unitless_aggregate(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -302,10 +317,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_environment(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -327,10 +344,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "release:latest")
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -352,10 +371,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_percentile(self) -> None:
         query_1 = self.mql("p90", TransactionMRI.DURATION.value)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -382,10 +403,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         # We only want to check if these percentiles return results.
         for percentile in ("p50", "p75", "p90", "p95", "p99"):
             query_1 = self.mql(percentile, TransactionMRI.DURATION.value)
-            plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+            builder = (
+                MetricsQueriesPlanBuilder()
+                .declare_query("query_1", query_1)
+                .apply_formula("$query_1")
+            )
 
             results = self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -402,11 +427,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         # We only want to check if these percentiles result in a error.
         for percentile in ("p30", "p45"):
             query_1 = self.mql(percentile, TransactionMRI.DURATION.value)
-            plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+            builder = (
+                MetricsQueriesPlanBuilder()
+                .declare_query("query_1", query_1)
+                .apply_formula("$query_1")
+            )
 
             with pytest.raises(MetricsQueryExecutionError):
                 self.run_query(
-                    metrics_queries_plan=plan,
+                    metrics_queries_plan=builder.build(),
                     start=self.now() - timedelta(minutes=30),
                     end=self.now() + timedelta(hours=1, minutes=30),
                     interval=3600,
@@ -419,10 +448,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction, platform")
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -464,14 +495,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by_and_order_by(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .apply_formula("$query_1", order=QueryOrder.DESC)
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -501,14 +532,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by_and_order_by_and_only_totals(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .apply_formula("$query_1", order=QueryOrder.ASC)
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -549,10 +580,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         query_1 = self.mql("sum", TransactionMRI.MEASUREMENTS_FCP.value, group_by="transaction")
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now(),
             end=self.now() + timedelta(hours=1),
             interval=3600,
@@ -575,10 +608,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_parenthesized_filter(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -611,10 +646,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios AND transaction:/hello", "platform"
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -640,10 +677,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios OR platform:android", "platform"
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -676,10 +715,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "!platform:ios transaction:/hello", "platform"
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -705,10 +746,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:[android, ios]", "platform"
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -741,10 +784,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, '!platform:["android", "ios"]', "platform"
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -769,8 +814,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_multiple_aggregations(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value)
         query_2 = self.mql("max", TransactionMRI.DURATION.value)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1")
@@ -778,7 +823,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -808,8 +853,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
         query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1")
@@ -817,7 +862,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -881,8 +926,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     ) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
         query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1", QueryOrder.ASC, 2)
@@ -890,7 +935,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -947,14 +992,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         self,
     ) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .apply_formula("$query_1", limit=SNUBA_QUERY_LIMIT + 10)
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -984,8 +1029,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     ) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
         query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1", order=QueryOrder.DESC)
@@ -998,7 +1043,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         # the groups * intervals combinations. Once the bug will be fixed on the snuba side, we should
         # expect to get back 3 correct entries from the series query.
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1054,10 +1099,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         query_1 = self.mql("count_unique", mri)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1094,10 +1141,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         query_1 = self.mql("sum", mri)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1134,10 +1183,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         query_1 = self.mql("sum", mri)
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1174,15 +1225,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         query_1 = self.mql("sum", mri_1)
         query_2 = self.mql("sum", mri_2)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1")
             .apply_formula("$query_2")
         )
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1207,11 +1258,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             TransactionMRI.DURATION.value,
             "transaction:/api/0/organizations/{organization_slug}/",
         )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+        builder = (
+            MetricsQueriesPlanBuilder().declare_query("query_1", query_1).apply_formula("$query_1")
+        )
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1228,8 +1281,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             TransactionMRI.DURATION.value,
         )
         query_2 = self.mql("max", "d:custom/app_load@millisecond")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 / $query_2")
@@ -1237,7 +1290,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1251,8 +1304,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_different_metric_types(self):
         query_1 = self.mql("count", "c:custom/page_click@none")
         query_2 = self.mql("max", "d:custom/app_load@millisecond")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 * $query_2")
@@ -1260,7 +1313,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1274,8 +1327,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_different_group_bys(self):
         query_1 = self.mql("min", "d:custom/page_click@none", group_by="transaction, environment")
         query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 * $query_2 / $query_1")
@@ -1283,7 +1336,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1297,8 +1350,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_complex_group_by(self):
         query_1 = self.mql("min", "d:custom/page_click@none", group_by="environment")
         query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("((($query_1 * $query_2) by (release)) / $query_1) by (browser)")
@@ -1306,7 +1359,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1320,15 +1373,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_basic_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_2 / $query_1")
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1347,8 +1400,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_complex_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_2 * $query_1 + 100")
@@ -1357,7 +1410,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1377,15 +1430,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_formula_and_group_by(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("($query_2 * $query_1) by (platform, transaction)")
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1412,8 +1465,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_formula_and_filter(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
         query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula(
@@ -1422,7 +1475,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1477,15 +1530,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
-            plan = (
-                MetricsQueriesPlan()
+            builder = (
+                MetricsQueriesPlanBuilder()
                 .declare_query("query_1", query_1)
                 .declare_query("query_2", query_2)
                 .apply_formula(formula)
             )
 
             results = self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
@@ -1523,15 +1576,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         query_1 = self.mql("avg", mri_1)
         query_2 = self.mql("sum", mri_2)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1569,15 +1622,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         query_1 = self.mql("avg", mri_1)
         query_2 = self.mql("count", mri_2)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1615,15 +1668,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         query_1 = self.mql("avg", mri_1)
         query_2 = self.mql("sum", mri_2)
-        plan = (
-            MetricsQueriesPlan()
+        builder = (
+            MetricsQueriesPlanBuilder()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
-            metrics_queries_plan=plan,
+            metrics_queries_plan=builder.build(),
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -1671,15 +1724,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
-            plan = (
-                MetricsQueriesPlan()
+            builder = (
+                MetricsQueriesPlanBuilder()
                 .declare_query("query_1", query_1)
                 .declare_query("query_2", query_2)
                 .apply_formula(formula)
             )
 
             results = self.run_query(
-                metrics_queries_plan=plan,
+                metrics_queries_plan=builder.build(),
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,
