@@ -68,6 +68,7 @@ const StyledImageButton = styled('button')`
   background: none;
   padding: 0;
   border: 0;
+  overflow: auto;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
