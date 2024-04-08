@@ -14,19 +14,19 @@ import type {Event, Organization, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
+import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
+import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {TimelinePlaceholder} from 'sentry/views/monitors/components/overviewTimeline/timelinePlaceholder';
+} from 'sentry/views/monitors/components/timeline/gridLines';
+import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import type {
   MonitorBucketData,
   TimeWindow,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
-import {getTimeRangeFromEvent} from 'sentry/views/monitors/utils/getTimeRangeFromEvent';
+} from 'sentry/views/monitors/components/timeline/types';
+import {getConfigFromTimeRange} from 'sentry/views/monitors/components/timeline/utils/getConfigFromTimeRange';
+import {getTimeRangeFromEvent} from 'sentry/views/monitors/components/timeline/utils/getTimeRangeFromEvent';
 
 interface Props {
   event: Event;
@@ -125,7 +125,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </FadeInContainer>
           </Fragment>
         ) : (
-          <TimelinePlaceholder />
+          <CheckInPlaceholder />
         )}
       </TimelineContainer>
     </EventDataSection>

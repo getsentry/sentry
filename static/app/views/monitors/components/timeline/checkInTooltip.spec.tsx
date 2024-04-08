@@ -1,8 +1,9 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getFormat} from 'sentry/utils/dates';
-import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
-import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
+
+import {CheckInTooltip} from './checkInTooltip';
+import type {TimeWindowConfig} from './types';
 
 type StatusCounts = [
   in_progress: number,
@@ -33,7 +34,7 @@ const tickConfig: TimeWindowConfig = {
   dateTimeProps: {timeOnly: true},
 };
 
-describe('JobTickTooltip', function () {
+describe('CheckInTooltip', function () {
   it('renders tooltip representing single job run', async function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
@@ -48,7 +49,7 @@ describe('JobTickTooltip', function () {
     };
 
     render(
-      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+      <CheckInTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
     );
 
     // Skip the header row
@@ -73,7 +74,7 @@ describe('JobTickTooltip', function () {
     };
 
     render(
-      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+      <CheckInTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
     );
 
     const okayRow = (await screen.findAllByRole('row'))[1];
@@ -113,7 +114,7 @@ describe('JobTickTooltip', function () {
     };
 
     render(
-      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+      <CheckInTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
     );
 
     const missedProdRow = (await screen.findAllByRole('row'))[1];

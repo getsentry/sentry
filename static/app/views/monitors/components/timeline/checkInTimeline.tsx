@@ -5,10 +5,10 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {tickStyle} from 'sentry/views/monitors/utils';
-import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
-import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
-import {JobTickTooltip} from './jobTickTooltip';
+import {getAggregateStatus} from './utils/getAggregateStatus';
+import {mergeBuckets} from './utils/mergeBuckets';
+import {CheckInTooltip} from './checkInTooltip';
 import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
@@ -53,7 +53,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
         const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
         return (
-          <JobTickTooltip
+          <CheckInTooltip
             jobTick={jobTick}
             timeWindowConfig={timeWindowConfig}
             skipWrapper
@@ -65,7 +65,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
               roundedLeft={roundedLeft}
               roundedRight={roundedRight}
             />
-          </JobTickTooltip>
+          </CheckInTooltip>
         );
       })}
     </TimelineContainer>
