@@ -115,8 +115,9 @@ def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
             "function": m["name"],
             "index": i,
             "module": m["class_name"],
-            "signature": m["signature"],
         }
+        if "signature" in m:
+            f["signature"] = m["signature"]
         if "source_line" in m:
             f["lineno"] = m["source_line"]
         if "source_file" in m:
@@ -129,8 +130,8 @@ def _merge_jvm_frame_and_android_method(f: dict, m: dict) -> None:
     m["class_name"] = f["module"]
     m["data"] = {"deobfuscation_status": "deobfuscated"}
     m["name"] = f["function"]
-    m["signature"] = f["signature"]
-
+    if "signature" in f:
+        m["signature"] = f["signature"]
     if "filename" in f:
         m["source_file"] = f["filename"]
     if "lineno" in f and f["lineno"] != 0:
