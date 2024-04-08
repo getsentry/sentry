@@ -75,7 +75,7 @@ def _backfill_alert_rule_projects(apps, schema_editor):
 
 
 class Migration(CheckedMigration):
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0686_remove_config_from_checkin_state_operation"),

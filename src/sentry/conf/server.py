@@ -2333,14 +2333,6 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
-# Release Health
-SENTRY_RELEASE_HEALTH = "sentry.release_health.metrics.MetricsReleaseHealthBackend"
-SENTRY_RELEASE_HEALTH_OPTIONS: dict[str, Any] = {}
-
-# Release Monitor
-SENTRY_RELEASE_MONITOR = "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend"
-SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
-
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
