@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_replay_ids_eq, mock_replay, mock_replay_viewed
+from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils import json
 
@@ -25,26 +25,57 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replay_viewed_by1(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        seq3_timestamp = datetime.datetime.now()
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
 
-        # mock views
+        # 2 views by same user (should be dedup'd)
         self.store_replays(
             mock_replay_viewed(
-                seq2_timestamp.timestamp(), self.project.id, self.replay_id, self.user.id
+                seq2_timestamp.timestamp(),
+                self.project.id,
+                self.replay_id,
+                self.user.id,
             )
         )
-        # self.store_replays(mock_replay_viewed(seq2_timestamp, self.project.id, self.replay_id, self.user.id))
-        # self.store_replays(mock_replay_viewed(seq2_timestamp, self.project.id, self.replay_id, self.user.id))
+        self.store_replays(
+            mock_replay_viewed(
+                seq3_timestamp.timestamp(), self.project.id, self.replay_id, self.user.id
+            )
+        )
 
-        # check ids are returned in viewed_by and dedup
+        # second user
+        other_user = self.create_user()
+        self.store_replays(
+            mock_replay_viewed(
+                seq3_timestamp.timestamp(), self.project.id, self.replay_id, other_user.id
+            )
+        )
+
+        # nonexistent user (shouldn't show up in response)
+        self.store_replays(
+            mock_replay_viewed(
+                seq2_timestamp.timestamp(),
+                self.project.id,
+                self.replay_id,
+                2387562378,
+            )
+        )
+
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
             data = response.data["data"]
-            assert_replay_ids_eq(data["id"], self.replay_id)
-            assert len(data["viewed_by"]) == 1
-            assert int(data["viewed_by"][0]["id"]) == self.user.id
+
+            assert len(data["viewed_by"]) == 2
+            response_ids = []
+            for serialized_user in data["viewed_by"]:
+                response_ids.append(serialized_user["id"])
+            # ids are returned in no particular order
+            assert str(self.user.id) in response_ids
+            assert str(other_user.id) in response_ids
+
+        # TODO: should we make any assertions on the user fields?
 
     def test_get_replay_viewed_by_no_viewers(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -55,7 +86,6 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert_replay_ids_eq(response.data["data"]["id"], self.replay_id)
             assert len(response.data["data"]["viewed_by"]) == 0
 
     def test_get_replay_viewed_by_not_found(self):

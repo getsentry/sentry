@@ -33,10 +33,6 @@ def ms(timestamp: datetime.datetime) -> int:
     return int(timestamp.timestamp()) * 1000
 
 
-def assert_replay_ids_eq(id1: str, id2: str):
-    assert id1.replace("-", "") == id2.replace("-", "")
-
-
 def assert_expected_response(response: dict[str, Any], expected_response: dict[str, Any]) -> None:
     """Assert a received response matches what was expected."""
     # Compare the response structure and values to the expected response.

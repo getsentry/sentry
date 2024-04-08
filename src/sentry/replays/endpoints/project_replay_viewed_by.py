@@ -13,8 +13,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
-    RESPONSE_SUCCESS,
 )
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -70,31 +70,22 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         )
         if not viewed_by_ids_response:
             return Response(status=404)
-
-        # If a row was returned but it contained no viewed-by-ids we can skip the lookup
-        # step and return the empty set.
         viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
-        if not viewed_by_ids:
-            # TODO: is this case necessary?
-            response = {
-                "id": replay_id,
-                "viewed_by": [],
-            }
-        else:
-            # query + serialize the User objects from postgres
-            response = generate_viewed_by_response(
-                replay_id=replay_id,
-                viewed_by_ids=viewed_by_ids,
-                request_user=request.user,
-            )
 
+        # query + serialize the User objects from postgres.
+        # note that invalid/non-existent viewed_by_ids returned from Snuba will be skipped.
+        response: ReplayViewedByResponse = generate_viewed_by_response(
+            replay_id=replay_id,
+            viewed_by_ids=viewed_by_ids,
+            request_user=request.user,
+        )
         return Response({"data": response}, status=200)
 
     @extend_schema(
         operation_id="Post that the requesting user has viewed a replay",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, ReplayParams.REPLAY_ID],
         responses={
-            200: RESPONSE_SUCCESS,
+            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
