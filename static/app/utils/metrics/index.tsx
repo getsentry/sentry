@@ -451,9 +451,7 @@ export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
 }
 
 export function areResultsLimited(response: MetricsQueryApiResponse) {
-  const lastMetaEntries = response.meta.map(
-    meta => meta[meta.length - 1]
-  ) as MetricsQueryApiResponseLastMeta[];
-
-  return lastMetaEntries.some(meta => meta.has_more);
+  return response.meta.some(
+    meta => (meta[meta.length - 1] as MetricsQueryApiResponseLastMeta).has_more
+  );
 }
