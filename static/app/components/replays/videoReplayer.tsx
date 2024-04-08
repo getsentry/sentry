@@ -104,7 +104,7 @@ export class VideoReplayer {
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('seeked', event => {
+    el.addEventListener('seeking', event => {
       // Centers the video when seeking
       this._callbacks.onLoaded(event);
     });
