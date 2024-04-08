@@ -33,7 +33,8 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
 
   const accordionRef = useRef<HTMLDivElement>(null);
-  const floatingSidebarRef = useRef<HTMLDivElement>(null);
+  const mainItemRef = useRef<HTMLDivElement>(null);
+  const floatingAccordionRef = useRef<HTMLDivElement>(null);
   const {expandedItemId, setExpandedItemId} = useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -42,7 +43,11 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     `sidebar-accordion-${id}:expanded`,
     true
   );
-  useOnClickOutside(floatingSidebarRef, () => {
+
+  useOnClickOutside(floatingAccordionRef, e => {
+    if (mainItemRef?.current?.contains(e.target as Node)) {
+      return;
+    }
     setExpandedItemId(null);
   });
 
@@ -99,30 +104,32 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   return (
     <SidebarAccordionWrapper ref={accordionRef}>
       <SidebarAccordionHeaderWrap>
-        <SidebarItem
-          {...itemProps}
-          active={isActive && !hasActiveChildren}
-          id={mainItemId}
-          aria-expanded={expanded}
-          aria-owns={contentId}
-          onClick={handleMainItemClick}
-          trailingItems={
-            <SidebarAccordionExpandButton
-              size="zero"
-              borderless
-              onClick={handleExpandAccordionClick}
-              aria-controls={mainItemId}
-              aria-label={expanded ? t('Collapse') : t('Expand')}
-              sidebarCollapsed={sidebarCollapsed}
-            >
-              <IconChevron
-                size="xs"
-                direction={expanded ? 'up' : 'down'}
-                role="presentation"
-              />
-            </SidebarAccordionExpandButton>
-          }
-        />
+        <div ref={mainItemRef}>
+          <SidebarItem
+            {...itemProps}
+            active={isActive && !hasActiveChildren}
+            id={mainItemId}
+            aria-expanded={expanded}
+            aria-owns={contentId}
+            onClick={handleMainItemClick}
+            trailingItems={
+              <SidebarAccordionExpandButton
+                size="zero"
+                borderless
+                onClick={handleExpandAccordionClick}
+                aria-controls={mainItemId}
+                aria-label={expanded ? t('Collapse') : t('Expand')}
+                sidebarCollapsed={sidebarCollapsed}
+              >
+                <IconChevron
+                  size="xs"
+                  direction={expanded ? 'up' : 'down'}
+                  role="presentation"
+                />
+              </SidebarAccordionExpandButton>
+            }
+          />
+        </div>
       </SidebarAccordionHeaderWrap>
       {expanded && !horizontal && !sidebarCollapsed && (
         <SidebarAccordionSubitemsWrap id={contentId}>
@@ -130,16 +137,16 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         </SidebarAccordionSubitemsWrap>
       )}
       {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
-        <FloatingSidebar
+        <FloatingAccordion
           accordionRef={accordionRef}
           horizontal={horizontal}
-          ref={floatingSidebarRef}
+          ref={floatingAccordionRef}
         >
           <SidebarItemLabel onClick={handleTitleClick}>
             {itemProps.label}
           </SidebarItemLabel>
           {childrenWithProps}
-        </FloatingSidebar>
+        </FloatingAccordion>
       )}
     </SidebarAccordionWrapper>
   );
@@ -207,7 +214,7 @@ const SidebarItemLabel = styled('div')`
   }
 `;
 
-const FloatingSidebar = styled('div')<{
+const FloatingAccordion = styled('div')<{
   accordionRef: React.RefObject<HTMLDivElement>;
   horizontal: boolean;
 }>`
