@@ -18,6 +18,7 @@ KEY_RATE_LIMIT = {
         "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
+        "crons": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/crons/___MONITOR_SLUG___/a785682ddda719b7a8a4011110d75598/",
     },
     "browserSdkVersion": "7.x",
     "browserSdk": {"choices": [["latest", "latest"], ["7.x", "7.x"]]},
