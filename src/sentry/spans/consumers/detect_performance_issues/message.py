@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
-logger = logging.getLogger("sentry.spans")
+logger = logging.getLogger(__name__)
 
 
 def build_tree(spans):
