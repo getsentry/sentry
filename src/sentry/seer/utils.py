@@ -1,11 +1,17 @@
+import logging
 from typing import TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
+
+POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
+
+logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
@@ -40,14 +46,7 @@ seer_connection_pool = connection_from_url(
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
-seer_staging_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
-)
+seer_staging_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
 
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
@@ -117,5 +116,51 @@ def get_similar_issues_embeddings(
     try:
         return json.loads(response.data.decode("utf-8"))
     except AttributeError:
-        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
-        return empty_response
+        return SimilarIssuesEmbeddingsResponse(responses=[])
+
+
+class CreateGroupingRecordData(TypedDict):
+    group_id: int
+    project_id: int
+    message: str
+
+
+class CreateGroupingRecordsRequest(TypedDict):
+    group_id_list: list[int]
+    data: list[CreateGroupingRecordData]
+    stacktrace_list: list[str]
+
+
+class BulkCreateGroupingRecordsResponse(TypedDict):
+    success: bool
+
+
+def post_bulk_grouping_records(
+    grouping_records_request: CreateGroupingRecordsRequest,
+) -> BulkCreateGroupingRecordsResponse:
+    """Call /v0/issues/similar-issues/grouping-record endpoint from seer."""
+    extra = {
+        "group_ids": json.dumps(grouping_records_request["group_id_list"]),
+        "project_id": grouping_records_request["data"][0]["project_id"],
+    }
+
+    try:
+        response = seer_staging_connection_pool.urlopen(
+            "POST",
+            "/v0/issues/similar-issues/grouping-record",
+            body=json.dumps(grouping_records_request),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        )
+    except ReadTimeoutError:
+        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        return {"success": False}
+
+    if response.status >= 200 and response.status < 300:
+        logger.info("seer.post_bulk_grouping_records.success", extra=extra)
+        return json.loads(response.data.decode("utf-8"))
+    else:
+        extra.update({"reason": response.reason})
+        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        return {"success": False}

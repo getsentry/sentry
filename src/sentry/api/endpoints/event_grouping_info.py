@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.variants import PerformanceProblemVariant
 from sentry.models.project import Project
@@ -17,8 +18,10 @@ from sentry.utils.performance_issues.performance_detection import EventPerforman
 logger = logging.getLogger(__name__)
 
 
-def get_grouping_info(config_name: str | None, project: Project, event_id: str):
-    event = eventstore.backend.get_event_by_id(project.id, event_id)
+def get_grouping_info(
+    config_name: str | None, project: Project, event_id: str, event: Event | None = None
+):
+    event = event if event else eventstore.backend.get_event_by_id(project.id, event_id)
     if event is None:
         raise ResourceDoesNotExist
 
