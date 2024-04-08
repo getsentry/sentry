@@ -22,7 +22,6 @@ class Topic(Enum):
     EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-    SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"

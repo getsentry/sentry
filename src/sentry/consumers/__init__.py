@@ -239,14 +239,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "generic_metrics"},
     },
-    "sessions-subscription-results": {
-        "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(),
-        "static_args": {
-            "dataset": "events",
-        },
-    },
     "metrics-subscription-results": {
         "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",

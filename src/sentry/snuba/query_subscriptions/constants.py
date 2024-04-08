@@ -6,7 +6,6 @@ dataset_to_logical_topic = {
     Dataset.Events: "events-subscription-results",
     Dataset.Transactions: "transactions-subscription-results",
     Dataset.PerformanceMetrics: "generic-metrics-subscription-results",
-    Dataset.Sessions: "sessions-subscription-results",
     Dataset.Metrics: "metrics-subscription-results",
 }
 
