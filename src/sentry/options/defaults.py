@@ -1817,6 +1817,12 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# === Nodestore related runtime options ===
+
+register(
+    "nodestore.set-subkeys.enable-set-cache-item", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
