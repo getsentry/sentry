@@ -29,7 +29,7 @@ const options: ComboBoxOptionOrSection<string>[] = [
   },
 ];
 
-export default storyBook(ComboBox, story => {
+export default storyBook('ComboBox', story => {
   story('Default', () => {
     const [value, setValue] = useState('opt_one');
     return (
