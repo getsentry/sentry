@@ -466,7 +466,7 @@ register(
 
 # React concurrent renderer
 register(
-    "organizations:react-concurrent-renderer-enabled",
+    "frontend.react-concurrent-renderer-enabled",
     type=Bool,
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
