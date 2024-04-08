@@ -53,7 +53,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            replay_id = str(uuid.UUID(replay_id))
+            uuid.UUID(replay_id)
         except ValueError:
             return Response(status=404)
 
@@ -75,17 +75,14 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         # step and return the empty set.
         viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
         if not viewed_by_ids:
-            response = {
-                "id": replay_id,
-                "viewed_by": [],
-            }
-        else:
-            # query + serialize the User objects from postgres
-            response = generate_viewed_by_response(
-                replay_id=replay_id,
-                viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
-                request_user=request.user,
-            )
+            return Response({"data": {"id": replay_id, "viewed_by": []}}, status=200)
+
+        # query + serialize the User objects from postgres
+        response = generate_viewed_by_response(
+            replay_id=replay_id,
+            viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
+            request_user=request.user,
+        )
 
         return Response({"data": response}, status=200)
 

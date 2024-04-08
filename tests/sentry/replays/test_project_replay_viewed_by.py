@@ -44,6 +44,11 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert_replay_ids_eq(response.data["data"]["id"], self.replay_id)
             assert len(response.data["data"]["viewed_by"]) == 0
 
+            response_data = response.json()
+            assert "data" in response_data
+            assert response_data["data"]["id"] == self.replay_id
+            assert response_data["data"]["viewed_by"] == []
+
     def test_get_replay_viewed_by_not_found(self):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
