@@ -90,12 +90,8 @@ export function MockTimelineVisualization({schedule}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
         <Fragment>
-          <Placeholder height="40px" />
-          {errorMessage ? (
-            <Placeholder testId="error-placeholder" height="100px" />
-          ) : (
-            <CheckInPlaceholder />
-          )}
+          <Placeholder height="50px" />
+          {errorMessage ? null : <CheckInPlaceholder />}
         </Fragment>
       ) : (
         <Fragment>
