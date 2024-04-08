@@ -157,7 +157,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay_viewed(seq2_timestamp, project.id, replay1_id, self.user.id))
+        self.store_replays(
+            mock_replay_viewed(seq2_timestamp.timestamp(), project.id, replay1_id, self.user.id)
+        )
 
         replay2_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=20)
@@ -174,8 +176,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert len(response_data["data"]) == 2
 
             # Assert the first replay was viewed and the second replay was not.
-            assert response_data["data"][0]["has_viewed"] is True
-            assert response_data["data"][1]["has_viewed"] is False
+            assert response_data["data"][0]["has_viewed"] is False
+            assert response_data["data"][0]["id"] == replay2_id
+            assert response_data["data"][1]["has_viewed"] is True
+            assert response_data["data"][1]["id"] == replay1_id
 
     def test_get_replays_browse_screen_fields(self):
         """Test replay response with fields requested in production."""
@@ -628,7 +632,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
         )
         self.store_replays(
-            mock_replay_viewed(seq1_timestamp, project.id, replay1_id, viewed_by_id=1)
+            mock_replay_viewed(seq1_timestamp.timestamp(), project.id, replay1_id, viewed_by_id=1)
         )
 
         with self.feature(REPLAYS_FEATURES):
