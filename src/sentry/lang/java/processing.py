@@ -99,14 +99,14 @@ def _normalize_frame(raw_frame: Any, index: int) -> dict:
     return frame
 
 
-def _get_exceptions_for_symbolication(data: Any) -> list[dict[str, Any]]:
-    "Returns the exceptions contained in `data` for symbolication."
+def _get_exceptions_for_symbolication(all_exceptions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    "Returns those exceptions in all_exceptions that should be symbolicated."
 
     exceptions = []
 
-    for exc in get_path(data, "exception", "values", filter=True, default=()):
+    for index, exc in enumerate():
         if exc.get("type") is not None and exc.get("module") is not None:
-            exceptions.append({"type": exc["type"], "module": exc["module"]})
+            exceptions.append({"type": exc["type"], "module": exc["module"], "index": index})
     return exceptions
 
 
@@ -196,18 +196,19 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    exceptions = _get_exceptions_for_symbolication(data)
+    all_exceptions = get_path(data, "exception", "values", filter=True, default=())
+    processable_exceptions = _get_exceptions_for_symbolication(all_exceptions)
 
     metrics.incr("proguard.symbolicator.events")
 
-    if not any(stacktrace["frames"] for stacktrace in stacktraces) and not exceptions:
+    if not any(stacktrace["frames"] for stacktrace in stacktraces) and not processable_exceptions:
         metrics.incr("proguard.symbolicator.events.skipped")
         return
 
     release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
     response = symbolicator.process_jvm(
-        exceptions=exceptions,
+        exceptions=processable_exceptions,
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
@@ -253,9 +254,10 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": raw_frames,
             }
 
-    assert len(exceptions) == len(response["exceptions"])
+    assert len(response["exceptions"]) == len(processable_exceptions)
 
-    # NOTE: we are using the `data.exception.values` directory here
+    for index, raw_exception in enumerate(all_exceptions):
+        pass
     for exception, complete_exception in zip(
         get_path(data, "exception", "values", filter=True, default=()),
         response["exceptions"],
