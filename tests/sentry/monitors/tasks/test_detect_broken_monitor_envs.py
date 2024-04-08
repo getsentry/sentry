@@ -24,6 +24,15 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self._run_tasks = self.tasks()
+        self._run_tasks.__enter__()
+
+    def tearDown(self):
+        super().tearDown()
+        self._run_tasks.__exit__(None, None, None)
+
     def create_monitor_env(self, monitor, environment_id):
         return MonitorEnvironment.objects.create(
             monitor=monitor,
