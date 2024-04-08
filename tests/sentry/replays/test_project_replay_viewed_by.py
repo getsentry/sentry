@@ -4,8 +4,9 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_replay_ids_eq, mock_replay
+from sentry.replays.testutils import assert_replay_ids_eq, mock_replay, mock_replay_viewed
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.utils import json
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -21,16 +22,30 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    # TODO
-    # def test_get_replay_viewed_by(self):
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-    #     self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
-    #     self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
+    def test_get_replay_viewed_by1(self):
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         response = self.client.get(self.url)
-    #         assert response.status_code == 200
+        # mock views
+        self.store_replays(
+            mock_replay_viewed(
+                seq2_timestamp.timestamp(), self.project.id, self.replay_id, self.user.id
+            )
+        )
+        # self.store_replays(mock_replay_viewed(seq2_timestamp, self.project.id, self.replay_id, self.user.id))
+        # self.store_replays(mock_replay_viewed(seq2_timestamp, self.project.id, self.replay_id, self.user.id))
+
+        # check ids are returned in viewed_by and dedup
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            data = response.data["data"]
+            assert_replay_ids_eq(data["id"], self.replay_id)
+            assert len(data["viewed_by"]) == 1
+            assert data["viewed_by"][0]["id"] == self.user.id
+            # assert_expected_response()
 
     def test_get_replay_viewed_by_no_viewers(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -61,3 +76,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.post(self.url, data="")
             assert response.status_code == 204
             assert publish_replay_event.called
+
+            replay_event = json.loads(publish_replay_event.call_args[0][0])
+            payload = json.loads(bytes(replay_event["payload"]))
+            assert payload["type"] == "replay_viewed"
