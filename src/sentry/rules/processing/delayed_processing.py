@@ -19,9 +19,9 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
 
         for project in RangeQuerySetWrapper(Project.objects.filter(id__in=project_ids)):
-            with metrics.timer("delayed_processing.process_project.duration"):
-                rulegroup_event_mapping = buffer.get_hash(model=Project, field={"id": project.id})
+            rulegroup_event_mapping = buffer.get_hash(model=Project, field={"id": project.id})
 
+            with metrics.timer("delayed_processing.process_project.duration"):
                 safe_execute(
                     apply_delayed,
                     project,
