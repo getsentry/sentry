@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
@@ -948,6 +949,41 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
         assert second_meta[0]["limit"] == 2
         assert second_meta[0]["order"] == "DESC"
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_limit_above_snuba_limit(
+        self,
+    ) -> None:
+        query_1 = self.mql("min", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .apply_formula("$query_1", limit=SNUBA_QUERY_LIMIT + 10)
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(1.0)
+        meta = results["meta"]
+        assert len(meta) == 1
+        first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
+        assert first_meta[0]["limit"] == SNUBA_QUERY_LIMIT
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
