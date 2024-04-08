@@ -220,7 +220,7 @@ export default function MonitorCreateForm() {
 }
 
 const FieldContainer = styled('div')`
-  width: 800px;
+  max-width: 800px;
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
