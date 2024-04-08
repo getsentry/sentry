@@ -22,7 +22,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_get_replay_viewed_by(self):
+    def test_get_replay_viewed_by1(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
@@ -44,8 +44,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             data = response.data["data"]
             assert_replay_ids_eq(data["id"], self.replay_id)
             assert len(data["viewed_by"]) == 1
-            assert data["viewed_by"][0]["id"] == self.user.id
-            # assert_expected_response()
+            assert int(data["viewed_by"][0]["id"]) == self.user.id
 
     def test_get_replay_viewed_by_no_viewers(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
