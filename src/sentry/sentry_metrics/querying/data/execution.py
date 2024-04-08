@@ -246,7 +246,7 @@ class ScheduledQuery:
 
         # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
         # to keep that as it was supplied by the executor.
-        updated_metrics_query = updated_metrics_query.set_limit(limit)
+        updated_metrics_query = updated_metrics_query.set_limit(min(limit, SNUBA_QUERY_LIMIT))
 
         return updated_metrics_query, dynamic_limit
 
