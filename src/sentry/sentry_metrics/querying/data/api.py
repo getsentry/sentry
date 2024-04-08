@@ -43,6 +43,7 @@ def run_metrics_queries_plan(
     base_query = MetricsQuery(
         start=start,
         end=end,
+        rollup=Rollup(interval),
         scope=MetricsScope(
             org_ids=[organization.id],
             project_ids=[project.id for project in projects],
@@ -57,9 +58,7 @@ def run_metrics_queries_plan(
     for query_expression, query_order, query_limit in parser.generate_queries():
         intermediate_queries.append(
             IntermediateQuery(
-                metrics_query=base_query.set_query(query_expression).set_rollup(
-                    Rollup(interval=interval)
-                ),
+                metrics_query=base_query.set_query(query_expression),
                 order=query_order,
                 limit=query_limit,
             )
