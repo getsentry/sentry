@@ -22,9 +22,9 @@ import useProjects from 'sentry/utils/useProjects';
 import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
 import {
   useVirtualizedList,
-  VirtualizedRow,
+  type VirtualizedRow,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
-import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -37,7 +37,7 @@ import {
 import {
   makeTraceNodeBarColor,
   ParentAutogroupNode,
-  type TraceTree,
+  TraceTree,
   type TraceTreeNode,
 } from './traceModels/traceTree';
 import {
@@ -210,20 +210,18 @@ export function Trace({
 
     // Node path has higher specificity than eventId
     const promise = scrollQueueRef.current?.path
-      ? manager.scrollToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
+      ? TraceTree.ExpandToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
           api,
           organization,
-          anchor: 'center',
         })
       : scrollQueueRef.current.eventId
-        ? manager.scrollToEventID(
+        ? TraceTree.ExpandToEventID(
             scrollQueueRef?.current?.eventId,
             trace,
             rerenderRef.current,
             {
               api,
               organization,
-              anchor: 'center',
             }
           )
         : Promise.resolve(null);

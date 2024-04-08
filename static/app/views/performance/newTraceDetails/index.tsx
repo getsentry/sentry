@@ -38,7 +38,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {
-  ViewManagerScrollAnchor,
+  type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {
@@ -439,6 +439,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       viewManager.scrollToRow(index, anchor);
       previouslyScrolledToNodeRef.current = node;
 
+      // If the row had not yet been measured, then enqueue a listener for when
+      // the row is rendered and measured. This ensures that horizontal scroll
+      // accurately narrows zooms to the start of the node as the new width will be updated
       if (!viewManager.row_measurer.cache.has(node)) {
         viewManager.row_measurer.once('row measure end', () => {
           if (
@@ -465,33 +468,36 @@ function TraceViewContent(props: TraceViewContentProps) {
         return;
       }
 
-      previouslyFocusedNodeRef.current = null;
-      viewManager
-        .scrollToPath(tree, node.path, rerender, {
-          api,
-          organization,
-          anchor: 'center if outside',
-        })
-        .then(maybeNode => {
-          if (maybeNode) {
-            viewManager.scrollToRow(maybeNode.index, 'center if outside');
-            traceDispatch({
-              type: 'set roving index',
-              node: maybeNode.node,
-              index: maybeNode.index,
-              action_source: 'click',
-            });
-            setRowAsFocused(
-              maybeNode.node,
-              null,
-              traceStateRef.current.search.resultsLookup,
-              null,
-              0
-            );
-          }
-        });
+      // We call scrollToPath because we want to ensure that the node is visible
+      TraceTree.ExpandToPath(tree, node.path, rerender, {
+        api,
+        organization,
+      }).then(maybeNode => {
+        if (maybeNode) {
+          previouslyFocusedNodeRef.current = null;
+          scrollRowIntoView(
+            maybeNode.node,
+            maybeNode.index,
+            'programmatic scroll',
+            'center if outside'
+          );
+          traceDispatch({
+            type: 'set roving index',
+            node: maybeNode.node,
+            index: maybeNode.index,
+            action_source: 'click',
+          });
+          setRowAsFocused(
+            maybeNode.node,
+            null,
+            traceStateRef.current.search.resultsLookup,
+            null,
+            0
+          );
+        }
+      });
     },
-    [api, organization, setRowAsFocused, tree, viewManager, traceDispatch]
+    [api, organization, setRowAsFocused, scrollRowIntoView, tree, traceDispatch]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,

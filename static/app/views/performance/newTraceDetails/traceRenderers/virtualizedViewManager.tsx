@@ -1,27 +1,13 @@
-import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
-import type {Client} from 'sentry/api';
-import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isNoDataNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import {
-  type TraceTree,
+import type {
+  TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -86,11 +72,7 @@ interface VirtualizedViewManagerEvents {
  */
 
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
-export type ViewManagerScrollToOptions = {
-  anchor: ViewManagerScrollAnchor;
-  api: Client;
-  organization: Organization;
-};
+
 export class VirtualizedViewManager {
   // Represents the space of the entire trace, for example
   // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
@@ -1063,128 +1045,6 @@ export class VirtualizedViewManager {
     return this.span_matrix;
   }
 
-  scrollToEventID(
-    eventId: string,
-    tree: TraceTree,
-    rerender: () => void,
-    options: ViewManagerScrollToOptions
-  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
-    const node = findInTreeByEventId(tree.root, eventId);
-
-    if (!node) {
-      return Promise.resolve(null);
-    }
-
-    return this.scrollToPath(tree, node.path, rerender, options).then(async result => {
-      // When users are coming off an eventID link, we want to fetch the children
-      // of the node that the eventID points to. This is because the eventID link
-      // only points to the transaction, but we want to fetch the children of the
-      // transaction to show the user the list of spans in that transaction
-      if (result?.node?.canFetch) {
-        await tree.zoomIn(result.node, true, options).catch(_e => {
-          Sentry.captureMessage('Failed to fetch children of eventId on mount');
-        });
-        return result;
-      }
-
-      return null;
-    });
-  }
-
-  scrollToPath(
-    tree: TraceTree,
-    scrollQueue: TraceTree.NodePath[],
-    rerender: () => void,
-    options: ViewManagerScrollToOptions
-  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
-    const segments = [...scrollQueue];
-    const list = this.list;
-
-    if (!list) {
-      return Promise.resolve(null);
-    }
-
-    if (segments.length === 1 && segments[0] === 'trace-root') {
-      rerender();
-      this.scrollToRow(0);
-      return Promise.resolve({index: 0, node: tree.root.children[0]});
-    }
-
-    // Keep parent reference as we traverse the tree so that we can only
-    // perform searching in the current level and not the entire tree
-    let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
-
-    const recurseToRow = async (): Promise<{
-      index: number;
-      node: TraceTreeNode<TraceTree.NodeValue>;
-    } | null | null> => {
-      const path = segments.pop();
-      let current = findInTreeFromSegment(parent, path!);
-
-      if (!current) {
-        // Some parts of the codebase link to span:span_id, txn:event_id, where span_id is
-        // actally stored on the txn:event_id node. Since we cant tell from the link itself
-        // that this is happening, we will perform a final check to see if we've actually already
-        // arrived to the node in the previous search call.
-        if (path) {
-          const [type, id] = path.split('-');
-
-          if (
-            type === 'span' &&
-            isTransactionNode(parent) &&
-            parent.value.span_id === id
-          ) {
-            current = parent;
-          }
-        }
-
-        if (!current) {
-          Sentry.captureMessage('Failed to scroll to node in trace tree');
-          return null;
-        }
-      }
-
-      // Reassing the parent to the current node so that
-      // searching narrows down to the current level
-      // and we dont need to search the entire tree each time
-      parent = current;
-
-      if (isTransactionNode(current)) {
-        const nextSegment = segments[segments.length - 1];
-        if (
-          nextSegment?.startsWith('span-') ||
-          nextSegment?.startsWith('empty-') ||
-          nextSegment?.startsWith('ag-') ||
-          nextSegment?.startsWith('ms-')
-        ) {
-          await tree.zoomIn(current, true, options);
-          return recurseToRow();
-        }
-      }
-
-      if (isAutogroupedNode(current) && segments.length > 0) {
-        tree.expand(current, true);
-        return recurseToRow();
-      }
-
-      if (segments.length > 0) {
-        return recurseToRow();
-      }
-
-      // We are at the last path segment (the node that the user clicked on)
-      // and we should scroll the view to this node.
-      const index = tree.list.findIndex(node => node === current);
-      if (index === -1) {
-        throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
-      }
-
-      rerender();
-      return {index, node: current};
-    };
-
-    return recurseToRow();
-  }
-
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.list) {
       return;
@@ -1603,103 +1463,4 @@ export class VirtualizedList {
     }
     dispatchJestScrollUpdate(this.container);
   }
-}
-
-function findInTreeFromSegment(
-  start: TraceTreeNode<TraceTree.NodeValue>,
-  segment: TraceTree.NodePath
-): TraceTreeNode<TraceTree.NodeValue> | null {
-  const [type, id] = segment.split('-');
-
-  if (!type || !id) {
-    throw new TypeError('Node path must be in the format of `type-id`');
-  }
-
-  return TraceTreeNode.Find(start, node => {
-    if (type === 'txn' && isTransactionNode(node)) {
-      return node.value.event_id === id;
-    }
-
-    if (type === 'span' && isSpanNode(node)) {
-      return node.value.span_id === id;
-    }
-
-    if (type === 'ag' && isAutogroupedNode(node)) {
-      if (isParentAutogroupedNode(node)) {
-        return node.head.value.span_id === id || node.tail.value.span_id === id;
-      }
-      if (isSiblingAutogroupedNode(node)) {
-        const child = node.children[0];
-        if (isSpanNode(child)) {
-          return child.value.span_id === id;
-        }
-      }
-    }
-
-    if (type === 'ms' && isMissingInstrumentationNode(node)) {
-      return node.previous.value.span_id === id || node.next.value.span_id === id;
-    }
-
-    if (type === 'error' && isTraceErrorNode(node)) {
-      return node.value.event_id === id;
-    }
-
-    if (type === 'empty' && isNoDataNode(node)) {
-      return true;
-    }
-
-    return false;
-  });
-}
-
-function hasEventWithEventId(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  eventId: string
-): boolean {
-  // Skip trace nodes since they accumulate all errors and performance issues
-  // in the trace and is not an event.
-  if (isTraceNode(node)) {
-    return false;
-  }
-
-  // Search in errors
-  if (node.errors.size > 0) {
-    for (const e of node.errors) {
-      if (e.event_id === eventId) {
-        return true;
-      }
-    }
-  }
-
-  // Search in performance issues
-  if (node.performance_issues.size > 0) {
-    for (const p of node.performance_issues) {
-      if (p.event_id === eventId) {
-        return true;
-      }
-    }
-  }
-
-  // Check if we are maybe looking for the profile_id
-  if (node.value && 'profile_id' in node.value && node.value.profile_id === eventId) {
-    return true;
-  }
-
-  return false;
-}
-
-function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
-  return TraceTreeNode.Find(start, node => {
-    if (isTransactionNode(node)) {
-      if (node.value.event_id === eventId) {
-        return true;
-      }
-    } else if (isSpanNode(node)) {
-      return node.value.span_id === eventId;
-    } else if (isTraceErrorNode(node)) {
-      return node.value.event_id === eventId;
-    }
-
-    return hasEventWithEventId(node, eventId);
-  });
 }

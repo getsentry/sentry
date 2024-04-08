@@ -7,7 +7,7 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
-  VirtualizedList,
+  type VirtualizedList,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
@@ -318,14 +318,12 @@ describe('VirtualizedViewManger', () => {
 
       manager.list = makeList();
 
-      const result = await manager.scrollToPath(tree, tree.list[0].path, () => void 0, {
+      const result = await TraceTree.ExpandToPath(tree, tree.list[0].path, () => void 0, {
         api: api,
         organization,
-        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[0]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(0);
     });
 
     it('scrolls to transaction', async () => {
@@ -343,14 +341,12 @@ describe('VirtualizedViewManger', () => {
 
       manager.list = makeList();
 
-      const result = await manager.scrollToPath(tree, ['txn-event_id'], () => void 0, {
+      const result = await TraceTree.ExpandToPath(tree, ['txn-event_id'], () => void 0, {
         api: api,
         organization,
-        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[2]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
     it('scrolls to nested transaction', async () => {
@@ -382,19 +378,17 @@ describe('VirtualizedViewManger', () => {
         'txn-child',
         'txn-root',
       ]);
-      const result = await manager.scrollToPath(
+      const result = await TraceTree.ExpandToPath(
         tree,
         ['txn-event_id', 'txn-child', 'txn-root'],
         () => void 0,
         {
           api: api,
           organization,
-          anchor: 'top',
         }
       );
 
       expect(result?.node).toBe(tree.list[tree.list.length - 1]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
     it('scrolls to spans of expanded transaction', async () => {
@@ -418,20 +412,18 @@ describe('VirtualizedViewManger', () => {
         body: makeEvent(undefined, [makeSpan({span_id: 'span_id'})]),
       });
 
-      const result = await manager.scrollToPath(
+      const result = await TraceTree.ExpandToPath(
         tree,
         ['span-span_id', 'txn-event_id'],
         () => void 0,
         {
           api: api,
           organization,
-          anchor: 'top',
         }
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
       expect(result?.node).toBe(tree.list[2]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
     it('scrolls to empty data node of expanded transaction', async () => {
@@ -455,20 +447,18 @@ describe('VirtualizedViewManger', () => {
         body: makeEvent(undefined, []),
       });
 
-      const result = await manager.scrollToPath(
+      const result = await TraceTree.ExpandToPath(
         tree,
         ['empty-node', 'txn-event_id'],
         () => void 0,
         {
           api: api,
           organization,
-          anchor: 'top',
         }
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
       expect(result?.node).toBe(tree.list[2]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
     it('scrolls to span -> transaction -> span -> transaction', async () => {
@@ -507,19 +497,17 @@ describe('VirtualizedViewManger', () => {
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
 
-      const result = await manager.scrollToPath(
+      const result = await TraceTree.ExpandToPath(
         tree,
         ['span-other_child_span', 'txn-child_event_id', 'txn-event_id'],
         () => void 0,
         {
           api: api,
           organization,
-          anchor: 'top',
         }
       );
 
       expect(result).toBeTruthy();
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
     describe('scrolls to directly autogrouped node', () => {
@@ -534,19 +522,17 @@ describe('VirtualizedViewManger', () => {
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
 
-          const result = await manager.scrollToPath(
+          const result = await TraceTree.ExpandToPath(
             tree,
             [`ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
               organization,
-              anchor: 'top',
             }
           );
 
           expect(result).toBeTruthy();
-          expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
         });
       }
 
@@ -561,19 +547,17 @@ describe('VirtualizedViewManger', () => {
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
 
-          const result = await manager.scrollToPath(
+          const result = await TraceTree.ExpandToPath(
             tree,
             ['span-middle_span', `ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
               organization,
-              anchor: 'top',
             }
           );
 
           expect(result).toBeTruthy();
-          expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
         });
       }
     });
@@ -589,19 +573,17 @@ describe('VirtualizedViewManger', () => {
           body: makeEvent({}, makeSiblingAutogroupedSpans()),
         });
 
-        const result = await manager.scrollToPath(
+        const result = await TraceTree.ExpandToPath(
           tree,
           ['span-middle_span', `ag-first_span`, 'txn-event_id'],
           () => void 0,
           {
             api: api,
             organization,
-            anchor: 'top',
           }
         );
 
         expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
       });
     });
 
@@ -631,19 +613,17 @@ describe('VirtualizedViewManger', () => {
           ]),
         });
 
-        const result = await manager.scrollToPath(
+        const result = await TraceTree.ExpandToPath(
           tree,
           ['ms-first_span', 'txn-event_id'],
           () => void 0,
           {
             api: api,
             organization,
-            anchor: 'top',
           }
         );
 
         expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
       });
       it('scrolls to missing instrumentation via next span_id', async () => {
         manager.list = makeList();
@@ -670,19 +650,17 @@ describe('VirtualizedViewManger', () => {
           ]),
         });
 
-        const result = await manager.scrollToPath(
+        const result = await TraceTree.ExpandToPath(
           tree,
           ['ms-second_span', 'txn-event_id'],
           () => void 0,
           {
             api: api,
             organization,
-            anchor: 'top',
           }
         );
 
         expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
       });
     });
 
@@ -707,14 +685,12 @@ describe('VirtualizedViewManger', () => {
         })
       );
 
-      const result = await manager.scrollToPath(tree, ['error-ded'], () => void 0, {
+      const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {
         api: api,
         organization,
-        anchor: 'top',
       });
 
       expect(result?.node).toBe(tree.list[2]);
-      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
   });
 });
