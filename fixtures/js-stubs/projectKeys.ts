@@ -5,6 +5,7 @@ export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
     {
       dsn: {
         unreal: '',
+        crons: '',
         secret:
           'http://188ee45a58094d939428d8585aa6f661:a33bf9aba64c4bbdaf873bb9023b6d2d@dev.getsentry.net:8000/1',
         minidump:
