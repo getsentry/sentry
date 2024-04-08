@@ -242,7 +242,10 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile, platform
                 )
 
-                set_measurement(f"profile.frames.sent.{platform}", len(frames_sent))
+                set_measurement(
+                    f"profile.frames.sent.{platform}",
+                    len(frames_sent),
+                )
 
                 modules, stacktraces, success = run_symbolicate(
                     project=project,
@@ -842,7 +845,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     return
         except Exception as e:
             sentry_sdk.capture_exception(e)
-    _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
+    else:
+        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
 
 
 @metrics.wraps("process_profile.deobfuscate.locally")
