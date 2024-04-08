@@ -20,17 +20,18 @@ const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
 
-function GetStarted(props: StepProps) {
+function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
   const api = useApi();
-  const [regionUrl, setRegionUrl] = useState('');
-  const [orgSlugs, setOrgSlugs] = useState('');
-  const [promoCode, setPromoCode] = useState('');
-  const [showPromoCode, setShowPromoCode] = useState(false);
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
+  const {orgSlugs, promoCode} = relocationOnboardingContext.data;
+  const [showPromoCode, setShowPromoCode] = useState(
+    !!relocationOnboardingContext.data.promoCode
+  );
   const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
   const regions = ConfigStore.get('regions').filter(region =>
     selectableRegions.includes(region.name)
   );
+  onChangeRegionUrl(relocationOnboardingContext.data.regionUrl);
 
   const handleContinue = async (event: any) => {
     event.preventDefault();
@@ -47,7 +48,7 @@ function GetStarted(props: StepProps) {
       }
     }
     relocationOnboardingContext.setData({orgSlugs, regionUrl, promoCode});
-    props.onComplete();
+    onComplete();
   };
   return (
     <Wrapper data-test-id="get-started">
@@ -71,10 +72,17 @@ function GetStarted(props: StepProps) {
             type="text"
             name="orgs"
             aria-label="org-slugs"
-            onChange={evt => setOrgSlugs(evt.target.value)}
+            onChange={evt => {
+              relocationOnboardingContext.setData({
+                orgSlugs: evt.target.value,
+                regionUrl,
+                promoCode,
+              });
+            }}
             required
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
+            value={orgSlugs}
           />
           <Label>{t('Choose a datacenter location')}</Label>
           <RegionSelect
@@ -83,7 +91,7 @@ function GetStarted(props: StepProps) {
             aria-label="region"
             placeholder="Select Location"
             options={regions.map(r => ({label: r.name, value: r.url}))}
-            onChange={opt => setRegionUrl(opt.value)}
+            onChange={opt => onChangeRegionUrl(opt.value)}
           />
           {regionUrl && (
             <p>{t('This is an important decision and cannot be changed.')}</p>
@@ -108,8 +116,15 @@ function GetStarted(props: StepProps) {
                 type="text"
                 name="promocode"
                 aria-label="promocode"
-                onChange={evt => setPromoCode(evt.target.value)}
+                onChange={evt => {
+                  relocationOnboardingContext.setData({
+                    orgSlugs,
+                    regionUrl,
+                    promoCode: evt.target.value,
+                  });
+                }}
                 placeholder=""
+                value={promoCode}
               />
             </div>
           ) : (

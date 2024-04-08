@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import zipfile
+from io import BytesIO
 from os.path import join
 from tempfile import TemporaryFile
 from typing import Any
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.project import Project
@@ -14,8 +18,11 @@ from sentry.profiles.task import (
     _normalize,
     _process_symbolicator_results_for_sample,
 )
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
@@ -629,3 +636,98 @@ def test_decode_signature(project, android_profile):
 )
 def test_calculate_profile_duration(profile, duration_ms, request):
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
+
+
+@pytest.mark.django_db(transaction=True)
+class DeobfuscationViaSymbolicator(TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
+    def upload_proguard_mapping(self, uuid, mapping_file_content):
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, "w")
+        f.writestr("proguard/%s.txt" % uuid, mapping_file_content)
+        f.writestr("ignored-file.txt", b"This is just some stuff")
+        f.close()
+
+        response = self.client.post(
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
+            },
+            format="multipart",
+        )
+
+        assert response.status_code == 201, response.content
+        assert len(response.json()) == 1
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_basic_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "project_id": self.project.id,
+                "build_id": PROGUARD_UUID,
+                "event_id": android_profile["profile_id"],
+                "profile": {
+                    "methods": [
+                        {
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
+                            "source_file": "Something.java",
+                            "source_line": 67,
+                        },
+                        {
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()Z",
+                            "source_file": "Else.java",
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+        with override_options(
+            {
+                "profiling.deobfuscate-using-symbolicator.enable-for-project": [self.project.id],
+            }
+        ):
+            _deobfuscate(android_profile, self.project)
+
+        assert android_profile["profile"]["methods"] == [
+            {
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": "getClassContext",
+                "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "signature": "()",
+                "source_file": "Something.java",
+                "source_line": 67,
+            },
+            {
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": "getExtraClassContext",
+                "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "signature": "(): boolean",
+                "source_file": "Else.java",
+                "source_line": 69,
+            },
+        ]
