@@ -109,6 +109,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
             {...itemProps}
             active={isActive && !hasActiveChildren}
             id={mainItemId}
+            data-test-id={mainItemId}
             aria-expanded={expanded}
             aria-owns={contentId}
             onClick={handleMainItemClick}
@@ -141,6 +142,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
           accordionRef={accordionRef}
           horizontal={horizontal}
           ref={floatingAccordionRef}
+          data-test-id="floating-accordion"
         >
           <SidebarItemLabel onClick={handleTitleClick}>
             {itemProps.label}
@@ -163,7 +165,6 @@ const renderChildrenWithProps = (children: ReactNode): ReactNode => {
     if (!isValidElement(child)) {
       return child;
     }
-    // Clone child with common prop and recursively render its children
     return cloneElement(child as ReactElement<any>, {
       ...propsToAdd,
       children: renderChildrenWithProps((child as ReactElement<any>).props.children),
