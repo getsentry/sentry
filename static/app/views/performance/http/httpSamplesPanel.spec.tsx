@@ -1,6 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -357,6 +362,18 @@ describe('HTTPSamplesPanel', () => {
         '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48#span-b1bf1acde131623a'
       );
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
+    });
+
+    it('re-fetches samples', async () => {
+      render(<HTTPSamplesPanel />);
+
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try Different Samples'}));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(2);
     });
   });
 });
