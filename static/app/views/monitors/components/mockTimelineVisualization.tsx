@@ -13,7 +13,7 @@ import {ScheduleType} from 'sentry/views/monitors/types';
 
 import {CheckInPlaceholder} from './timeline/checkInPlaceholder';
 import {MockCheckInTimeline} from './timeline/checkInTimeline';
-import {GridLineOverlay, GridLineTimeLabels} from './timeline/gridLines';
+import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
 import {getConfigFromTimeRange} from './timeline/utils/getConfigFromTimeRange';
 
 interface ScheduleConfig {
@@ -99,11 +99,11 @@ export function MockTimelineVisualization({schedule}: Props) {
         </Fragment>
       ) : (
         <Fragment>
-          <StyledGridLineTimeLabels
+          <AlignedGridLineLabels
             timeWindowConfig={timeWindowConfig}
             width={timelineWidth}
           />
-          <StyledGridLineOverlay
+          <AlignedGridLineOverlay
             showCursor={!isLoading}
             timeWindowConfig={timeWindowConfig}
             width={timelineWidth}
@@ -122,16 +122,16 @@ export function MockTimelineVisualization({schedule}: Props) {
 const TimelineContainer = styled(Panel)`
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: 40px 100px;
+  grid-template-rows: auto 60px;
   align-items: center;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
+const AlignedGridLineLabels = styled(GridLineLabels)`
   grid-column: 0;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledGridLineOverlay = styled(GridLineOverlay)`
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
   grid-column: 0;
 `;
 
