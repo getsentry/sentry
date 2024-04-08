@@ -33,6 +33,10 @@ def ms(timestamp: datetime.datetime) -> int:
     return int(timestamp.timestamp()) * 1000
 
 
+def assert_replay_ids_eq(id1: str, id2: str):
+    assert id1.replace("-", "") == id2.replace("-", "")
+
+
 def assert_expected_response(response: dict[str, Any], expected_response: dict[str, Any]) -> None:
     """Assert a received response matches what was expected."""
     # Compare the response structure and values to the expected response.
@@ -246,6 +250,33 @@ def mock_replay_click(
                                 "timestamp": sec(timestamp),
                             }
                         ],
+                    }
+                ).encode()
+            )
+        ),
+    }
+
+
+def mock_replay_viewed(
+    timestamp: datetime.datetime,
+    project_id: str,
+    replay_id: str,
+    viewed_by_id: int,
+    retention_days: int = 30,
+) -> dict[str, Any]:
+    return {
+        "type": "replay_event",
+        "start_time": sec(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": retention_days,
+        "payload": list(
+            bytes(
+                json.dumps(
+                    {
+                        "type": "replay_viewed",
+                        "timestamp": timestamp,
+                        "viewed_by_id": viewed_by_id,
                     }
                 ).encode()
             )

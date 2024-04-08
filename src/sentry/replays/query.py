@@ -108,7 +108,7 @@ def query_replay_viewed_by_ids(
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
-) -> list[int]:
+) -> list[dict[str, Any]]:
     """Query unique user ids who viewed a given replay."""
     if isinstance(project_id, list):
         project_ids = project_id

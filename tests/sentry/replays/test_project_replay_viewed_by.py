@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.replays.testutils import mock_replay
+from sentry.replays.testutils import assert_replay_ids_eq, mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
@@ -41,6 +41,8 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
+            assert_replay_ids_eq(response.data["data"]["id"], self.replay_id)
+            assert len(response.data["data"]["viewed_by"]) == 0
 
     def test_get_replay_viewed_by_not_found(self):
         with self.feature(REPLAYS_FEATURES):
@@ -48,6 +50,8 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 404
 
     def test_get_replay_viewed_by_feature_flag_disabled(self):
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
         response = self.client.get(self.url)
         assert response.status_code == 404
 

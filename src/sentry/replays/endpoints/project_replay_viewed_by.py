@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -60,7 +61,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
         # If no rows were found then the replay does not exist and a 404 is returned.
-        viewed_by_ids_response: list[dict[str, int]] = query_replay_viewed_by_ids(
+        viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(
             project_id=project.id,
             replay_id=replay_id,
             start=filter_params["start"],
@@ -74,14 +75,17 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         # step and return the empty set.
         viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
         if not viewed_by_ids:
-            return Response({"data": []}, status=200)
-
-        # query + serialize the User objects from postgres
-        response = generate_viewed_by_response(
-            replay_id=replay_id,
-            viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
-            request_user=request.user,
-        )
+            response = {
+                "id": replay_id,
+                "viewed_by": [],
+            }
+        else:
+            # query + serialize the User objects from postgres
+            response = generate_viewed_by_response(
+                replay_id=replay_id,
+                viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
+                request_user=request.user,
+            )
 
         return Response({"data": response}, status=200)
 
