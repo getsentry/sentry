@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import zoneinfo
 from datetime import datetime
 from typing import cast
 
 from croniter import croniter
 from dateutil import rrule
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -49,9 +49,10 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
         num_ticks = config.get("num_ticks")
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")
+        tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
 
-        # Align the reference ts to the nearest hour
-        reference_ts = timezone.now().replace(minute=0, second=0, microsecond=0)
+        # Align the reference ts to the start of the hour
+        reference_ts = datetime.now(tz=tz).replace(minute=0, second=0, microsecond=0)
         ticks: list[datetime] = []
         if schedule_type == ScheduleType.CRONTAB:
             iterator = croniter(schedule, reference_ts)
