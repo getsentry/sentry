@@ -79,7 +79,7 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
         ),
         (
             "sentry_value_to_msgpack",
-            "/sytem/somepath/libc.so.6",
+            "/system/somepath/libc.so.6",
             True,
         ),
         (
