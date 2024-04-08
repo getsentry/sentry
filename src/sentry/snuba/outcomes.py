@@ -17,7 +17,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.constants import DataCategory
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
-from sentry.sentry_metrics.querying.data import MetricsQueriesPlan, run_metrics_queries_plan
+from sentry.sentry_metrics.querying.data import MetricsQueriesPlanBuilder, run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data.transformation.stats import MetricsStatsTransformer
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import (
@@ -474,9 +474,11 @@ def run_metrics_outcomes_query(
     interval = parse_stats_period(query.get("interval", "1h"))
 
     # TODO(metrics): add support for reason tag
-    plan = MetricsQueriesPlan().apply_formula("sum(c:metric_stats/volume@none) by (outcome.id)")
+    builder = MetricsQueriesPlanBuilder().apply_formula(
+        "sum(c:metric_stats/volume@none) by (outcome.id)"
+    )
     rows = run_metrics_queries_plan(
-        plan,
+        metrics_queries_plan=builder.build(),
         start=start,
         end=end,
         interval=int(3600 if interval is None else interval.total_seconds()),

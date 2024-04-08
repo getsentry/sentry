@@ -25,7 +25,7 @@ class FormulaDefinition:
     order: QueryOrder | None
     limit: int | None
 
-    def replace_variables(self, queries: dict[str, str]) -> "FormulaDefinition":
+    def replace_variables(self, queries: Mapping[str, str]) -> "FormulaDefinition":
         """
         Replaces all variables inside the formulas with the corresponding queries.
 
@@ -58,8 +58,8 @@ class MetricsQueriesPlan:
     For example, you could define a simple query "a: max(mri_1)" and use it in the formula as "$a".
     """
 
-    queries: Mapping[str, str]
-    formulas: Sequence[FormulaDefinition]
+    queries: Mapping[str, str] | None = None
+    formulas: Sequence[FormulaDefinition] | None = None
 
     def get_replaced_formulas(self) -> Sequence[FormulaDefinition]:
         """
@@ -73,8 +73,11 @@ class MetricsQueriesPlan:
         fragile, we might want to switch to parsing the actual input and mutating the AST.
 
         Returns:
-            A list of FormulaDefinition objects whose formulas have been replaced.
+            A list of FormulaDefinition objects that contain the final MQL to execute against Snuba.
         """
+        if not self.queries:
+            return self.formulas
+
         return list(map(lambda formula: formula.replace_variables(self.queries), self.formulas))
 
     def is_empty(self) -> bool:
