@@ -249,10 +249,15 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_slug: str | int
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            if options.get("api.id-or-slug-enabled"):
+                project = Project.objects.get(
+                    slug__id_or_slug=project_slug, organization=organization
+                )
+            else:
+                project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 
@@ -710,7 +715,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str | int, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
