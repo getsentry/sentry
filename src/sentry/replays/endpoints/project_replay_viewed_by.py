@@ -80,7 +80,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         # query + serialize the User objects from postgres
         response = generate_viewed_by_response(
             replay_id=replay_id,
-            viewed_by_ids=viewed_by_ids[0]["viewed_by_ids"],
+            viewed_by_ids=viewed_by_ids,
             request_user=request.user,
         )
 

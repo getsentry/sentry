@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_replay_ids_eq, mock_replay
+from sentry.replays.testutils import assert_replay_ids_eq, mock_replay, mock_replay_viewed
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
@@ -21,16 +21,20 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    # TODO
-    # def test_get_replay_viewed_by(self):
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-    #     self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
-    #     self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
+    def test_get_replay_viewed_by(self):
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
+        self.store_replays(
+            mock_replay_viewed(
+                seq1_timestamp.timestamp(), self.project.id, self.replay_id, self.user.id
+            )
+        )
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         response = self.client.get(self.url)
-    #         assert response.status_code == 200
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
 
     def test_get_replay_viewed_by_no_viewers(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
