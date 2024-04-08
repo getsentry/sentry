@@ -12,7 +12,6 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -978,9 +977,44 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     def test_block_kit_truncates_long_query(self):
-        text = "a" * 5000
-        block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
-        assert "a" * 253 + "..." in block["text"]["text"]
+        # text = "a" * 5000
+        # block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
+        # assert "a" * 253 + "..." in block["text"]["text"]
+
+        event = self.store_event(
+            data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+
+        occurrence = self.build_occurrence(
+            level="info",
+            evidence_display=[
+                {"name": "hi", "value": "a" * 5000, "important": True},
+                {"name": "what", "value": "where", "important": False},
+            ],
+        )
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        group_event.group.type = ProfileFileIOGroupType.type_id
+
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert occurrence.issue_title in section["text"]["text"]
+
+        truncated_text = "a" * 253 + "..."
+        assert blocks["blocks"][1]["text"]["text"] == f"```{truncated_text}```"
+
+        # truncate feedback issues to 1500 chars
+        group_event.group.type = FeedbackGroup.type_id
+
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+
+        truncated_text = "a" * 1497 + "..."
+        assert blocks["blocks"][1]["text"]["text"] == f"```{truncated_text}```"
 
     @with_feature({"organizations:slack-block-kit": False})
     def test_build_performance_issue_color_no_event_passed(self):
