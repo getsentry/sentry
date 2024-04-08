@@ -104,7 +104,7 @@ def _get_exceptions_for_symbolication(all_exceptions: list[dict[str, Any]]) -> l
 
     exceptions = []
 
-    for index, exc in enumerate():
+    for index, exc in enumerate(all_exceptions):
         if exc.get("type") is not None and exc.get("module") is not None:
             exceptions.append({"type": exc["type"], "module": exc["module"], "index": index})
     return exceptions
@@ -256,25 +256,30 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     assert len(response["exceptions"]) == len(processable_exceptions)
 
+    # map from indices to symbolicated exceptions
+    symbolicated_exceptions = {}
+    for e, p in zip(processable_exceptions, response["exceptions"]):
+        index = e.pop("index")
+        e["type"] = p["type"]
+        e["module"] = p["module"]
+        symbolicated_exceptions[index] = e
+
+    symbolicator_exceptions = []
     for index, raw_exception in enumerate(all_exceptions):
-        pass
-    for exception, complete_exception in zip(
-        get_path(data, "exception", "values", filter=True, default=()),
-        response["exceptions"],
-    ):
-        if should_do_ab_test:
-            new_exception = dict(exception)
-            new_exception["type"] = complete_exception["type"]
-            new_exception["module"] = complete_exception["module"]
-            symbolicator_exceptions.append(new_exception)
+        if symbolicated := symbolicated_exceptions.get(index):
+            symbolicator_exceptions.append(symbolicated)
         else:
-            exception["type"] = complete_exception["type"]
-            exception["module"] = complete_exception["module"]
+            symbolicator_exceptions.append(raw_exception)
 
     if should_do_ab_test:
         data["symbolicator_stacktraces"] = symbolicator_stacktraces
         data["symbolicator_exceptions"] = symbolicator_exceptions
     else:
         data["processed_by_symbolicator"] = True
+        for e, p in zip(
+            get_path(data, "exception", "values", filter=True, default=()), symbolicator_exceptions
+        ):
+            e["type"] = p["type"]
+            e["module"] = p["module"]
 
     return data
