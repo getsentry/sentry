@@ -246,6 +246,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_escape_issue(self):
         group = self.create_group(
             project=self.project,
