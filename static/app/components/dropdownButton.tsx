@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ButtonProps} from 'sentry/components/button';
 import {Button, ButtonLabel} from 'sentry/components/button';
-import {IconChevron} from 'sentry/icons';
+import {Chevron} from 'sentry/components/chevron';
 import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
@@ -28,6 +28,7 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
 function DropdownButton({
   children,
   prefix,
+  size,
   isOpen = false,
   showChevron = true,
   disabled = false,
@@ -41,6 +42,7 @@ function DropdownButton({
       hasPrefix={!!prefix}
       disabled={disabled}
       isOpen={isOpen}
+      size={size}
       ref={forwardedRef}
       {...props}
     >
@@ -48,7 +50,12 @@ function DropdownButton({
       {children}
       {showChevron && (
         <ChevronWrap>
-          <IconChevron size="xs" direction={isOpen ? 'up' : 'down'} aria-hidden="true" />
+          <Chevron
+            size={size === 'xs' ? 'small' : 'medium'}
+            weight="medium"
+            direction={isOpen ? 'up' : 'down'}
+            aria-hidden="true"
+          />
         </ChevronWrap>
       )}
     </StyledButton>
@@ -59,8 +66,12 @@ const ChevronWrap = styled('div')`
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding-left: ${space(0.75)};
+  padding-left: ${space(0.5)};
   flex-shrink: 0;
+
+  button:hover & {
+    opacity: 1;
+  }
 `;
 
 interface StyledButtonProps
