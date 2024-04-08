@@ -643,6 +643,7 @@ def massage_sessions_result_summary(
                 "invalid": 0,
                 "abuse": 0,
                 "client_discard": 0,
+                "cardinality_limited": 0,
               },
               "totals": {
                 "dropped": 1,
