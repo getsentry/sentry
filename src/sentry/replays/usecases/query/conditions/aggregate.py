@@ -20,6 +20,7 @@ Every class and every method in this module is interested in one of two outcomes
 aggregation of the row-wise condition visitor is 0 or not 0.  This works because we're looking
 for presence in the set; not for conformity across all rows.
 """
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -29,6 +30,7 @@ from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.conditions import (
     GenericBase,
+    IntegerScalar,
     IPv4Scalar,
     StringArray,
     StringScalar,
@@ -36,6 +38,24 @@ from sentry.replays.lib.new_query.conditions import (
     UUIDScalar,
 )
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
+
+
+class SumOfIntegerIdScalar(GenericBase):
+    @staticmethod
+    def visit_eq(expression: Expression, value: int) -> Condition:
+        return contains(IntegerScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: int) -> Condition:
+        return does_not_contain(IntegerScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[int]) -> Condition:
+        return contains(IntegerScalar.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[int]) -> Condition:
+        return does_not_contain(IntegerScalar.visit_in(expression, value))
 
 
 class SumOfIPv4Scalar(GenericBase):
