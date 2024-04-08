@@ -1,7 +1,4 @@
-import type {
-  JobTickData,
-  MonitorBucketData,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {JobTickData, MonitorBucketData} from '../types';
 
 import {filterMonitorStatsBucketByEnv} from './filterMonitorStatsBucketByEnv';
 import {getAggregateStatus} from './getAggregateStatus';

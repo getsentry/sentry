@@ -17,13 +17,14 @@ import useRouter from 'sentry/utils/useRouter';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {DateNavigator} from './dateNavigator';
-import {GridLineOverlay, GridLineTimeLabels} from './gridLines';
+import {DateNavigator} from '../timeline/dateNavigator';
+import {GridLineOverlay, GridLineTimeLabels} from '../timeline/gridLines';
+import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
+import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+
+import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
-import {TimelineTableRow} from './timelineTableRow';
-import {useDateNavigation} from './useDateNavigation';
-import {useMonitorStats} from './useMonitorStats';
-import {useTimeWindowConfig} from './useTimeWindowConfig';
 
 interface Props {
   monitorList: Monitor[];
@@ -153,7 +154,7 @@ export function OverviewTimeline({monitorList}: Props) {
       />
 
       {monitorList.map(monitor => (
-        <TimelineTableRow
+        <OverviewRow
           key={monitor.id}
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
