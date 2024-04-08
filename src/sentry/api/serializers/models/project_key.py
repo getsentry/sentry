@@ -25,6 +25,7 @@ class DSN(TypedDict):
     minidump: str
     nel: str
     unreal: str
+    crons: str
     cdn: str
 
 
@@ -91,6 +92,7 @@ class ProjectKeySerializer(Serializer):
                 "minidump": obj.minidump_endpoint,
                 "nel": obj.nel_endpoint,
                 "unreal": obj.unreal_endpoint,
+                "crons": obj.crons_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
