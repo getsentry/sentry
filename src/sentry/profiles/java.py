@@ -149,6 +149,6 @@ def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict
         else:
             if "inline_frames" not in m:
                 m["inline_frames"] = [m.copy()]
-            im = {}
+            im: dict = {}
             _merge_jvm_frame_and_android_method(f, im)
             m["inline_frames"].append(im)
