@@ -80,10 +80,15 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     dateCreated: datetime
     createdBy: dict
     monitorType: int
+    activations: list[dict]
 
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
+    """
+    Serializer for returning an alert rule to the client
+    """
+
     def __init__(self, expand: list[str] | None = None):
         self.expand = expand or []
 
@@ -92,6 +97,7 @@ class AlertRuleSerializer(Serializer):
     ) -> defaultdict[AlertRule, Any]:
         alert_rules = {item.id: item for item in item_list}
         prefetch_related_objects(item_list, "snuba_query__environment")
+        prefetch_related_objects(item_list, "activations")
 
         result: defaultdict[AlertRule, dict[str, Any]] = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
@@ -255,6 +261,7 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
+            "activations": obj.activations.all(),
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
