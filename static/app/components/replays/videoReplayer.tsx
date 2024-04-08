@@ -91,10 +91,16 @@ export class VideoReplayer {
 
   private createVideo(segmentData: VideoEvent, index: number) {
     const el = document.createElement('video');
-    el.src = `${this._videoApiPrefix}${segmentData.id}/`;
+    const sourceEl = document.createElement('source');
     el.style.display = 'none';
+    sourceEl.setAttribute('type', 'video/mp4');
+    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
     el.setAttribute('playinline', '');
+    el.setAttribute('preload', 'auto');
+    // TODO: Timer needs to also account for playback speed
+    el.setAttribute('playbackRate', `${this.config.speed}`);
+    el.appendChild(sourceEl);
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
@@ -131,10 +137,6 @@ export class VideoReplayer {
         this._callbacks.onLoaded(event);
       }
     });
-
-    el.preload = 'auto';
-    // TODO: Timer needs to also account for playback speed
-    el.playbackRate = this.config.speed;
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
