@@ -4000,9 +4000,12 @@ SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
-if ngrok_host and SILO_MODE != "REGION":
+if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
-    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+    SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
+    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
