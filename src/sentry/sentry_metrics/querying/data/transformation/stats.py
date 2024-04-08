@@ -6,7 +6,7 @@ from sentry.sentry_metrics.querying.data.transformation.base import QueryResults
 
 
 class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
-    def transform_result(self, result):
+    def transform_result(self, result: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
         ret_val = []
 
         for item in result:

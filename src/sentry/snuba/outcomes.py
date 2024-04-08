@@ -19,6 +19,7 @@ from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
 from sentry.sentry_metrics.querying.data import MetricsQueriesPlan, run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data.transformation.stats import MetricsStatsTransformer
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import (
     InvalidField,
     SimpleGroupBy,
@@ -482,10 +483,11 @@ def run_metrics_outcomes_query(
         organization=organization,
         projects=projects,
         environments=environments,
-        referrer="outcomes.timeseries",
+        referrer=Referrer.OUTCOMES_TIMESERIES.value,
     ).apply_transformer(MetricsStatsTransformer())
 
-    # Creating a dummy query definition to pass to the _format_rows function
+    # Dummy query definition to pass to the _format_rows, as it expects a QueryDefinition object
+    # TODO(metrics): add a `metrics` category or refactor _format_rows
     copied = query.copy()
     copied["category"] = "error"
     query_def = QueryDefinition.from_query_dict(copied, {"organization_id": organization.id})
