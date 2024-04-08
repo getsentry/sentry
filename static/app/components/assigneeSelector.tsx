@@ -153,7 +153,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
               {!loading && !noDropdown && (
                 <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
                   {avatarElement}
-                  <StyledChevron direction={isOpen ? 'up' : 'down'} size="small" />
+                  <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
                 </DropdownButton>
               )}
               {!loading && noDropdown && avatarElement}
@@ -179,14 +179,11 @@ const StyledIconUser = styled(IconUser)`
   margin-right: 2px;
 `;
 
-const StyledChevron = styled(Chevron)`
-  margin-left: ${space(0.5)};
-`;
-
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
   font-size: 20px;
+  gap: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('div')`
