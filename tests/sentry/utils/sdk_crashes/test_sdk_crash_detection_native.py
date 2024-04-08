@@ -32,7 +32,7 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
     with override_options(
         {
             "issues.sdk_crash_detection.native.project_id": 4,
-            "issues.sdk_crash_detection.native.sample_rate": 0.3,
+            "issues.sdk_crash_detection.native.sample_rate": 0.11,
             "issues.sdk_crash_detection.native.organization_allowlist": [3],
         }
     ):
@@ -44,8 +44,73 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
     [
         (
             "sentry_value_to_msgpack",
-            "java.lang.reflect.Method",
+            "/lib/x86_64-linux-gnu/libc.so.6",
             True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/usr/lib/x86_64-linux-gnu/libc.so.6",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/usr/local/lib/x86_64-linux-gnu/libc.so.6",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/usr/local/Cellar/x86_64-linux-gnu/libc.so.6",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "linux-gate.so.1",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/sytem/somepath/libc.so.6",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/vendor/somepath/yes",
+            True,
+        ),
+        (
+            "sentr_value_to_msgpack",
+            "/lib/x86_64-linux-gnu/libc.so.6",
+            False,
+        ),
+        (
+            "sentry__public",
+            "/usr/lib/something.so",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/something/on/android/libart.so",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/apex/com.android.placeholder/libA/yes/yes",
+            True,
+        ),
+        (
+            "sentry_value_to_msgpack",
+            "/apex/com.android.placeholder/liA/yes/yes",
+            False,
         ),
     ],
 )
@@ -77,25 +142,27 @@ def test_sdk_crash_is_reported_with_native_paths(
             reported_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 5
+        assert len(stripped_frames) == 4
 
         system_frame1 = stripped_frames[0]
-        assert system_frame1["function"] == "main"
-        assert system_frame1["package"] == "android.app.ActivityThread"
-        assert system_frame1["filename"] == "ActivityThread.java"
+        assert system_frame1["function"] == "RtlUserThreadStart"
+        assert system_frame1["symbol"] == "RtlUserThreadStart"
+        assert system_frame1["package"] == "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
         assert system_frame1["in_app"] is False
 
-        sdk_frame = stripped_frames[3]
-        assert sdk_frame["function"] == "captureMessage"
-        assert sdk_frame["package"] == system_frame_package
-        assert sdk_frame["filename"] == "Hub.java"
-        assert "abs_path" not in sdk_frame
+        sdk_frame = stripped_frames[2]
+        assert sdk_frame["function"] == sdk_frame_function
+        assert sdk_frame["symbol"] == sdk_frame_function
+        assert sdk_frame["package"] == "sentry"
         assert sdk_frame["in_app"] is True
 
-        system_frame2 = stripped_frames[4]
-        assert system_frame2["function"] == "invoke"
+        system_frame2 = stripped_frames[3]
+        assert system_frame2["function"] == "boost::serialization::singleton<T>::singleton<T>"
+        assert (
+            system_frame2["symbol"]
+            == "??0?$singleton@V?$extended_type_info_typeid@T_E_SC_SI_OPT_IR_MODE_SELECTOR@@@serialization@boost@@@serialization@boost@@IEAA@XZ"
+        )
         assert system_frame2["package"] == system_frame_package
-        assert system_frame2["filename"] == "Method.java"
         assert system_frame2["in_app"] is False
 
     else:

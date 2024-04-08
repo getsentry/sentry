@@ -234,7 +234,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 r"C:/Windows/**",
                 r"/system/**",
                 r"/vendor/**",
-                r"**/libart.so" r"/apex/com.android.*/lib*/**",  # Android
+                r"**/libart.so",
+                r"/apex/com.android.*/lib*/**",  # Android
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
@@ -255,7 +256,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
 
 
 def _get_options(
-    *sdk_name: SdkName, has_organization_allowlist: bool
+    sdk_name: SdkName, has_organization_allowlist: bool
 ) -> SDKCrashDetectionOptions | None:
     options_prefix = f"issues.sdk_crash_detection.{sdk_name.value}"
 

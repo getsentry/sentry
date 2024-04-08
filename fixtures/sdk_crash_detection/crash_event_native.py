@@ -36,12 +36,12 @@ def get_frames(
 
 
 def get_crash_event(
-    sdk_frame_module="sentry_value_to_msgpack",
+    sdk_frame_function="sentry_value_to_msgpack",
     system_frame_package="C:\\Windows\\System32\\DriverStore\\FileRepository\\u0398226.inf_amd64_c5d9587384e4b5ff\\B398182\\amdxx64.dll",
     **kwargs,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
-        get_frames(sdk_frame_module, system_frame_package),
+        get_frames(sdk_frame_function, system_frame_package),
         **kwargs,
     )
 
