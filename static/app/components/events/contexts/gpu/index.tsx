@@ -50,7 +50,6 @@ export function getKnownGpuContextData({data, meta}: Pick<Props, 'data' | 'meta'
     meta,
     knownDataTypes: gpuValues,
     onGetKnownDataDetails: v => getGPUKnownDataDetails(v),
-    raw: true,
   });
 }
 

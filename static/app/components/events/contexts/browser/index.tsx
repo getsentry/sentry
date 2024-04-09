@@ -31,7 +31,6 @@ export function getKnownBrowserContextData({data, meta}: Pick<Props, 'data' | 'm
     meta,
     knownDataTypes: browserKnownDataValues,
     onGetKnownDataDetails: v => getBrowserKnownDataDetails(v),
-    raw: true,
   });
 }
 

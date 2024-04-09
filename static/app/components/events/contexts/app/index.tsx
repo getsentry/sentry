@@ -38,7 +38,6 @@ export function getKnownAppContextData({data, event, meta}: Props) {
     meta,
     knownDataTypes: appKnownDataValues,
     onGetKnownDataDetails: v => getAppKnownDataDetails({...v, event}),
-    raw: true,
   });
 }
 

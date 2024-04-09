@@ -22,7 +22,7 @@ describe('contexts utils', function () {
     });
   });
 
-  describe('getKknownData', function () {
+  describe('getKnownData', function () {
     it('filters out known data and transforms into the right way', function () {
       const data = {
         device_app_hash: '2421fae1ac9237a8131e74883e52b0f7034a143f',
@@ -89,7 +89,6 @@ describe('contexts utils', function () {
       const knownData = getKnownData({
         data,
         knownDataTypes,
-        raw: true,
         onGetKnownDataDetails: v => {
           if (v.type === 'device_app_hash') {
             return {
@@ -111,5 +110,7 @@ describe('contexts utils', function () {
         },
       ]);
     });
+
+    // TODO(Leander): Add tests here for getContextMeta, getKnownStructuredData and getFormattedContextData
   });
 });

@@ -27,7 +27,6 @@ export function getKnownUnityContextData({data, meta}: Pick<Props, 'data' | 'met
     meta,
     knownDataTypes: unityKnownDataValues,
     onGetKnownDataDetails: v => getUnityKnownDataDetails(v),
-    raw: true,
   });
 }
 

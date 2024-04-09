@@ -40,7 +40,6 @@ export function getKnownProfileContextData({
     meta,
     knownDataTypes: PROFILE_KNOWN_DATA_VALUES,
     onGetKnownDataDetails: v => getProfileKnownDataDetails({...v, organization, project}),
-    raw: true,
   }).map(v => ({
     ...v,
     subjectDataTestId: `profile-context-${v.key.toLowerCase()}-value`,

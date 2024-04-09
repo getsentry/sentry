@@ -33,7 +33,6 @@ export function getKnownRuntimeContextData({data, meta}: Pick<Props, 'data' | 'm
     meta,
     knownDataTypes: runtimeKnownDataValues,
     onGetKnownDataDetails: v => getRuntimeKnownDataDetails(v),
-    raw: true,
   });
 }
 

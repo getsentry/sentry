@@ -54,7 +54,6 @@ export function getKnownUserContextData({data, meta}: Pick<Props, 'data' | 'meta
     meta,
     knownDataTypes: userKnownDataValues,
     onGetKnownDataDetails: v => getUserKnownDataDetails(v),
-    raw: true,
   }).map(v => ({
     ...v,
     subjectDataTestId: `user-context-${v.key.toLowerCase()}-value`,

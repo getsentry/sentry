@@ -146,9 +146,8 @@ export function getRelativeTimeFromEventDateCreated(
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
-  meta,
-  raw,
   onGetKnownDataDetails,
+  meta,
 }: {
   data: Data;
   knownDataTypes: string[];
@@ -159,7 +158,6 @@ export function getKnownData<Data, DataType>({
       }
     | undefined;
   meta?: Record<any, any>;
-  raw?: boolean;
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
@@ -186,15 +184,7 @@ export function getKnownData<Data, DataType>({
       return {
         key: type,
         ...knownDataDetails,
-        value: raw ? (
-          knownDataDetails.value
-        ) : (
-          <StructuredEventData
-            data={knownDataDetails.value}
-            meta={meta?.[type]}
-            withAnnotatedText
-          />
-        ),
+        value: knownDataDetails.value,
       };
     })
     .filter(defined);

@@ -30,7 +30,6 @@ export function getKnownMemoryInfoContextData({data, event, meta}: Props) {
     meta,
     knownDataTypes: memoryInfoKnownDataValues,
     onGetKnownDataDetails: v => getMemoryInfoKnownDataDetails({...v, event}),
-    raw: true,
   });
 }
 

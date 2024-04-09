@@ -31,7 +31,6 @@ export function getKnownDeviceContextData({data, event, meta}: Props) {
     meta,
     knownDataTypes: deviceKnownDataValues,
     onGetKnownDataDetails: v => getDeviceKnownDataDetails({...v, event}),
-    raw: true,
   }).map(v => ({
     ...v,
     subjectDataTestId: `device-context-${v.key.toLowerCase()}-value`,

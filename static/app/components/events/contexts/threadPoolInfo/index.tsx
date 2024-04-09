@@ -33,7 +33,6 @@ export function getKnownThreadPoolInfoContextData({data, event, meta}: Props) {
     meta,
     knownDataTypes: threadPoolInfoKnownDataValues,
     onGetKnownDataDetails: v => getThreadPoolInfoKnownDataDetails({...v, event}),
-    raw: true,
   });
 }
 

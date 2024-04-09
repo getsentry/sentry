@@ -38,7 +38,6 @@ export function getKnownOperatingSystemContextData({
     meta,
     knownDataTypes: operatingSystemKnownDataValues,
     onGetKnownDataDetails: v => getOperatingSystemKnownDataDetails(v),
-    raw: true,
   });
 }
 

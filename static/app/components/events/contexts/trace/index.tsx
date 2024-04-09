@@ -45,7 +45,6 @@ export function getKnownTraceContextData({
     meta,
     knownDataTypes: traceKnownDataValues,
     onGetKnownDataDetails: v => getTraceKnownDataDetails({...v, organization, event}),
-    raw: true,
   }).map(v => ({
     ...v,
     subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
