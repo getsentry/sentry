@@ -28,4 +28,4 @@ class TeamAvatar(AvatarBase):
         db_table = "sentry_teamavatar"
 
     def get_cache_key(self, size):
-        return f"team_avatar:{self.team_id}:{size}"
+        return f"team_avatar:{self.team_id}:{size}"  # type:ignore[attr-defined]
