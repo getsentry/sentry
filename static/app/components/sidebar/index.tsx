@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Chevron} from 'sentry/components/chevron';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -17,7 +18,6 @@ import {
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
-  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -660,33 +660,13 @@ function Sidebar() {
             </SidebarSection>
 
             <SidebarSection>
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
-                  orientation,
-                  collapsed,
-                  hasPanel,
-                  organization,
-                })}
-              <SidebarHelp
-                orientation={orientation}
-                collapsed={collapsed}
-                hidePanel={hidePanel}
-                organization={organization}
-              />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-                organization={organization}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
+              <SidebarCollapseItem
+                id="collapse"
+                data-test-id="sidebar-collapse"
+                {...sidebarItemProps}
+                icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                label={collapsed ? t('Expand') : t('Collapse')}
+                onClick={toggleCollapse}
               />
             </SidebarSection>
 

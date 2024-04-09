@@ -367,19 +367,19 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         className={typeof props.tab.node === 'string' ? 'Static' : ''}
         active={props.tab === props.tabs.current}
         onClick={() => {
-          if (props.tab.node !== 'vitals') {
+          if (node !== 'vitals') {
             props.scrollToNode(root);
           }
           props.tabsDispatch({type: 'activate tab', payload: props.index});
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' ? null : (
+        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
         )}
-        <TabButton>{props.tab.label ?? props.tab.node}</TabButton>
+        <TabButton>{props.tab.label ?? node}</TabButton>
       </Tab>
     );
   }
