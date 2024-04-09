@@ -33,7 +33,18 @@ dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   '3.34.0'
 )}`;
 
-const getConfigureSnippet = (params: Params) => `
+const getInstallProfilingSnippetPackageManager = () => `
+Install-Package Sentry.Profiling`;
+
+const getInstallProfilingSnippetCoreCli = () => `
+dotnet add package Sentry.Profiling`;
+
+enum DotNetPlatform {
+  WINDOWS_LINUX_MACOS,
+  IOS_MACCATALYST,
+}
+
+const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
 public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction
 {
     protected override void Init(IWebHostBuilder builder)
@@ -46,10 +57,32 @@ public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFu
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;
               // Required in Serverless environments
-              o.FlushOnCompletedRequest = true;
+              o.FlushOnCompletedRequest = true;${
+                params.isPerformanceSelected
+                  ? `
               // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-                // We recommend adjusting this value in production.
-              o.TracesSampleRate = 1.0;
+              // We recommend adjusting this value in production.
+              o.TracesSampleRate = 1.0;`
+                  : ''
+              }${
+                params.isProfilingSelected
+                  ? `
+              // Sample rate for profiling, applied on top of othe TracesSampleRate,
+              // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+              // We recommend adjusting this value in production.
+              o.ProfilesSampleRate = 1.0;${
+                platform !== DotNetPlatform.IOS_MACCATALYST
+                  ? `
+              // Requires NuGet package: Sentry.Profiling
+              // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
+              o.AddIntegration(new ProfilingIntegration(
+                  // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+                  TimeSpan.FromMilliseconds(500)
+              ));`
+                  : ''
+              }`
+                  : ''
+              }
             })
             .UseStartup<Startup>();
     }
@@ -93,11 +126,44 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          description: tct(
+            'You can combine this integration with a logging library like [strong:log4net, NLog, or Serilog] to include both request data as well as your logs as breadcrumbs. The logging ingrations also capture events when an error is logged.',
+            {strong: <strong />}
+          ),
+        },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(),
+                  },
+                ],
+              },
+              {
+                description: t(
+                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                ),
+              },
+            ]
+          : []),
       ],
-      additionalInfo: tct(
-        'You can combine this integration with a logging library like [strong:log4net, NLog, or Serilog] to include both request data as well as your logs as breadcrumbs. The logging ingrations also capture events when an error is logged.',
-        {strong: <strong />}
-      ),
     },
   ],
   configure: params => [
@@ -124,10 +190,27 @@ const onboarding: OnboardingConfig = {
         </Fragment>
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows/Linux/macOS',
+                  value: 'Windows/Linux/macOS',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS_LINUX_MACOS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],

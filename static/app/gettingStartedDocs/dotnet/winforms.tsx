@@ -29,7 +29,18 @@ Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
-const getConfigureSnippet = (params: Params) => `
+const getInstallProfilingSnippetPackageManager = () => `
+Install-Package Sentry.Profiling`;
+
+const getInstallProfilingSnippetCoreCli = () => `
+dotnet add package Sentry.Profiling`;
+
+enum DotNetPlatform {
+  WINDOWS_LINUX_MACOS,
+  IOS_MACCATALYST,
+}
+
+const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
 using System;
 using System.Windows.Forms;
 using Sentry;
@@ -45,10 +56,33 @@ static class Program
             // Tells which project in Sentry to send events to:
             o.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            o.Debug = true;
+            o.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            o.TracesSampleRate = 1.0;
+            o.TracesSampleRate = 1.0;`
+                : ''
+            }${
+              params.isProfilingSelected
+                ? `
+            // Sample rate for profiling, applied on top of othe TracesSampleRate,
+            // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+            // We recommend adjusting this value in production.
+            options.ProfilesSampleRate = 1.0;${
+              platform !== DotNetPlatform.IOS_MACCATALYST
+                ? `
+            // Requires NuGet package: Sentry.Profiling
+            // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
+            options.AddIntegration(new ProfilingIntegration(
+                // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+                TimeSpan.FromMilliseconds(500)
+            ));`
+                : ''
+            }`
+                : ''
+            }
+          }
         });
         // Configure WinForms to throw exceptions so Sentry can capture them.
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
@@ -101,15 +135,48 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          description: (
+            <AlertWithoutMarginBottom type="info">
+              {tct(
+                '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
+                {strong: <strong />}
+              )}
+            </AlertWithoutMarginBottom>
+          ),
+        },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(),
+                  },
+                ],
+              },
+              {
+                description: t(
+                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                ),
+              },
+            ]
+          : []),
       ],
-      additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
-          {tct(
-            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-            {strong: <strong />}
-          )}
-        </AlertWithoutMarginBottom>
-      ),
     },
   ],
   configure: params => [
@@ -122,14 +189,31 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows/Linux/macOS',
+                  value: 'Windows/Linux/macOS',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS_LINUX_MACOS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t('To verify your set up, you can capture a message with the SDK:'),
@@ -140,37 +224,41 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance Monitoring'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
-        {
-          language: 'csharp',
-          code: getPerformanceInstrumentationSnippet(),
-        },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
-          ),
-        }
-      ),
-    },
-    {
-      title: t('Documentation'),
-      description: tct(
-        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WinForms docs].",
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/winforms/" />
-          ),
-        }
-      ),
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance Monitoring'),
+            description: t(
+              'You can measure the performance of your code by capturing transactions and spans.'
+            ),
+            configurations: [
+              {
+                language: 'csharp',
+                code: getPerformanceInstrumentationSnippet(),
+              },
+            ],
+            additionalInfo: tct(
+              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+                ),
+              }
+            ),
+          },
+          {
+            title: t('Documentation'),
+            description: tct(
+              "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WinForms docs].",
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/winforms/" />
+                ),
+              }
+            ),
+          },
+        ]
+      : []),
     {
       title: t('Samples'),
       description: (
