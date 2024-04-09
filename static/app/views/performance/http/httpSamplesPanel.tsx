@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,6 +23,7 @@ import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -38,6 +40,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -57,6 +60,13 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
+
+  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
+    undefined,
+    [],
+
+    SAMPLE_HOVER_DEBOUNCE
+  );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
@@ -130,6 +140,7 @@ export function HTTPSamplesPanel() {
     data: samplesData,
     isFetching: isSamplesDataFetching,
     error: samplesDataError,
+    refetch: refetchSpanSamples,
   } = useSpanSamples({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
@@ -142,6 +153,18 @@ export function HTTPSamplesPanel() {
     enabled: query.panel === 'duration' && durationAxisMax > 0,
     referrer: 'api.starfish.http-module-samples-panel-samples',
   });
+
+  const sampledSpanDataSeries = useSampleScatterPlotSeries(
+    samplesData,
+    domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
+    highlightedSpanId
+  );
+
+  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
+    return samplesData.find(
+      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
+    );
+  };
 
   const handleClose = () => {
     router.replace({
@@ -271,9 +294,23 @@ export function HTTPSamplesPanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <DurationChart
-                  series={{
-                    ...durationData[`avg(span.self_time)`],
-                    markLine: AverageValueMarkLine(),
+                  series={[
+                    {
+                      ...durationData[`avg(span.self_time)`],
+                      markLine: AverageValueMarkLine(),
+                    },
+                  ]}
+                  scatterPlot={sampledSpanDataSeries}
+                  onHighlight={highlights => {
+                    const firstHighlight = highlights[0];
+
+                    if (!firstHighlight) {
+                      setHighlightedSpanId(undefined);
+                      return;
+                    }
+
+                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    setHighlightedSpanId(sample?.span_id);
                   }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
@@ -284,6 +321,9 @@ export function HTTPSamplesPanel() {
                 <SpanSamplesTable
                   data={samplesData}
                   isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  highlightedSpanId={highlightedSpanId}
+                  onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                  onSampleMouseOut={() => setHighlightedSpanId(undefined)}
                   error={samplesDataError}
                   // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
                   meta={{
@@ -319,11 +359,19 @@ export function HTTPSamplesPanel() {
               />
             </ModuleLayout.Full>
           )}
+
+          <ModuleLayout.Full>
+            <Button onClick={() => refetchSpanSamples()}>
+              {t('Try Different Samples')}
+            </Button>
+          </ModuleLayout.Full>
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
   );
 }
+
+const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};

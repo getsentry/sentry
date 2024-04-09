@@ -17,11 +17,14 @@ import useRouter from 'sentry/utils/useRouter';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {GridLineOverlay, GridLineTimeLabels} from './gridLines';
+import {DateNavigator} from '../timeline/dateNavigator';
+import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
+import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
+import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+
+import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
-import {TimelineTableRow} from './timelineTableRow';
-import {useMonitorStats} from './useMonitorStats';
-import {useTimeWindowConfig} from './useTimeWindowConfig';
 
 interface Props {
   monitorList: Monitor[];
@@ -38,6 +41,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const dateNavigation = useDateNavigation();
 
   const {data: monitorStats, isLoading} = useMonitorStats({
     monitors: monitorList.map(m => m.id),
@@ -122,12 +126,29 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControls>
+        <HeaderControlsLeft>
           <SortSelector size="xs" />
-        </HeaderControls>
-        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="back"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsLeft>
+        <AlignedGridLineLabels
+          timeWindowConfig={timeWindowConfig}
+          width={timelineWidth}
+        />
+        <HeaderControlsRight>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="forward"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsRight>
       </Header>
-      <GridLineOverlay
+      <AlignedGridLineOverlay
         stickyCursor
         allowZoom
         showCursor={!isLoading}
@@ -136,7 +157,7 @@ export function OverviewTimeline({monitorList}: Props) {
       />
 
       {monitorList.map(monitor => (
-        <TimelineTableRow
+        <OverviewRow
           key={monitor.id}
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
@@ -152,11 +173,6 @@ export function OverviewTimeline({monitorList}: Props) {
     </MonitorListPanel>
   );
 }
-
-const MonitorListPanel = styled(Panel)`
-  display: grid;
-  grid-template-columns: 350px 135px 1fr;
-`;
 
 const Header = styled(Sticky)`
   display: grid;
@@ -177,16 +193,37 @@ const Header = styled(Sticky)`
   }
 `;
 
-const HeaderControls = styled('div')`
-  grid-column: 1/3;
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 3;
+  grid-column: 3/-1;
+`;
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const AlignedGridLineLabels = styled(GridLineLabels)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const MonitorListPanel = styled(Panel)`
+  display: grid;
+  grid-template-columns: 350px 135px 1fr max-content;
+`;
+
+const HeaderControlsLeft = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
+`;
+
+const HeaderControlsRight = styled('div')`
+  grid-row: 1;
+  grid-column: -1;
+  padding: ${space(1.5)} ${space(2)};
 `;
