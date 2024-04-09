@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
 import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
@@ -7,13 +9,22 @@ import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackDat
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackItemLoader() {
+  const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
   const {issueResult, issueData, tags, eventData} = useFetchFeedbackData({feedbackId});
 
   const projectSlug = useCurrentFeedbackProject();
   useSentryAppComponentsData({projectId: projectSlug});
+
+  useEffect(() => {
+    if (issueData) {
+      trackAnalytics('feedback.feedback-item-rendered', {organization});
+    }
+  }, [organization, issueData]);
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
