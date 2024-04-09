@@ -1560,3 +1560,34 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def test_source_lookup_with_proguard_symbolicator(self):
         with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
             self.test_source_lookup_with_proguard()
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_invalid_exception(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            event_data = {
+                "user": {"ip_address": "31.172.207.97"},
+                "extra": {},
+                "project": self.project.id,
+                "platform": "java",
+                "debug_meta": {},
+                "exception": {
+                    "values": [
+                        {"type": "PlatformException"},
+                        {"type": "SecurityException", "module": "java.lang"},
+                        {"type": "RemoteException", "module": "android.os"},
+                    ]
+                },
+                "timestamp": iso_format(before_now(seconds=1)),
+            }
+
+            event = self.post_and_retrieve_event(event_data)
+            expected = [
+                {"type": e.get("type", None), "module": e.get("module", None)}
+                for e in event_data["exception"]["values"]
+            ]
+            received = [
+                {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
+            ]
+
+            assert received == expected
