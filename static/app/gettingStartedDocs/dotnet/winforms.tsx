@@ -69,7 +69,7 @@ static class Program
             // Sample rate for profiling, applied on top of othe TracesSampleRate,
             // e.g. 0.2 means we want to profile 20 % of the captured transactions.
             // We recommend adjusting this value in production.
-            options.ProfilesSampleRate = 1.0;${
+            o.ProfilesSampleRate = 1.0;${
               platform !== DotNetPlatform.IOS_MACCATALYST
                 ? `
             // Requires NuGet package: Sentry.Profiling
