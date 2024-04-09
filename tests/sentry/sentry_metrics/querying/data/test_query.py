@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.sentry_metrics.querying.data import MQLQuery
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 
 @pytest.mark.parametrize(
@@ -15,7 +16,12 @@ from sentry.sentry_metrics.querying.data import MQLQuery
         ),
     ],
 )
-def test_get_replaced_formulas(formula, queries, expected_formula):
+def test_compile_mql_query(formula, queries, expected_formula):
     sub_queries = {name: MQLQuery(query) for name, query in queries.items()}
     compiled_query = MQLQuery(formula, **sub_queries).compile()
     assert compiled_query.mql == expected_formula
+
+
+def test_compile_mql_query_with_wrong_sub_queries():
+    with pytest.raises(InvalidMetricsQueryError):
+        MQLQuery("$query_1 * 2", query_1="sum(duration)").compile()

@@ -136,10 +136,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_no_formulas(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, "transaction:/bar")
-
         results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
+            mql_queries=[],
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
