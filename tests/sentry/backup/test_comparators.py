@@ -2149,7 +2149,7 @@ def test_good_user_password_obfuscating_comparator_scrubbed_short():
 def test_default_comparators(insta_snapshot):
     serialized = []
     defs = get_default_comparators()
-    for model_name, comparators in defs.items():
+    for model_name, comparators in sorted(defs.items()):
         serialized.append(
             {
                 "model_name": model_name,
