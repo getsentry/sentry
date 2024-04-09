@@ -1493,10 +1493,10 @@ function buildRoutes() {
   const aiAnalyticsRoutes = (
     <Route
       path="/ai-analytics/"
-      component={make(() => import('sentry/views/ai-analytics'))}
+      component={make(() => import('sentry/views/aiAnalytics'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/ai-analytics/landing'))} />
+      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
     </Route>
   );
 
@@ -1532,6 +1532,13 @@ function buildRoutes() {
           path="domains/"
           component={make(
             () => import('sentry/views/performance/http/httpDomainSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path="cache/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/cache/cacheLandingPage')
           )}
         />
       </Route>

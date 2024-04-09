@@ -3,24 +3,28 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
-POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
 bootstrap \
 develop \
+install-js-dev \
+install-py-dev \
+apply-migrations: devenv-sync ;
+
+# This is to ensure devenv sync's only called once if the above
+# aliases are combined e.g. `make install-js-dev install-py-dev`
+.PHONY: devenv-sync
+devenv-sync:
+	devenv sync
+
 clean \
-init-config \
-run-dependent-services \
 drop-db \
 create-db \
-apply-migrations \
 reset-db \
 setup-git \
-node-version-check \
-install-js-dev \
-install-py-dev :
+node-version-check :
 	@./scripts/do.sh $@
 
 build-platform-assets \
@@ -91,7 +95,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifact/pytest.acceptance.json" --json-report-omit=log
 	@echo ""
 
 test-cli: create-db
@@ -136,7 +140,10 @@ test-python-ci:
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -156,6 +163,9 @@ test-monolith-dbs:
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	  --json-report \
+	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
+	  --json-report-omit=log \
 	;
 	@echo ""
 
