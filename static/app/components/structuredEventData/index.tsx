@@ -68,7 +68,7 @@ function LinkHint({value}: {value: string}) {
   );
 }
 
-function StructuredData({
+export function StructuredData({
   config,
   depth,
   value = null,
@@ -281,7 +281,7 @@ function StructuredData({
   );
 }
 
-function StructuredEventData({
+export default function StructuredEventData({
   config,
   children,
   meta,
@@ -304,8 +304,6 @@ function StructuredEventData({
     </pre>
   );
 }
-
-export default StructuredEventData;
 
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
