@@ -15,12 +15,13 @@ from sentry.models.project import Project
 from sentry.profiles.task import (
     _calculate_profile_duration_ms,
     _deobfuscate,
+    _deobfuscate_locally,
+    _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
 )
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -337,7 +338,7 @@ def test_basic_deobfuscation(project, proguard_file_basic, android_profile):
             },
         }
     )
-    _deobfuscate(android_profile, project)
+    _deobfuscate_locally(android_profile, project, PROGUARD_UUID)
     frames = android_profile["profile"]["methods"]
 
     assert frames[0]["name"] == "getClassContext"
@@ -376,7 +377,7 @@ def test_inline_deobfuscation(project, proguard_file_inline, android_profile):
     )
 
     project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    _deobfuscate(android_profile, project)
+    _deobfuscate_locally(android_profile, project, PROGUARD_INLINE_UUID)
     frames = android_profile["profile"]["methods"]
 
     assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
@@ -706,12 +707,12 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 },
             }
         )
-        with override_options(
-            {
-                "profiling.deobfuscate-using-symbolicator.enable-for-project": [self.project.id],
-            }
-        ):
-            _deobfuscate(android_profile, self.project)
+
+        _deobfuscate_using_symbolicator(
+            self.project,
+            android_profile,
+            PROGUARD_UUID,
+        )
 
         assert android_profile["profile"]["methods"] == [
             {
@@ -729,5 +730,97 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "signature": "(): boolean",
                 "source_file": "Else.java",
                 "source_line": 69,
+            },
+        ]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_inline_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "project_id": self.project.id,
+                "build_id": PROGUARD_INLINE_UUID,
+                "event_id": android_profile["profile_id"],
+                "profile": {
+                    "methods": [
+                        {
+                            "class_name": "e.a.c.a",
+                            "name": "onClick",
+                            "signature": "()V",
+                            "source_file": None,
+                            "source_line": 2,
+                        },
+                        {
+                            "class_name": "io.sentry.sample.MainActivity",
+                            "name": "t",
+                            "signature": "()V",
+                            "source_file": "MainActivity.java",
+                            "source_line": 1,
+                        },
+                    ],
+                },
+            }
+        )
+
+        _deobfuscate_using_symbolicator(
+            self.project,
+            android_profile,
+            PROGUARD_INLINE_UUID,
+        )
+
+        assert android_profile["profile"]["methods"] == [
+            {
+                "class_name": "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4",
+                "data": {
+                    "deobfuscation_status": "deobfuscated",
+                },
+                "name": "onClick",
+                "signature": "()",
+                "source_file": None,
+                "source_line": 2,
+            },
+            {
+                "class_name": "io.sentry.sample.MainActivity",
+                "data": {
+                    "deobfuscation_status": "deobfuscated",
+                },
+                "inline_frames": [
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "onClickHandler",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 40,
+                    },
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "foo",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 44,
+                    },
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "bar",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 54,
+                    },
+                ],
+                "name": "onClickHandler",
+                "signature": "()",
+                "source_file": "MainActivity.java",
+                "source_line": 40,
             },
         ]

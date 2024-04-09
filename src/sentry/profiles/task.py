@@ -832,7 +832,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+    # We re-use this option as a deny list before we remove it completely.
+    if project.id not in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         try:
             with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
                 success = _deobfuscate_using_symbolicator(
