@@ -72,11 +72,10 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         )
         if not viewed_by_ids_response:
             return Response(status=404)
-        viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
 
         # query + serialize the User objects from postgres.
         response: ReplayViewedByResponse = generate_viewed_by_response(
-            viewed_by_ids=viewed_by_ids,
+            viewed_by_ids=viewed_by_ids_response[0]["viewed_by_ids"],
             request_user=request.user,
         )
         return Response({"data": response}, status=200)
