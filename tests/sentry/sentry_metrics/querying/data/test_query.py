@@ -19,7 +19,16 @@ from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 def test_compile_mql_query(formula, queries, expected_formula):
     sub_queries = {name: MQLQuery(query) for name, query in queries.items()}
     compiled_query = MQLQuery(formula, **sub_queries).compile()  # type: ignore[arg-type]
+
     assert compiled_query.mql == expected_formula
+
+
+def test_compile_mql_query_recursive():
+    query_1 = MQLQuery("sum(duration)")
+    query_2 = MQLQuery("$query_1 * 2", query_1=query_1)
+    compiled_query = MQLQuery("$query_2 + 1 / $query_1", query_1=query_1, query_2=query_2).compile()
+
+    assert compiled_query.mql == "sum(duration) * 2 + 1 / sum(duration)"
 
 
 def test_compile_mql_query_with_wrong_sub_queries():
