@@ -3,7 +3,7 @@ from google.api_core.exceptions import FailedPrecondition, InvalidArgument, NotF
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -27,9 +27,14 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
-            function = SentryFunction.objects.get(
-                slug=function_slug, organization=kwargs["organization"].id
-            )
+            if options.get("api.id-or-slug-enabled"):
+                function = SentryFunction.objects.get(
+                    slug__id_or_slug=function_slug, organization=kwargs["organization"].id
+                )
+            else:
+                function = SentryFunction.objects.get(
+                    slug=function_slug, organization=kwargs["organization"].id
+                )
         except SentryFunction.DoesNotExist:
             raise Http404
 

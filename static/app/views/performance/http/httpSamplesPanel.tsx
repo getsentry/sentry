@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -131,6 +132,7 @@ export function HTTPSamplesPanel() {
     data: samplesData,
     isFetching: isSamplesDataFetching,
     error: samplesDataError,
+    refetch: refetchSpanSamples,
   } = useSpanSamples({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
@@ -328,6 +330,12 @@ export function HTTPSamplesPanel() {
               />
             </ModuleLayout.Full>
           )}
+
+          <ModuleLayout.Full>
+            <Button onClick={() => refetchSpanSamples()}>
+              {t('Try Different Samples')}
+            </Button>
+          </ModuleLayout.Full>
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>

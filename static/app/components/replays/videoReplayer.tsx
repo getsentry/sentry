@@ -137,16 +137,23 @@ export class VideoReplayer {
       }
     };
 
+    const handleSeeking = event => {
+      // Centers the video when seeking (and video is not playing)
+      this._callbacks.onLoaded(event);
+    }
+
     el.addEventListener('ended', handleEnded);
     el.addEventListener('loadeddata', handleLoadedData);
     el.addEventListener('play', handlePlay);
     el.addEventListener('loadedmetadata', handleLoadedMetaData);
+    el.addEventListener('seeking', handleSeeking);
 
     this._listeners.push(() => {
       el.removeEventListener('ended', handleEnded);
       el.removeEventListener('loadeddata', handleLoadedData);
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
+      el.removeEventListener('seeking', handleSeeking);
     });
   }
 
@@ -353,7 +360,6 @@ export class VideoReplayer {
       this._currentVideo.style.display = 'none';
     }
 
-    // TODO: resize video if it changes orientation
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
