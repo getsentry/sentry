@@ -552,7 +552,6 @@ def get_entity_subscription(
             entity_subscription_cls = PerformanceMetricsEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:
         entity_key = determine_crash_rate_alert_entity(aggregate)
-        assert dataset == Dataset.Metrics
         if entity_key == EntityKey.MetricsCounters:
             entity_subscription_cls = MetricsCountersEntitySubscription
         if entity_key == EntityKey.MetricsSets:
