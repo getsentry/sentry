@@ -77,15 +77,16 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
         viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
         if viewed_by_ids == []:
-            return Response({"data": {"id": replay_id, "viewed_by": []}}, status=200)
+            return Response({"data": {"viewed_by": []}}, status=200)
 
+        # Note: this will filter out any non-existent user ids returned by Snuba
         serialized_users = user_service.serialize_many(
             filter=dict(user_ids=viewed_by_ids),
             as_user=serialize_generic_user(request.user),
         )
         serialized_users = [_normalize_user(user) for user in serialized_users]
 
-        return Response({"data": {"id": replay_id, "viewed_by": serialized_users}}, status=200)
+        return Response({"data": {"viewed_by": serialized_users}}, status=200)
 
     @extend_schema(
         operation_id="Post that the requesting user has viewed a replay",

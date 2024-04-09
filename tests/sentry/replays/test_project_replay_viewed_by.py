@@ -43,7 +43,6 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
 
             assert response.status_code == 200
-            assert response.data["data"]["id"] == self.replay_id
             assert_viewed_by_expected_ids_and_unique(
                 response.data["data"]["viewed_by"], {self.user.id}
             )
@@ -105,7 +104,6 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert response.data["data"]["id"] == self.replay_id
             assert len(response.data["data"]["viewed_by"]) == 0
 
     def test_get_replay_viewed_by_no_viewers(self):
@@ -117,7 +115,6 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert response.data["data"]["id"] == self.replay_id
             assert len(response.data["data"]["viewed_by"]) == 0
 
     def test_get_replay_viewed_by_not_found(self):
