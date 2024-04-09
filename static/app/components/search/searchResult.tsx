@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
 
-import {Result} from './sources/types';
+import type {Result} from './sources/types';
 
 type Props = {
   highlighted: boolean;
@@ -50,9 +50,8 @@ function SearchResult({item, matches, highlighted}: Props) {
     let {title, description} = item;
 
     if (matches) {
-      const matchedTitle = matches && matches.find(({key}) => key === 'title');
-      const matchedDescription =
-        matches && matches.find(({key}) => key === 'description');
+      const matchedTitle = matches?.find(({key}) => key === 'title');
+      const matchedDescription = matches?.find(({key}) => key === 'description');
 
       title = matchedTitle
         ? highlightFuseMatches(matchedTitle, HighlightedMarker)

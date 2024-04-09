@@ -1,3 +1,6 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -14,8 +17,8 @@ describe('utils.projects', function () {
     MockApiClient.clearMockResponses();
     act(() =>
       ProjectsStore.loadInitialData([
-        TestStubs.Project({id: '1', slug: 'foo'}),
-        TestStubs.Project({id: '2', slug: 'bar'}),
+        ProjectFixture({id: '1', slug: 'foo'}),
+        ProjectFixture({id: '2', slug: 'bar'}),
       ])
     );
   });
@@ -53,11 +56,11 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -89,32 +92,34 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: false,
-          hasMore: null,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: false,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -122,7 +127,7 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
@@ -154,31 +159,33 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: true,
-          hasMore: null,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            {
-              slug: 'b',
-            },
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: true,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              {
+                slug: 'b',
+              },
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -205,7 +212,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = TestStubs.Team();
+      const newTeam = TeamFixture();
       act(() => ProjectsStore.onAddTeam(newTeam, 'foo'));
 
       await waitFor(() =>
@@ -259,15 +266,15 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '1',
             slug: 'foo',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -291,32 +298,34 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: [
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: [
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+            ],
+          })
+        )
       );
     });
   });
@@ -328,11 +337,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -365,28 +374,30 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: true,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: true,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -411,11 +422,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '102',
             slug: 'test1',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '103',
             slug: 'test2',
           }),
@@ -429,7 +440,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -466,11 +477,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '102',
             slug: 'test1',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '103',
             slug: 'test2',
           }),
@@ -484,7 +495,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -553,15 +564,15 @@ describe('utils.projects', function () {
 
     beforeEach(function () {
       mockProjects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '100',
           slug: 'a',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '101',
           slug: 'b',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '102',
           slug: 'c',
         }),
@@ -593,7 +604,7 @@ describe('utils.projects', function () {
         expect(request).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {all_projects: 1, collapse: ['latestDeploys']},
+            query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
           })
         )
       );
@@ -650,7 +661,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = TestStubs.Team();
+      const newTeam = TeamFixture();
       act(() => ProjectsStore.onAddTeam(newTeam, 'a'));
 
       // Expect new team information to be available

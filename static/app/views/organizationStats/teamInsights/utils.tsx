@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import BaseChart from 'sentry/components/charts/baseChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type BaseChart from 'sentry/components/charts/baseChart';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 

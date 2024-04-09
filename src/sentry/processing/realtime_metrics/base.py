@@ -1,4 +1,4 @@
-from typing import Iterable, Set
+from collections.abc import Iterable
 
 from sentry.utils.services import Service
 
@@ -16,6 +16,12 @@ class RealtimeMetricsStore(Service):
         "add_project_to_lpq",
         "remove_projects_from_lpq",
     )
+
+    def validate(self) -> None:
+        """
+        Validate the current state of the metrics store.
+        """
+        raise NotImplementedError
 
     def record_project_duration(self, project_id: int, duration: float) -> None:
         """
@@ -59,7 +65,7 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def get_lpq_projects(self) -> Set[int]:
+    def get_lpq_projects(self) -> set[int]:
         """
         Fetches the list of projects that are currently using the low priority queue.
 
@@ -89,7 +95,7 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
+    def remove_projects_from_lpq(self, project_ids: set[int]) -> int:
         """
         Unassigns projects from the low priority queue.
 

@@ -5,21 +5,24 @@ import {AnimatePresence, motion} from 'framer-motion';
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {
-  OnboardingContext,
-  OnboardingContextProps,
-} from 'sentry/components/onboarding/onboardingContext';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import type {
+  OnboardingTask,
+  OnboardingTaskKey,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
@@ -28,7 +31,6 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   onClose: () => void;
-  projects: Project[];
 };
 
 /**
@@ -94,10 +96,15 @@ export const useOnboardingTasks = (
   }, [organization, projects, onboardingContext]);
 };
 
-function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
+export default function OnboardingWizardSidebar({
+  collapsed,
+  orientation,
+  onClose,
+}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
 
   const markCompletionTimeout = useRef<number | undefined>();
   const markCompletionSeenTimeout = useRef<number | undefined>();
@@ -181,14 +188,13 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
   );
 
   const customizedCards = customTasks
-    .map(
-      task =>
-        task.renderCard?.({
-          organization,
-          task,
-          onboardingContext,
-          projects,
-        })
+    .map(task =>
+      task.renderCard?.({
+        organization,
+        task,
+        onboardingContext,
+        projects,
+      })
     )
     .filter(card => !!card);
 
@@ -281,5 +287,3 @@ const TopRight = styled('img')`
   right: 0;
   width: 60%;
 `;
-
-export default withProjects(OnboardingWizardSidebar);

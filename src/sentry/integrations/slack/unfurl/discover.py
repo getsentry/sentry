@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
@@ -76,7 +77,7 @@ def get_double_period(period: str) -> str:
     if not m:
         m = re.match(r"^(\d+)([hdmsw]?)$", DEFAULT_PERIOD)
 
-    value, unit = m.groups()  # type: ignore
+    value, unit = m.groups()  # type: ignore[union-attr]
     value = int(value)
 
     return f"{value * 2}{unit}"
@@ -139,7 +140,8 @@ def unfurl_discover(
 
             except Exception as exc:
                 logger.error(
-                    f"Failed to load saved query for unfurl: {exc}",
+                    "Failed to load saved query for unfurl: %s",
+                    exc,
                     exc_info=True,
                 )
             else:
@@ -256,7 +258,8 @@ def unfurl_discover(
             url = charts.generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
-                f"Failed to generate chart for discover unfurl: {exc}",
+                "Failed to generate chart for discover unfurl: %s",
+                exc,
                 exc_info=True,
             )
             continue

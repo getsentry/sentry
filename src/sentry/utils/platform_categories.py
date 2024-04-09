@@ -47,12 +47,19 @@ MOBILE = [
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 BACKEND = [
     "bun",
+    "deno",
     "dotnet",
     "dotnet-aspnet",
     "dotnet-aspnetcore",
     "elixir",
     "go",
+    "go-echo",
+    "go-fasthttp",
+    "go-gin",
     "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
     "java",
     "java-appengine",
     "java-log4j",
@@ -72,8 +79,10 @@ BACKEND = [
     "php-monolog",
     "php-symfony",
     "php",
+    "powershell",
     "python",
     "python-aiohttp",
+    "python-asgi",
     "python-bottle",
     "python-celery",
     "python-chalice",
@@ -134,10 +143,15 @@ DESKTOP = [
     "unreal",
 ]
 
+# TODO: @athena Remove this
+# This is only temporary since we decide the right category. Don't add anything here or your frontend experience will be broken
+TEMPORARY = ["nintendo"]
+
 CATEGORY_LIST = [
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},
     {id: "server", "name": _("Server"), "platforms": BACKEND},
     {id: "mobile", "name": _("Mobile"), "platforms": MOBILE},
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
+    {id: "temporary", "name": _("Temporary"), "platforms": TEMPORARY},
 ]

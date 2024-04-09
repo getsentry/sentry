@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import Span
+from sentry.api.utils import handle_query_errors
 from sentry.snuba import discover
 
 DATA_FILTERS = ["all", "exclude_outliers"]
@@ -37,7 +38,7 @@ class SpansHistogramSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):
@@ -59,7 +60,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
             if serializer.is_valid():
                 data = serializer.validated_data
 
-                with self.handle_query_errors():
+                with handle_query_errors():
                     results = discover.spans_histogram_query(
                         data["span"],
                         data.get("query"),

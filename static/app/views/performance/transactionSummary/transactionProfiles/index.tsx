@@ -7,7 +7,8 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,10 +24,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
-import {
-  getProfilesTableFields,
-  ProfilingFieldType,
-} from 'sentry/views/profiling/profileSummary/content';
+import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
+import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 import PageLayout from '../pageLayout';
 
@@ -43,6 +42,7 @@ function Profiles(): React.ReactElement {
 
   const project = projects.projects.find(p => p.id === location.query.project);
   const fields = getProfilesTableFields(project?.platform);
+  const sortableFields = useMemo(() => new Set(fields), [fields]);
 
   const sort = formatSort<ProfilingFieldType>(decodeScalar(location.query.sort), fields, {
     key: 'timestamp',
@@ -120,6 +120,7 @@ function Profiles(): React.ReactElement {
               error={profiles.status === 'error' ? t('Unable to load profiles') : null}
               isLoading={profiles.status === 'loading'}
               sort={sort}
+              sortableColumns={sortableFields}
             />
           </Layout.Main>
         );

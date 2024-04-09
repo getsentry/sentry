@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from django import forms
 from django.http import HttpResponse
@@ -20,10 +21,17 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
+from .utils import get_team
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -60,6 +68,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
+    "https://api.opsgenie.com/": "app.opsgenie.com",
+    "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
+}
+
 
 class InstallationForm(forms.Form):
     base_url = forms.ChoiceField(
@@ -86,7 +99,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type: ignore[explicit-override, override]
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -106,13 +119,19 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self, integration_key: str) -> Any:  # type: ignore
-        org_integration_id = self.org_integration.id if self.org_integration else None
+    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+        org_integration = self.org_integration
+        assert org_integration, "OrganizationIntegration is required"
+        team = get_team(team_id=keyid, org_integration=org_integration)
+        assert team, "Cannot get client for unknown team"
+
         return OpsgenieClient(
             integration=self.model,
-            integration_key=integration_key,
-            org_integration_id=org_integration_id,
+            integration_key=team["integration_key"],
         )
+
+    def get_client(self) -> Any:  # type: ignore[explicit-override]
+        raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
@@ -134,6 +153,8 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
         # add the integration ID to a newly added row
         if not self.org_integration:
             return
@@ -143,10 +164,57 @@ class OpsgenieIntegration(IntegrationInstallation):
         # this is not instantaneous, so you could add the same team a bunch of times in a row
         # but I don't anticipate this being too much of an issue
         added_names = {team["team"] for team in teams if team not in unsaved_teams}
+        existing_team_key_pairs = {
+            (team["team"], team["integration_key"]) for team in teams if team not in unsaved_teams
+        }
+
+        integration = integration_service.get_integration(
+            organization_integration_id=self.org_integration.id
+        )
+        if not integration:
+            raise IntegrationError("Integration does not exist")
+
         for team in unsaved_teams:
             if team["team"] in added_names:
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
+
+        invalid_keys = []
+        for team in teams:
+            # skip if team, key pair already exist in config
+            if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                continue
+
+            integration_key = team["integration_key"]
+
+            # validate integration keys
+            client = OpsgenieClient(
+                integration=integration,
+                integration_key=integration_key,
+            )
+            # call an API to test the integration key
+            try:
+                client.get_alerts()
+            except ApiError as e:
+                logger.info(
+                    "opsgenie.authorization_error",
+                    extra={"error": str(e), "status_code": e.code},
+                )
+                if e.code == 429:
+                    raise ApiRateLimitedError(
+                        "Too many requests. Please try updating one team/key at a time."
+                    )
+                elif e.code == 401:
+                    invalid_keys.append(integration_key)
+                    pass
+                elif e.json and e.json.get("message"):
+                    raise ApiError(e.json["message"])
+                else:
+                    raise
+
+        if invalid_keys:
+            raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
+
         return super().update_organization_config(data)
 
     def schedule_migrate_opsgenie_plugin(self):
@@ -178,7 +246,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             "metadata": {
                 "api_key": api_key,
                 "base_url": base_url,
-                "domain_name": f"{name}.app.opsgenie.com",
+                "domain_name": f"{name}.{OPSGENIE_BASE_URL_TO_DOMAIN_NAME[base_url]}",
             },
         }
 

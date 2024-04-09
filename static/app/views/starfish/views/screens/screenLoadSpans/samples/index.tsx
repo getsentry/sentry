@@ -8,24 +8,23 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/samplesContainer';
-import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFilters?: Record<string, string>;
   onClose?: () => void;
   spanDescription?: string;
+  spanOp?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -37,6 +36,8 @@ export function ScreenLoadSpanSamples({
   spanDescription,
   onClose,
   transactionRoute = '/performance/summary/',
+  spanOp,
+  additionalFilters,
 }: Props) {
   const router = useRouter();
 
@@ -68,10 +69,12 @@ export function ScreenLoadSpanSamples({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `${transactionRoute}?${qs.stringify({
-    project: query.project,
-    transaction: transactionName,
-  })}`;
+  const link = normalizeUrl(
+    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
+      project: query.project,
+      transaction: transactionName,
+    })}`
+  );
 
   function defaultOnClose() {
     router.replace({
@@ -81,7 +84,7 @@ export function ScreenLoadSpanSamples({
   }
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
@@ -106,15 +109,7 @@ export function ScreenLoadSpanSamples({
             </Title>
           </TitleContainer>
         </HeaderContainer>
-        <PageErrorAlert />
-
-        <SampleInfo
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          displayedMetrics={['count()', 'time_spent_percentage()']}
-        />
-
+        <PageAlert />
         <ChartsContainer>
           <ChartsContainerItem key="release1">
             <ScreenLoadSampleContainer
@@ -123,6 +118,9 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={primaryRelease}
               sectionTitle={t('Release 1')}
+              project={project}
+              spanOp={spanOp}
+              additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
@@ -132,11 +130,14 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
+              project={project}
+              spanOp={spanOp}
+              additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
         </ChartsContainer>
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

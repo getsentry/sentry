@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import all_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
@@ -21,15 +23,15 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.urls import parse_link
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
 
-@region_silo_endpoint
+@all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -81,7 +83,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.postEphemeral", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -131,7 +133,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
             organization_id = ois[0].organization_id if len(ois) > 0 else None
             organization_context = (
-                organization_service.get_organization_by_id(id=organization_id, user_id=None)
+                organization_service.get_organization_by_id(
+                    id=organization_id, user_id=None, include_projects=False, include_teams=False
+                )
                 if organization_id
                 else None
             )
@@ -177,6 +181,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        # XXX(isabella): we use our message builders to create the blocks for each link to be
+        # unfurled, so the original result will include the fallback text string, however, the
+        # unfurl endpoint does not accept fallback text.
+        if features.has("organizations:slack-block-kit", organization):
+            for link_info in results.values():
+                if "text" in link_info:
+                    del link_info["text"]
+
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
@@ -187,12 +199,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            logger.exception(
+                "slack.event.unfurl-error", extra={"error": str(e), "payload": payload}
+            )
 
         return True
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
-    @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

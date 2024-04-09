@@ -1,13 +1,14 @@
-import {Fragment, ReactNode, useState} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {
   platformEventLinkMap,
   PlatformEvents,
@@ -133,8 +134,8 @@ function CreateNewIntegrationModal({
               option === 'sentry-fx'
                 ? PlatformEvents.CHOSE_SENTRY_FX
                 : option === 'public'
-                ? PlatformEvents.CHOSE_PUBLIC
-                : PlatformEvents.CHOSE_INTERNAL,
+                  ? PlatformEvents.CHOSE_PUBLIC
+                  : PlatformEvents.CHOSE_INTERNAL,
               {
                 organization,
                 view: analyticsView,

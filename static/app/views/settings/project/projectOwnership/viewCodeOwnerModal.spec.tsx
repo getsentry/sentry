@@ -1,3 +1,5 @@
+import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ViewCodeOwnerModal from './viewCodeOwnerModal';
@@ -9,7 +11,7 @@ describe('ViewCodeOwnerModal', () => {
     const ownershipSyntax = `codeowners:/src/sentry/migrations/ #developer-infrastructure\n`;
     render(
       <ViewCodeOwnerModal
-        codeowner={TestStubs.CodeOwner({ownershipSyntax})}
+        codeowner={CodeOwnerFixture({ownershipSyntax})}
         closeModal={jest.fn()}
         Header={mockComponent}
         Footer={mockComponent}

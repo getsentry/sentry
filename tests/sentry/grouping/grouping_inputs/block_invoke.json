@@ -1,0 +1,38 @@
+{
+  "platform": "cocoa",
+  "message": "Foo",
+  "grouping_config": {
+    "enhancements": "eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeHsSRNXp_nkp6enFunl5KdPOcvCcJaZ4SwL41lmxkkTN6a5OAElQxKB8imuRUX5RWgK1kIUOJb4pJal5qBJLoNIooluAYo6FhenFpXgNnYnUI1zRmpyNiGFNxVwqvRNLS5OTE9F07Abm-0UK92S5paZk-qcmJyRijMsl6SlJFVMOcsKFmMFiQEAtd-T3A",
+    "id": "newstyle:2023-01-11"
+  },
+  "threads": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "note": "Because it's in_app it will be considered for grouping even though it uses _block_invoke.",
+              "in_app": true
+            },
+            {
+              "function": "__99+[Something else]_block_invoke_2",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "note": "A rule will make this frame as in_app, thus, it will be considered for grouping even though it uses _block_invoke.",
+              "in_app": false
+            },
+            {
+              "function": "__00+[Something else]_block_invoke_2",
+              "note": "No rule turns this into in_app and it uses _block_invoke, thus, ignore for grouping.",
+              "in_app": false
+            }
+          ]
+        },
+        "crashed": false,
+        "current": true,
+        "main": true
+      }
+    ]
+  }
+}

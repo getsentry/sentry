@@ -1,41 +1,44 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
+sentry-devenv>=1.5.0
+
 covdefaults>=2.3.0
-docker>=3.7.0,<3.8.0
+docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
-openapi-core>=0.14.2
-psutil
-pytest>=7.2.1
+openapi-core>=0.18.2
+pytest>=8
 pytest-cov>=4.0.0
-pytest-django>=4.4.0
+pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
+pytest-json-report>=1.5.0
 pytest-rerunfailures>=11
-pytest-sentry>=0.1.11
+pytest-sentry>=0.3.0rc1
 pytest-xdist>=3
 responses>=0.23.1
-selenium>=4.3.0
+selenium>=4.16.0
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
 pre-commit>=3.3
 black>=22.10.0
-flake8>=6.1
+flake8>=7
 flake8-bugbear>=22.10
-pyupgrade>=3.2.3
+flake8-logging>=1.5
+pyupgrade>=3.15
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
 # note: wheel is pulled in by pip-tools
-pip-tools>=6.7.0
+pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=4.2.6.post2
-sentry-forked-djangorestframework-stubs>=3.14.4.post1
+sentry-forked-django-stubs>=4.2.7.post3
+sentry-forked-djangorestframework-stubs>=3.14.5.post1
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.6.1
+mypy>=1.9
 types-beautifulsoup4
 types-cachetools
 types-croniter
@@ -51,6 +54,6 @@ types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
-types-requests
-types-setuptools
+types-requests>=2.31.0.20231231
+types-setuptools>=68
 types-simplejson>=3.17.7.2

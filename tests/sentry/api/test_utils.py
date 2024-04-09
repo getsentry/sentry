@@ -4,18 +4,37 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 from sentry_sdk import Scope
-from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    InvalidParams,
     customer_domain_path,
     get_date_range_from_params,
+    handle_query_errors,
+    id_or_slug_path_params_enabled,
     print_and_capture_handler_exception,
 )
-from sentry.testutils.cases import APITestCase
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
+from sentry.utils.snuba import (
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryMissingColumn,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SchemaValidationError,
+    SnubaError,
+    UnqualifiedQueryError,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -50,8 +69,8 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_date_range(self):
         start, end = get_date_range_from_params({"start": "2018-11-01", "end": "2018-11-07"})
 
-        assert start == datetime.datetime(2018, 11, 1, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 11, 7, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 1, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 11, 7, tzinfo=datetime.UTC)
 
         with pytest.raises(InvalidParams):
             get_date_range_from_params(
@@ -74,13 +93,13 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_relative_date_range(self):
         start, end = get_date_range_from_params({"timeframeStart": "14d", "timeframeEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
         start, end = get_date_range_from_params({"statsPeriodStart": "14d", "statsPeriodEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
     @freeze_time("2018-12-11 03:21:34")
     def test_relative_date_range_incomplete(self):
@@ -94,12 +113,13 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
 
     @patch("sys.stderr.write")
     def test_logs_error_locally(self, mock_stderr_write: MagicMock):
-        exc_info = exc_info_from_error(self.handler_error)
+        try:
+            raise self.handler_error
+        except Exception as e:
+            print_and_capture_handler_exception(e)
 
-        with patch("sys.exc_info", return_value=exc_info):
-            print_and_capture_handler_exception(self.handler_error)
-
-            mock_stderr_write.assert_called_with("Exception: nope\n")
+        (((s,), _),) = mock_stderr_write.call_args_list
+        assert s.splitlines()[-1] == "Exception: nope"
 
     @patch("sentry.api.utils.capture_exception")
     def test_passes_along_exception(
@@ -192,6 +212,73 @@ def test_customer_domain_path():
             "/settings/projects/getting-started/abc123/",
         ],
         ["/settings/teams/peeps/", "/settings/teams/peeps/"],
+        ["/settings/billing/checkout/?_q=all#hash", "/settings/billing/checkout/?_q=all#hash"],
+        [
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+        ],
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)
+
+
+class FooBarError(Exception):
+    pass
+
+
+class HandleQueryErrorsTest:
+    @patch("sentry.api.utils.ParseError")
+    def test_handle_query_errors(self, mock_parse_error):
+        exceptions = [
+            DatasetSelectionError,
+            IncompatibleMetricsQuery,
+            InvalidParams,
+            InvalidSearchQuery,
+            QueryConnectionFailed,
+            QueryExecutionError,
+            QueryExecutionTimeMaximum,
+            QueryIllegalTypeOfArgument,
+            QueryMemoryLimitExceeded,
+            QueryMissingColumn,
+            QueryOutsideRetentionError,
+            QuerySizeExceeded,
+            QueryTooManySimultaneous,
+            RateLimitExceeded,
+            SchemaValidationError,
+            SnubaError,
+            UnqualifiedQueryError,
+        ]
+        mock_parse_error.return_value = FooBarError()
+        for ex in exceptions:
+            try:
+                with handle_query_errors():
+                    raise ex
+            except Exception as e:
+                assert isinstance(e, (FooBarError, APIException))
+
+
+class IdOrSlugPathParamsEnabledTest(TestCase):
+    def test_no_options_enabled(self):
+        assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_ga_option_enabled(self):
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
+    def test_ea_endpoint_option_enabled(self):
+        assert not id_or_slug_path_params_enabled(convert_args_class="NotTestEndpoint.convert_args")
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
+    def test_ea_org_option_enabled(self):
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
+
+    @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
+    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
+    def test_ea_org_and_endpointoption_enabled(self):
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
+        assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args", "not-sentry")
+        assert id_or_slug_path_params_enabled("TestEndpoint.convert_args", "sentry")

@@ -1,31 +1,28 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
-import {Client} from 'sentry/api';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
+import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupActivityReprocess,
   GroupReprocessing,
   Organization,
   Project,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -50,7 +47,6 @@ const EscalatingIssuesFeedback = HookOrDefault({
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
-  api: Client;
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
@@ -72,35 +68,21 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     loadingEvent,
     onRetry,
     eventError,
-    api,
     params,
   } = props;
   const eventWithMeta = withMeta(event);
-
   // Reprocessing
   const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
   const {activity: activities} = group;
   const mostRecentActivity = getGroupMostRecentActivity(activities);
-  const orgSlug = organization.slug;
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
 
   // load the data
-  useEffect(() => {
-    fetchSentryAppInstallations(api, orgSlug);
-    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
-    if (projectId) {
-      fetchSentryAppComponents(api, orgSlug, projectId);
-    } else {
-      Sentry.withScope(scope => {
-        scope.setExtra('orgSlug', orgSlug);
-        scope.setExtra('projectId', projectId);
-        Sentry.captureMessage('Project ID was not set');
-      });
-    }
-  }, [api, orgSlug, projectId]);
+  useSentryAppComponentsData({projectId});
+
   // If environments are being actively changed and will no longer contain the
   // current event's environment, redirect to latest
   useEffect(() => {
@@ -137,19 +119,14 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   ]);
 
   const renderGroupStatusBanner = () => {
-    const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
     if (group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          {hasEscalatingIssuesUi ? (
-            <ArchivedBox
-              substatus={group.substatus}
-              statusDetails={group.statusDetails}
-              organization={organization}
-            />
-          ) : (
-            <MutedBox statusDetails={group.statusDetails} />
-          )}
+          <ArchivedBox
+            substatus={group.substatus}
+            statusDetails={group.statusDetails}
+            organization={organization}
+          />
         </GroupStatusBannerWrapper>
       );
     }
@@ -185,7 +162,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <TransactionProfileIdProvider

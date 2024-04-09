@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 
 describe('Onboarding Product Selection', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['session-replay', 'performance-view', 'profiling-view'],
   });
 

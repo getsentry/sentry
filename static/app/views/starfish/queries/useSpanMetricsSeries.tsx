@@ -1,46 +1,45 @@
 import keyBy from 'lodash/keyBy';
+import sortBy from 'lodash/sortBy';
 
-import {getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import {intervalToMilliseconds} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {getIntervalForMetricFunction} from 'sentry/views/performance/database/getIntervalForMetricFunction';
+import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';
+import type {MetricsProperty} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsField;
-
-export type SpanMetrics = {
+interface SpanMetricTimeseriesRow {
+  [key: string]: number;
   interval: number;
-  'p95(span.self_time)': number;
-  'spm()': number;
-  'sum(span.self_time)': number;
-  'time_spent_percentage()': number;
-};
+}
 
-export const useSpanMetricsSeries = (
-  group: string,
-  queryFilters: SpanSummaryQueryFilters,
-  yAxis: string[] = [],
-  referrer = 'span-metrics-series'
+interface UseSpanMetricsSeriesOptions<Fields> {
+  enabled?: boolean;
+  referrer?: string;
+  search?: MutableSearch;
+  yAxis?: Fields;
+}
+
+export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
+  options: UseSpanMetricsSeriesOptions<Fields> = {}
 ) => {
+  const {search = undefined, yAxis = [], referrer = 'span-metrics-series'} = options;
+
   const pageFilters = usePageFilters();
 
-  const eventView = group
-    ? getEventView(group, pageFilters.selection, yAxis, queryFilters)
-    : undefined;
+  const eventView = getEventView(search, pageFilters.selection, yAxis);
 
-  const enabled =
-    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
-
-  const result = useSpansQuery<SpanMetrics[]>({
+  const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
     initialData: [],
     referrer,
-    enabled,
+    enabled: options.enabled,
   });
 
   const parsedData = keyBy(
@@ -49,40 +48,47 @@ export const useSpanMetricsSeries = (
         seriesName,
         data: (result?.data ?? []).map(datum => ({
           value: datum[seriesName],
-          name: datum.interval,
+          name: datum?.interval,
         })),
       };
 
       return series;
     }),
     'seriesName'
-  );
+  ) as Record<Fields[number], Series>;
 
   return {...result, data: parsedData};
 };
 
 function getEventView(
-  group: string,
+  search: MutableSearch | undefined,
   pageFilters: PageFilters,
-  yAxis: string[],
-  queryFilters: SpanSummaryQueryFilters
+  yAxis: string[]
 ) {
+  // Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
+  const interval = sortBy(
+    yAxis.map(yAxisFunctionName => {
+      const parseResult = parseFunction(yAxisFunctionName);
+
+      if (!parseResult) {
+        return DEFAULT_INTERVAL;
+      }
+
+      return getIntervalForMetricFunction(parseResult.name, pageFilters.datetime);
+    }),
+    result => {
+      return intervalToMilliseconds(result);
+    }
+  ).at(-1);
+
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: `${SPAN_GROUP}:${group}${
-        queryFilters?.transactionName
-          ? ` transaction:"${queryFilters?.transactionName}"`
-          : ''
-      }${
-        queryFilters?.['transaction.method']
-          ? ` transaction.method:${queryFilters?.['transaction.method']}`
-          : ''
-      }${queryFilters?.release ? ` release:${queryFilters?.release}` : ''}`,
+      query: search?.formatString() ?? undefined,
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
+      interval,
       version: 2,
     },
     pageFilters

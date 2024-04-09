@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Callable, List, Optional, Set, Type
+from collections.abc import Callable
 
 from django.db.models.base import Model
 
@@ -55,9 +55,9 @@ class ImportExportService(RpcService):
         self,
         *,
         model_name: str = "",
-        scope: Optional[RpcImportScope] = None,
+        scope: RpcImportScope | None = None,
         flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
-        filter_by: List[RpcFilter],
+        filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str = "",
     ) -> RpcImportResult:
@@ -66,11 +66,10 @@ class ImportExportService(RpcService):
         `get_importer_for_model` to select the correct implementation for the specific model being
         imported.
         """
-        pass
 
     @staticmethod
     def get_importer_for_model(
-        model: Type[Model],
+        model: type[Model],
     ) -> Callable:
         """
         Called should resolve their implementation of `export_by_model` by calling this method
@@ -78,9 +77,9 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().import_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod
@@ -89,8 +88,8 @@ class ImportExportService(RpcService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: Optional[RpcExportScope] = None,
-        filter_by: List[RpcFilter],
+        scope: RpcExportScope | None = None,
+        filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,
     ) -> RpcExportResult:
@@ -99,11 +98,10 @@ class ImportExportService(RpcService):
         `get_exporter_for_model` to select the correct implementation for the specific model being
         exported.
         """
-        pass
 
     @staticmethod
     def get_exporter_for_model(
-        model: Type[Model],
+        model: type[Model],
     ) -> Callable:
         """
         Called should resolve their implementation of `export_by_model` by calling this method
@@ -111,13 +109,13 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.export_by_model
-        return ImportExportService.get_local_implementation().export_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().export_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod
-    def get_all_globally_privileged_users(self) -> Set[int]:
+    def get_all_globally_privileged_users(self) -> set[int]:
         """
         Retrieves all of the "administrators" of the current instance.
 
@@ -131,7 +129,6 @@ class ImportExportService(RpcService):
             - Their `User.id` is mentioned at least once in the `UserRoleUser` table (ie, they have
               at least one global user role).
         """
-        pass
 
 
 import_export_service = ImportExportService.create_delegation()

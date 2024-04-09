@@ -5,45 +5,46 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
-  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
-import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
+import {
+  createOnDemandFilterWarning,
+  shouldDisplayOnDemandWidgetWarning,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -53,12 +54,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {
-  DashboardFilters,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
@@ -67,22 +64,21 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import WidgetCardChart, {
-  AugmentedEChartDataZoomHandler,
-  SLIDER_HEIGHT,
-} from 'sentry/views/dashboards/widgetCard/chart';
+import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
+import WidgetCardChart, {SLIDER_HEIGHT} from 'sentry/views/dashboards/widgetCard/chart';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -90,8 +86,6 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -106,6 +100,7 @@ export interface WidgetViewerModalOptions {
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
+  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
@@ -401,7 +396,8 @@ function WidgetViewerModal(props: Props) {
     )
   );
 
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+  const queryOptions = sortedQueries.map((query, index) => {
+    const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
@@ -410,7 +406,11 @@ function WidgetViewerModal(props: Props) {
             conditions +
               (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
             {
-              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+              getFilterTokenWarning: shouldDisplayOnDemandWidgetWarning(
+                query,
+                widget.widgetType ?? WidgetType.DISCOVER,
+                organization
+              )
                 ? getOnDemandFilterWarning
                 : undefined,
             }
@@ -958,15 +958,15 @@ function WidgetViewerModal(props: Props) {
                             label: highlightedQuery,
                           }
                         : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
+                          ? containerProps
+                          : {
+                              ...containerProps,
+                              label: (
+                                <EmptyQueryContainer>
+                                  {EMPTY_QUERY_NAME}
+                                </EmptyQueryContainer>
+                              ),
+                            })}
                     />
                   );
                 },
@@ -1116,6 +1116,10 @@ function OpenButton({
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
+      break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in Metrics');
+      path = getWidgetMetricsUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:

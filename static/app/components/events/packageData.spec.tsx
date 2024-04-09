@@ -1,4 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -7,8 +8,7 @@ import {EventPackageData} from 'sentry/components/events/packageData';
 
 describe('EventPackageData', function () {
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       packages: {
         certifi: '',
         pip: '18.0',
@@ -24,11 +24,11 @@ describe('EventPackageData', function () {
           certifi: {'': {rem: [['organization:1', 'x']]}},
         },
       },
-    };
+    });
 
     render(<EventPackageData event={event} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

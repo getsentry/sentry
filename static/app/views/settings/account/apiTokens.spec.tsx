@@ -1,10 +1,11 @@
-import {Organization} from 'sentry-fixture/organization';
+import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 
 describe('ApiTokens', function () {
   beforeEach(function () {
@@ -23,7 +24,7 @@ describe('ApiTokens', function () {
   it('renders with result', function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
-      body: [TestStubs.ApiToken()],
+      body: [ApiTokenFixture()],
     });
 
     render(<ApiTokens organization={organization} />);
@@ -32,7 +33,7 @@ describe('ApiTokens', function () {
   it('can delete token', function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
-      body: [TestStubs.ApiToken()],
+      body: [ApiTokenFixture()],
     });
 
     const mock = MockApiClient.addMockResponse({

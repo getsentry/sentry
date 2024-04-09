@@ -5,9 +5,9 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {Frame, Group, PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import Line from '../../frame/line';
@@ -174,7 +174,7 @@ export function HierarchicalGroupingContent({
         const isVisible =
           includeSystemFrames ||
           frame.inApp ||
-          (nextFrame && nextFrame.inApp) ||
+          nextFrame?.inApp ||
           // the last non-app frame
           (!frame.inApp && !nextFrame) ||
           isUsedForGrouping;

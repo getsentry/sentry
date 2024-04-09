@@ -6,14 +6,10 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {Vital} from 'sentry/utils/performance/vitals/types';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
 
-import {
-  getMeasurementBounds,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  VerticalMark,
-} from './utils';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
+import {getMeasurementBounds} from './utils';
 
 type Props = {
   dividerPosition: number;

@@ -1,8 +1,8 @@
-import type {ApiApplication as ApiApplicationType} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 
-export function ApiApplication(
-  params: Partial<ApiApplicationType> = {}
-): ApiApplicationType {
+export function ApiApplicationFixture(
+  params: Partial<ApiApplication> = {}
+): ApiApplication {
   return {
     allowedOrigins: [],
     clientID: 'aowekr12903i9i423094i23904j',

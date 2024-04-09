@@ -20,8 +20,9 @@ from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisal
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +110,8 @@ def get_serializer_field_metadata(serializer, fields=None):
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 
@@ -175,7 +176,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         :auth: required
         """
-        if ratelimiter.is_limited(
+        if ratelimiter.backend.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
             limit=10,
             window=86400,  # 10 per day should be fine
@@ -186,7 +187,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 status=429,
             )
 
-        # Using `request.user` here because superuser should not be able to set a user's 2fa
+        # TODO: Investigate the behavior below and see if it makes more sense to
+        # error rather than silently switch to the superuser/staff user.
+
+        # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
         if user.id != request.user.id:
             user = User.objects.get(id=request.user.id)
 
@@ -291,6 +295,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         user.refresh_session_nonce(self.request)
         user.save()
         Authenticator.objects.auto_add_recovery_codes(user)
+
+        request.session[MFA_SESSION_KEY] = str(user.id)
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 

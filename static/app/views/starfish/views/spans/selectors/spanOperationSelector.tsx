@@ -1,19 +1,17 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {
-  DefaultEmptyOption,
-  EMPTY_OPTION_VALUE,
-} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
+import {DefaultEmptyOption} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_OP} = SpanMetricsField;
 

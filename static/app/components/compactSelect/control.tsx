@@ -13,23 +13,39 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
-import {OverlayTriggerState} from '@react-stately/overlays';
+import type {ListState} from '@react-stately/list';
+import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import {SingleListProps} from './list';
-import {SelectOption} from './types';
+import type {SingleListProps} from './list';
+import type {SelectKey, SelectOption} from './types';
+
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
 
 export interface SelectContextValue {
   overlayIsOpen: boolean;
@@ -47,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
+    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -72,7 +88,7 @@ export interface ControlProps
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       keyof Omit<
-        SingleListProps<React.Key>,
+        SingleListProps<SelectKey>,
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
@@ -132,7 +148,7 @@ export interface ControlProps
   /**
    * Optional content to display below the menu's header and above the options.
    */
-  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => JSX.Element);
   /**
    * Footer to be rendered at the bottom of the menu.
    */
@@ -309,45 +325,41 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
-    onOpenChange: async open => {
-      // On open
-      if (open) {
-        // Wait for overlay to appear/disappear
-        await new Promise(resolve => resolve(null));
+    onOpenChange: open => {
+      nextFrameCallback(() => {
+        if (open) {
+          // Focus on search box if present
+          if (searchable) {
+            searchRef.current?.focus();
+            return;
+          }
 
-        // Focus on search box if present
-        if (searchable) {
-          searchRef.current?.focus();
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.focus();
           return;
         }
 
-        const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
-        );
+        // On close
+        onClose?.();
 
-        // Focus on first selected item
-        if (firstSelectedOption) {
-          firstSelectedOption.focus();
-          return;
-        }
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
 
-        // If no item is selected, focus on first item instead
-        overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
-          ?.focus();
-        return;
-      }
-
-      // On close
-      onClose?.();
-
-      // Clear search string
-      setSearchInputValue('');
-      setSearch('');
-
-      // Wait for overlay to appear/disappear
-      await new Promise(resolve => resolve(null));
-      triggerRef.current?.focus();
+        triggerRef.current?.focus();
+      });
     },
   });
 
@@ -390,7 +402,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<React.Key> | SelectOption<React.Key>[]>
+    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -629,7 +641,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;

@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  AssigneeSelectorDropdown,
+import type {
   AssigneeSelectorDropdownProps,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import {Chevron} from 'sentry/components/chevron';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconUser} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -152,7 +153,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
               {!loading && !noDropdown && (
                 <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
                   {avatarElement}
-                  <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                  <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
                 </DropdownButton>
               )}
               {!loading && noDropdown && avatarElement}
@@ -178,14 +179,11 @@ const StyledIconUser = styled(IconUser)`
   margin-right: 2px;
 `;
 
-const StyledChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
-`;
-
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
   font-size: 20px;
+  gap: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('div')`

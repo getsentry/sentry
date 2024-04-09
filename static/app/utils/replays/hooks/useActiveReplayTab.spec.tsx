@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import type {Location} from 'history';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -26,34 +26,48 @@ function mockLocation(query: string = '') {
   } as Location);
 }
 
-function mockOrganization(props?: {features: string[]}) {
+function mockOrganizationFixture(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  jest.mocked(useOrganization).mockReturnValue(Organization({features}));
+  jest.mocked(useOrganization).mockReturnValue(OrganizationFixture({features}));
 }
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockOrganization();
+    mockOrganizationFixture();
     mockPush.mockReset();
   });
 
   it('should use Breadcrumbs as a default', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
+  });
+
+  it('should use Tags as a default for video replays', () => {
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {isVideoReplay: true},
+    });
+
+    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
   });
 
   it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
   it('should allow case-insensitive tab names', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('nEtWoRk');
@@ -64,7 +78,9 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should set the default tab if the name is invalid', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
@@ -74,12 +90,27 @@ describe('useActiveReplayTab', () => {
     });
   });
 
+  it('should set the default tab if the name is invalid for video replays', () => {
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {isVideoReplay: true},
+    });
+    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
+
+    result.current.setActiveTab('foo bar');
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: '',
+      query: {t_main: TabKey.TAGS},
+    });
+  });
+
   it('should disallow PERF by default', () => {
-    mockOrganization({
+    mockOrganizationFixture({
       features: [],
     });
 
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab(TabKey.PERF);
@@ -90,10 +121,12 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should allow PERF when the feature is enabled', () => {
-    mockOrganization({
+    mockOrganizationFixture({
       features: ['session-replay-trace-table'],
     });
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = reactHooks.renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab(TabKey.PERF);

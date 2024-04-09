@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -60,9 +61,9 @@ export const EVENTS_TABLE_RESPONSE_FIELDS = [
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -91,7 +92,7 @@ describe('Performance GridEditable Table', function () {
     t('timestamp'),
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const transactionName = 'transactionName';
   let data;
 
@@ -105,7 +106,7 @@ describe('Performance GridEditable Table', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
 
@@ -210,7 +211,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
     const initialData = initializeData();
 
     fields = [
@@ -256,7 +257,7 @@ describe('Performance GridEditable Table', function () {
       {context: initialData.routerContext}
     );
 
-    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
@@ -302,6 +303,11 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders replay id', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
+
     const initialData = initializeData();
 
     fields = [...fields, 'replayId'];

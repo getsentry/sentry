@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -9,8 +9,9 @@ import Form from 'sentry/components/forms/form';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types';
+import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import {useParams} from 'sentry/utils/useParams';
 
 import AppStoreConnect from './appStoreConnect';
@@ -84,7 +85,7 @@ function DebugFileCustomRepository({
 
   if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
-      <Feature organization={organization} features={['app-store-connect-multiple']}>
+      <Feature organization={organization} features="app-store-connect-multiple">
         {({hasFeature, features}) => {
           if (
             hasFeature ||
@@ -123,7 +124,7 @@ function DebugFileCustomRepository({
   }
 
   return (
-    <Feature organization={organization} features={['custom-symbol-sources']}>
+    <Feature organization={organization} features="custom-symbol-sources">
       {({hasFeature, features}) => {
         if (hasFeature) {
           if (sourceType === CustomRepoType.HTTP) {

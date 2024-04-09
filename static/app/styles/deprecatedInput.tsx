@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 /**
  * Inner padding for inputs. This is deprecated. If necessary, use the values
@@ -72,7 +73,7 @@ const inputStyles = (props: Props) => css`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${props.theme.focusBorder};
     box-shadow: ${props.theme.focusBorder} 0 0 0 1px;

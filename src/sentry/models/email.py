@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
@@ -22,6 +20,7 @@ class Email(Model):
 
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.User"}
+    __relocation_custom_ordinal__ = ["email"]
 
     email = CIEmailField(_("email address"), unique=True, max_length=75)
     date_added = models.DateTimeField(default=timezone.now)
@@ -47,7 +46,7 @@ class Email(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Ensure that we never attempt to duplicate email entries, as they must always be unique.
         (email, created) = self.__class__.objects.get_or_create(
             email=self.email, defaults=model_to_dict(self)

@@ -12,7 +12,7 @@ from sentry.auth import manager
 @region_silo_endpoint
 class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuthProviderPermission,)

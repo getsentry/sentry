@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,20 +20,28 @@ describe('Sudo Modal', function () {
       },
     };
 
+    const organization = OrganizationFixture();
+
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization()],
+      body: [organization],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -135,7 +143,7 @@ describe('Sudo Modal', function () {
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // Should return w/ `sudoRequired` and trigger the the modal to open
+    // Should return w/ `sudoRequired` and trigger the modal to open
     new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input

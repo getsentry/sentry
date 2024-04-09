@@ -1,16 +1,16 @@
 from functools import cached_property
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentStatus
 from sentry.silo import SiloMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseIncidentDetailsTest(APITestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-incident-details"
 
@@ -43,7 +43,6 @@ class BaseIncidentDetailsTest(APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
     @freeze_time()
     def test_simple(self):
@@ -66,7 +65,6 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
     method = "put"
 

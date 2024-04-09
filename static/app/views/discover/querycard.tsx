@@ -7,7 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 
 type Props = {
   renderGraph: () => React.ReactNode;
@@ -66,7 +66,7 @@ class QueryCard extends PureComponent<Props> {
                 </DateStatus>
               ) : null}
             </DateSelected>
-            {renderContextMenu && renderContextMenu()}
+            {renderContextMenu?.()}
           </QueryCardFooter>
         </StyledQueryCard>
       </Link>

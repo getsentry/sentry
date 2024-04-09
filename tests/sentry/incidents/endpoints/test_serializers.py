@@ -17,7 +17,11 @@ from sentry.incidents.logic import (
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
     QUERY_TYPE_VALID_DATASETS,
@@ -27,9 +31,10 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
 )
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
-from sentry.models.integrations.integration import Integration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -39,7 +44,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -47,17 +52,16 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class TestAlertRuleSerializerBase(TestCase):
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.integration.add_organization(self.organization, self.user)
 
 
-@region_silo_test(stable=True)
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -728,8 +732,29 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
+    def test_error_issue_status(self):
+        params = self.valid_params.copy()
+        params["query"] = "status:abcd"
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert not serializer.is_valid()
+        assert serializer.errors == {
+            "nonFieldErrors": [
+                ErrorDetail(
+                    string="Invalid Query or Metric: invalid status value of 'abcd'", code="invalid"
+                )
+            ]
+        }
 
-@region_silo_test(stable=True)
+        params = self.valid_params.copy()
+        params["query"] = "status:unresolved"
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid()
+            alert_rule = serializer.save()
+        assert alert_rule.snuba_query.query == "status:unresolved"
+
+
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -779,7 +804,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
-@region_silo_test(stable=True)
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -882,6 +906,112 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
+        )
+
+    def test_invalid_priority(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.MSTEAMS
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail("Can only be set for Pagerduty or Opsgenie", code="invalid")
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.PAGERDUTY
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.OPSGENIE
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "critical",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_pagerduty_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.PAGERDUTY
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "critical",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "critical"
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_opsgenie_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.OPSGENIE
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "P1",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "P1"
+
+    def test_discord(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.DISCORD
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "123",
+            },
+            {"integration": ["Integration must be provided for discord"]},
         )
 
     def test_slack(self):

@@ -1,12 +1,22 @@
-import moment from 'moment';
+import type moment from 'moment';
 
-import {Environment, Project} from 'sentry/types';
+import type {Environment, Project} from 'sentry/types';
 
 export type ThresholdQuery = {
-  environment?: string[] | undefined;
-  project?: number[] | undefined;
+  environment?: string[] | undefined; // list of environment names
+  project?: number[] | undefined; // list of project ids
 };
 
+export type ThresholdStatusesQuery = Omit<ThresholdQuery, 'project'> & {
+  end: string;
+  release: string[]; // list of release versions
+  start: string;
+  projectSlug?: string[]; // list of project slugs
+};
+
+export type ThresholdStatus = Threshold & {
+  is_healthy: boolean;
+};
 export type Threshold = {
   environment: Environment;
   id: string;
@@ -16,24 +26,13 @@ export type Threshold = {
   value: number;
   window_in_seconds: number;
   date_added?: string;
+  end?: string;
+  start?: string;
 };
 
-export type EditingThreshold = {
-  id: string;
-  project: Project;
-  threshold_type: string;
-  trigger_type: string;
-  value: number;
+export type EditingThreshold = Omit<Threshold, 'environment' | 'window_in_seconds'> & {
   windowSuffix: moment.unitOfTime.DurationConstructor;
   windowValue: number;
-  date_added?: string;
-  environment?: string;
+  environmentName?: string;
   hasError?: boolean;
-  window_in_seconds?: number;
-};
-
-export type NewThresholdGroup = {
-  environments: string[];
-  id: string;
-  project: Project;
 };

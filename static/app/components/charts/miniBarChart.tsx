@@ -8,7 +8,8 @@ import set from 'lodash/set';
 
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import {BarChart, BarChartProps, BarChartSeries} from './barChart';
+import type {BarChartProps, BarChartSeries} from './barChart';
+import {BarChart} from './barChart';
 import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
@@ -229,7 +230,7 @@ function MiniBarChart({
       ? makeLabelYAxisOptions(tooltipFormatter)
       : noLabelYAxisOptions;
 
-    return makeBaseChartOptions({
+    const options = makeBaseChartOptions({
       height,
       hideDelay,
       tooltipFormatter,
@@ -238,6 +239,8 @@ function MiniBarChart({
       grid,
       yAxisOptions,
     });
+
+    return options;
   }, [grid, height, hideDelay, labelYAxisExtents, showMarkLineLabel, tooltipFormatter]);
 
   return <BarChart series={updatedSeries} height={height} {...chartOptions} {...props} />;

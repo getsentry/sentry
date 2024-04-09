@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,11 +11,10 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project, ProjectKey} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   data: ProjectKey;
@@ -82,7 +81,7 @@ function KeyRow({
               'Are you sure you want to remove this key? This action is irreversible.'
             )}
           >
-            <Button size="xs" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
+            <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
           </Confirm>
         </Controls>
       </PanelHeader>

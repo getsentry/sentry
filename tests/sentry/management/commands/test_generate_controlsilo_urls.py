@@ -27,7 +27,7 @@ class TestGenerateControlsiloUrls(TestCase):
     def test_render_code(self):
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
-        assert "new RegExp('^api/0/internal/integration-proxy/\\\\S*$')," in result
+        assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
 

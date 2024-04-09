@@ -1,12 +1,12 @@
-import {
+import type {
   EntryException,
-  EntryType,
   Event,
   ExceptionValue,
   PlatformKey,
   StacktraceType,
   Thread,
 } from 'sentry/types';
+import {EntryType} from 'sentry/types';
 
 const NATIVE_PLATFORMS: PlatformKey[] = ['cocoa', 'native'];
 

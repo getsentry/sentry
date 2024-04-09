@@ -14,7 +14,7 @@ from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraUninstalledTest(APITestCase):
     external_id = "it2may+cody"
     kid = "cudi"
@@ -52,7 +52,7 @@ class JiraUninstalledTest(APITestCase):
     def test_with_shared_secret(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             status=ObjectStatus.ACTIVE,
             external_id=self.external_id,
@@ -66,7 +66,7 @@ class JiraUninstalledTest(APITestCase):
         # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         with assume_test_silo_mode(SiloMode.REGION):
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED
@@ -78,7 +78,7 @@ class JiraUninstalledTest(APITestCase):
     def test_with_key_id(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira", status=ObjectStatus.ACTIVE, external_id=self.external_id
         )
         integration.add_organization(org, self.user)
@@ -95,7 +95,7 @@ class JiraUninstalledTest(APITestCase):
         # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         with assume_test_silo_mode(SiloMode.REGION):
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED

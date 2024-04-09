@@ -1,5 +1,5 @@
 import re
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -20,6 +20,8 @@ PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_DOT_ID_ALIAS = "project.id"
 PROJECT_ID_ALIAS = "project_id"
+PRECISE_START_TS = "precise.start_ts"
+PRECISE_FINISH_TS = "precise.finish_ts"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -46,6 +48,9 @@ SPAN_MODULE_ALIAS = "span.module"
 SPAN_DOMAIN_ALIAS = "span.domain"
 SPAN_DOMAIN_SEPARATOR = ","
 UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
+SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
+SPAN_OP = "span.op"
+SPAN_DESCRIPTION = "span.description"
 
 
 class ThresholdDict(TypedDict):
@@ -53,12 +58,12 @@ class ThresholdDict(TypedDict):
     meh: float
 
 
-QUERY_TIPS: Dict[str, str] = {
+QUERY_TIPS: dict[str, str] = {
     "CHAINED_OR": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
 }
 
 
-VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
+VITAL_THRESHOLDS: dict[str, ThresholdDict] = {
     "lcp": {
         "poor": 4000,
         "meh": 2500,
@@ -81,7 +86,7 @@ VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     },
 }
 
-TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
+TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -239,7 +244,7 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
-METRICS_FUNCTION_ALIASES: Dict[str, str] = {}
+METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
@@ -268,6 +273,20 @@ METRICS_MAP = {
     MEASUREMENTS_FRAMES_FROZEN_RATE: "d:transactions/measurements.frames_frozen_rate@ratio",
     MEASUREMENTS_FRAMES_SLOW_RATE: "d:transactions/measurements.frames_slow_rate@ratio",
     MEASUREMENTS_STALL_PERCENTAGE: "d:transactions/measurements.stall_percentage@ratio",
+    "measurements.score.lcp": "d:transactions/measurements.score.lcp@ratio",
+    "measurements.score.fid": "d:transactions/measurements.score.fid@ratio",
+    "measurements.score.cls": "d:transactions/measurements.score.cls@ratio",
+    "measurements.score.fcp": "d:transactions/measurements.score.fcp@ratio",
+    "measurements.score.ttfb": "d:transactions/measurements.score.ttfb@ratio",
+    "measurements.score.total": "d:transactions/measurements.score.total@ratio",
+    "measurements.score.weight.lcp": "d:transactions/measurements.score.weight.lcp@ratio",
+    "measurements.score.weight.fid": "d:transactions/measurements.score.weight.fid@ratio",
+    "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
+    "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
+    "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
+    "measurements.inp": "d:spans/webvital.inp@millisecond",
+    "measurements.score.inp": "d:spans/webvital.score.inp@ratio",
+    "measurements.score.weight.inp": "d:spans/webvital.score.weight.inp@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
@@ -275,6 +294,31 @@ METRICS_MAP = {
     "spans.ui": "d:transactions/breakdowns.span_ops.ops.ui@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
+}
+# The assumed list of tags that all metrics have, some won't because we remove tags to reduce cardinality
+# Use the public api aliases here
+DEFAULT_METRIC_TAGS = {
+    "browser.name",
+    "device.class",
+    "environment",
+    "geo.country_code",
+    "has_profile",
+    "histogram_outlier",
+    "http.method",
+    "http.status_code",
+    "measurement_rating",
+    "os.name",
+    "query_hash",
+    "release",
+    "resource.render_blocking_status",
+    "satisfaction",
+    "sdk",
+    "session.status",
+    "transaction",
+    "transaction.method",
+    "transaction.op",
+    "transaction.status",
+    "span.op",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",

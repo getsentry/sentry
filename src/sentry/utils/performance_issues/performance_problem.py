@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Type
+from typing import Any
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -10,10 +11,10 @@ class PerformanceProblem:
     fingerprint: str
     op: str
     desc: str
-    type: Type[GroupType]
-    parent_span_ids: Optional[Sequence[str]]
+    type: type[GroupType]
+    parent_span_ids: Sequence[str] | None
     # For related spans that caused the bad spans
-    cause_span_ids: Optional[Sequence[str]]
+    cause_span_ids: Sequence[str] | None
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
@@ -21,7 +22,7 @@ class PerformanceProblem:
     # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
     # since there's legacy data in there that won't have these fields.
     # So until we disable transaction based perf issues we'll need to keep this optional.
-    evidence_data: Optional[Mapping[str, Any]]
+    evidence_data: Mapping[str, Any] | None
     # User-friendly evidence to be displayed directly
     evidence_display: Sequence[IssueEvidence]
 

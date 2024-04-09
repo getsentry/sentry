@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {FlamegraphTheme} from './flamegraphTheme';
+import type {FlamegraphTheme} from './flamegraphTheme';
 import {
   FlamegraphThemeContext,
   FlamegraphThemeMutationContext,

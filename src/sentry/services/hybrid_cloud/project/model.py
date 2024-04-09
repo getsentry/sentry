@@ -3,10 +3,10 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import List, Optional
+
+from typing import TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
@@ -19,7 +19,7 @@ def _project_status_visible() -> int:
 
 
 class ProjectFilterArgs(TypedDict, total=False):
-    project_ids: List[int]
+    project_ids: list[int]
 
 
 class RpcProject(RpcModel, HasOption):
@@ -28,10 +28,10 @@ class RpcProject(RpcModel, HasOption):
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
-    platform: Optional[str] = None
+    platform: str | None = None
 
     def get_option(
-        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
+        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
     ) -> Value:
         from sentry.services.hybrid_cloud.project import project_service
 

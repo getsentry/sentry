@@ -1,4 +1,5 @@
 import re
+from typing import ClassVar, Self
 from urllib.parse import unquote
 
 from django.db import IntegrityError, models, router, transaction
@@ -7,6 +8,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
 from sentry.db.models import (
+    BaseManager,
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
@@ -42,6 +44,8 @@ class Environment(Model):
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["pk"])
 
     class Meta:
         app_label = "sentry"

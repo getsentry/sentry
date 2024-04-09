@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ResolvedStoryModule} from 'sentry/views/stories/types';
+import type {ResolvedStoryModule} from 'sentry/views/stories/types';
 
 interface Props extends ComponentProps<'div'> {
   filename: string;
@@ -79,6 +79,9 @@ const FlexColumn = styled('section')`
 
 const StoryArea = styled('div')`
   overflow: scroll;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(4)};
 `;
 
 const Header = styled('h2')`

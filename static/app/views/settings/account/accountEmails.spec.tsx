@@ -1,4 +1,4 @@
-import {AccountEmails as AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -31,7 +31,9 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove email'})[0]);
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'Remove email'}))[0]
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -54,7 +56,9 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Set as primary'})[0]);
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'Set as primary'}))[0]
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -78,7 +82,7 @@ describe('AccountEmails', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Resend verification'})[0]
+      (await screen.findAllByRole('button', {name: 'Resend verification'}))[0]
     );
 
     expect(mock).toHaveBeenCalledWith(

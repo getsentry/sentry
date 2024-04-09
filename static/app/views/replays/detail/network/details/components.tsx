@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useState} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -20,14 +21,14 @@ const WarningText = styled('span')`
   color: ${p => p.theme.errorText};
 `;
 
-export function Warning({warnings}: {warnings: undefined | string[]}) {
-  if (warnings?.includes('JSON_TRUNCATED') || warnings?.includes('TEXT_TRUNCATED')) {
+export function Warning({warnings}: {warnings: string[]}) {
+  if (warnings.includes('JSON_TRUNCATED') || warnings.includes('TEXT_TRUNCATED')) {
     return (
       <WarningText>{t('Truncated (~~) due to exceeding 150k characters')}</WarningText>
     );
   }
 
-  if (warnings?.includes('INVALID_JSON')) {
+  if (warnings.includes('INVALID_JSON')) {
     return <WarningText>{t('Invalid JSON')}</WarningText>;
   }
 
@@ -70,7 +71,7 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
 }
 
 const ValueContainer = styled('span')`
-  overflow: scroll;
+  overflow: auto;
 `;
 
 const SectionTitle = styled('dt')``;

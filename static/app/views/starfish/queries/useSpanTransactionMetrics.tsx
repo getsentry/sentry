@@ -1,12 +1,13 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MetricsFilters, SpanMetricsField} from 'sentry/views/starfish/types';
+import type {MetricsFilters} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
@@ -15,6 +16,7 @@ export type SpanTransactionMetrics = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http_error_count()': number;
+  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
   'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;

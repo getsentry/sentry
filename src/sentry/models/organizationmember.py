@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import secrets
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, List, Mapping, MutableMapping, Set, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -20,7 +22,9 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -32,7 +36,6 @@ from sentry.db.models.manager import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
@@ -43,6 +46,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -50,7 +54,6 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -63,6 +66,8 @@ _OrganizationMemberFlags = TypedDict(
         "partnership:restricted": bool,
     },
 )
+
+logger = logging.getLogger("sentry.org_roles")
 
 
 INVITE_DAYS_VALID = 30
@@ -160,8 +165,8 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, List[int]]:
-        user_teams: MutableMapping[int, List[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
+        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
         for user_id, team_id in queryset:
             user_teams[user_id].append(team_id)
@@ -175,22 +180,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             )
         )
 
-        # may be empty
-        team_members = set(
-            OrganizationMemberTeam.objects.filter(
-                team_id__org_role=role,
-                organizationmember__user_id__in=[u.id for u in users_by_email],
-            ).values_list("organizationmember_id", flat=True)
-        )
-
-        org_members = set(
-            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
-                "id", flat=True
-            )
-        )
-
-        # use union of sets because a subset may be empty
-        return self.filter(id__in=org_members.union(team_members))
+        return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
 @region_silo_only_model
@@ -257,9 +247,6 @@ class OrganizationMember(ReplicatedRegionModel):
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
-    # Used to reduce redundant queries
-    __org_roles_from_teams = None
-
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
@@ -269,11 +256,9 @@ class OrganizationMember(ReplicatedRegionModel):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
-            self.__org_roles_from_teams = None
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
-        self.__org_roles_from_teams = None
 
     def set_user(self, user_id: int):
         self.user_id = user_id
@@ -381,8 +366,8 @@ class OrganizationMember(ReplicatedRegionModel):
         try:
             msg.send_async([self.get_email()])
         except Exception as e:
-            logger = get_logger(name="sentry.mail")
-            logger.exception(e)
+            mail_logger = get_logger(name="sentry.mail")
+            mail_logger.exception(e)
 
     def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
@@ -404,32 +389,33 @@ class OrganizationMember(ReplicatedRegionModel):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
+    def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
-
-        email = self.get_email()
-
-        recover_uri = "{path}?{query}".format(
-            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
-        )
 
         # Nothing to send if this member isn't associated to a user
         if not self.user_id:
             return
 
+        email = self.get_email()
+        recover_uri = "{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
+        )
         user = user_service.get_user(user_id=self.user_id)
         if not user:
             return
 
         has_password = user.has_usable_password()
+        actor_email = disabling_user
+        if isinstance(disabling_user, RpcUser):
+            actor_email = disabling_user.email
 
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "actor_email": disabling_user.email,
+            "actor_email": actor_email,
             "provider": provider,
         }
 
@@ -500,7 +486,9 @@ class OrganizationMember(ReplicatedRegionModel):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": invite_status_names[self.invite_status],
+            "invite_status": (
+                invite_status_names[self.invite_status] if self.invite_status is not None else None
+            ),
         }
 
     def get_teams(self):
@@ -516,40 +504,10 @@ class OrganizationMember(ReplicatedRegionModel):
 
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership
-        all_org_roles = self.get_all_org_roles()
-        scopes = set()
+        role = organization_roles.get(self.role)
+        scopes = self.organization.get_scopes(role)
 
-        for role in all_org_roles:
-            role_obj = organization_roles.get(role)
-            scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
-
-    def get_org_roles_from_teams(self) -> Set[str]:
-        if self.__org_roles_from_teams is None:
-            # Store team_roles so that we don't repeat this query when possible.
-            team_roles = set(
-                self.teams.all().exclude(org_role=None).values_list("org_role", flat=True)
-            )
-            self.__org_roles_from_teams = team_roles
-        return self.__org_roles_from_teams
-
-    def get_all_org_roles(self) -> List[str]:
-        all_org_roles = self.get_org_roles_from_teams()
-        all_org_roles.add(self.role)
-        return list(all_org_roles)
-
-    def get_org_roles_from_teams_by_source(self) -> List[tuple[str, OrganizationRole]]:
-        org_roles = list(self.teams.all().exclude(org_role=None).values_list("slug", "org_role"))
-
-        sorted_org_roles = sorted(
-            [(slug, organization_roles.get(role)) for slug, role in org_roles],
-            key=lambda r: r[1].priority,
-            reverse=True,
-        )
-        return sorted_org_roles
-
-    def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
-        return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -567,11 +525,9 @@ class OrganizationMember(ReplicatedRegionModel):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        all_org_roles = self.get_all_org_roles()
-        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
-            highest_role = organization_roles.get_sorted_roles(all_org_roles)[0].id
+        if not {self.role} & {r.id for r in allowed_roles}:
             raise UnableToAcceptMemberInvitationException(
-                f"You do not have permission to approve a member invitation with the role {highest_role}."
+                f"You do not have permission to approve a member invitation with the role {self.role}."
             )
         return True
 
@@ -604,9 +560,11 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
     def reject_member_invitation(
@@ -624,8 +582,6 @@ class OrganizationMember(ReplicatedRegionModel):
         if self.invite_status == InviteStatus.APPROVED.value:
             return
 
-        self.delete()
-
         create_audit_entry_from_user(
             user_to_approve,
             api_key,
@@ -636,16 +592,26 @@ class OrganizationMember(ReplicatedRegionModel):
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
-    def get_allowed_org_roles_to_invite(self):
+        self.delete()
+
+    def get_allowed_org_roles_to_invite(self) -> list[OrganizationRole]:
         """
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         member_scopes = self.get_scopes()
-        return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
+
+        # NOTE: We must fetch scopes using self.organization.get_scopes(role) instead of r.scopes
+        # because this accounts for the org option that allows/restricts members from having the
+        # 'alerts:write' scope, which is given by default to the member role in the SENTRY_ROLES config.
+        return [
+            r
+            for r in organization_roles.get_all()
+            if self.organization.get_scopes(r).issubset(member_scopes)
+        ]
 
     def is_only_owner(self) -> bool:
-        if organization_roles.get_top_dog().id not in self.get_all_org_roles():
+        if organization_roles.get_top_dog().id != self.role:
             return False
 
         # check if any other member has the owner role, including through a team
@@ -677,3 +643,16 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=shard_identifier,
             mapping=rpc_org_member_update,
         )
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # If the inviter didn't make it into the import, just null them out rather than evicting
+        # this user from the organization due to their absence.
+        if (
+            self.inviter_id is not None
+            and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
+        ):
+            self.inviter_id = None
+
+        return super().normalize_before_relocation_import(pk_map, scope, flags)

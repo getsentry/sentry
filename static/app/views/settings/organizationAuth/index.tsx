@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {AuthProvider, Organization} from 'sentry/types';
+import type {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -78,7 +78,7 @@ class OrganizationAuth extends DeprecatedAsyncView<Props, State> {
       data: {provider, init: true},
       success: data => {
         // Redirect to auth provider URL
-        if (data && data.auth_url) {
+        if (data?.auth_url) {
           window.location.href = data.auth_url;
         }
       },

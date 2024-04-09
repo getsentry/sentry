@@ -1,28 +1,30 @@
 import {Component, Fragment} from 'react';
-import {Theme} from '@emotion/react';
-import {Location, LocationDescriptor} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
+import type {
   ErrorDestination,
+  TransactionDestination,
+} from 'sentry/components/quickTrace/utils';
+import {
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
   generateTraceTarget,
   isQuickTraceEvent,
-  TransactionDestination,
 } from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import {getDuration} from 'sentry/utils/formatters';
 import localStorage from 'sentry/utils/localStorage';
-import {
+import type {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
   TraceError,
@@ -97,9 +99,7 @@ export default function QuickTrace({
     return noTrace;
   }
 
-  const traceLength =
-    (quickTrace.trace && quickTrace.trace.length) ||
-    (quickTrace.orphanErrors && quickTrace.orphanErrors.length);
+  const traceLength = quickTrace.trace?.length || quickTrace.orphanErrors?.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
@@ -392,13 +392,13 @@ function EventNodeSelector({
     const target = errors.length
       ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
       : perfIssues.length
-      ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
-      : generateSingleTransactionTarget(
-          events[0],
-          organization,
-          location,
-          transactionDest
-        );
+        ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
+        : generateSingleTransactionTarget(
+            events[0],
+            organization,
+            location,
+            transactionDest
+          );
     return (
       <StyledEventNode
         text={text}
@@ -419,8 +419,8 @@ function EventNodeSelector({
       errors.length && events.length
         ? 'events'
         : events.length
-        ? 'transactions'
-        : 'errors',
+          ? 'transactions'
+          : 'errors',
   });
   return (
     <DropdownContainer>

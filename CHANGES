@@ -1,3 +1,331 @@
+24.3.0
+------
+
+### Various fixes & improvements
+
+- ref(rules): Translate int minutes to words (#67021) by @ceorourke
+- fix(rate_limits): Remove special rate limits for group_index (#66730) by @volokluev
+- fix(replays): Drop and log click events with negative node-ids (#66993) by @cmanallen
+- ref: fix typing in sentry.testutils.factories (#67046) by @asottile-sentry
+- fix(discord): Add more unactionable status codes to ignore from slo (#66903) by @17hogeju
+- fix(hybridcloud) Deliver payloads concurrently (#66870) by @markstory
+- fix(tests): skip flaky test (#67047) by @scefali
+- ref(escalating): Remove TODOs from forecast task (#66889) by @jangjodi
+- feat(replays): move full replay button (#67014) by @scefali
+- fix(webvitals): drop fid column from page overview samples table (#66998) by @edwardgou-sentry
+- ref: remove unused strip_toplevel from safe_extract_zip (#67011) by @asottile-sentry
+- chore(hybridcloud) Remove outbox based webhooks (#66158) by @markstory
+- chore(processing) remove unused settings (#66967) by @markstory
+- feat(metric-stats): Add metric_stats generic metrics namespace (#66955) by @Dav1dde
+- feat(metrics): Add React Native onboarding (#66960) by @krystofwoldrich
+- feat(metrics): Add metrics onboarding for Android and Java (#67033) by @markushi
+- perf: add tracing to nodestore (#67002) by @anonrig
+- ref(projconfig): Fix typo in instrumentation in span op (#67035) by @iker-barriocanal
+- fix: disallow inviting Admin user if team-level roles are enabled (#66836) by @oioki
+- ref(projconfigs): Add more instrumentation (#66957) by @iker-barriocanal
+- feat(ddm): Add custom_metrics_access organization flag (#66953) by @iambriccardo
+- chore(ddm): add sidebar item flag (#66951) by @obostjancic
+- fix(issue-priority): Remove box shadow from priority dropdown (#67031) by @malwilley
+- ref(replay/issues): link full replay to errors tab from rage click issue (#67030) by @michellewzhang
+
+_Plus 1307 more_
+
+24.2.0
+------
+
+### Various fixes & improvements
+
+- Revert "build: update redis and remove redis-py-cluster (#64711)" (c699781d) by @getsentry-bot
+- rename issue_alert creators (#65207) by @nhsiehgit
+- ref(similarity-embedding): Move log (#65243) by @jangjodi
+- build: update redis and remove redis-py-cluster (#64711) by @anonrig
+- feat(metrics_extraction): user_misery to fall back to Discover (#65232) by @armenzg
+- build: optimize extract-ios-device-names command (#65112) by @anonrig
+- feat(trace): prevent back forward navigation (#65244) by @JonasBa
+- feat(metrics): Support basic spans metrics examples (#65119) by @Zylphrex
+- ref(similar-embeddings): Add shouldBeGrouped to diff analytics (#65235) by @jangjodi
+- chore(issues): Revert-revert of deleting streamline-targeting-context (#65160) by @leeandher
+- ref: use decode_responses=False for raw=True redis cache (#64885) by @asottile-sentry
+- fix(profiling): fix measurement chart messaging (#65237) by @JonasBa
+- ref: replace trivial uses of utcnow with tz-aware now (#65085) by @asottile-sentry
+- feat(hybridcloud) Add a metric for webhook saves (#65185) by @markstory
+- feat(ddm): sample tooltip prefix (#65230) by @obostjancic
+- fix(relay): Increase project config timeout (#65229) by @jjbayer
+- fix(ddm): Add op to series name (#65231) by @ArthurKnaus
+- chore(dashboards): remove inline widget editor (#65166) by @obostjancic
+- feat(ddm): Prefix multi query series names (#65222) by @ArthurKnaus
+- fix(ddm): Remove connected nulls (#65221) by @ArthurKnaus
+- chore(stats): remove metrics (#65220) by @obostjancic
+- feat(platforms): Add platform deno in BE (#65218) by @ArthurKnaus
+- feat(ddm): Multi query chart (#65217) by @ArthurKnaus
+- chore(dashboards): remove custom metrics from widget builder (#65156) by @obostjancic
+
+_Plus 207 more_
+
+24.1.2
+------
+
+### Various fixes & improvements
+
+- ref(api): Make processing team endpoints private (#63939) by @loewenheim
+- feat(issue-priority): Add priority column to issue stream (#64820) by @malwilley
+- Revert "ref: upgrade hiredis  (#64789)" (782b0f44) by @getsentry-bot
+- feat(issue-details): Show static replay when error is not within the replay (#64827) by @malwilley
+- ref(sdk): Remove excessive json.loads spans (#64883) by @k-fish
+- fix(integrations): phabricator host validation (#64882) by @oioki
+- feat(integrations): Autofill project in selector after project creation modal (#64791) by @roggenkemper
+- ref(replay): remove 'new' badge from selector widgets & tab (#64848) by @michellewzhang
+- fix(replays): check before attempting to load in onboarding doc (#64842) by @michellewzhang
+- fix(ddm): Handle all and my projects (#64877) by @ArthurKnaus
+- ref: upgrade hiredis  (#64789) by @asottile-sentry
+- fix(replays): Move code requiring exception-prone variables into try block (#64658) by @cmanallen
+- Sprinkle some tracing around more `save_event` functions (#64869) by @Swatinem
+- fix(ddm): Focused series backwards compatibility (#64868) by @ArthurKnaus
+- ref: Add option to throttle proguard processing (#64866) by @loewenheim
+- ref(similarity-embeddings): Remove unused organization level flag (#64815) by @jangjodi
+- ref: upgrade psycopg2-binary (#64809) by @asottile-sentry
+- fix(ddm): Global loading state on zoom (#64861) by @ArthurKnaus
+- fix(ddm): project param rename (#64860) by @obostjancic
+- fix(ddm): Clicking chart hides tooltip (#64859) by @ArthurKnaus
+- feat(ddm): Multiple focused series (#64855) by @ArthurKnaus
+- feat(ddm): Add new metrics/query endpoint base code (#64785) by @iambriccardo
+- feat(stats): metrics stats (#64790) by @obostjancic
+- ref(feedback): add analytics for mark as spam buttons (#64850) by @michellewzhang
+
+_Plus 606 more_
+
+24.1.1
+------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add URL and breadcrumbs sidebar to issue replay when in fullscreen mode (#63920) by @malwilley
+- ref(open-pr-comments): include affected users in javascript comments (#63909) by @cathteng
+- fix(ai-ml): Fix ai feature PII check for isStaff users (#63958) by @jennmueng
+- fix(self-hosted): Try dynamically setting CSRF_TRUSTED_ORIGINS (#63908) by @hubertdeng123
+- fix(ai-autofix): Fix ai autofix release lookup (#63926) by @jennmueng
+- fix(feedback): update comments signal tooltip (#63953) by @michellewzhang
+- ref(feedback): expand `sentryAppIssues`  instead of endpoint call (#63952) by @michellewzhang
+- chore(api): Remove mocks from API helper invite tests (#63892) by @leeandher
+- fix(perf): Generate instrumentation gap spans before spans groups (#63531) by @gggritso
+- ref(api): Delete unnecessary `start_transaction` call in `project_configs.py` (#63948) by @szokeasaurusrex
+- feat(sdks): update js sdk to 7.98.0 (#63891) by @edwardgou-sentry
+- ref/tests(metrics_extraction): Reduce changes when adjusting spec versions (#63947) by @armenzg
+- fix(hybridcloud) Use record deletion to clear delivered outbox (#63890) by @markstory
+- feat(replay): Allow clicking on the circles in the replay timeline (#63887) by @ryan953
+- feat(feedback): Add comments icon to feedback list items (#63903) by @ryan953
+- fix(feedback): Only show URL when crash reports have a value, or its a feedback from the widget (#63901) by @ryan953
+- ref(ddm): replace types with interfaces (#63944) by @obostjancic
+- chore(cardinality): Add cardinality limiter mode option (#63942) by @Dav1dde
+- feat(issues/feedback): allow `sentryAppIssues` to be expanded (#63905) by @michellewzhang
+- chore(spans): Option for span usage metric (#63934) by @jjbayer
+- ref(ddm): Split utils (#63933) by @ArthurKnaus
+- ref(ddm): Adapt metadata to new folder structure (#63938) by @iambriccardo
+- fix(ddm): useNewMetricsLayer param (#63937) by @obostjancic
+- ref(ddm): Rename the files for metrics metadata (#63931) by @iambriccardo
+
+_Plus 517 more_
+
+24.1.0
+------
+
+### Various fixes & improvements
+
+- feat(ddm-onboarding): Add dotnet instructions (#63194) by @ArthurKnaus
+- fix(hybridcloud) Add org slug route for prompts-activity (#63122) by @markstory
+- Fix typo in symx metrics (#63201) by @Swatinem
+- chore(app-start): Add screen total referrer (#63192) by @narsaynorath
+- ref(metrics_extraction): Metric spec versioning preparation (#63114) by @armenzg
+- feat(ds): Only show Get Samples if org is dynamically sampled (#63193) by @matejminar
+- feat(ddm-onboarding): Add js server instructions (#63189) by @ArthurKnaus
+- chore(ddm): remove addWidgets functionality (#63188) by @obostjancic
+- feat(ddm): new query default (#63187) by @obostjancic
+- feat(ddm-onboarding): Add electron instructions (#63186) by @ArthurKnaus
+- ref(ddm): Disable DDM via env var (#63178) by @jan-auer
+- profiling(ref): specify int type for profiling.flamegraph.profile-set.size option (#63175) by @viglia
+- feat(ddm): Move settings out of metrics selector (#63104) by @matejminar
+- fix(flutter-web): hide unactionable missing source context errors (#62998) by @buenaflor
+- ref(profiling): add option to handle the size of the profiles set to compute the flamegraph (#63112) by @viglia
+- fix(self-hosted): Superuser can set options in self-hosted (#63068) by @hubertdeng123
+- feat(partnerships): adding org slug to agreement component (#63156) by @sentaur-athena
+- feat: apitoken last characters option (#62972) by @mdtro
+- fix: remove lodash/find usages (#63150) by @anonrig
+- fix(performance): simplify `extractSpanURLString` method (#63153) by @anonrig
+- ref(escalating issues): Remove backend feature flag references (#63036) by @ceorourke
+- fix: remove lodash/flatmap usages (#63149) by @anonrig
+- fix(events): remove lodash/assign usage (#63148) by @anonrig
+- fix(webVitals): remove lodash/toUpper usage (#63146) by @anonrig
+
+_Plus 677 more_
+
+23.12.1
+-------
+
+### Various fixes & improvements
+
+- migrations(crons): Add is_muted to MonitorEnvironment (#62115) by @rjo100
+- chore(logs): Remove logging for entire response object (#62123) by @leeandher
+- ref: factor out our remaining pkg_resources usages (#62084) by @asottile-sentry
+- ref: upgrade jsonschema (#62087) by @asottile-sentry
+- Revert "ref: upgrade to python 3.11 (#59730)" (f3ad67ad) by @getsentry-bot
+- fix(integrations) Make social auth user update silo safe (#62092) by @markstory
+- fix(hybridcloud) Return early when we can't find organizations (#62126) by @markstory
+- profiling: test idle callback finish strategy (#62171) by @JonasBa
+- Revert "test(backup): Remove @targets decorator and improve assert message (#61719)" (2f81e776) by @getsentry-bot
+- ref(tests): Remove TestStubs from contextPickerModal, customResolutionModal, debugMeta (#62132) by @billyvg
+- chore: remove lodash usages (#61593) by @anonrig
+- ref: upgrade to python 3.11 (#59730) by @asottile-sentry
+- Revert "feat(replays): Remove scalar query optimization (#61815)" (08821e13) by @getsentry-bot
+- feat(ddm): Handle dashboard naming collision (#62163) by @ArthurKnaus
+- feat(ddm): Explicitly pass codeLocations to the ddm/meta endopint (#62155) by @iambriccardo
+- fix(ddm): Metrics meta stale time (#62162) by @ArthurKnaus
+- feat(ddm): Update PHP onboarding docs link (#62159) by @ArthurKnaus
+- fix(ddm): Grouped chart crashing without data (#62158) by @ArthurKnaus
+- feat(ddm): Add PHP onboarding (#62156) by @ArthurKnaus
+- fix(onboarding-docs): Prism console warning language text (#62154) by @ArthurKnaus
+- feat(setting): Add audit log to add team (#62129) by @ykamo001
+- fix(open-pr-comments): template nits (#62130) by @cathteng
+- fix(suspect-commits): Fix code mapping for files without a slash (#61896) by @malwilley
+- feat(replays): Add click.react_component_name as searchable field (#62027) by @cmanallen
+
+_Plus 100 more_
+
+23.12.0
+-------
+
+### Various fixes & improvements
+
+- fix(craft): Set craft artifact provider to none (#62001) by @hubertdeng123
+- fix(starfish): Obey `utc` URL parameter (#61963) by @gggritso
+- ref(stats-detectors): Move classes for better imports (#61959) by @Zylphrex
+- feat(devserver) Bake in options to streamline devserver + ngrok (#61953) by @markstory
+- feat(replays): Remove scalar query optimization (#61815) by @cmanallen
+- fix(ddm): display all code locations (#61994) by @obostjancic
+- ref: upgrade to python 3.9 (#36860) by @asottile-sentry
+- feat(ddm): Move feedback button to header (#61997) by @ArthurKnaus
+- feat(inbound-filters): Relax pattern for matching ChunkLoadError(s) (#61988) by @iambriccardo
+- feat(discover): Add support for p90 in discover (#61990) by @iambriccardo
+- feat(ddm): Rename ddm to metrics (#61993) by @matejminar
+- fix(ddm): code location copy event propagation (#61987) by @obostjancic
+- feat(alerts): fade out custom percentiles (#61926) by @obostjancic
+- Fix Craft publish (#61982) by @chadwhitacre
+- ref(crons): Move tolerance fields out in monitor form (#61807) by @davidenwang
+- fix(replay): Fix alignment of FeatureBadge in Replay Details tabs (#61970) by @ryan953
+- feat(backup): Add creator/owner email/username to GET /relocations/ (#61969) by @azaslavsky
+- feat(crons): Sort DISABLED monitors to the end (#61950) by @evanpurkhiser
+- nit: Allow skipping scope_list argument in util func (#61967) by @schew2381
+- feat(staff): Create initial staff class for _admin mode (#61653) by @schew2381
+- Revert "ref: remove self-hosted cloudbuild (#61727)" (ae39b423) by @getsentry-bot
+- feat(spans): Groundwork for indexed spans tests (#61766) by @wmak
+- fix(user token): Stop leaking API token (#61941) by @ykamo001
+- fix(slack); Check for existence of org_context (#61966) by @ceorourke
+
+_Plus 934 more_
+
+23.11.2
+-------
+
+### Various fixes & improvements
+
+- feat(notifications): replace logic for bulk settings update (#60502) by @scefali
+- ref(notifications): remove some unused hybrid cloud service methods (#60488) by @scefali
+- fix(backup): Fix various small import and comparison bugs (#60593) by @azaslavsky
+- fix(alerts): Chart query overflowing container in alert details (#60597) by @ArthurKnaus
+- fix(perf): Allow `null` size fields in span waterfall (#60601) by @gggritso
+- ref(notifications): remove unused notification manager methods (#60493) by @scefali
+- ref(notifications): stop using update settings tests p2 (#60500) by @scefali
+- ref(notifications): modify legacy option code (#60437) by @scefali
+- ref(notifications): stop using update settings in unsubscribe context (#60445) by @scefali
+- fix(ddm): invalid mri message (#60599) by @obostjancic
+- feat(resources): Add link to resource summary from waterfall (#60557) by @AbhiPrasad
+- chore(perf-web-vitals-widget): Updated description. (#60598) by @Abdkhan14
+- ref(webvitals): Support for using stored performance scores (#60397) by @edwardgou-sentry
+- chore(codeowners): add ddm owners (#60588) by @obostjancic
+- ref(charts): Use `GranularityLadder` class to get chart intervals (#60374) by @gggritso
+- feat(starfish): Fetch better releases in the selector (#60563) by @shruthilayaj
+- feat(profiling): add copy function source button (#60468) by @JonasBa
+- fix(hybrid-cloud): Fix cross-silo access on issue creation (#60595) by @leeandher
+- chore(hybridcloud) Move email reply tasks to a dedicated queue (#60560) by @markstory
+- fix(hybridcloud) Remove externalactor.actor_id (#60548) by @markstory
+- perf(charts): refactor baseChart (#60411) by @JonasBa
+- fix(metrics): Refine text contents for investigation rule notification (#60590) by @RaduW
+- ref(profiling): remove old call tree table (#60052) by @JonasBa
+- feat(ddm): spans use case (#60587) by @obostjancic
+
+_Plus 111 more_
+
+23.11.1
+-------
+
+### Various fixes & improvements
+
+- chore(stats-detectors): Remove feature flag from root cause analysis … (#60408) by @Zylphrex
+- ref(hybrid-cloud): Removes unused onboarding task handling (#60337) by @GabeVillalobos
+- ref(notifications): remove UserNotificationSettingsDetailsEndpoint (#60302) by @scefali
+- fix(browser-starfish): fix query main graphs on resource module (#60409) by @DominikB2014
+- chore(stats-detector): Remove feature flag checks in regression issues (#60406) by @Zylphrex
+- fix(backup): Handle multiple emails per user (#60404) by @azaslavsky
+- test(hc): Stabilize ProjectUserFeedbackDocs (#60405) by @RyanSkonnord
+- feat(open-source): Set feature flags for Open Source users (#59956) by @NisanthanNanthakumar
+- fix(ci): Reduce the amount of test data that's stored (#60197) by @evanh
+- feat(integrations): make sure stacktrace-link feature is set (#60326) by @scefali
+- ref(stacktrace): Remove references to frame.errors (#60393) by @malwilley
+- ref(feedback): update empty state illustration (#60399) by @michellewzhang
+- ref(crons): Add project_id to monitor_validation_failed log (#60402) by @evanpurkhiser
+- fix(browser-starfish): domain-filter not working (#60398) by @DominikB2014
+- ref(notifications): stop providing organization_id_for_team argument (#60296) by @scefali
+- test(hc): Fix bug in snapshot comparison with altered test class name (#60325) by @RyanSkonnord
+- fix(browser-starifish): remove alpha badge resource module (#60392) by @DominikB2014
+- ref: fix typing for avatar endpoints (#60319) by @asottile-sentry
+- test(hc): Change inheritance from AlertRuleDetailsPutEndpointTest (#60331) by @RyanSkonnord
+- ref(hc): Handle LazyObjects in serialize_generic_user (#60120) by @RyanSkonnord
+- feat(open-pr-comments): comment template (#60317) by @cathteng
+- fix(browser-starfish): cursor persisting when navigating between pages/filters (#60378) by @DominikB2014
+- ref(codeowners): Adding wildcard to groupEventDetails (#60361) by @k-fish
+- fix(recommended-event): Use event ID as tie breaker to match latest event (#60323) by @malwilley
+
+_Plus 227 more_
+
+23.11.0
+-------
+
+### Notification Settings 2.0 (ongoing)
+
+By: @scttcper (#58638, #58615)
+
+### Resource Module Internal (ongoing)
+
+By: @DominikB2014 (#58939, #58937, #58891, #58785, #58768, #58792, #58770)
+
+### Various fixes & improvements
+
+- fix(wizard) Fix possibly unbound variable in setup wizard (#59934) by @markstory
+- fix(starfish): Primary release can be undefined, check for it (#59993) by @shruthilayaj
+- feat(webvitals): Check if ttfb exists to determine proper no data state (#59912) by @edwardgou-sentry
+- feat(starfish): Highlight TTFD and link to docs when 0 (#59997) by @narsaynorath
+- fix(stafish): Fix typo in variable name (#59988) by @gggritso
+- feat(spans): Record resource spans for clustering (#58689) by @jjbayer
+- feat(metric-extraction): validate specs (#59981) by @obostjancic
+- ref(browser-starfish): use the shared domain selector in resource module (#59950) by @DominikB2014
+- feat(database): "View Query Summary" links in span waterfall (#59785) by @gggritso
+- chore(starfish): Rename breadcrumb, remove duplicate sidebar item (#59980) by @shruthilayaj
+- feat(profiling): add differential flamegraph boilerplate to statistical issue (#59905) by @JonasBa
+- feat(starfish): Use short release version and truncate (#59936) by @shruthilayaj
+- Unrevert "fix(metrics-extraction): Explicitly set metric type for metrics querying (#59931)" (#59960) by @k-fish
+- fix(email): alerts migration email text (#59975) by @obostjancic
+- feat(metrics) Check max orgs per project limit when creating investigation rules (#59852) by @RaduW
+- feat(ddm-alerts): Add force metrics layer params (#59974) by @ArthurKnaus
+- fix(project-create): Use large icon variant in framework suggestion (#59969) by @ArthurKnaus
+- ref: upgrade mypy to 1.7.0 (#59937) by @asottile-sentry
+- Move metadata from `File` to `EventAttachment` (#59845) by @Swatinem
+- Revert "feat(metric-extraction): validate specs (#59894)" (dc20e27c) by @getsentry-bot
+- feat(metric-extraction): validate specs (#59894) by @obostjancic
+- feat(ddm): Add option to forcefully use the new metrics layer (#59898) by @iambriccardo
+- feat(open-pr-comments): get PR files (#59933) by @cathteng
+- fix(feedback): Remove feedback item update on feedback list change (#59947) by @c298lee
+
+_Plus 1016 more_
+
 23.10.1
 -------
 

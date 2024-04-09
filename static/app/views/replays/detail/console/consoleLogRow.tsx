@@ -1,4 +1,5 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -38,8 +39,7 @@ function UnmemoizedConsoleLogRow({
   style,
 }: Props) {
   const handleDimensionChange = useCallback(
-    (path, expandedState, e) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState, e),
+    (path, expandedState, e) => onDimensionChange?.(index, path, expandedState, e),
     [onDimensionChange, index]
   );
 
@@ -103,12 +103,7 @@ const ConsoleLog = styled('div')<{
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
 
-  color: ${p =>
-    ['warning', 'error'].includes(String(p.level))
-      ? p.theme.alert[String(p.level)].iconColor
-      : p.hasOccurred
-      ? 'inherit'
-      : p.theme.gray300};
+  color: ${p => p.theme.gray400};
 
   /*
   Show the timestamp button "Play" icon when we hover the row.
@@ -123,17 +118,17 @@ const ConsoleLog = styled('div')<{
 const ICONS = {
   [BreadcrumbLevelType.ERROR]: (
     <Tooltip title={BreadcrumbLevelType.ERROR}>
-      <IconClose size="xs" isCircled />
+      <IconClose size="xs" color="red400" isCircled />
     </Tooltip>
   ),
   [BreadcrumbLevelType.WARNING]: (
     <Tooltip title={BreadcrumbLevelType.WARNING}>
-      <IconWarning size="xs" />
+      <IconWarning color="yellow400" size="xs" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.INFO]: (
     <Tooltip title={BreadcrumbLevelType.INFO}>
-      <IconInfo size="xs" />
+      <IconInfo color="gray400" size="xs" />
     </Tooltip>
   ),
 };

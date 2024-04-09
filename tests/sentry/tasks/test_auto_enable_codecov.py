@@ -9,6 +9,8 @@ from sentry.tasks.auto_enable_codecov import enable_for_org
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
@@ -40,19 +42,22 @@ class AutoEnableCodecovTest(TestCase):
     )
     @with_feature("organizations:codecov-integration")
     def test_has_codecov_integration(self, mock_get_repositories):
-        AuditLogEntry.objects.all().delete()
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.all().delete()
         assert not self.organization.flags.codecov_access.is_set
-        enable_for_org(self.organization.id)
+        with outbox_runner():
+            enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
         org = Organization.objects.get(id=self.organization.id)
         assert org.flags.codecov_access
 
-        audit = AuditLogEntry.objects.filter(
-            organization_id=org.id, event=audit_log.get_event_id("ORG_EDIT")
-        )
-        assert audit.exists()
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit = AuditLogEntry.objects.filter(
+                organization_id=org.id, event=audit_log.get_event_id("ORG_EDIT")
+            )
+            assert audit.exists()
 
     @responses.activate
     @patch(
@@ -62,7 +67,8 @@ class AutoEnableCodecovTest(TestCase):
     @with_feature("organizations:codecov-integration")
     def test_no_codecov_integration(self, mock_get_repositories):
         assert not self.organization.flags.codecov_access.is_set
-        enable_for_org(self.organization.id)
+        with outbox_runner():
+            enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
@@ -71,14 +77,17 @@ class AutoEnableCodecovTest(TestCase):
 
     @responses.activate
     def test_disables_codecov(self):
-        AuditLogEntry.objects.all().delete()
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.all().delete()
         self.organization.flags.codecov_access = True
         self.organization.save()
 
-        enable_for_org(self.organization.id)
+        with outbox_runner():
+            enable_for_org(self.organization.id)
 
         org = Organization.objects.get(id=self.organization.id)
         assert not org.flags.codecov_access.is_set
-        audit_log = AuditLogEntry.objects.filter(organization_id=org.id)
-        assert len(audit_log) == 1
-        assert audit_log.first().data == {"codecov_access": "to False"}
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_log = AuditLogEntry.objects.filter(organization_id=org.id)
+            assert len(audit_log) == 1
+            assert audit_log.first().data == {"codecov_access": "to False"}

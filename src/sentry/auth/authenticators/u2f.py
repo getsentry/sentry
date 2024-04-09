@@ -1,4 +1,5 @@
 from base64 import urlsafe_b64encode
+from functools import cached_property
 from time import time
 from urllib.parse import urlparse
 
@@ -12,7 +13,6 @@ from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
-from rest_framework.request import Request
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -53,11 +53,20 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
-    # rp is a relying party for webauthn, this would be sentry.io for SAAS
-    # and the prefix for self-hosted / dev environments
-    rp_id = urlparse(_get_url_prefix()).hostname
-    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
-    webauthn_registration_server = Fido2Server(rp)
+
+    @cached_property
+    def rp_id(self) -> str | None:
+        # rp is a relying party for webauthn, this would be sentry.io for SAAS
+        # and the prefix for self-hosted / dev environments
+        return urlparse(_get_url_prefix()).hostname
+
+    @cached_property
+    def rp(self) -> PublicKeyCredentialRpEntity:
+        return PublicKeyCredentialRpEntity(self.rp_id, "Sentry")
+
+    @cached_property
+    def webauthn_registration_server(self) -> Fido2Server:
+        return Fido2Server(self.rp)
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
         super().__init__(authenticator, status)
@@ -194,14 +203,13 @@ class U2fInterface(AuthenticatorInterface):
             credentials=credentials
         )
         request.session["webauthn_authentication_state"] = state
-
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session["webauthn_authentication_state"],
+                state=request.session.get("webauthn_authentication_state"),
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
@@ -210,4 +218,7 @@ class U2fInterface(AuthenticatorInterface):
             )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
+        finally:
+            # Cleanup the U2F state from the session
+            request.session.pop("webauthn_authentication_state", None)
         return True

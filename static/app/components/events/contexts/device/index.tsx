@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {DeviceContext, Event} from 'sentry/types/event';
+import type {DeviceContext, Event} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {
   deviceKnownDataValues,
@@ -14,13 +14,14 @@ import {getInferredData} from './utils';
 type Props = {
   data: DeviceContext;
   event: Event;
+  meta?: Record<string, any>;
 };
 
 const deviceIgnoredDataValues = [];
 
-export function DeviceEventContext({data, event}: Props) {
+export function DeviceEventContext({data, event, meta: propsMeta}: Props) {
   const inferredData = getInferredData(data);
-  const meta = event._meta?.contexts?.device ?? {};
+  const meta = propsMeta ?? getContextMeta(event, 'device');
 
   return (
     <Fragment>

@@ -1,8 +1,9 @@
-import {EventsMetaType} from 'sentry/utils/discover/eventView';
-import GenericDiscoverQuery, {
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 type BaseDataRow = {
   [key: string]: React.ReactText;

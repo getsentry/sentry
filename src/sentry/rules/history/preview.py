@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any
 
 from django.utils import timezone
 
@@ -27,9 +28,9 @@ from sentry.types.condition_activity import (
 )
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
-Conditions = Sequence[Dict[str, Any]]
+Conditions = Sequence[dict[str, Any]]
 ConditionFunc = Callable[[Sequence[bool]], bool]
-GroupActivityMap = Dict[int, List[ConditionActivity]]
+GroupActivityMap = dict[int, list[ConditionActivity]]
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -56,7 +57,7 @@ def preview(
     filter_match: str,
     frequency_minutes: int,
     end: datetime | None = None,
-) -> Dict[int, datetime] | None:
+) -> dict[int, datetime] | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
@@ -111,7 +112,7 @@ def preview(
         return None
 
 
-def categorize_conditions(conditions: Conditions) -> Tuple[Conditions, Conditions]:
+def categorize_conditions(conditions: Conditions) -> tuple[Conditions, Conditions]:
     """
     Categorizes conditions into issue state conditions or frequency conditions.
     These two types of conditions are processed separately.
@@ -160,7 +161,7 @@ def get_issue_state_activity(
 
 def get_filters(
     project: Project, filters: Conditions, filter_match: str
-) -> Tuple[Sequence[RuleBase], ConditionFunc, Dict[Dataset, List[str]]]:
+) -> tuple[Sequence[RuleBase], ConditionFunc, dict[Dataset, list[str]]]:
     """
     Returns instantiated filter objects, the filter match function, and relevant snuba columns used for answering event filters
     """
@@ -191,8 +192,8 @@ def get_fired_groups(
     filter_func: ConditionFunc,
     start: datetime,
     frequency: timedelta,
-    event_map: Dict[str, Any],
-) -> Dict[int, datetime]:
+    event_map: dict[str, Any],
+) -> dict[int, datetime]:
     """
     Applies filter objects to the condition activity.
     Returns the group ids of activities that pass the filters and the last fire of each group
@@ -217,7 +218,7 @@ def get_top_groups(
     start: datetime,
     end: datetime,
     condition_activity: GroupActivityMap,
-    dataset_map: Dict[int, Dataset],
+    dataset_map: dict[int, Dataset],
     has_issue_state_condition: bool = True,
 ) -> GroupActivityMap:
     """
@@ -273,7 +274,7 @@ def get_top_groups(
     }
 
 
-def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
+def get_group_dataset(group_ids: Sequence[int]) -> dict[int, Dataset]:
     """
     Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
     If the dataset is not found/supported, it is mapped to None.
@@ -292,10 +293,10 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
 def get_events(
     project: Project,
     group_activity: GroupActivityMap,
-    columns: Dict[Dataset, List[str]],
+    columns: dict[Dataset, list[str]],
     start: datetime,
     end: datetime,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
@@ -391,7 +392,7 @@ def apply_frequency_conditions(
     group_activity: GroupActivityMap,
     frequency_conditions: Conditions,
     condition_match: str,
-    dataset_map: Dict[int, Dataset],
+    dataset_map: dict[int, Dataset],
     has_issue_state_condition: bool,
 ) -> GroupActivityMap:
     """
@@ -502,8 +503,8 @@ def get_frequency_buckets(
     end: datetime,
     group_id: int,
     dataset: Dataset,
-    aggregate: Tuple[str, str],
-) -> Dict[datetime, int]:
+    aggregate: tuple[str, str],
+) -> dict[datetime, int]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """

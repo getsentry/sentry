@@ -1,8 +1,10 @@
+import pytest
 from django.test import override_settings
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
+from sentry.sentry_metrics.indexer.strings import PREFIX, SHARED_STRINGS, StaticStringIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 use_case_id = UseCaseID.SESSIONS
 
@@ -55,7 +57,6 @@ def test_resolve_shared_org_no_entry() -> None:
 
 def test_reverse_resolve_shared_org_no_entry() -> None:
     indexer = StaticStringIndexer(MockIndexer())
-
     # shared string start quite high 2^63 so anything smaller should return None
     actual = indexer.reverse_shared_org_resolve(5)
     assert actual is None
@@ -80,3 +81,48 @@ def test_reverse_resolve_reindexed():
 
     assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, id) == "release"
     assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, 12345678) == "release"
+
+
+@pytest.mark.parametrize(
+    ["mri", "id"],
+    [
+        pytest.param(
+            string,
+            id,
+            marks=pytest.mark.skipif(
+                string
+                in {
+                    "s:transactions/span.user@none",
+                    "d:transactions/span.duration@millisecond",
+                    "d:transactions/span.exclusive_time@millisecond",
+                },
+                reason="deprecated MRI",
+            ),
+            id=string,
+        )
+        for string, id in SHARED_STRINGS.items()
+        if parse_mri(string) is not None
+    ],
+)
+def test_shared_mri_string_range(mri, id):
+    parsed_mri = parse_mri(mri)
+    assert parsed_mri is not None, mri
+    try:
+        start, end = {
+            "sessions": (1, 99),
+            "transactions": (100, 199),
+            "spans": (400, 499),
+            "escalating_issues": (500, 599),
+            "profiles": (600, 699),
+            "bundle_analysis": (700, 799),
+            "metric_stats": (800, 899),
+        }[parsed_mri.namespace]
+    except KeyError:
+        raise Exception(f"Unknown namespace: {parsed_mri.namespace}")
+
+    start += PREFIX
+    end += PREFIX
+
+    assert (
+        start <= id <= end
+    ), f"id for MRI: {mri} fall outside of expected range. Expected {start} - {end}, got {id}"

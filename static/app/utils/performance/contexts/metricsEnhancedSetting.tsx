@@ -1,8 +1,9 @@
-import {Dispatch, ReactNode, useCallback, useReducer} from 'react';
+import type {Dispatch, ReactNode} from 'react';
+import {useCallback, useReducer} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';

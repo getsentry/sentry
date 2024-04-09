@@ -3,7 +3,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.web.forms.accounts import RelocationForm
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestRelocationForm(TestCase):
     def test_placeholder_username(self):
         username = "test_user"

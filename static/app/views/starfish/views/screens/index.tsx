@@ -1,33 +1,52 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
 
+import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {CursorHandler} from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {NewQuery, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
+import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
+import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
+import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
+import {
+  isCrossPlatform,
+  transformReleaseEvents,
+} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START,
@@ -41,6 +60,7 @@ export enum YAxis {
 }
 
 export const TOP_SCREENS = 5;
+const MAX_CHART_RELEASE_CHARS = 12;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -90,16 +110,27 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
+  project?: Project | null;
 };
 
-export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
+export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Props) {
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
   const theme = useTheme();
+  const organization = useOrganization();
   const {query: locationQuery} = location;
 
+  const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
+
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
+  const platform =
+    decodeScalar(locationQuery[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   const {
     primaryRelease,
@@ -107,12 +138,36 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const query = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-    ...(additionalFilters ?? []),
+  const router = useRouter();
+
+  const {hasTTFD} = useTTFDConfigured(additionalFilters);
+
+  const queryString = useMemo(() => {
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'transaction.op:ui.load',
+      ...(additionalFilters ?? []),
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      query.addFilterValue('os.name', platform);
+    }
+
+    const searchQuery = decodeScalar(locationQuery.query, '');
+    if (searchQuery) {
+      query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
+    }
+
+    return appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  }, [
+    additionalFilters,
+    hasPlatformSelectFeature,
+    locationQuery.query,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
   ]);
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const orderby = decodeScalar(locationQuery.sort, `-count`);
   const newQuery: NewQuery = {
@@ -141,24 +196,44 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   } = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-screen-table',
+    cursor,
   });
 
-  const topTransactions =
-    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
-    [];
+  const topTransactions = useMemo(() => {
+    return (
+      topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+      []
+    );
+  }, [topTransactionsData?.data]);
 
-  const topEventsQuery = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-    ...(topTransactions.length > 0 ? [`transaction:[${topTransactions.join()}]`] : []),
-    ...(additionalFilters ?? []),
-  ]);
+  const topEventsQueryString = useMemo(() => {
+    const topEventsQuery = new MutableSearch([
+      'event.type:transaction',
+      'transaction.op:ui.load',
+      ...(additionalFilters ?? []),
+    ]);
 
-  const topEventsQueryString = appendReleaseFilters(
-    topEventsQuery,
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      topEventsQuery.addFilterValue('os.name', platform);
+    }
+
+    return `${appendReleaseFilters(topEventsQuery, primaryRelease, secondaryRelease)} ${
+      topTransactions.length > 0
+        ? escapeFilterValue(
+            `transaction:[${topTransactions.map(name => `"${name}"`).join()}]`
+          )
+        : ''
+    }`.trim();
+  }, [
+    additionalFilters,
+    platform,
     primaryRelease,
-    secondaryRelease
-  );
+    project,
+    secondaryRelease,
+    topTransactions,
+    hasPlatformSelectFeature,
+  ]);
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(
@@ -174,26 +249,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       location
     ),
     enabled: !topTransactionsLoading,
-  });
-
-  const {data: deviceClassEvents, isLoading: isDeviceClassEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['transaction', 'device.class', ...yAxisCols],
-        orderby: yAxisCols[0],
-        yAxis: yAxisCols,
-        query: topEventsQueryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      location
-    ),
-    enabled: !topTransactionsLoading,
+    referrer: 'api.starfish.mobile-screen-bar-chart',
   });
 
   if (isReleasesLoading) {
@@ -204,151 +260,152 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     );
   }
 
-  const transformedReleaseEvents: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
-
-  yAxes.forEach(val => {
-    transformedReleaseEvents[YAXIS_COLUMNS[val]] = {};
-    if (primaryRelease) {
-      transformedReleaseEvents[YAXIS_COLUMNS[val]][primaryRelease] = {
-        seriesName: primaryRelease,
-        data: Array(topTransactions.length).fill(0),
-      };
-    }
-    if (secondaryRelease) {
-      transformedReleaseEvents[YAXIS_COLUMNS[val]][secondaryRelease] = {
-        seriesName: secondaryRelease,
-        data: Array(topTransactions.length).fill(0),
-      };
-    }
-  });
-
-  const transformedDeviceEvents: {
-    [yAxisName: string]: {
-      [deviceClass: string]: Series;
-    };
-  } = {};
-
-  yAxes.forEach(val => {
-    transformedDeviceEvents[YAXIS_COLUMNS[val]] = {};
-    ['high', 'medium', 'low', 'Unknown'].forEach(deviceClass => {
-      transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass] = {
-        seriesName: deviceClass,
-        data: Array(topTransactions.length).fill(0),
-      };
-    });
-  });
-
-  const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
-
-  if (defined(releaseEvents)) {
-    releaseEvents.data?.forEach(row => {
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
-      const transaction = row.transaction;
-      const index = topTransactionsIndex[transaction];
-      yAxes.forEach(val => {
-        transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-          name: row.transaction,
-          value: row[YAXIS_COLUMNS[val]],
-          itemStyle: {
-            color: isPrimary
-              ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
-              : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                  .lighten(0.3)
-                  .string(),
-          },
-        } as SeriesDataUnit;
-      });
-    });
+  if (!defined(primaryRelease) && !isReleasesLoading) {
+    return (
+      <Alert type="warning" showIcon>
+        {t(
+          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
+        )}
+      </Alert>
+    );
   }
 
-  if (defined(deviceClassEvents)) {
-    deviceClassEvents.data?.forEach(row => {
-      const deviceClass = row['device.class'];
-      const transaction = row.transaction;
-      const index = topTransactionsIndex[transaction];
+  const transformedReleaseEvents = transformReleaseEvents({
+    yAxes,
+    primaryRelease,
+    secondaryRelease,
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    releaseEvents,
+    topTransactions,
+  });
 
-      function deviceClassColor() {
-        switch (deviceClass) {
-          case 'high':
-            return theme.charts.getColorPalette(TOP_SCREENS - 2)[index];
+  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+  const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
-          case 'medium':
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.1)
-              .string();
+  const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
 
-          case 'low':
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.2)
-              .string();
-
-          default:
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.3)
-              .string();
-        }
-      }
-
-      yAxes.forEach(val => {
-        transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass].data[index] = {
-          name: row.transaction,
-          value: row[YAXIS_COLUMNS[val]],
-          itemStyle: {
-            color: deviceClassColor(),
-          },
-        } as SeriesDataUnit;
-      });
+  const handleCursor: CursorHandler = (newCursor, pathname, query_) => {
+    browserHistory.push({
+      pathname,
+      query: {...query_, [MobileCursors.SCREENS_TABLE]: newCursor},
     });
-  }
+  };
 
   return (
     <div data-test-id="starfish-mobile-view">
       <ChartsContainer>
         <Fragment>
-          <ChartsContainerItem key="release">
+          <ChartsContainerItem key="ttid">
             <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Release', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
+              chartOptions={[
+                {
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]]),
+                  yAxis: YAXIS_COLUMNS[yAxes[0]],
                   xAxisLabel: topTransactions,
-                  series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
+                  series: Object.values(
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
+                  ),
+                  subtitle: primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        truncatedPrimaryChart,
+                        secondaryRelease ? truncatedSecondaryChart : ''
+                      )
+                    : '',
+                },
+              ]}
               chartHeight={chartHeight ?? 180}
               isLoading={isReleaseEventsLoading}
+              chartKey="screensChart1"
             />
           </ChartsContainerItem>
 
-          <ChartsContainerItem key="deviceClass">
-            <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Device Class', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
-                  xAxisLabel: topTransactions,
-                  series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
-              chartHeight={chartHeight ?? 180}
-              isLoading={isDeviceClassEventsLoading}
-            />
-          </ChartsContainerItem>
+          {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+            <ChartsContainerWithHiddenOverflow>
+              <ChartPanel title={CHART_TITLES[yAxes[1]]}>
+                <TabbedCodeSnippet tabs={SETUP_CONTENT} />
+              </ChartPanel>
+            </ChartsContainerWithHiddenOverflow>
+          ) : (
+            <ChartsContainerItem key="ttfd">
+              <ScreensBarChart
+                chartOptions={[
+                  {
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]]),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]],
+                    xAxisLabel: topTransactions,
+                    series: Object.values(
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
+                    ),
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          truncatedPrimaryChart,
+                          secondaryRelease ? truncatedSecondaryChart : ''
+                        )
+                      : '',
+                  },
+                ]}
+                chartHeight={chartHeight ?? 180}
+                isLoading={isReleaseEventsLoading}
+                chartKey="screensChart1"
+              />
+            </ChartsContainerItem>
+          )}
         </Fragment>
       </ChartsContainer>
+      <StyledSearchBar
+        eventView={tableEventView}
+        onSearch={search => {
+          router.push({
+            pathname: router.location.pathname,
+            query: {
+              ...location.query,
+              cursor: undefined,
+              query: String(search).trim() || undefined,
+            },
+          });
+        }}
+        organization={organization}
+        query={getFreeTextFromQuery(derivedQuery)}
+        placeholder={t('Search for Screens')}
+        additionalConditions={
+          new MutableSearch(
+            appendReleaseFilters(tableSearchFilters, primaryRelease, secondaryRelease)
+          )
+        }
+      />
       <ScreensTable
         eventView={tableEventView}
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
+        onCursor={handleCursor}
+        project={project}
       />
     </div>
   );
+}
+
+export function getFreeTextFromQuery(query: string) {
+  const conditions = new MutableSearch(query);
+  const transactionValues = conditions.getFilterValues('transaction');
+  if (transactionValues.length) {
+    return transactionValues[0];
+  }
+  if (conditions.freeText.length > 0) {
+    // raw text query will be wrapped in wildcards in generatePerformanceEventView
+    // so no need to wrap it here
+    return conditions.freeText.join(' ');
+  }
+  return '';
 }
 
 const ChartsContainer = styled('div')`
@@ -358,10 +415,19 @@ const ChartsContainer = styled('div')`
   gap: ${space(2)};
 `;
 
+const ChartsContainerWithHiddenOverflow = styled('div')`
+  flex: 1;
+  overflow: hidden;
+`;
+
 const ChartsContainerItem = styled('div')`
   flex: 1;
 `;
 
 export const Spacer = styled('div')`
   margin-top: ${space(3)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(1)};
 `;

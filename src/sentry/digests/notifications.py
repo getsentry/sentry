@@ -4,7 +4,8 @@ import functools
 import itertools
 import logging
 from collections import defaultdict, namedtuple
-from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+from typing import Any
 
 from sentry import tsdb
 from sentry.digests import Digest, Record
@@ -14,7 +15,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
-from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
@@ -65,12 +65,12 @@ def event_to_record(
     event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
 ) -> Record:
     if not rules:
-        logger.warning(f"Creating record for {event} that does not contain any rules!")
+        logger.warning("Creating record for %s that does not contain any rules!", event)
 
     return Record(
         event.event_id,
         Notification(event, [rule.id for rule in rules], notification_uuid),
-        to_timestamp(event.datetime),
+        event.datetime.timestamp(),
     )
 
 
@@ -146,7 +146,7 @@ def rewrite_record(
     if group is not None:
         event.group = group
     else:
-        logger.debug(f"{record} could not be associated with a group.")
+        logger.debug("%s could not be associated with a group.", record)
         return None
 
     return Record(
@@ -166,7 +166,7 @@ def group_records(
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
-        logger.debug(f"{record} has no associated rules, and will not be added to any groups.")
+        logger.debug("%s has no associated rules, and will not be added to any groups.", record)
 
     for rule in rules:
         groups[rule][group].append(record)

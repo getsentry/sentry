@@ -1,3 +1,5 @@
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
@@ -9,13 +11,13 @@ describe('TeamBadge', function () {
   });
 
   it('renders with Avatar and team name', function () {
-    render(<TeamBadge team={TestStubs.Team()} />);
+    render(<TeamBadge team={TeamFixture()} />);
     expect(screen.getByTestId('badge-styled-avatar')).toBeInTheDocument();
     expect(screen.getByText(/#team-slug/)).toBeInTheDocument();
   });
 
   it('listens for avatar changes from TeamStore', async function () {
-    const team = TestStubs.Team();
+    const team = TeamFixture();
     render(<TeamBadge team={team} />);
 
     act(() => {
@@ -29,9 +31,9 @@ describe('TeamBadge', function () {
   });
 
   it('updates state from props', async function () {
-    const team = TestStubs.Team();
+    const team = TeamFixture();
     const {rerender} = render(<TeamBadge team={team} />);
-    rerender(<TeamBadge team={TestStubs.Team({slug: 'new-team-slug'})} />);
+    rerender(<TeamBadge team={TeamFixture({slug: 'new-team-slug'})} />);
     expect(await screen.findByText(/#new-team-slug/)).toBeInTheDocument();
   });
 });

@@ -1,14 +1,12 @@
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
@@ -38,7 +36,6 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-@region_silo_test(stable=True)
 class TeamProjectsCreateTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
@@ -64,7 +61,6 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -76,7 +72,6 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -118,19 +113,6 @@ class TeamProjectsCreateTest(APITestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert Rule.objects.filter(project=project).exists()
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_default_rule_fallback_targeting(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **self.data,
-            default_rules=True,
-            status_code=201,
-        )
-
-        project = Project.objects.get(id=response.data["id"])
         rule = Rule.objects.filter(project=project).first()
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
@@ -146,3 +128,77 @@ class TeamProjectsCreateTest(APITestCase):
         )
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
+
+    def test_default_inbound_filters(self):
+        filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
+        python_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=python_response.data["id"])
+
+        python_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, python_project)
+            for filter_id in filters
+        }
+
+        assert not python_filter_states["browser-extensions"]
+        assert not python_filter_states["legacy-browsers"]
+        assert not python_filter_states["web-crawlers"]
+        assert python_filter_states["filtered-transaction"]
+
+        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
+        javascript_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **project_data,
+            status_code=201,
+        )
+
+        javascript_project = Project.objects.get(id=javascript_response.data["id"])
+
+        javascript_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, javascript_project)
+            for filter_id in filters
+        }
+
+        assert javascript_filter_states["browser-extensions"]
+        assert set(javascript_filter_states["legacy-browsers"]) == {
+            "ie_pre_9",
+            "ie9",
+            "ie10",
+            "ie11",
+            "safari_pre_6",
+            "opera_pre_15",
+            "opera_mini_pre_8",
+            "android_pre_4",
+            "edge_pre_79",
+        }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]
+
+    @with_feature("organizations:legacy-browser-update")
+    def test_updated_legacy_browser_default(self):
+        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
+        javascript_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **project_data,
+            status_code=201,
+        )
+
+        javascript_project = Project.objects.get(id=javascript_response.data["id"])
+
+        assert set(inbound_filters.get_filter_state("legacy-browsers", javascript_project)) == {
+            "ie",
+            "firefox",
+            "chrome",
+            "safari",
+            "opera",
+            "opera_mini",
+            "android",
+            "edge",
+        }

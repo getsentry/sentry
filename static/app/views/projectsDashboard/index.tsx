@@ -1,13 +1,12 @@
-import {Fragment, Profiler, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,9 +22,13 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, TeamWithProjects} from 'sentry/types';
+import type {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
-import {onRenderCallback, setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
+import {
+  onRenderCallback,
+  Profiler,
+  setGroupedEntityTag,
+} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -87,7 +90,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     []
   );
 
-  const {canCreateProject} = useProjectCreationAccess({organization, teams});
+  const {canCreateProject} = useProjectCreationAccess({organization});
   if (loadingTeams) {
     return <LoadingIndicator />;
   }
@@ -101,10 +104,13 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
 
   const filteredTeamProjects = uniqBy(
-    flatten((filteredTeams ?? teams).map(team => team.projects)),
+    (filteredTeams ?? teams).flatMap(team => team.projects),
     'id'
   );
-  const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  const projects = uniqBy(
+    teams.flatMap(teamObj => teamObj.projects),
+    'id'
+  );
   setGroupedEntityTag('projects.total', 1000, projects.length);
 
   const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
@@ -149,7 +155,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
           <ButtonBar gap={1}>
             <Button
               size="sm"
-              icon={<IconUser size="xs" />}
+              icon={<IconUser />}
               title={
                 canJoinTeam ? undefined : t('You do not have permission to join a team.')
               }
@@ -169,7 +175,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               data-test-id="create-project"
             >
               {t('Create Project')}

@@ -2,7 +2,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class AccountSettingsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -59,6 +59,6 @@ class AccountSettingsTest(AcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_close_account(self):
-        with self.feature("organizations:onboarding"):
+        with self.options({"system.url-prefix": self.browser.live_server_url}):
             self.browser.get("/account/remove/")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from django.apps import apps
 from django.db import connections
@@ -69,6 +69,7 @@ class SiloRouter:
 
     historical_silo_assignments = {
         "sentry_pagerdutyservice": SiloMode.REGION,
+        "sentry_notificationsetting": SiloMode.CONTROL,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments
@@ -118,14 +119,14 @@ class SiloRouter:
         else:
             return None
 
-    def _find_model(self, table: str, app_label: str) -> Optional[Model]:
+    def _find_model(self, table: str, app_label: str) -> Model | None:
         # Use django's model inventory to find our table and what silo it is on.
         for model in apps.get_models(app_label):
             if model._meta.db_table == table:
                 return model
         return None
 
-    def _silo_limit(self, model: Model) -> Optional[SiloLimit]:
+    def _silo_limit(self, model: Model) -> SiloLimit | None:
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
             return silo_limit

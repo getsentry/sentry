@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -6,7 +6,7 @@ import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -24,9 +24,23 @@ type State = {
 class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
   disableErrorReport = false;
 
+  get regionHost(): string | undefined {
+    // Because this route happens outside of OrganizationContext we
+    // need to use initial data to decide which host to send the request to
+    // as `/accept-transfer/` cannot be resolved to a region.
+    const initialData = window.__initialData;
+    let host: string | undefined = undefined;
+    if (initialData && initialData.links?.regionUrl !== initialData.links?.sentryUrl) {
+      host = initialData.links.regionUrl;
+    }
+
+    return host;
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const query = this.props.location.query;
-    return [['transferDetails', '/accept-transfer/', {query}]];
+    const host = this.regionHost;
+    return [['transferDetails', '/accept-transfer/', {query, host}]];
   }
 
   getTitle() {
@@ -36,6 +50,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
   handleSubmit = formData => {
     this.api.request('/accept-transfer/', {
       method: 'POST',
+      host: this.regionHost,
       data: {
         data: this.props.location.query.data,
         organization: formData.organization,
@@ -53,7 +68,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       },
       error: error => {
         const errorMsg =
-          error && error.responseJSON && typeof error.responseJSON.detail === 'string'
+          error?.responseJSON && typeof error.responseJSON.detail === 'string'
             ? error.responseJSON.detail
             : '';
 
@@ -68,7 +83,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
     let disableLog = false;
     // Check if there is an error message with `transferDetails` endpoint
     // If so, show as toast and ignore, otherwise log to sentry
-    if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
+    if (error?.responseJSON && typeof error.responseJSON.detail === 'string') {
       addErrorMessage(error.responseJSON.detail);
       disableLog = true;
     }

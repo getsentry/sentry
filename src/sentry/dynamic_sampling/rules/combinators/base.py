@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, OrderedDict
+from collections import OrderedDict
+from collections.abc import Callable
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RuleType
@@ -24,7 +25,7 @@ class BiasesCombinator(ABC):
     """
 
     def __init__(self) -> None:
-        self.biases: Dict[RuleType, OrderedBias] = {}
+        self.biases: dict[RuleType, OrderedBias] = {}
 
     def add_if(self, rule_type: RuleType, bias: Bias, block: Callable[[], bool]) -> None:
         if block():

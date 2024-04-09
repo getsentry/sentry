@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,15 +16,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import PageLayout, {
-  ChildProps,
-} from 'sentry/views/performance/transactionSummary/pageLayout';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import useReplaysFromTransaction, {EventSpanData} from './useReplaysFromTransaction';
+import type {EventSpanData} from './useReplaysFromTransaction';
+import useReplaysFromTransaction from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
 function TransactionReplays() {
@@ -38,7 +38,7 @@ function TransactionReplays() {
         ...location,
         query: {
           ...location.query,
-          statsPeriod: '14d',
+          statsPeriod: '90d',
         },
       }}
       organization={organization}
@@ -144,6 +144,7 @@ function ReplaysContent({
     eventView,
     location,
     organization,
+    queryReferrer: 'transactionReplays',
   });
 
   const replaysWithTx = useReplaysWithTxData({

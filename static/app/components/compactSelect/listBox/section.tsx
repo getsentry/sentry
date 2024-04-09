@@ -1,10 +1,11 @@
 import {Fragment, useContext, useMemo} from 'react';
-import {AriaListBoxSectionProps, useListBoxSection} from '@react-aria/listbox';
+import type {AriaListBoxSectionProps} from '@react-aria/listbox';
+import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
-import {ListState} from '@react-stately/list';
-import {Node} from '@react-types/shared';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectFilterContext} from '../list';
 import {
@@ -14,7 +15,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
-import {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {ListBoxOption} from './option';
@@ -23,7 +24,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
-  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
+  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**

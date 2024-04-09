@@ -5,26 +5,25 @@ import {PlatformIcon} from 'platformicons';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {DeviceContextKey, EventTransaction} from 'sentry/types/event';
+import type {Organization, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {DeviceContextKey} from 'sentry/types/event';
 import {formatVersion} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  useResizableDrawer,
-  UseResizableDrawerOptions,
-} from 'sentry/utils/useResizableDrawer';
+import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
@@ -190,7 +189,6 @@ function TransactionDeviceDetails({
   const deviceDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
     const deviceContext = transaction.contexts.device;
-    const clientOsContext = transaction.contexts.client_os;
     const osContext = transaction.contexts.os;
 
     const details: {
@@ -218,15 +216,12 @@ function TransactionDeviceDetails({
       {
         key: 'name',
         label: t('OS'),
-        value: clientOsContext?.name ?? osContext?.name ?? profileMetadata.deviceOSName,
+        value: osContext?.name ?? profileMetadata.deviceOSName,
       },
       {
         key: 'version',
         label: t('OS Version'),
-        value:
-          clientOsContext?.version ??
-          osContext?.version ??
-          profileMetadata.deviceOSVersion,
+        value: osContext?.version ?? profileMetadata.deviceOSVersion,
       },
       {
         key: 'locale',

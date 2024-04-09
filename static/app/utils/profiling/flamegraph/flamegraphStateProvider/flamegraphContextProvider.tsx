@@ -1,16 +1,15 @@
 import {useMemo} from 'react';
 
-import {DeepPartial} from 'sentry/types/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {DeepPartial} from 'sentry/types/utils';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
-import {FlamegraphSearch} from './reducers/flamegraphSearch';
+import type {FlamegraphSearch} from './reducers/flamegraphSearch';
+import type {FlamegraphState, FlamegraphStateValue} from './flamegraphContext';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
   FlamegraphStateDispatchContext,
   flamegraphStateReducer,
-  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
 
@@ -60,8 +59,8 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
             ...initialState?.search?.highlightFrames,
           }
         : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames)
-        ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
-        : null,
+          ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
+          : null,
       query: initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   };

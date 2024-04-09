@@ -1,126 +1,145 @@
-import {ReactNode, useCallback, useEffect, useState} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {uniq} from 'sentry/utils/array/uniq';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {
-  EMPTY_OPTION_VALUE,
-  EmptyContainer,
-} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {EmptyContainer} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 type Props = {
+  additionalQuery?: string[];
+  emptyOptionLocation?: 'top' | 'bottom';
   moduleName?: ModuleName;
   spanCategory?: string;
   value?: string;
 };
 
-type State = {
-  inputChanged: boolean;
-  search: string;
-  shouldRequeryOnInputChange: boolean;
-};
+interface DomainData {
+  'span.domain': string[];
+}
 
-const LIMIT = 100;
+interface DomainCacheValue {
+  domains: Set<string>;
+  initialLoadHadMoreData: boolean;
+}
 
 export function DomainSelector({
   value = '',
   moduleName = ModuleName.ALL,
   spanCategory,
+  additionalQuery = [],
+  emptyOptionLocation = 'bottom',
 }: Props) {
-  const [state, setState] = useState<State>({
-    search: '',
-    inputChanged: false,
-    shouldRequeryOnInputChange: false,
-  });
   const location = useLocation();
-  const eventView = getEventView(location, moduleName, spanCategory, state.search);
 
-  const {data: domains, isLoading} = useSpansQuery<
-    Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
-  >({
+  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
+  const [domainQuery, setDomainQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSetSearch = useCallback(
+    debounce(newSearch => {
+      setDomainQuery(newSearch);
+    }, 500),
+    []
+  );
+
+  const eventView = getEventView(
+    location,
+    moduleName,
+    spanCategory,
+    domainQuery,
+    additionalQuery
+  );
+
+  const {
+    data: domainData,
+    isLoading,
+    pageLinks,
+  } = useSpansQuery<DomainData[]>({
     eventView,
     initialData: [],
     limit: LIMIT,
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const transformedDomains = Array.from(
-    domains?.reduce((acc, curr) => {
-      const spanDomainArray = curr[SpanMetricsField.SPAN_DOMAIN];
-      if (spanDomainArray) {
-        spanDomainArray.forEach(name => acc.add(name));
-      }
-      return acc;
-    }, new Set<string>()) || []
+  const incomingDomains = uniq(
+    domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])
   );
 
-  // If the maximum number of domains is returned, we need to requery on input change to get full results
-  if (
-    !state.shouldRequeryOnInputChange &&
-    transformedDomains &&
-    transformedDomains.length >= LIMIT
-  ) {
-    setState({...state, shouldRequeryOnInputChange: true});
+  // Cache for all previously seen domains
+  const domainCache = useRef<DomainCacheValue>({
+    domains: new Set(),
+    initialLoadHadMoreData: true,
+  });
+
+  // The current selected table might not be in the cached set. Ensure it's always there
+  if (value) {
+    domainCache.current.domains.add(value);
   }
 
-  // Everytime loading is complete, reset the inputChanged state
+  // When caching the unfiltered domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter that narrows the search
   useEffect(() => {
-    if (!isLoading && state.inputChanged) {
-      setState({...state, inputChanged: false});
+    if (domainQuery === '' && !isLoading) {
+      const {next} = parseLinkHeader(pageLinks ?? '');
+
+      domainCache.current.initialLoadHadMoreData = next?.results ?? false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  }, [domainQuery, pageLinks, isLoading]);
 
-  const optionsReady = !isLoading && !state.inputChanged;
+  // Cache all known domains from previous requests
+  useEffect(() => {
+    incomingDomains?.forEach(domain => {
+      domainCache.current.domains.add(domain);
+    });
+  }, [incomingDomains]);
 
-  const options = optionsReady
-    ? [
-        {value: '', label: 'All'},
-        ...transformedDomains
-          .map(datum => {
-            return {
-              value: datum,
-              label: datum,
-            };
-          })
-          .sort((a, b) => a.value.localeCompare(b.value)),
-        {
-          value: EMPTY_OPTION_VALUE,
-          label: (
-            <EmptyContainer>
-              {t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}
-            </EmptyContainer>
-          ),
-        },
-      ]
-    : [];
+  const emptyOption = {
+    value: EMPTY_OPTION_VALUE,
+    label: (
+      <EmptyContainer>{t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}</EmptyContainer>
+    ),
+  };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceUpdateSearch = useCallback(
-    debounce((search, currentState) => {
-      setState({...currentState, search});
-    }, 500),
-    []
-  );
+  const options = [
+    {value: '', label: 'All'},
+    ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
+    ...Array.from(domainCache.current.domains)
+      .map(datum => {
+        return {
+          value: datum,
+          label: datum,
+        };
+      })
+      .sort((a, b) => a.value.localeCompare(b.value)),
+    ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
+  ];
 
   return (
     <SelectControl
       inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
+      inputValue={searchInputValue}
       value={value}
       options={options}
+      isLoading={isLoading}
       onInputChange={input => {
-        if (state.shouldRequeryOnInputChange) {
-          setState({...state, inputChanged: true});
-          debounceUpdateSearch(input, state);
+        setSearchInputValue(input);
+
+        // If the initial query didn't fetch all the domains, update the search query and fire off a new query with the given search
+        if (domainCache.current.initialLoadHadMoreData) {
+          debouncedSetSearch(input);
         }
       }}
       onChange={newValue => {
@@ -129,17 +148,29 @@ export function DomainSelector({
           query: {
             ...location.query,
             [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
-      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
+      noOptionsMessage={() => t('No results')}
+      styles={{
+        control: provided => ({
+          ...provided,
+          minWidth: MIN_WIDTH,
+        }),
+      }}
     />
   );
 }
 
+const MIN_WIDTH = 300;
+
+const LIMIT = 100;
+
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
+  resource: t('Resource'),
   other: t('Domain'),
   '': t('Domain'),
 };
@@ -148,20 +179,22 @@ function getEventView(
   location: Location,
   moduleName: ModuleName,
   spanCategory?: string,
-  search?: string
+  search?: string,
+  additionalQuery?: string[]
 ) {
   const query = [
     ...buildEventViewQuery({
       moduleName,
       location: {
         ...location,
-        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN),
+        query: omit(location.query, ['span.action', 'span.domain']),
       },
       spanCategory,
     }),
     ...(search && search.length > 0
       ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
       : []),
+    ...(additionalQuery || []),
   ].join(' ');
   return EventView.fromNewQueryWithLocation(
     {

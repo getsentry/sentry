@@ -6,15 +6,15 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouping.api import GroupingConfig
 from sentry.grouping.enhancer import Enhancements
+from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -22,7 +22,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -254,7 +253,17 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.location == event_from_snuba.location
         assert event_from_nodestore.culprit == event_from_snuba.culprit
 
-        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+        user_from_nodestore = event_from_nodestore.get_minimal_user()
+        user_from_nodestore = User.to_python(
+            {
+                "id": user_from_nodestore._data.get("id"),
+                "email": user_from_nodestore._data.get("email"),
+                "username": user_from_nodestore._data.get("username"),
+                "ip_address": user_from_nodestore._data.get("ip_address"),
+            }
+        )
+        assert user_from_nodestore == event_from_snuba.get_minimal_user()
+
         assert event_from_nodestore.ip_address == event_from_snuba.ip_address
         assert event_from_nodestore.tags == event_from_snuba.tags
 
@@ -361,7 +370,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             category:foo_like -group
             """,
         )
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
@@ -386,7 +395,6 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
 
 
-@region_silo_test(stable=True)
 class EventGroupsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -463,7 +471,6 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-@region_silo_test(stable=True)
 class EventBuildGroupEventsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -515,7 +522,6 @@ class EventBuildGroupEventsTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(
@@ -534,7 +540,6 @@ class EventForGroupTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
 class GroupEventFromEventTest(TestCase):
     def test(self):
         event = Event(
@@ -574,23 +579,17 @@ class GroupEventFromEventTest(TestCase):
             group_event.project
 
 
-@region_silo_test(stable=True)
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
     def test(self):
-        occurrence_data = self.build_occurrence_data(project_id=self.project.id)
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
-            event_data={
-                "event_id": occurrence_data["event_id"],
-                "project_id": occurrence_data["project_id"],
-                "level": "info",
-            },
+        occurrence, group_info = self.process_occurrence(
+            project_id=self.project.id,
+            event_data={"level": "info"},
         )
         assert group_info is not None
 
         event = Event(
-            occurrence_data["project_id"],
-            occurrence_data["event_id"],
+            occurrence.project_id,
+            occurrence.event_id,
             group_info.group.id,
             data={},
             snuba_data={"occurrence_id": occurrence.id},
@@ -633,7 +632,6 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
-@region_silo_test(stable=True)
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated

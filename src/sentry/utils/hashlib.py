@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable, Iterable
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 from hashlib import sha256 as _sha256
-from typing import Any, Callable, Iterable, Optional
+from typing import Any
 
 from django.utils.encoding import force_bytes
 
@@ -59,7 +60,7 @@ def hash_value(h: hashlib._Hash, value: Any) -> None:
 
 def hash_values(
     values: Iterable[Any],
-    seed: Optional[str] = None,
+    seed: str | None = None,
     algorithm: Callable[[], hashlib._Hash] = _md5,
 ) -> str:
     """Returns a hexadecimal hash from an iterable data structure.
@@ -72,3 +73,19 @@ def hash_values(
     for value in values:
         hash_value(_hash, value)
     return _hash.hexdigest()
+
+
+def fnv1a_32(data: bytes) -> int:
+    """
+    Fowler–Noll–Vo hash function 32 bit implementation.
+    """
+    fnv_init = 0x811C9DC5
+    fnv_prime = 0x01000193
+    fnv_size = 2**32
+
+    result_hash = fnv_init
+    for byte in data:
+        result_hash ^= byte
+        result_hash = (result_hash * fnv_prime) % fnv_size
+
+    return result_hash

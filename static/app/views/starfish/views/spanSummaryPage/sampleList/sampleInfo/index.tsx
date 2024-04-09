@@ -1,8 +1,9 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -29,22 +30,22 @@ type Props = {
 
 function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
 
   const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
 
   const filters = {
-    transactionName,
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
   }
 
-  const {data: spanMetrics, error} = useSpanMetrics(
-    groupId,
-    filters,
-    [
+  const {data, error} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
       SPAN_OP,
       'spm()',
       `sum(${SPAN_SELF_TIME})`,
@@ -52,8 +53,11 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
-    'api.starfish.span-summary-panel-metrics'
-  );
+    enabled: Object.values(filters).every(value => Boolean(value)),
+    referrer: 'api.starfish.span-summary-panel-metrics',
+  });
+
+  const spanMetrics = data[0] ?? {};
 
   const style: CSSProperties = {
     textAlign: 'left',
@@ -82,7 +86,7 @@ function SampleInfo(props: Props) {
         );
       case 'time_spent_percentage()':
         return (
-          <Block title={DataTitles.timeSpent} alignment="left">
+          <Block key={metric} title={DataTitles.timeSpent} alignment="left">
             <TimeSpentCell
               containerProps={{style}}
               percentage={spanMetrics?.[`time_spent_percentage()`]}
@@ -101,7 +105,7 @@ function SampleInfo(props: Props) {
             <ThroughputCell
               containerProps={{style}}
               rate={spanMetrics?.['spm()']}
-              unit={RateUnits.PER_MINUTE}
+              unit={RateUnit.PER_MINUTE}
             />
           </Block>
         );

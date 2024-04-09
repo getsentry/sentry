@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -14,10 +14,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization, ProjectKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
@@ -105,7 +104,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   return (
     <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
       <Feature
-        features={['projects:rate-limits']}
+        features="projects:rate-limits"
         hookName="feature-disabled:rate-limits"
         renderDisabled={({children, ...props}) =>
           typeof children === 'function' &&
@@ -143,8 +142,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                 validate={({form}) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form &&
-                    form.rateLimit &&
+                    form?.rateLimit &&
                     typeof form.rateLimit.count !== 'undefined' &&
                     typeof form.rateLimit.window !== 'undefined';
 

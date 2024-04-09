@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
+from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any
 from urllib.parse import urlencode
-
-import pytz
 
 from sentry import analytics, features
 from sentry.db.models import Model
@@ -16,7 +16,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationSettingTypes,
+    NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
     get_commits,
@@ -61,7 +61,7 @@ GENERIC_TEMPLATE_NAME = "generic"
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
     metrics_key = "issue_alert"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    notification_setting_type_enum = NotificationSettingEnum.ISSUE_ALERTS
     template_path = "sentry/emails/error"
 
     def __init__(
@@ -104,9 +104,10 @@ class AlertRuleNotification(ProjectNotification):
             target_type=self.target_type,
             target_identifier=self.target_identifier,
             event=self.event,
-            notification_type=self.notification_setting_type,
+            notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
             rules=self.rules,
+            notification_uuid=self.notification_uuid,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -126,8 +127,8 @@ class AlertRuleNotification(ProjectNotification):
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
-                tz = pytz.timezone(user_tz)
-            except pytz.UnknownTimeZoneError:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
@@ -179,7 +180,6 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
-            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -270,6 +270,7 @@ class AlertRuleNotification(ProjectNotification):
                 "fallthrough_choice": self.fallthrough_choice.value
                 if self.fallthrough_choice
                 else None,
+                "notification_uuid": self.notification_uuid,
             },
         )
 
@@ -282,6 +283,7 @@ class AlertRuleNotification(ProjectNotification):
                     "target_identifier": self.target_identifier,
                     "group": self.group.id,
                     "project_id": self.project.id,
+                    "notification_uuid": self.notification_uuid,
                 },
             )
             return

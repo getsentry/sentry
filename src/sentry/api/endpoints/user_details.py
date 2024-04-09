@@ -1,7 +1,7 @@
 import logging
+import zoneinfo
 from datetime import datetime
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
@@ -13,13 +13,13 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
-from sentry.auth.superuser import is_active_superuser
+from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import OrganizationStatus
@@ -29,6 +29,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -36,8 +37,8 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.all_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
@@ -78,6 +79,7 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
+    issueDetailsNewExperienceQ42023 = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
@@ -138,7 +140,9 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
 
 class DeleteUserSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(required=False), required=True)
+    organizations = serializers.ListField(
+        child=serializers.CharField(required=False), required=True
+    )
     hardDelete = serializers.BooleanField(required=False)
 
 
@@ -149,6 +153,8 @@ class UserDetailsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+
+    permission_classes = (UserAndStaffPermission,)
 
     def get(self, request: Request, user) -> Response:
         """
@@ -178,7 +184,13 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        if not request.access.has_permission("users.admin"):
+        # We want to prevent superusers from setting users to superuser or staff
+        # because this is only done through _admin. This will always be enforced
+        # once the feature flag is removed.
+        can_elevate_user = has_elevated_mode(request) and request.access.has_permission(
+            "users.admin"
+        )
+        if not can_elevate_user:
             if not user.is_superuser and request.data.get("isSuperuser"):
                 return Response(
                     {"detail": "Missing required permission to add superuser."},
@@ -190,9 +202,13 @@ class UserDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        if request.access.has_permission("users.admin"):
+        if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
-        elif is_active_superuser(request):
+        # With superuser read/write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser. Once the feature flag is
+        # removed and we only check is_active_staff, we can remove this comment.
+        elif has_elevated_mode(request):
+            # TODO(schew2381): Rename to staff serializer
             serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
@@ -214,6 +230,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "stacktraceOrder": "stacktrace_order",
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
+            "issueDetailsNewExperienceQ42023": "issue_details_new_experience_q4_2023",
         }
 
         options_result = serializer_options.validated_data
@@ -250,7 +267,6 @@ class UserDetailsEndpoint(UserEndpoint):
         :param list organizations: List of organization ids to remove
         :auth required:
         """
-
         serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -321,9 +337,12 @@ class UserDetailsEndpoint(UserEndpoint):
         }
 
         hard_delete = serializer.validated_data.get("hardDelete", False)
+        can_delete = has_elevated_mode(request) and request.access.has_permission("users.admin")
 
         # Only active superusers can hard delete accounts
-        if hard_delete and not request.access.has_permission("users.admin"):
+        # This will be changed to only active staff can delete accounts once the
+        # staff feature flag is removed.
+        if hard_delete and not can_delete:
             return Response(
                 {"detail": "Missing required permission to hard delete account."},
                 status=status.HTTP_403_FORBIDDEN,

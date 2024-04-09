@@ -1,3 +1,5 @@
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Version from 'sentry/components/version';
@@ -5,7 +7,7 @@ import Version from 'sentry/components/version';
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 
 describe('Version', () => {
-  const context = TestStubs.routerContext();
+  const context = RouterContextFixture();
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -44,6 +46,6 @@ describe('Version', () => {
     await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
     act(() => jest.advanceTimersByTime(50));
 
-    expect(screen.getByText(VERSION)).toBeInTheDocument();
+    expect(await screen.findByText(VERSION)).toBeInTheDocument();
   });
 });

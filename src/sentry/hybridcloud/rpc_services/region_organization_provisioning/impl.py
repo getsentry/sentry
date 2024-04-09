@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
@@ -42,18 +40,32 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
     def _create_organization_and_team(
         self,
         organization_name: str,
-        user_id: int,
         slug: str,
         create_default_team: bool,
         organization_id: int,
         is_test: bool = False,
+        user_id: int | None = None,
+        email: str | None = None,
     ) -> Organization:
+        assert (user_id is None and email) or (
+            user_id and email is None
+        ), "Must set either user_id or email"
         org = Organization.objects.create(
             id=organization_id, name=organization_name, slug=slug, is_test=is_test
         )
 
-        om = OrganizationMember.objects.create(
-            user_id=user_id, organization=org, role=roles.get_top_dog().id
+        # Slug changes mean there was either a collision with the organization slug
+        # or a bug in the slugify implementation, so we reject the organization creation
+        assert org.slug == slug, "Organization slug should not have been modified on save"
+
+        om = (
+            OrganizationMember.objects.create(
+                user_id=user_id, organization=org, role=roles.get_top_dog().id
+            )
+            if user_id
+            else OrganizationMember.objects.create(
+                email=email, organization=org, role=roles.get_top_dog().id
+            )
         )
 
         if create_default_team:
@@ -66,7 +78,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         self,
         organization_id: int,
         provision_payload: OrganizationProvisioningOptions,
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         slug = provision_payload.provision_options.slug
         # Validate that no org with this org ID or slug exist in the region, unless already
         #  owned by the user_id
@@ -136,6 +148,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             organization = self._create_organization_and_team(
                 user_id=provision_options.owning_user_id,
+                email=provision_options.owning_email,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
                 create_default_team=provision_options.create_default_team,

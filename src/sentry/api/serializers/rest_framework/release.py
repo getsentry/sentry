@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry.api.fields.user import UserField
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import CommitSerializer
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release, ReleaseStatus
@@ -56,7 +56,7 @@ class ReleaseSerializer(serializers.Serializer):
     )
     url = serializers.URLField(required=False, allow_null=True, allow_blank=True)
     dateReleased = serializers.DateTimeField(required=False, allow_null=True)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+    commits = serializers.ListField(child=CommitSerializer(), required=False, allow_null=False)
 
     status = serializers.CharField(required=False, allow_null=False)
 

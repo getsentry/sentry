@@ -1,38 +1,38 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import type {Event, Group, Organization, Project} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 
 import GroupActions from './actions';
-import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
+import {ShortIdBreadcrumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
-import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
 type Props = {
@@ -58,11 +58,11 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const replaysCount = useReplaysCount({
-    issueCategory: group.issueCategory,
-    groupIds: group.id,
-    organization,
-  })[group.id];
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
@@ -71,7 +71,7 @@ function GroupHeaderTabs({
   const hasReplaySupport =
     organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -142,6 +142,13 @@ function GroupHeaderTabs({
         {t('Merged Issues')}
       </TabList.Item>
       <TabList.Item
+        key={Tab.RELATED_ISSUES}
+        hidden={!organizationFeatures.has('related-issues')}
+        to={`${baseUrl}related/${location.search}`}
+      >
+        {t('Related Issues')}
+      </TabList.Item>
+      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
@@ -171,7 +178,6 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -232,10 +238,10 @@ function GroupHeader({
   const disableActions = !!disabledTabs.length;
 
   const shortIdBreadcrumb = (
-    <ShortIdBreadrcumb organization={organization} project={project} group={group} />
+    <ShortIdBreadcrumb organization={organization} project={project} group={group} />
   );
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <Layout.Header>
@@ -245,7 +251,11 @@ function GroupHeader({
             crumbs={[
               {
                 label: 'Issues',
-                to: `/organizations/${organization.slug}/issues/${location.search}`,
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  // Sanitize sort queries from query
+                  query: omit(location.query, 'sort'),
+                },
               },
               {label: shortIdBreadcrumb},
             ]}
@@ -261,34 +271,36 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
+              {group.issueCategory === IssueCategory.REPLAY && (
+                <StyledFeatureBadge type="new" />
+              )}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {!hasEscalatingIssuesUi && group.inbox && (
-                <InboxReason inbox={group.inbox} fontSize="md" />
-              )}
-              {hasEscalatingIssuesUi && (
-                <GroupStatusBadge
-                  status={group.status}
-                  substatus={group.substatus}
-                  fontSize="md"
-                />
-              )}
+              <GroupStatusBadge
+                status={group.status}
+                substatus={group.substatus}
+                fontSize="md"
+              />
             </TitleHeading>
-            <StyledTagAndMessageWrapper>
-              {group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage message={message} />
-            </StyledTagAndMessageWrapper>
+            <EventMessage
+              message={message}
+              level={group.level}
+              levelIndicatorSize="11px"
+              type={group.type}
+              showUnhandled={group.isUnhandled}
+            />
           </TitleWrapper>
           {issueTypeConfig.stats.enabled && (
             <StatsWrapper>
-              <div className="count">
-                <h6 className="nav-header">{t('Events')}</h6>
-                <Link disabled={disableActions} to={eventRoute}>
-                  <Count className="count" value={group.count} />
-                </Link>
-              </div>
+              <GuideAnchor target="issue_header_stats">
+                <div className="count">
+                  <h6 className="nav-header">{t('Events')}</h6>
+                  <Link disabled={disableActions} to={eventRoute}>
+                    <Count className="count" value={group.count} />
+                  </Link>
+                </div>
+              </GuideAnchor>
               <div className="count">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
@@ -302,6 +314,12 @@ function GroupHeader({
                   <span>0</span>
                 )}
               </div>
+              {organization.features.includes('issue-priority-ui') && group.priority ? (
+                <PriorityContainer>
+                  <h6 className="nav-header">{t('Priority')}</h6>
+                  <GroupPriority group={group} />
+                </PriorityContainer>
+              ) : null}
             </StatsWrapper>
           )}
         </HeaderRow>
@@ -353,20 +371,12 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, min-content);
+  display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;
   }
-`;
-
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-start;
-  line-height: 1.2;
 `;
 
 const IconBadge = styled(Badge)`
@@ -377,4 +387,13 @@ const IconBadge = styled(Badge)`
 
 const StyledTabList = styled(TabList)`
   margin-top: ${space(2)};
+`;
+
+const PriorityContainer = styled('div')`
+  /* Ensures that the layout doesn't shift when changing priority */
+  min-width: 80px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  align-items: flex-start;
 `;

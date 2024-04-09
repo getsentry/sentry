@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,8 +10,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
-import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {Organization, Project} from 'sentry/types';
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 
 const SECTION_TITLE = t('Built-in Repositories');
 

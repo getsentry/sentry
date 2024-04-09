@@ -11,7 +11,13 @@
 // eslint-disable-next-line import/no-named-default
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
-import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
+import {performanceCharts} from './performance';
+import type {
+  ChartcuterieConfig,
+  ChartType,
+  RenderConfig,
+  RenderDescriptor,
+} from './types';
 
 /**
  * All registered style descriptors
@@ -34,5 +40,6 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
 
 discoverCharts.forEach(register);
 metricAlertCharts.forEach(register);
+performanceCharts.forEach(register);
 
 export default config;

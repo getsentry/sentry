@@ -58,13 +58,13 @@ def find_migration(migrations_path: str, migration: str) -> MigrationMeta:
     return MigrationMeta.from_filename(str(matches[0].resolve()))
 
 
-def find_highest_migration(migrations_path: str) -> MigrationMeta:
+def find_highest_migration(migrations_path: str, renamed_migration: MigrationMeta) -> MigrationMeta:
     highest = 0
     found = None
     matches = list(pathlib.Path(migrations_path).glob("[0-9]*"))
     for match in matches:
         meta = MigrationMeta.from_filename(str(match.resolve()))
-        if meta.number > highest:
+        if meta.number > highest and meta.full_name != renamed_migration.full_name:
             highest = meta.number
             found = meta
     if not found:
@@ -97,7 +97,7 @@ def main(migration: str, app_label: str):
     migrations_path = os.path.join(app_path, "migrations")
 
     migration_meta = find_migration(migrations_path, migration)
-    current_head = find_highest_migration(migrations_path)
+    current_head = find_highest_migration(migrations_path, migration_meta)
 
     # Create an instance of the migration so that we can read instance properties.
     module = load_module(migration_meta.path)

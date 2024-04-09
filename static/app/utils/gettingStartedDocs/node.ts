@@ -1,6 +1,7 @@
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-type ProductSelectionMap = Record<ProductSolution, boolean>;
+export type ProductSelectionMap = Record<ProductSolution, boolean>;
 
 /**
  * Transforms the product selection array into a map of booleans for each product for easier access.
@@ -30,18 +31,18 @@ export function joinWithIndentation(lines: string[], indent = 2) {
 }
 
 export function getInstallSnippet({
-  productSelection,
+  params,
   packageManager,
   additionalPackages = [],
   basePackage = '@sentry/node',
 }: {
   packageManager: 'npm' | 'yarn';
-  productSelection: ProductSelectionMap;
+  params: DocsParams;
   additionalPackages?: string[];
   basePackage?: string;
 }) {
   let packages = [basePackage];
-  if (productSelection.profiling) {
+  if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
   packages = packages.concat(additionalPackages);
@@ -51,17 +52,57 @@ export function getInstallSnippet({
     : `npm install --save ${packages.join(' ')}`;
 }
 
+export function getInstallConfig(
+  params: DocsParams,
+  {
+    basePackage = '@sentry/node',
+    additionalPackages,
+  }: {
+    additionalPackages?: string[];
+    basePackage?: string;
+  } = {}
+) {
+  return [
+    {
+      code: [
+        {
+          label: 'npm',
+          value: 'npm',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'npm',
+            basePackage,
+          }),
+        },
+        {
+          label: 'yarn',
+          value: 'yarn',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'yarn',
+            basePackage,
+          }),
+        },
+      ],
+    },
+  ];
+}
+
 export function getDefaultNodeImports({
   productSelection,
 }: {
   productSelection: ProductSelectionMap;
 }) {
   const imports: string[] = [
-    `// You can also use CommonJS \`require('@sentry/node')\` instead of \`import\``,
-    `import * as Sentry from "@sentry/node";`,
+    `// You can also use ESM \`import * as Sentry from "@sentry/node"\` instead of \`require\``,
+    `const Sentry = require("@sentry/node");`,
   ];
   if (productSelection.profiling) {
-    imports.push(`import { ProfilingIntegration } from "@sentry/profiling-node";`);
+    imports.push(`import { nodeProfilingIntegration } from "@sentry/profiling-node";`);
   }
   return imports;
 }
@@ -76,7 +117,9 @@ export function getDefaulServerlessImports({
     `const Sentry = require("@sentry/serverless");`,
   ];
   if (productSelection.profiling) {
-    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling-node");`);
+    imports.push(
+      `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`
+    );
   }
   return imports;
 }
@@ -88,7 +131,7 @@ export function getProductIntegrations({
 }) {
   const integrations: string[] = [];
   if (productSelection.profiling) {
-    integrations.push(`new ProfilingIntegration(),`);
+    integrations.push(`nodeProfilingIntegration(),`);
   }
   return integrations;
 }

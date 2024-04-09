@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -9,15 +9,16 @@ import {
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -25,11 +26,12 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
+import type {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
+import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
   GRID_TEMPLATE,
@@ -143,8 +145,10 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
-        error: () => {
-          addErrorMessage(t('Unable to add team member.'));
+        error: resp => {
+          const errorMessage =
+            resp?.responseJSON?.detail || t('Unable to add team member.');
+          addErrorMessage(errorMessage);
         },
       }
     );
@@ -304,21 +308,49 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
         );
   }
 
+  renderMembers(isTeamAdmin: boolean) {
+    const {config, organization, team} = this.props;
+
+    const {teamMembers, loading} = this.state;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+    if (teamMembers.length) {
+      return teamMembers.map(member => {
+        return (
+          <TeamMembersRow
+            key={member.id}
+            hasWriteAccess={isTeamAdmin}
+            organization={organization}
+            team={team}
+            member={member}
+            user={config.user}
+            removeMember={this.removeTeamMember}
+            updateMemberRole={this.updateTeamMemberRole}
+          />
+        );
+      });
+    }
+    return (
+      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+        {t('This team has no members')}
+      </EmptyMessage>
+    );
+  }
+
   render() {
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {organization, config, team} = this.props;
+    const {organization, team} = this.props;
     const {teamMembersPageLinks} = this.state;
-    const {access, openMembership} = organization;
+    const {openMembership} = organization;
 
     const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
     const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
     const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
-
-    // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
 
     return (
       <Fragment>
@@ -337,27 +369,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
             </div>
             <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
           </StyledPanelHeader>
-          {this.state.teamMembers.length ? (
-            this.state.teamMembers.map(member => {
-              return (
-                <TeamMembersRow
-                  key={member.id}
-                  hasWriteAccess={isTeamAdmin}
-                  isOrgOwner={isOrgOwner}
-                  organization={organization}
-                  team={team}
-                  member={member}
-                  user={config.user}
-                  removeMember={this.removeTeamMember}
-                  updateMemberRole={this.updateTeamMemberRole}
-                />
-              );
-            })
-          ) : (
-            <EmptyMessage icon={<IconUser size="xl" />} size="large">
-              {t('This team has no members')}
-            </EmptyMessage>
-          )}
+          {this.renderMembers(isTeamAdmin)}
         </Panel>
         <Pagination pageLinks={teamMembersPageLinks} />
       </Fragment>

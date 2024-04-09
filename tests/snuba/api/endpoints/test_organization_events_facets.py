@@ -1,18 +1,16 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
 import requests
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -271,7 +269,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,
@@ -602,7 +600,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
             self.client.get(
@@ -930,3 +928,25 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 23
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_dont_turbo_trace_queries(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, {"query": f"trace:{'a' * 32}"}, format="json")
+
+        mock_run.assert_called_once
+        assert not mock_run.mock_calls[0].args[0].flags.turbo
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_use_turbo_without_trace(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, format="json")
+
+        mock_run.assert_called_once
+        assert mock_run.mock_calls[0].args[0].flags.turbo

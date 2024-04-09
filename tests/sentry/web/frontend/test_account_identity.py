@@ -3,12 +3,12 @@ from django.urls import reverse
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AccountIdentityTest(TestCase):
     @pytest.fixture(autouse=True)
     def setup_dummy_identity_provider(self):
@@ -18,7 +18,7 @@ class AccountIdentityTest(TestCase):
     def test_associate_identity(self):
         user = self.create_user()
         organization = self.create_organization(name="foo", owner=user)
-        IdentityProvider.objects.create(type="dummy", external_id="1234", config={})
+        self.create_identity_provider(type="dummy", external_id="1234")
 
         self.login_as(user)
 

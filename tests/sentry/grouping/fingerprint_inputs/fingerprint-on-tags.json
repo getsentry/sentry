@@ -1,16 +1,8 @@
 {
   "_fingerprinting_rules": [
     {
-      "matchers": [
-        [
-          "tags.foobar",
-          "*stuff*"
-        ]
-      ],
-      "fingerprint": [
-        "foobar-matched-stuff-",
-        "{{ tags.barfoo }}"
-      ]
+      "matchers": [["tags.foobar", "*stuff*"]],
+      "fingerprint": ["foobar-matched-stuff-", "{{ tags.barfoo }}"]
     }
   ],
   "logentry": {

@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -7,9 +8,9 @@ import TeamStore from 'sentry/stores/teamStore';
 import {useTeams} from 'sentry/utils/useTeams';
 
 describe('useTeams', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
 
-  const mockTeams = [TestStubs.Team()];
+  const mockTeams = [TeamFixture()];
 
   beforeEach(function () {
     TeamStore.reset();
@@ -27,8 +28,8 @@ describe('useTeams', function () {
 
   it('loads more teams when using onSearch', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
-    const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
+    const newTeam2 = TeamFixture({id: '2', slug: 'test-team2'});
+    const newTeam3 = TeamFixture({id: '3', slug: 'test-team3'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
@@ -40,10 +41,7 @@ describe('useTeams', function () {
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = reactHooks.act(() => onSearch('test'));
-
-    expect(result.current.fetching).toBe(true);
-    await onSearchPromise;
+    await reactHooks.act(() => onSearch('test'));
     expect(result.current.fetching).toBe(false);
 
     // Wait for state to be reflected from the store
@@ -62,8 +60,8 @@ describe('useTeams', function () {
   });
 
   it('provides only the users teams', function () {
-    const userTeams = [TestStubs.Team({id: '1', isMember: true})];
-    const nonUserTeams = [TestStubs.Team({id: '2', isMember: false})];
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
     const {result} = reactHooks.renderHook(useTeams, {
@@ -77,7 +75,7 @@ describe('useTeams', function () {
 
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const teamFoo = TestStubs.Team({slug: 'foo'});
+    const teamFoo = TeamFixture({slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',

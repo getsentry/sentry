@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -23,7 +24,7 @@ function WrapperComponent(props) {
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects,
   });
@@ -98,8 +99,8 @@ describe('WrapperComponent', function () {
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', function () {
-    const projects = [TestStubs.Project()];
+  it('renders basic UI elements', async function () {
+    const projects = [ProjectFixture()];
     const {
       organization,
       location,
@@ -121,12 +122,14 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getByRole('heading', {name: 'Suspect Tags'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Suspect Tags'})
+    ).toBeInTheDocument();
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', function () {
-    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+  it('Tag explorer uses LCP if projects are frontend', async function () {
+    const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
       location,
@@ -150,7 +153,9 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent('Avg LCP');
+    expect((await screen.findAllByTestId('grid-head-cell'))[2]).toHaveTextContent(
+      'Avg LCP'
+    );
 
     expect(facetApiMock).toHaveBeenCalledWith(
       facetUrl,
@@ -162,8 +167,8 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', function () {
-    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+  it('Tag explorer view all tags button links to tags page', async function () {
+    const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
       location,
@@ -193,7 +198,7 @@ describe('WrapperComponent', function () {
       {context: routerContext}
     );
 
-    const button = screen.getByTestId('tags-explorer-open-tags');
+    const button = await screen.findByTestId('tags-explorer-open-tags');
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute(
       'href',
@@ -201,8 +206,8 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer uses the operation breakdown as a column', function () {
-    const projects = [TestStubs.Project({platform: 'javascript-react'})];
+  it('Tag explorer uses the operation breakdown as a column', async function () {
+    const projects = [ProjectFixture({platform: 'javascript-react'})];
     const {organization, location, eventView, api, transactionName} = initialize(
       projects,
       {}
@@ -220,7 +225,7 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent(
+    expect((await screen.findAllByTestId('grid-head-cell'))[2]).toHaveTextContent(
       'Avg Span Duration'
     );
 
@@ -235,7 +240,7 @@ describe('WrapperComponent', function () {
   });
 
   it('renders the table headers in the correct order', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const {
       organization,
       location,

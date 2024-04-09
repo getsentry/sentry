@@ -1,4 +1,4 @@
-export function ProjectFilters(params = []) {
+export function ProjectFiltersFixture(params = []) {
   return [
     {
       active: true,

@@ -602,6 +602,53 @@ INSTALLATION_EVENT_EXAMPLE = """{
   }
 }"""
 
+INSTALLATION_DELETE_EVENT_EXAMPLE = """{
+  "action": "deleted",
+  "installation": {
+    "id": 2,
+    "account": {
+      "login": "octocat",
+      "id": 1,
+      "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/octocat",
+      "html_url": "https://github.com/octocat",
+      "followers_url": "https://api.github.com/users/octocat/followers",
+      "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+      "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+      "organizations_url": "https://api.github.com/users/octocat/orgs",
+      "repos_url": "https://api.github.com/users/octocat/repos",
+      "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/octocat/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "access_tokens_url": "https://api.github.com/installations/2/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/octocat",
+    "html_url": "https://github.com/octocat",
+    "followers_url": "https://api.github.com/users/octocat/followers",
+    "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+    "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+    "organizations_url": "https://api.github.com/users/octocat/orgs",
+    "repos_url": "https://api.github.com/users/octocat/repos",
+    "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/octocat/received_events",
+    "type": "User",
+    "site_admin": false
+  }
+}"""
+
 INSTALLATION_REPO_EVENT = """{
   "action": "added",
   "installation": {
@@ -2128,6 +2175,44 @@ PULL_REQUEST_CLOSED_EVENT_EXAMPLE = b"""{
     "site_admin": false
   }
 }"""
+
+# https://api.github.com/users/baxterthehacker
+API_GITHUB_COM_USERS_BAXTERTHEHACKER = """\
+{
+  "login": "baxterthehacker",
+  "id": 6752317,
+  "node_id": "MDQ6VXNlcjY3NTIzMTc=",
+  "avatar_url": "https://avatars.githubusercontent.com/u/6752317?v=4",
+  "gravatar_id": "",
+  "url": "https://api.github.com/users/baxterthehacker",
+  "html_url": "https://github.com/baxterthehacker",
+  "followers_url": "https://api.github.com/users/baxterthehacker/followers",
+  "following_url": "https://api.github.com/users/baxterthehacker/following{/other_user}",
+  "gists_url": "https://api.github.com/users/baxterthehacker/gists{/gist_id}",
+  "starred_url": "https://api.github.com/users/baxterthehacker/starred{/owner}{/repo}",
+  "subscriptions_url": "https://api.github.com/users/baxterthehacker/subscriptions",
+  "organizations_url": "https://api.github.com/users/baxterthehacker/orgs",
+  "repos_url": "https://api.github.com/users/baxterthehacker/repos",
+  "events_url": "https://api.github.com/users/baxterthehacker/events{/privacy}",
+  "received_events_url": "https://api.github.com/users/baxterthehacker/received_events",
+  "type": "User",
+  "site_admin": false,
+  "name": null,
+  "company": null,
+  "blog": "",
+  "location": null,
+  "email": null,
+  "hireable": null,
+  "bio": null,
+  "twitter_username": null,
+  "public_repos": 6,
+  "public_gists": 0,
+  "followers": 9,
+  "following": 1,
+  "created_at": "2014-02-21T22:24:28Z",
+  "updated_at": "2023-12-22T12:36:56Z"
+}
+"""
 
 # Example taken from github with additional example commit added https://docs.github.com/en/rest/commits/commits#compare-two-commits
 COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE = """{

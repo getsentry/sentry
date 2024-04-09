@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.permissions import StaffPermissionMixin
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -39,6 +44,12 @@ class ProjectPermission(OrganizationPermission):
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return request.access.has_any_project_scope(project, allowed_scopes)
+
+
+class ProjectAndStaffPermission(StaffPermissionMixin, ProjectPermission):
+    """Allows staff to access project endpoints."""
+
+    pass
 
 
 class StrictProjectPermission(ProjectPermission):
@@ -96,30 +107,47 @@ class ProjectOwnershipPermission(ProjectPermission):
 
 
 class ProjectEndpoint(Endpoint):
-    permission_classes = (ProjectPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
+        organization_slug: str | int,
+        project_slug: str | int,
         *args,
         **kwargs,
     ):
         try:
-            project = (
-                Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
-                .select_related("organization")
-                .prefetch_related("teams")
-                .get()
-            )
+            if options.get("api.id-or-slug-enabled"):
+                project = (
+                    Project.objects.filter(
+                        organization__slug__id_or_slug=organization_slug,
+                        slug__id_or_slug=project_slug,
+                    )
+                    .select_related("organization")
+                    .prefetch_related("teams")
+                    .get()
+                )
+            else:
+                project = (
+                    Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
+                    .select_related("organization")
+                    .prefetch_related("teams")
+                    .get()
+                )
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
                 redirect = ProjectRedirect.objects.select_related("project")
-                redirect = redirect.get(
-                    organization__slug=organization_slug, redirect_slug=project_slug
-                )
+                if options.get("api.id-or-slug-enabled"):
+                    redirect = redirect.get(
+                        organization__id=organization_slug,
+                        redirect_slug__id_or_slug=project_slug,
+                    )
+                else:
+                    redirect = redirect.get(
+                        organization__slug=organization_slug, redirect_slug=project_slug
+                    )
                 # Without object permissions don't reveal the rename
                 self.check_object_permissions(request, redirect.project)
 

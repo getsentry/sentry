@@ -1,6 +1,11 @@
-import {Commit} from 'sentry-fixture/commit';
-import {CommitAuthor} from 'sentry-fixture/commitAuthor';
-import {Organization} from 'sentry-fixture/organization';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,51 +19,51 @@ import type {
   Group,
   Organization as TOrganization,
   Project,
-  Team,
-  User,
+  Team as TeamType,
+  User as UserType,
 } from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
-  let USER_1!: User;
-  let USER_2!: User;
-  let TEAM_1!: Team;
+  let USER_1!: UserType;
+  let USER_2!: UserType;
+  let TEAM_1!: TeamType;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
   let organization!: TOrganization;
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   beforeEach(() => {
-    organization = Organization();
-    USER_1 = TestStubs.User({
+    organization = OrganizationFixture();
+    USER_1 = UserFixture({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = UserFixture({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = TeamFixture({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
-    event = TestStubs.Event();
+    event = EventFixture();
 
     TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);
@@ -199,13 +204,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = CommitAuthor({id: USER_2.id});
+    const author = CommitAuthorFixture({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [Commit({author})],
+            commits: [CommitFixture({author})],
             author,
           },
         ],

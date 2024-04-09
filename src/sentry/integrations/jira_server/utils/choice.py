@@ -1,4 +1,9 @@
-def build_user_choice(user_response, user_id_field):
+from __future__ import annotations
+
+from typing import Any
+
+
+def build_user_choice(user_response: dict[str, Any], user_id_field: str) -> tuple[str, str] | None:
     """
     Build an (id, label) tuple from the given Jira REST API User resource,
     or return None if a tuple could not be built.

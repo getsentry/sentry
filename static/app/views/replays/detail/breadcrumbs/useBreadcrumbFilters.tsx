@@ -1,9 +1,11 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
-import uniq from 'lodash/uniq';
+import type {RefObject} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
+import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {getFrameOpOrCategory, ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {
@@ -27,8 +29,9 @@ type Return = {
 
 const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',
+  feedback: 'User Feedback',
   replay: 'Replay',
-  issue: 'Issue',
+  issue: 'Error',
   console: 'Console',
   nav: 'Navigation',
   pageLoad: 'Page Load',
@@ -66,6 +69,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.click': 'click',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
+  feedback: 'feedback',
 };
 
 function typeToLabel(val: string): string {
@@ -101,7 +105,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
         dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
       {}
     );
-    const OpOrCategory = type.map(theType => TYPE_TO_OPORCATEGORY[theType]).flat();
+    const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
     return filterItems({
       items: frames,
       filterFns: FILTERS,

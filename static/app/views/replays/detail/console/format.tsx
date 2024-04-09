@@ -20,15 +20,12 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
-import isObject from 'lodash/isObject';
 
-import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
+import ObjectInspector from 'sentry/components/objectInspector';
 
 const formatRegExp = /%[csdj%]/g;
 
-function isNull(arg: unknown) {
-  return arg === null;
-}
 interface FormatProps {
   args: any[];
   expandPaths?: string[];
@@ -134,7 +131,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   }
 
   for (let x = args[i]; i < len; x = args[++i]) {
-    if (isNull(x) || !isObject(x)) {
+    if (x === null || typeof x !== 'object') {
       pieces.push(' ' + x);
     } else {
       pieces.push(' ');

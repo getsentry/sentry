@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Union
 
 import sentry_sdk
 
@@ -30,10 +29,10 @@ MAX_PROJECTS_IN_MEMORY = 1000
 #
 # If we find that this naive implementation generates too much data, we can always use a shared-memory architecture
 # by using Redis for example.
-active_rules: Dict[int, Dict[int, float]] = {}
+active_rules: dict[int, dict[int, float]] = {}
 
 
-def should_log_rules_change(project_id: int, rules: List[PolymorphicRule]) -> bool:
+def should_log_rules_change(project_id: int, rules: list[PolymorphicRule]) -> bool:
     active_rules_per_project = active_rules.get(project_id, None)
     new_rules_per_project = {}
 
@@ -58,7 +57,7 @@ def _delete_active_rule_if_limit(is_new_project: bool) -> None:
         active_rules.popitem()
 
 
-def log_rules(org_id: int, project_id: int, rules: List[PolymorphicRule]) -> None:
+def log_rules(org_id: int, project_id: int, rules: list[PolymorphicRule]) -> None:
     try:
         if should_log_rules_change(project_id, rules):
             logger.info(
@@ -76,8 +75,8 @@ def log_rules(org_id: int, project_id: int, rules: List[PolymorphicRule]) -> Non
 
 
 def _format_rules(
-    rules: List[PolymorphicRule],
-) -> List[Dict[str, Union[List[str], str, float, None]]]:
+    rules: list[PolymorphicRule],
+) -> list[dict[str, list[str] | str | float | None]]:
     formatted_rules = []
 
     for rule in rules:
@@ -89,32 +88,32 @@ def _format_rules(
                     "id": rule["id"],
                     "type": rule_type.value if rule_type else "unknown_rule_type",
                     "samplingValue": {"type": value_type, "value": value},
-                    **_extract_info_from_rule(rule_type, rule),  # type:ignore
+                    **_extract_info_from_rule(rule_type, rule),  # type: ignore[arg-type]
                 }
             )
 
-    return formatted_rules  # type:ignore
+    return formatted_rules  # type: ignore[return-value]
 
 
 def _extract_info_from_rule(
     rule_type: RuleType, rule: PolymorphicRule
-) -> Dict[str, Union[DecayingFn, List[str], str, None]]:
+) -> dict[str, DecayingFn | list[str] | str | None]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
-        return {"environments": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"environments": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
-            "release": rule["condition"]["inner"][0]["value"],  # type:ignore
-            "environment": rule["condition"]["inner"][1]["value"],  # type:ignore
-            "decayingFn": rule["decayingFn"],  # type:ignore
+            "release": rule["condition"]["inner"][0]["value"],  # type: ignore[literal-required, typeddict-item]
+            "environment": rule["condition"]["inner"][1]["value"],  # type: ignore[literal-required, typeddict-item]
+            "decayingFn": rule["decayingFn"],  # type: ignore[typeddict-item]
         }
     elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
-        return {"healthChecks": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transactions": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"transactions": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE:
-        inner_condition = rule["condition"]["inner"]  # type:ignore
+        inner_condition = rule["condition"]["inner"]  # type: ignore[typeddict-item]
         if isinstance(inner_condition, list) and len(inner_condition) > 0:
-            return {"transaction": rule["condition"]["inner"][0]["value"]}  # type:ignore
+            return {"transaction": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
         else:
             return {}
     else:

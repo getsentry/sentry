@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -8,6 +8,7 @@ export type ReleaseRegistrySdk = Record<
   string,
   {
     canonical: string;
+    files: Record<string, {checksums: Record<string, string>}>;
     main_docs_url: string;
     name: string;
     package_url: string;

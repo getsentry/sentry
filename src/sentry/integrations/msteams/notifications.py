@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 
-from sentry.integrations.msteams.card_builder import AdaptiveCard
+from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.models.team import Team
@@ -77,7 +78,7 @@ def send_notification_as_msteams(
 ):
     if not is_supported_notification_type(notification):
         logger.info(
-            f"Unsupported notification type for Microsoft Teams {notification.__class__.__name__}"
+            "Unsupported notification type for Microsoft Teams %s", notification.__class__.__name__
         )
         return
 
@@ -111,10 +112,8 @@ def send_notification_as_msteams(
                             client.send_card(conversation_id, card)
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
-                    except Exception as e:
-                        logger.error(
-                            "Exception occured while trying to send the notification", exc_info=e
-                        )
+                    except Exception:
+                        logger.exception("Exception occurred while trying to send the notification")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",

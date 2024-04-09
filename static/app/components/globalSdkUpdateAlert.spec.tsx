@@ -1,11 +1,11 @@
 import moment from 'moment';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
+import type {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
@@ -67,14 +67,15 @@ describe('GlobalSDKUpdateAlert', () => {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
 
     const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     expect(
@@ -98,14 +99,15 @@ describe('GlobalSDKUpdateAlert', () => {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: promptResponse},
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     expect(
@@ -123,14 +125,15 @@ describe('GlobalSDKUpdateAlert', () => {
         .unix(),
       snoozed_ts: undefined,
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: promptResponse},
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     await waitFor(() =>
@@ -150,14 +153,15 @@ describe('GlobalSDKUpdateAlert', () => {
         .subtract(DEFAULT_SNOOZE_PROMPT_DAYS + 1, 'days')
         .unix(),
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: promptResponse},
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     expect(
@@ -175,14 +179,15 @@ describe('GlobalSDKUpdateAlert', () => {
         .subtract(DEFAULT_SNOOZE_PROMPT_DAYS - 2, 'days')
         .unix(),
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: promptResponse},
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     await waitFor(() =>
@@ -202,14 +207,15 @@ describe('GlobalSDKUpdateAlert', () => {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     expect(
@@ -224,25 +230,26 @@ describe('GlobalSDKUpdateAlert', () => {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
+    const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: promptResponse},
     });
 
     const promptsActivityMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       method: 'PUT',
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));
 
     expect(promptsActivityMock).toHaveBeenCalledWith(
-      '/prompts-activity/',
+      `/organizations/${organization.slug}/prompts-activity/`,
       expect.objectContaining({
         data: expect.objectContaining({
           feature: 'sdk_updates',

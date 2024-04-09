@@ -1,17 +1,18 @@
 import {useEffect, useMemo} from 'react';
-import assign from 'lodash/assign';
-import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {Field} from 'sentry/utils/discover/fields';
 import {
-  Field,
   FIELD_TAGS,
   isAggregateField,
   isEquation,
@@ -81,6 +82,43 @@ const getMeasurementTags = (
     };
     return tags;
   }, measurementsWithKind);
+};
+
+const getSearchConfigFromCustomPerformanceMetrics = (
+  customPerformanceMetrics?: CustomMeasurementCollection
+): Partial<SearchConfig> => {
+  if (!customPerformanceMetrics) {
+    return {};
+  }
+  const searchConfigMap: Record<string, string[]> = {
+    sizeKeys: [...defaultConfig.sizeKeys],
+    durationKeys: [...defaultConfig.durationKeys],
+    percentageKeys: [...defaultConfig.percentageKeys],
+    numericKeys: [...defaultConfig.numericKeys],
+  };
+  Object.keys(customPerformanceMetrics).forEach(metricName => {
+    const {fieldType} = customPerformanceMetrics[metricName];
+    switch (fieldType) {
+      case 'size':
+        searchConfigMap.sizeKeys.push(metricName);
+        break;
+      case 'duration':
+        searchConfigMap.durationKeys.push(metricName);
+        break;
+      case 'percentage':
+        searchConfigMap.percentageKeys.push(metricName);
+        break;
+      default:
+        searchConfigMap.numericKeys.push(metricName);
+    }
+  });
+  const searchConfig = {
+    sizeKeys: new Set(searchConfigMap.sizeKeys),
+    durationKeys: new Set(searchConfigMap.durationKeys),
+    percentageKeys: new Set(searchConfigMap.percentageKeys),
+    numericKeys: new Set(searchConfigMap.numericKeys),
+  };
+  return searchConfig;
 };
 
 const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
@@ -183,8 +221,7 @@ function SearchBar(props: SearchBarProps) {
         // allows searching for tags on sessions as well
         includeSessions: includeSessionTagsValues,
       }).then(
-        results =>
-          flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
+        results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
         }
@@ -211,7 +248,7 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,
@@ -228,6 +265,11 @@ function SearchBar(props: SearchBarProps) {
     return list;
   };
 
+  const customPerformanceMetricsSearchConfig = useMemo(
+    () => getSearchConfigFromCustomPerformanceMetrics(customMeasurements),
+    [customMeasurements]
+  );
+
   return (
     <Measurements>
       {({measurements}) => (
@@ -243,7 +285,7 @@ function SearchBar(props: SearchBarProps) {
           maxSearchItems={maxSearchItems}
           excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
           maxMenuHeight={maxMenuHeight ?? 300}
-          customPerformanceMetrics={customMeasurements}
+          {...customPerformanceMetricsSearchConfig}
           {...props}
         />
       )}

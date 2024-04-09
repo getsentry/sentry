@@ -1,10 +1,12 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
 
@@ -25,7 +27,7 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
-const mockedLocation = TestStubs.location({
+const mockedLocation = LocationFixture({
   query: {
     field: 'title',
   },
@@ -38,7 +40,7 @@ const renderActionDropdown = (
   value: React.ReactText | string[],
   contextValueType: ContextValueType
 ) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <ActionDropDown
       dataRow={dataRow}

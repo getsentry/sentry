@@ -1,11 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import type HasherHelper from 'crypto-js/sha256';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
-import {imageStyle, ImageStyleProps} from './styles';
+import type {ImageStyleProps} from './styles';
+import {imageStyle} from './styles';
 
 type Props = {
   remoteSize: number;
@@ -14,8 +16,6 @@ type Props = {
   onLoad?: () => void;
   placeholder?: string;
 } & ImageStyleProps;
-
-type HasherHelper = typeof import('crypto-js/md5');
 
 function Gravatar({
   remoteSize,
@@ -27,23 +27,23 @@ function Gravatar({
   suggested,
 }: Props) {
   const isMountedRef = useIsMountedRef();
-  const [MD5, setMD5] = useState<HasherHelper>();
+  const [SHA256, setSHA256] = useState<typeof HasherHelper>();
 
-  const loadMd5Helper = useCallback(async () => {
-    const mod = await import('crypto-js/md5');
+  const loadSHA256Helper = useCallback(async () => {
+    const mod = await import('crypto-js/sha256');
 
     if (isMountedRef.current) {
       // XXX: Use function invocation of `useState`s setter since the mod.default
       // is a function itself.
-      setMD5(() => mod.default);
+      setSHA256(() => mod.default);
     }
   }, [isMountedRef]);
 
   useEffect(() => {
-    loadMd5Helper();
-  }, [loadMd5Helper]);
+    loadSHA256Helper();
+  }, [loadSHA256Helper]);
 
-  if (MD5 === undefined) {
+  if (SHA256 === undefined) {
     return null;
   }
 
@@ -56,8 +56,8 @@ function Gravatar({
 
   const gravatarBaseUrl = ConfigStore.get('gravatarBaseUrl');
 
-  const md5 = MD5(gravatarId ?? '');
-  const url = `${gravatarBaseUrl}/avatar/${md5}?${query}`;
+  const sha256 = SHA256((gravatarId ?? '').trim());
+  const url = `${gravatarBaseUrl}/avatar/${sha256}?${query}`;
 
   return (
     <Image

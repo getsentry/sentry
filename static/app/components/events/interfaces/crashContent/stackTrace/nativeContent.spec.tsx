@@ -1,13 +1,32 @@
-import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
-const eventEntryStacktrace = EventEntryStacktrace();
-const event = TestStubs.Event({
+const organization = OrganizationFixture();
+const project = ProjectFixture({});
+
+const integration = GitHubIntegrationFixture();
+const repo = RepositoryFixture({integrationId: integration.id});
+
+const config = RepositoryProjectPathConfigFixture({project, repo, integration});
+
+const eventEntryStacktrace = EventEntryStacktraceFixture();
+const event = EventFixture({
+  projectID: project.id,
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });
@@ -30,6 +49,22 @@ function renderedComponent(
   );
 }
 describe('Native StackTrace', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: false};
@@ -103,5 +138,37 @@ describe('Native StackTrace', function () {
     });
 
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
+  });
+
+  it('displays correct icons from frame symbolicatorStatus when image does not exist', function () {
+    const newData = {
+      ...data,
+      frames: [
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.MISSING,
+          function: 'missing()',
+        }),
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
+          function: 'unknown_image()',
+        }),
+        EventStacktraceFrameFixture({
+          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+          function: 'symbolicated()',
+        }),
+      ],
+    };
+
+    render(
+      <NativeContent data={newData} platform="cocoa" event={event} includeSystemFrames />
+    );
+
+    const frames = screen.getAllByTestId('stack-trace-frame');
+
+    expect(within(frames[0]).getByTestId('symbolication-error-icon')).toBeInTheDocument();
+    expect(
+      within(frames[1]).getByTestId('symbolication-warning-icon')
+    ).toBeInTheDocument();
+    expect(within(frames[2]).queryByTestId(/symbolication/)).not.toBeInTheDocument();
   });
 });

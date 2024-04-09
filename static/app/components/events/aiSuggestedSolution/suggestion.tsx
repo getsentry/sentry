@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,12 +13,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import marked from 'sentry/utils/marked';
+import {limitedMarked} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
@@ -102,6 +103,8 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
+  const [piiCertified, setPiiCertified] = useState(false);
+  const isSentryEmployee = useIsSentryEmployee();
 
   const {
     data,
@@ -115,10 +118,12 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       {
         query: {
           consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
+          pii_certified: isSentryEmployee ? (piiCertified ? 'yes' : 'no') : undefined,
         },
       },
     ],
     {
+      enabled: isSentryEmployee ? (piiCertified ? true : false) : true,
       staleTime: Infinity,
       retry: false,
     }
@@ -127,6 +132,25 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
   }, []);
+
+  if (isSentryEmployee && !piiCertified) {
+    return (
+      <EmptyMessage
+        icon={<IconFlag size="xl" />}
+        title={t('PII Certification Required')}
+        description={t(
+          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
+        )}
+        action={
+          <ButtonBar gap={2}>
+            <Button priority="primary" onClick={() => setPiiCertified(true)}>
+              {t('Certify No PII')}
+            </Button>
+          </ButtonBar>
+        }
+      />
+    );
+  }
 
   return (
     <Panel>
@@ -158,7 +182,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : (
           <Content
             dangerouslySetInnerHTML={{
-              __html: marked(data.suggestion, {
+              __html: limitedMarked(data.suggestion, {
                 gfm: true,
                 breaks: true,
               }),
@@ -172,7 +196,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
             <strong>{t('Was this helpful?')}</strong>
             <ButtonBar gap={1}>
               <Button
-                icon={<IconSad color="red300" size="xs" />}
+                icon={<IconSad color="red300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -191,7 +215,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Nope')}
               </Button>
               <Button
-                icon={<IconMeh color="yellow300" size="xs" />}
+                icon={<IconMeh color="yellow300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -210,7 +234,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Kinda')}
               </Button>
               <Button
-                icon={<IconHappy color="green300" size="xs" />}
+                icon={<IconHappy color="green300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(

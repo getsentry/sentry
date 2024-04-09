@@ -19,7 +19,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class CheckAuthTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identities")
     def test_simple(self, mock_check_auth_identities):
@@ -79,7 +79,7 @@ class CheckAuthTest(TestCase):
             assert ai.last_verified > orig_timing
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class CheckAuthIdentityTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):

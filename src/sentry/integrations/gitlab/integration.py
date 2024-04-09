@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from datetime import timezone
-from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
@@ -21,15 +18,15 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
-    FileBlameInfo,
-    SourceLineInfo,
-)
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationProviderError,
+)
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -168,54 +165,6 @@ class GitlabIntegration(
         if "error" in data:
             return data["error"]
 
-    def get_commit_context(
-        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
-        """
-        Returns the latest commit that altered the line from the event frame if it exists.
-        """
-        lineno = event_frame.get("lineno", 0)
-        if not lineno:
-            return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
-
-        try:
-            commit = max(
-                (blame for blame in blame_range if blame.get("commit", {}).get("committed_date")),
-                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
-            )
-        except (ValueError, IndexError):
-            return None
-
-        commitInfo = commit.get("commit")
-        if not commitInfo:
-            return None
-        else:
-            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
-            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
-                timezone.utc
-            )
-
-            return {
-                "commitId": commitInfo.get("id"),
-                "committedDate": committed_date,
-                "commitMessage": commitInfo.get("message"),
-                "commitAuthorName": commitInfo.get("committer_name"),
-                "commitAuthorEmail": commitInfo.get("committer_email"),
-            }
-
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo]
-    ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files)
-
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
@@ -277,7 +226,7 @@ class InstallationForm(forms.Form):
     )
     client_secret = forms.CharField(
         label=_("GitLab Application Secret"),
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
     )
 
     def clean_url(self):
@@ -390,8 +339,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
             access_token=access_token,
             verify_ssl=installation_data["verify_ssl"],
         )
+
+        requested_group = installation_data["group"]
         try:
-            resp = client.get_group(installation_data["group"])
+            resp = client.get_group(requested_group)
             return resp.json
         except ApiError as e:
             self.get_logger().info(
@@ -399,13 +350,17 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 extra={
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
-                    "group": installation_data["group"],
+                    "group": requested_group,
                     "include_subgroups": installation_data["include_subgroups"],
                     "error_message": str(e),
                     "error_status": e.code,
                 },
             )
-            raise IntegrationError("The requested GitLab group could not be found.")
+            # We raise IntegrationProviderError to prevent a Sentry Issue from being created as this is an expected
+            # error, and we just want to invoke the error message to the user.
+            raise IntegrationProviderError(
+                f"The requested GitLab group {requested_group} could not be found."
+            )
 
     def get_pipeline_views(self):
         return [
@@ -468,6 +423,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
+            },
+            "post_install_data": {
+                "redirect_url_format": absolute_uri(
+                    f"/settings/{{org_slug}}/integrations/{self.key}/"
+                ),
             },
         }
         return integration

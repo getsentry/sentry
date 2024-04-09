@@ -7,9 +7,10 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -22,10 +23,8 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {
-  ProfilingBreadcrumbs,
-  ProfilingBreadcrumbsProps,
-} from 'sentry/components/profiling/profilingBreadcrumbs';
+import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
+import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -36,19 +35,19 @@ import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
-  CanvasScheduler,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {Frame} from 'sentry/utils/profiling/frame';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -59,6 +58,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -66,7 +66,7 @@ import {
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
+import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -154,11 +154,12 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </Layout.Title>
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
-        <Layout.HeaderActions>
+        <StyledHeaderActions>
+          <FeedbackWidgetButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Transaction Summary')}
           </LinkButton>
-        </Layout.HeaderActions>
+        </StyledHeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
@@ -181,6 +182,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
     line-height: normal;
   }
 `;
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -281,6 +289,7 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+  const {selection} = usePageFilters();
 
   const profilingUsingTransactions = organization.features.includes(
     'profiling-using-transactions'
@@ -333,7 +342,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+    transaction,
+    environments: selection.environments,
+    projects: selection.projects,
+    datetime: selection.datetime,
+  });
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -488,7 +502,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               recursion={null}
                               expanded={false}
                               frameFilter={frameFilter}
-                              canvasScheduler={scheduler}
                               canvasPoolManager={canvasPoolManager}
                             />
                           )}
@@ -501,7 +514,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
                   <ProfileDigestScrollContainer>
-                    <ProfileDigest onViewChange={onSetView} />
+                    <ProfileDigest onViewChange={onSetView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
                   </ProfileDigestScrollContainer>
@@ -700,12 +713,19 @@ const percentiles = ['p75()', 'p95()', 'p99()'] as const;
 
 interface ProfileDigestProps {
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
+  transaction: string;
 }
 
 function ProfileDigest(props: ProfileDigestProps) {
   const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [props.transaction]);
+    return conditions.formatString();
+  }, [props.transaction]);
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
@@ -715,7 +735,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
     fields: PROFILE_DIGEST_FIELDS,
-    query: '',
+    query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
   });

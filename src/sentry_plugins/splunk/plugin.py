@@ -1,5 +1,6 @@
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
@@ -119,7 +120,9 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             "environment": event.get_tag("environment") or "",
             "type": event.get_event_type(),
         }
-        props["tags"] = [[k.format(tagstore.get_standardized_key(k)), v] for k, v in event.tags]
+        props["tags"] = [
+            [k.format(tagstore.backend.get_standardized_key(k)), v] for k, v in event.tags
+        ]
         for key, value in event.interfaces.items():
             if key == "request":
                 headers = value.headers
@@ -227,7 +230,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 or exc.code == 502
             ):
                 return False
-            raise exc
+            raise
 
         metrics.incr(
             "integrations.splunk.forward-event.success", tags={"event_type": event.get_event_type()}

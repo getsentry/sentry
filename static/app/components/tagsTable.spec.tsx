@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -10,8 +12,7 @@ describe('tags table', function () {
       {key: 'device.family', value: 'iOS'},
     ];
 
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       tags,
       _meta: {
         tags: {
@@ -22,7 +23,7 @@ describe('tags table', function () {
           },
         },
       },
-    };
+    });
 
     render(
       <TagsTable
@@ -49,8 +50,7 @@ describe('tags table', function () {
       {key: null, value: 'iOS'},
     ];
 
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       tags,
       _meta: {
         tags: {
@@ -61,7 +61,7 @@ describe('tags table', function () {
           },
         },
       },
-    };
+    });
 
     render(
       <TagsTable

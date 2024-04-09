@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,13 +11,15 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilterKeys, DashboardFilters} from './types';
+import type {DashboardFilters} from './types';
+import {DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -74,6 +76,7 @@ export default function FiltersBar({
           </FilterButtons>
         )}
       </Fragment>
+      <ToggleOnDemand />
     </Wrapper>
   );
 }

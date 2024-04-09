@@ -2,7 +2,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
-import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
 
 export class OnDemandMetricRequest extends EventsRequest {
   fetchExtrapolatedData = async (): Promise<EventsStats> => {
@@ -48,11 +48,7 @@ export class OnDemandMetricRequest extends EventsRequest {
 
         timeseriesData = await this.fetchExtrapolatedData();
       } catch (resp) {
-        if (resp && resp.responseJSON && resp.responseJSON.detail) {
-          errorMessage = resp.responseJSON.detail;
-        } else {
-          errorMessage = t('Error loading chart data');
-        }
+        errorMessage = resp?.responseJSON?.detail ?? t('Error loading chart data');
         if (!hideError) {
           addErrorMessage(errorMessage);
         }

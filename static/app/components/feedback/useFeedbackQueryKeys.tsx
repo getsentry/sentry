@@ -1,4 +1,6 @@
-import {createContext, ReactNode, useCallback, useContext, useRef} from 'react';
+import type {ReactNode} from 'react';
+import {createContext, useCallback, useContext, useRef, useState} from 'react';
+import invariant from 'invariant';
 
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
 import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
@@ -14,19 +16,34 @@ type ItemQueryKeys = ReturnType<typeof getFeedbackItemQueryKey>;
 
 interface TContext {
   getItemQueryKeys: (id: string) => ItemQueryKeys;
-  getListQueryKey: () => ListQueryKey;
+  listHeadTime: number;
+  listPrefetchQueryKey: ListQueryKey;
+  listQueryKey: NonNullable<ListQueryKey>;
+  resetListHeadTime: () => void;
 }
 
 const EMPTY_ITEM_QUERY_KEYS = {issueQueryKey: undefined, eventQueryKey: undefined};
 
 const DEFAULT_CONTEXT: TContext = {
   getItemQueryKeys: () => EMPTY_ITEM_QUERY_KEYS,
-  getListQueryKey: () => [''],
+  listHeadTime: 0,
+  listPrefetchQueryKey: [''],
+  listQueryKey: [''],
+  resetListHeadTime: () => undefined,
 };
 
 const FeedbackQueryKeysProvider = createContext<TContext>(DEFAULT_CONTEXT);
 
 export function FeedbackQueryKeys({children, organization}: Props) {
+  // The "Head time" is the timestamp of the newest feedback that we can show in
+  // the list (the head element in the array); the same time as when we loaded
+  // the page. It can be updated without loading the page, when we want to see
+  // fresh list items.
+  const [listHeadTime, setHeadTime] = useState(() => Date.now());
+  const resetListHeadTime = useCallback(() => {
+    setHeadTime(Date.now());
+  }, []);
+
   const itemQueryKeyRef = useRef<Map<string, ItemQueryKeys>>(new Map());
   const getItemQueryKeys = useCallback(
     (feedbackId: string) => {
@@ -41,14 +58,27 @@ export function FeedbackQueryKeys({children, organization}: Props) {
     [organization]
   );
 
-  const listQueryKey = useFeedbackListQueryKey({organization});
-  const getListQueryKey = useCallback(() => listQueryKey, [listQueryKey]);
+  const listQueryKey = useFeedbackListQueryKey({
+    listHeadTime,
+    organization,
+    prefetch: false,
+  });
+  invariant(listQueryKey, 'listQueryKey cannot be nullable when prefetch=false');
+
+  const listPrefetchQueryKey = useFeedbackListQueryKey({
+    listHeadTime,
+    organization,
+    prefetch: true,
+  });
 
   return (
     <FeedbackQueryKeysProvider.Provider
       value={{
         getItemQueryKeys,
-        getListQueryKey,
+        listHeadTime,
+        listPrefetchQueryKey,
+        listQueryKey,
+        resetListHeadTime,
       }}
     >
       {children}

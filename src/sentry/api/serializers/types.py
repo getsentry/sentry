@@ -1,13 +1,11 @@
 from datetime import datetime
-from typing import List, Optional
-
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 
 class SerializedAvatarFields(TypedDict, total=False):
     avatarType: str
-    avatarUuid: Optional[str]
-    avatarUrl: Optional[str]
+    avatarUuid: str | None
+    avatarUrl: str | None
 
 
 class _Status(TypedDict):
@@ -32,6 +30,6 @@ class OrganizationSerializerResponse(TypedDict):
     require2FA: bool
     requireEmailVerification: bool
     avatar: SerializedAvatarFields
-    features: List[str]
+    features: list[str]
     links: _Links
     hasAuthProvider: bool

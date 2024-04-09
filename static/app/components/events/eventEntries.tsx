@@ -1,30 +1,31 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Entry,
-  EntryType,
   Event,
   Group,
   Organization,
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
 import {EventAttachments} from './eventAttachments';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
-import {EventErrors} from './eventErrors';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -37,7 +38,6 @@ import {SuspectCommits} from './suspectCommits';
 import {EventUserFeedback} from './userFeedback';
 
 type Props = {
-  location: Location;
   /**
    * The organization can be the shared view on a public issue view.
    */
@@ -53,7 +53,6 @@ type Props = {
 function EventEntries({
   organization,
   project,
-  location,
   event,
   group,
   className,
@@ -73,10 +72,17 @@ function EventEntries({
   }
 
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasActionableItems = actionableItemsEnabled({
+    eventId: event.id,
+    organization,
+    projectSlug,
+  });
 
   return (
     <div className={className}>
-      <EventErrors event={event} project={project} isShare={isShare} />
+      {hasActionableItems && (
+        <ActionableItems event={event} project={project} isShare={isShare} />
+      )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
           project={project}
@@ -97,13 +103,11 @@ function EventEntries({
       {showTagSummary && (
         <EventTagsAndScreenshot
           event={event}
-          organization={organization as Organization}
           projectSlug={projectSlug}
-          location={location}
           isShare={isShare}
         />
       )}
-      <EventEvidence event={event} projectSlug={project.slug} />
+      <EventEvidence event={event} project={project} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
@@ -118,6 +122,12 @@ function EventEntries({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+        />
+      )}
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}
@@ -161,15 +171,19 @@ function partitionEntriesForReplay(entries: Entry[]) {
   return [entries.slice(0, replayIndex), entries.slice(replayIndex)];
 }
 
-function Entries({
+export function Entries({
   definedEvent,
   projectSlug,
   isShare,
   group,
   organization,
+  hideBeforeReplayEntries = false,
+  hideBreadCrumbs = false,
 }: {
   definedEvent: Event;
   projectSlug: string;
+  hideBeforeReplayEntries?: boolean;
+  hideBreadCrumbs?: boolean;
   isShare?: boolean;
 } & Pick<Props, 'group' | 'organization'>) {
   if (!Array.isArray(definedEvent.entries)) {
@@ -190,13 +204,18 @@ function Entries({
 
   return (
     <Fragment>
-      {beforeReplayEntries.map((entry, entryIdx) => (
-        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
-      ))}
+      {!hideBeforeReplayEntries &&
+        beforeReplayEntries.map((entry, entryIdx) => (
+          <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
+        ))}
       {!isShare && <EventReplay {...eventEntryProps} />}
-      {afterReplayEntries.map((entry, entryIdx) => (
-        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
-      ))}
+      {afterReplayEntries.map((entry, entryIdx) => {
+        if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {
+          return null;
+        }
+
+        return <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />;
+      })}
     </Fragment>
   );
 }

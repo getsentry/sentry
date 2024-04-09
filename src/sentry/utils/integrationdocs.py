@@ -38,10 +38,7 @@ class Platform(TypedDict):
 INTEGRATION_DOCS_URL = os.environ.get("INTEGRATION_DOCS_URL", "https://docs.sentry.io/_platforms/")
 BASE_URL = INTEGRATION_DOCS_URL + "{}"
 
-# Also see INTEGRATION_DOC_FOLDER in setup.py
-DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
-    os.path.join(os.path.dirname(sentry.__file__), "integration-docs")
-)
+DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "integration-docs"))
 
 
 class SuspiciousDocPathOperation(Exception):
@@ -77,10 +74,7 @@ def dump_doc(path: str, data: dict[str, Any]) -> None:
         raise SuspiciousDocPathOperation("illegal path access")
 
     directory = os.path.dirname(doc_path)
-    try:
-        os.makedirs(directory)
-    except OSError:
-        pass
+    os.makedirs(directory, exist_ok=True)
     with open(doc_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")

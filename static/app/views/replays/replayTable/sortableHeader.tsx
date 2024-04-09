@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -9,8 +9,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {ReplayRecordNestedFieldName} from 'sentry/views/replays/types';
+import type {
+  ReplayListLocationQuery,
+  ReplayRecordNestedFieldName,
+} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;

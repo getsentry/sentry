@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from abc import ABC
-from typing import Any, Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -15,23 +16,39 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
 
-class AbstractMessageBuilder(ABC):
-    pass
-
-
-def format_actor_options(actors: Sequence[Team | RpcUser]) -> Sequence[Mapping[str, str]]:
+def format_actor_options(
+    actors: Sequence[Team | RpcUser], use_block_kit: bool = False
+) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
+    if use_block_kit:
+        sort_func = lambda actor: actor["text"]["text"]
+    return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | RpcUser) -> Mapping[str, str]:
+def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> Mapping[str, str]:
     if isinstance(actor, RpcUser):
+        if use_block_kit:
+            return {
+                "text": {
+                    "type": "plain_text",
+                    "text": actor.get_display_name(),
+                },
+                "value": f"user:{actor.id}",
+            }
+
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
+        if use_block_kit:
+            return {
+                "text": {
+                    "type": "plain_text",
+                    "text": f"#{actor.slug}",
+                },
+                "value": f"team:{actor.id}",
+            }
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
     raise NotImplementedError
@@ -73,6 +90,19 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
+        try:
+            rule = Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            rule_env = None
+        else:
+            rule_env = rule.environment_id
+        try:
+            env = Environment.objects.get(id=rule_env)
+        except Environment.DoesNotExist:
+            pass
+        else:
+            other_params["environment"] = env.name
+
         other_params["alert_rule_id"] = rule_id
         # hard code for issue alerts
         other_params["alert_type"] = "issue"
@@ -135,7 +165,7 @@ def build_attachment_replay_link(
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
-        return f"\n\n{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+        return f"{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
 
     return None
 
@@ -162,6 +192,12 @@ def build_footer(
         text = rules[0].label if rules[0].label else "Test Alert"
         footer += f" via {url_format.format(text=text, url=rule_url)}"
 
+        if (
+            features.has("organizations:slack-block-kit", project.organization)
+            and url_format == SLACK_URL_FORMAT
+        ):
+            footer = url_format.format(text=text, url=rule_url)
+
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
 
@@ -170,7 +206,7 @@ def build_footer(
 
 def get_timestamp(group: Group, event: GroupEvent | None) -> float:
     ts = group.last_seen
-    return to_timestamp(max(ts, event.datetime) if event else ts)
+    return (max(ts, event.datetime) if event else ts).timestamp()
 
 
 def get_color(

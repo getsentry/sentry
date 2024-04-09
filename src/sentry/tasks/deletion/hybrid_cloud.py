@@ -11,14 +11,14 @@ Tombstone row will not, therefore, cascade to any related cross silo rows.
 import datetime
 from dataclasses import dataclass
 from hashlib import sha1
-from typing import Any, List, Tuple, Type
+from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
 from celery import Task
 from django.apps import apps
 from django.db import connections, router
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.db.models.manager import BaseManager
 from django.utils import timezone
 
@@ -41,7 +41,7 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
-def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
+def get_watermark(prefix: str, field: HybridCloudForeignKey) -> tuple[int, str]:
     with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
         key = get_watermark_key(prefix, field)
         v = client.get(key)
@@ -77,7 +77,9 @@ def _chunk_watermark_batch(
     prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
-    upper = manager.aggregate(Max("id"))["id__max"] or 0
+    agg = manager.aggregate(Min("id"), Max("id"))
+    lower = lower or ((agg["id__min"] or 1) - 1)
+    upper = agg["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
 
     # cap to batch size so that query timeouts don't get us.
@@ -217,7 +219,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
             ),
         )
         sentry_sdk.capture_exception(err)
-        raise err
+        raise
 
 
 # Convenience wrapper for mocking in tests
@@ -228,7 +230,7 @@ def get_batch_size() -> int:
 def _process_tombstone_reconciliation(
     field: HybridCloudForeignKey,
     model: Any,
-    tombstone_cls: Type[TombstoneBase],
+    tombstone_cls: type[TombstoneBase],
     row_after_tombstone: bool,
 ) -> bool:
     from sentry import deletions
@@ -245,7 +247,7 @@ def _process_tombstone_reconciliation(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     has_more = watermark_batch.has_more
-    to_delete_ids: List[int] = []
+    to_delete_ids: list[int] = []
 
     if watermark_batch.low < watermark_batch.up:
         oldest_seen: datetime.datetime = timezone.now()

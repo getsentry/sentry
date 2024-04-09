@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from redis import StrictRedis
@@ -12,7 +12,7 @@ from sentry.utils import redis
 
 
 @pytest.fixture
-def config() -> Dict[str, Any]:
+def config() -> dict[str, Any]:
     return {
         "cluster": "default",
         "budget_bucket_size": 10,
@@ -22,15 +22,12 @@ def config() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def redis_cluster(config: Dict[str, Any]) -> StrictRedis:
-    cluster, options = redis.get_cluster_from_options(
-        "TEST_CLUSTER", config, cluster_manager=redis.redis_clusters
-    )
-    return cluster
+def redis_cluster(config: dict[str, Any]) -> StrictRedis:
+    return redis.redis_clusters.get("default")
 
 
 @pytest.fixture
-def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
+def store(config: dict[str, Any]) -> RedisRealtimeMetricsStore:
     return RedisRealtimeMetricsStore(**config)
 
 
@@ -40,7 +37,7 @@ def test_default() -> None:
 
 
 def test_invalid_config() -> None:
-    invalid_config: Dict[str, Any] = {
+    invalid_config: dict[str, Any] = {
         "cluster": "default",
         "budget_bucket_size": 0,
         "budget_time_window": -1,

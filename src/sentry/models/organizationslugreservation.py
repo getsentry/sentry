@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
 from enum import IntEnum
-from typing import Any, Collection, Mapping
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -33,7 +34,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
 
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
-    user_id = BoundedBigIntegerField(db_index=True, null=False)
+    user_id = BoundedBigIntegerField(db_index=True, null=True)
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),

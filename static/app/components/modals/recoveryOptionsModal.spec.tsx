@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
-import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+import {
+  AllAuthenticatorsFixture,
+  AuthenticatorsFixture,
+} from 'sentry-fixture/authenticators';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,15 +12,15 @@ import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal'
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
-  const mockId = Authenticators().Recovery().authId;
-  const routerContext = TestStubs.routerContext();
+  const mockId = AuthenticatorsFixture().Recovery().authId;
+  const routerContext = RouterContextFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: AllAuthenticators(),
+      body: AllAuthenticatorsFixture(),
     });
   });
 
@@ -38,13 +42,14 @@ describe('RecoveryOptionsModal', function () {
 
   it('can redirect to recovery codes if user skips backup phone setup', async function () {
     renderComponent();
+    const skipButton = await screen.findByRole('button', {name: 'Skip this step'});
 
     expect(
       screen.queryByRole('button', {name: 'Get Recovery Codes'})
     ).not.toBeInTheDocument();
 
     // skip backup phone setup
-    await userEvent.click(screen.getByRole('button', {name: 'Skip this step'}));
+    await userEvent.click(skipButton);
 
     const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
     expect(getCodesbutton).toBeInTheDocument();
@@ -61,7 +66,10 @@ describe('RecoveryOptionsModal', function () {
   it('can redirect to backup phone setup', async function () {
     renderComponent();
 
-    const backupPhoneButton = screen.getByRole('button', {name: 'Add a Phone Number'});
+    const backupPhoneButton = await screen.findByRole('button', {
+      name: 'Add a Phone Number',
+    });
+
     expect(backupPhoneButton).toBeInTheDocument();
     expect(backupPhoneButton).toHaveAttribute(
       'href',
@@ -72,17 +80,19 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', function () {
+  it('skips backup phone setup if text message authenticator unavailable', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: [Authenticators().Totp(), Authenticators().Recovery()],
+      body: [AuthenticatorsFixture().Totp(), AuthenticatorsFixture().Recovery()],
     });
 
     renderComponent();
 
-    const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
+    const getCodesbutton = await screen.findByRole('button', {
+      name: 'Get Recovery Codes',
+    });
     expect(getCodesbutton).toBeInTheDocument();
 
     expect(getCodesbutton).toHaveAttribute(
@@ -96,5 +106,19 @@ describe('RecoveryOptionsModal', function () {
     expect(
       screen.queryByRole('button', {name: 'Add a Phone Number'})
     ).not.toBeInTheDocument();
+  });
+
+  it('renders the error message on API error', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/users/me/authenticators/',
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    renderComponent();
+
+    const error = await screen.findByText('There was an error loading authenticators.');
+    expect(error).toBeInTheDocument();
   });
 });

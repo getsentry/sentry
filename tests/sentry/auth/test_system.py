@@ -4,7 +4,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestSystemAuth(TestCase):
     def test_is_system_auth(self):
         token = SystemToken()
@@ -13,7 +13,7 @@ class TestSystemAuth(TestCase):
 
 
 @django_db_all
-@control_silo_test(stable=True)
+@control_silo_test
 def test_system_token_option():
     from sentry import options
 

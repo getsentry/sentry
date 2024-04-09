@@ -1,13 +1,9 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
@@ -16,7 +12,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 
 const defaultProps = {
   allResultsVisible: false,
@@ -60,7 +56,7 @@ describe('IssueListActions', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project({id: 1})],
+      body: [ProjectFixture({id: '1'})],
     });
   });
 
@@ -90,7 +86,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -103,6 +99,42 @@ describe('IssueListActions', function () {
               project: [1],
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
+          })
+        );
+      });
+
+      it('bulk sets priority', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent queryCount={1500} />, {
+          organization: OrganizationFixture({features: ['issue-priority-ui']}),
+        });
+
+        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+        expect(
+          within(screen.getByRole('dialog')).getByText(
+            'Are you sure you want to reprioritize to high the first 1,000 issues that match the search?'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Bulk reprioritize issues'})
+        );
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {priority: 'high'},
           })
         );
       });
@@ -135,7 +167,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -181,75 +213,44 @@ describe('IssueListActions', function () {
           })
         );
       });
-
-      it('can ignore selected items (custom)', async function () {
-        const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-        const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/issues/',
-          method: 'PUT',
-        });
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
-
-        render(<WrappedComponent {...defaultProps} />);
-
-        await userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
-        fireEvent.click(screen.getByText(/Until this affects an additional/));
-        await screen.findByTestId('until-affect-custom');
-        await userEvent.click(screen.getByTestId('until-affect-custom'));
-
-        const modal = screen.getByRole('dialog');
-
-        await userEvent.clear(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'})
-        );
-        await userEvent.type(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'}),
-          '300'
-        );
-
-        await userEvent.click(within(modal).getByRole('textbox'));
-        await userEvent.click(within(modal).getByText('per week'));
-
-        await userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
-
-        expect(apiMock).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            query: {
-              id: ['1'],
-              project: [1],
-            },
-            data: {
-              status: 'ignored',
-              statusDetails: {
-                ignoreUserCount: 300,
-                ignoreUserWindow: 10080,
-              },
-              substatus: 'archived_until_condition_met',
-            },
-          })
-        );
-
-        expect(analyticsSpy).toHaveBeenCalledWith(
-          'issues_stream.archived',
-          expect.objectContaining({
-            action_status_details: 'ignoreUserCount',
-          })
-        );
-      });
     });
   });
 
-  it('can archive an issue until escalating', async () => {
-    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const org_escalating = {...organization, features: ['escalating-issues']};
+  it('can set priority', async function () {
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-    render(<WrappedComponent {...defaultProps} />, {organization: org_escalating});
+    render(<WrappedComponent {...defaultProps} />, {
+      organization: OrganizationFixture({features: ['issue-priority-ui']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {priority: 'high'},
+      })
+    );
+  });
+
+  it('can archive an issue until escalating', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
 
@@ -277,15 +278,14 @@ describe('IssueListActions', function () {
   });
 
   it('can unarchive an issue when the query contains is:archived', async () => {
-    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
-      organization: org_escalating,
+      organization,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
@@ -294,34 +294,34 @@ describe('IssueListActions', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({id: ['1'], project: [1]}),
-        data: {status: 'unresolved'},
+        data: {status: 'unresolved', statusDetails: {}},
       })
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})});
+          return GroupFixture({project: ProjectFixture({slug: 'project-1'})});
         default:
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-2'})});
+          return GroupFixture({project: ProjectFixture({slug: 'project-2'})});
       }
     });
 
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnMarkReviewed = jest.fn();
+      const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -332,7 +332,7 @@ describe('IssueListActions', function () {
         .spyOn(SelectedGroupStore, 'getSelectedIds')
         .mockImplementation(() => new Set(['1', '2', '3']));
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
-        return TestStubs.Group({
+        return GroupFixture({
           id,
           inbox: {
             date_added: '2020-11-24T13:17:42.248751Z',
@@ -341,23 +341,23 @@ describe('IssueListActions', function () {
           },
         });
       });
-      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
       await userEvent.click(reviewButton);
 
-      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
-      GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
+      GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 
@@ -382,11 +382,11 @@ describe('IssueListActions', function () {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
-            return TestStubs.Group({
+            return GroupFixture({
               issueCategory: IssueCategory.ERROR,
             });
           default:
-            return TestStubs.Group({
+            return GroupFixture({
               issueCategory: IssueCategory.PERFORMANCE,
             });
         }
@@ -396,7 +396,7 @@ describe('IssueListActions', function () {
 
       // Resolve and ignore are supported
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
-      expect(screen.getByRole('button', {name: 'Ignore'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
       // Merge is not supported and should be disabled
       expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
@@ -417,7 +417,7 @@ describe('IssueListActions', function () {
     });
 
     describe('bulk action performance issues', function () {
-      const orgWithPerformanceIssues = Organization({
+      const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
       });
 
@@ -439,7 +439,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');
@@ -471,9 +473,7 @@ describe('IssueListActions', function () {
         // Ensure that all issues have the same project so we can merge
         jest
           .spyOn(GroupStore, 'get')
-          .mockReturnValue(
-            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
-          );
+          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
         render(
           <Fragment>

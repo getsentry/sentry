@@ -4,13 +4,16 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -28,7 +31,11 @@ class GroupCategory(Enum):
     FEEDBACK = 6
 
 
-GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+GROUP_CATEGORIES_CUSTOM_EMAIL = (
+    GroupCategory.ERROR,
+    GroupCategory.PERFORMANCE,
+    GroupCategory.FEEDBACK,
+)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 DEFAULT_IGNORE_LIMIT: int = 3
@@ -37,11 +44,11 @@ DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 @dataclass()
 class GroupTypeRegistry:
-    _registry: Dict[int, Type[GroupType]] = field(default_factory=dict)
-    _slug_lookup: Dict[str, Type[GroupType]] = field(default_factory=dict)
-    _category_lookup: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
+    _registry: dict[int, type[GroupType]] = field(default_factory=dict)
+    _slug_lookup: dict[str, type[GroupType]] = field(default_factory=dict)
+    _category_lookup: dict[int, set[int]] = field(default_factory=lambda: defaultdict(set))
 
-    def add(self, group_type: Type[GroupType]) -> None:
+    def add(self, group_type: type[GroupType]) -> None:
         if self._registry.get(group_type.type_id):
             raise ValueError(
                 f"A group type with the type_id {group_type.type_id} has already been registered."
@@ -50,12 +57,12 @@ class GroupTypeRegistry:
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)
 
-    def all(self) -> List[Type[GroupType]]:
+    def all(self) -> list[type[GroupType]]:
         return list(self._registry.values())
 
     def get_visible(
-        self, organization: Organization, actor: Optional[Any] = None
-    ) -> List[Type[GroupType]]:
+        self, organization: Organization, actor: Any | None = None
+    ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype = {
@@ -79,18 +86,18 @@ class GroupTypeRegistry:
             span.set_data("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
-    def get_all_group_type_ids(self) -> Set[int]:
+    def get_all_group_type_ids(self) -> set[int]:
         return {type.type_id for type in self._registry.values()}
 
-    def get_by_category(self, category: int) -> Set[int]:
+    def get_by_category(self, category: int) -> set[int]:
         return self._category_lookup[category]
 
-    def get_by_slug(self, slug: str) -> Optional[Type[GroupType]]:
+    def get_by_slug(self, slug: str) -> type[GroupType] | None:
         if slug not in self._slug_lookup:
             return None
         return self._slug_lookup[slug]
 
-    def get_by_type_id(self, id_: int) -> Type[GroupType]:
+    def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
             raise ValueError(f"No group type with the id {id_} is registered.")
         return self._registry[id_]
@@ -110,12 +117,25 @@ class NoiseConfig:
 
 
 @dataclass(frozen=True)
+class NotificationConfig:
+    text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
+    context: list[str] = field(
+        default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
+    )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
+    actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
+    extra_action: dict[str, str] = field(
+        default_factory=lambda: {}
+    )  # TODO(cathy): view monitor button for crons. "text": "", "url": ""
+
+
+@dataclass(frozen=True)
 class GroupType:
     type_id: int
     slug: str
     description: str
     category: int
-    noise_config: Optional[NoiseConfig] = None
+    noise_config: NoiseConfig | None = None
+    default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
@@ -125,8 +145,9 @@ class GroupType:
     # Allow escalation forecasts and detection
     enable_escalation_detection: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
+    notification_config: NotificationConfig = NotificationConfig()
 
-    def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
+    def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
 
@@ -141,7 +162,7 @@ class GroupType:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
     @classmethod
-    def is_visible(cls, organization: Organization, user: Optional[User] = None) -> bool:
+    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
         if cls.released:
             return True
 
@@ -163,8 +184,11 @@ class GroupType:
 
     @classmethod
     def should_detect_escalation(cls, organization: Organization) -> bool:
-        if not features.has("organizations:issue-platform-crons-sd", organization):
-            return True
+        """
+        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
+
+        When the feature flag is removed, we can remove the organization parameter from this method.
+        """
         return cls.enable_escalation_detection
 
     @classmethod
@@ -188,22 +212,22 @@ class GroupType:
         return f"{cls.build_base_feature_name()}-post-process-group"
 
 
-def get_all_group_type_ids() -> Set[int]:
+def get_all_group_type_ids() -> set[int]:
     # TODO: Replace uses of this with the registry
     return registry.get_all_group_type_ids()
 
 
-def get_group_types_by_category(category: int) -> Set[int]:
+def get_group_types_by_category(category: int) -> set[int]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_category(category)
 
 
-def get_group_type_by_slug(slug: str) -> Optional[Type[GroupType]]:
+def get_group_type_by_slug(slug: str) -> type[GroupType] | None:
     # TODO: Replace uses of this with the registry
     return registry.get_by_slug(slug)
 
 
-def get_group_type_by_type_id(id: int) -> Type[GroupType]:
+def get_group_type_by_type_id(id: int) -> type[GroupType]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_type_id(id)
 
@@ -214,12 +238,21 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
+    default_priority = PriorityLevel.MEDIUM
     released = True
 
 
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
+
+
+class CronGroupTypeDefaults:
+    notification_config = NotificationConfig(context=[])
+
+
+class ReplayGroupTypeDefaults:
+    notification_config = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)
@@ -229,6 +262,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -238,6 +272,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -247,6 +282,7 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -257,6 +293,7 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=15)
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -266,6 +303,7 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -276,6 +314,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -285,6 +324,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -294,6 +334,7 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -304,6 +345,7 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -313,6 +355,7 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -322,6 +365,7 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_large_http_payload"
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
     released = True
 
 
@@ -332,6 +376,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "HTTP/1.1 Overhead"
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 # experimental
@@ -343,6 +388,8 @@ class PerformanceDurationRegressionGroupType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -353,6 +400,21 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False
+    default_priority = PriorityLevel.MEDIUM
+    released = True
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
+
+
+# experimental
+@dataclass(frozen=True)
+class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
+    type_id = 1019
+    slug = "performance_streamed_spans_exp"
+    description = "Streamed Spans (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -362,6 +424,7 @@ class ProfileFileIOGroupType(GroupType):
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -370,6 +433,7 @@ class ProfileImageDecodeGroupType(GroupType):
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -378,6 +442,7 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -386,17 +451,17 @@ class ProfileCoreDataExperimentalType(GroupType):
     slug = "profile_core_data_main_exp"
     description = "Core Data on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 # 2005 was ProfileRegexExperimentalType
-
-
 @dataclass(frozen=True)
 class ProfileViewIsSlowExperimentalType(GroupType):
     type_id = 2006
     slug = "profile_view_is_slow_experimental"
     description = "View Render/Layout/Update is slow"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -406,6 +471,7 @@ class ProfileRegexType(GroupType):
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     released = True
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -414,6 +480,7 @@ class ProfileFrameDropExperimentalType(GroupType):
     slug = "profile_frame_drop_experimental"
     description = "Frame Drop"
     category = GroupCategory.PERFORMANCE.value
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -424,6 +491,7 @@ class ProfileFrameDropType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
+    default_priority = PriorityLevel.LOW
 
 
 @dataclass(frozen=True)
@@ -433,6 +501,8 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -442,44 +512,62 @@ class ProfileFunctionRegressionType(GroupType):
     description = "Function Regression"
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    released = True
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
-class MonitorCheckInFailure(GroupType):
+class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeout(GroupType):
+class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
     type_id = 4002
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissed(GroupType):
+class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
     type_id = 4003
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class ReplayDeadClickType(GroupType):
+class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
+    # This is not currently used
     type_id = 5001
     slug = "replay_click_dead"
     description = "Dead Click Detected"
     category = GroupCategory.REPLAY.value
+    default_priority = PriorityLevel.MEDIUM
+
+
+@dataclass(frozen=True)
+class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
+    type_id = 5002
+    slug = "replay_click_rage"
+    description = "Rage Click Detected"
+    category = GroupCategory.REPLAY.value
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
 
 
 @dataclass(frozen=True)
@@ -489,12 +577,14 @@ class FeedbackGroup(GroupType):
     description = "Feedback"
     category = GroupCategory.FEEDBACK.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig(context=[])
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: Type[GroupType],
-    client: Any,
+    grouptype: type[GroupType],
+    client: RedisCluster | StrictRedis,
     grouphash: str,
     project: Project,
 ) -> bool:

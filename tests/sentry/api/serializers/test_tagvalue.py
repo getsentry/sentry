@@ -3,10 +3,8 @@ from datetime import datetime
 from sentry.api.serializers import UserTagValueSerializer, serialize
 from sentry.tagstore.types import TagValue
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class TagValueSerializerTest(TestCase):
     def test_with_user(self):
         user = self.create_user()
@@ -41,7 +39,6 @@ class TagValueSerializerTest(TestCase):
         assert "query" not in result
 
 
-@region_silo_test(stable=True)
 class UseTagValueSerializerTest(TestCase):
     def test_query(self):
         user = self.create_user()
@@ -53,6 +50,8 @@ class UseTagValueSerializerTest(TestCase):
             last_seen=datetime(2018, 1, 1),
         )
 
-        result = serialize(tagvalue, user, serializer=UserTagValueSerializer(project_id=1))
+        result = serialize(
+            tagvalue, user, serializer=UserTagValueSerializer(project_id=self.project.id)
+        )
         assert result["value"] == "username:ted"
         assert result["query"] == 'user.username:"ted"'

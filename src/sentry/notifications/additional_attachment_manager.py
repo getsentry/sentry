@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Callable, MutableMapping
+from collections.abc import Callable, MutableMapping
 
 from sentry.api.validators.integrations import validate_provider
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.types.integrations import ExternalProviders
 
-# TODO(Steve): Fix types
-GetAttachment = Callable[[Any, Any], SlackAttachment]
+GetAttachment = Callable[
+    [Integration | RpcIntegration, Organization | RpcOrganization], SlackAttachment
+]
 
 
 class AttachmentGeneratorAlreadySetException(Exception):
@@ -25,7 +27,7 @@ class AdditionalAttachmentManager:
     def get_additional_attachment(
         self,
         integration: Integration | RpcIntegration,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
     ) -> SlackAttachment | None:
         # look up the generator by the provider but only accepting slack for now
         provider = validate_provider(integration.provider, [ExternalProviders.SLACK])

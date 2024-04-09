@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment-timezone';
 
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 
 type TimezoneGroup =
   | null
@@ -235,7 +235,7 @@ const timezones: [group: TimezoneGroup, value: string, label: string][] = [
   ['Europe', 'Europe/Vilnius', 'Vilnius'],
   ['Europe', 'Europe/Zaporozhye', 'Zaporozhye'],
   ['Europe', 'Europe/Istanbul', 'Istanbul'],
-  ['Europe', 'Europe/Kiev', 'Kiev'],
+  ['Europe', 'Europe/Kyiv', 'Kyiv'],
   ['Europe', 'Europe/Minsk', 'Minsk'],
   ['Europe', 'Europe/Moscow', 'Moscow'],
   ['Europe', 'Europe/Simferopol', 'Simferopol'],

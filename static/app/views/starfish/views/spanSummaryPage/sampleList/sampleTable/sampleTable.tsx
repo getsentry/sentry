@@ -6,34 +6,35 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  SamplesTableColumnHeader,
-  SpanSamplesTable,
-} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SamplesTableColumnHeader} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-top: ${space(2)};
 `;
 
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
+  additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
   release?: string;
   transactionMethod?: string;
 };
@@ -47,9 +48,13 @@ function SampleTable({
   transactionMethod,
   columnOrder,
   release,
+  query,
+  additionalFields,
+  additionalFilters,
 }: Props) {
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -60,15 +65,20 @@ function SampleTable({
     filters.release = release;
   }
 
-  const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    groupId,
-    filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+      Boolean(value)
+    ),
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
+
+  const spanMetrics = data[0] ?? {};
+
   const organization = useOrganization();
 
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
 
   const {
     data: spans,
@@ -81,6 +91,8 @@ function SampleTable({
     transactionName,
     transactionMethod,
     release,
+    query,
+    additionalFields,
   });
 
   const {
@@ -128,7 +140,7 @@ function SampleTable({
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
-    setPageError(t('An error has occured while loading the samples table'));
+    setPageError(t('An error has occurred while loading the samples table'));
   }
 
   return (

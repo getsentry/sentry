@@ -1,8 +1,8 @@
 import re
 from collections import namedtuple
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional, Tuple
 
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
@@ -15,7 +15,7 @@ BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
 )
 
 
-def _get_environment_cache_key(environment: Optional[str]) -> str:
+def _get_environment_cache_key(environment: str | None) -> str:
     return f"{ENVIRONMENT_SEPARATOR}{environment}" if environment else ""
 
 
@@ -36,7 +36,7 @@ class BoostedRelease:
 
     id: int
     timestamp: float
-    environment: Optional[str]
+    environment: str | None
     # We also store the cache key corresponding to this boosted release entry, in order to remove it efficiently.
     cache_key: str
 
@@ -71,10 +71,10 @@ class BoostedReleases:
     Class that hides the complexity of extending boosted releases.
     """
 
-    boosted_releases: List[BoostedRelease] = field(default_factory=list)
+    boosted_releases: list[BoostedRelease] = field(default_factory=list)
 
     def add_release(
-        self, cache_key: str, id: int, timestamp: float, environment: Optional[str]
+        self, cache_key: str, id: int, timestamp: float, environment: str | None
     ) -> None:
         self.boosted_releases.append(
             BoostedRelease(cache_key=cache_key, id=id, timestamp=timestamp, environment=environment)
@@ -82,11 +82,11 @@ class BoostedReleases:
 
     def to_extended_boosted_releases(
         self, project_id: int
-    ) -> Tuple[List[ExtendedBoostedRelease], List[str]]:
+    ) -> tuple[list[ExtendedBoostedRelease], list[str]]:
         # We get release models in order to have all the information to extend the releases we get from the cache.
         models = self._get_releases_models()
 
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         extended_boosted_releases = []
         expired_boosted_releases = []
@@ -110,10 +110,10 @@ class BoostedReleases:
 
         return extended_boosted_releases, expired_boosted_releases
 
-    def _get_last_release_ids(self) -> List[int]:
+    def _get_last_release_ids(self) -> list[int]:
         return [boosted_release.id for boosted_release in self.boosted_releases]
 
-    def _get_releases_models(self) -> Dict[int, Release]:
+    def _get_releases_models(self) -> dict[int, Release]:
         return {
             release.id: release
             for release in Release.objects.filter(id__in=self._get_last_release_ids())
@@ -143,7 +143,7 @@ class ProjectBoostedReleases:
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         return bool(self.redis_client.exists(cache_key) == 1)
 
-    def add_boosted_release(self, release_id: int, environment: Optional[str]) -> None:
+    def add_boosted_release(self, release_id: int, environment: str | None) -> None:
         """
         Adds a release to the boosted releases hash with the boosting timestamp set to the current time, signaling that
         the boosts starts now.
@@ -154,13 +154,13 @@ class ProjectBoostedReleases:
         self.redis_client.hset(
             cache_key,
             self._generate_cache_key_for_boosted_release(release_id, environment),
-            datetime.utcnow().replace(tzinfo=timezone.utc).timestamp(),
+            datetime.now(timezone.utc).timestamp(),
         )
         # In order to avoid having the boosted releases hash in memory for an indefinite amount of time, we will expire
         # it after a specific timeout.
         self.redis_client.pexpire(cache_key, self.BOOSTED_RELEASES_HASH_EXPIRATION)
 
-    def get_extended_boosted_releases(self) -> List[ExtendedBoostedRelease]:
+    def get_extended_boosted_releases(self) -> list[ExtendedBoostedRelease]:
         """
         Returns a list of boosted releases augmented with additional information such as release version and platform.
         In addition, this function performs the cleanup of expired boosted releases.
@@ -209,7 +209,7 @@ class ProjectBoostedReleases:
         """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         boosted_releases = self.redis_client.hgetall(cache_key)
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         LRBRelease = namedtuple("LRBRelease", ["key", "timestamp"])
         lrb_release = None
@@ -226,7 +226,7 @@ class ProjectBoostedReleases:
                 #
                 # We run this logic while counting the number of active release so that we can remove the lrb release
                 # in O(1) in case the number of active releases is >= the limit.
-                if lrb_release is None or timestamp < lrb_release.timestamp:  # type:ignore
+                if lrb_release is None or timestamp < lrb_release.timestamp:  # type: ignore[unreachable]
                     lrb_release = LRBRelease(key=boosted_release_key, timestamp=timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
@@ -245,13 +245,13 @@ class ProjectBoostedReleases:
         return f"ds::p:{self.project_id}:boosted_releases"
 
     @staticmethod
-    def _generate_cache_key_for_boosted_release(release_id: int, environment: Optional[str]) -> str:
+    def _generate_cache_key_for_boosted_release(release_id: int, environment: str | None) -> str:
         return f"ds::r:{release_id}{_get_environment_cache_key(environment)}"
 
     @staticmethod
     def _extract_data_from_cache_key(
         cache_key: str,
-    ) -> Optional[Tuple[int, Optional[str]]]:
+    ) -> tuple[int, str | None] | None:
         """
         Extracts the release id and the environment from the cache key, in order to avoid storing the metadata also
         in the value field.
@@ -277,7 +277,7 @@ class ProjectBoostedReleases:
 class LatestReleaseParams:
     project: Project
     release: Release
-    environment: Optional[str]
+    environment: str | None
 
 
 class LatestReleaseBias:
@@ -341,7 +341,7 @@ class LatestReleaseBias:
         cache_key = self._generate_cache_key_for_project_latest_release()
         self.redis_client.set(cache_key, timestamp)
 
-    def _get_release_date_from_incoming_release(self) -> Optional[float]:
+    def _get_release_date_from_incoming_release(self) -> float | None:
         release = self.latest_release_params.release
 
         if release.date_released:
@@ -351,7 +351,7 @@ class LatestReleaseBias:
 
         return None
 
-    def _get_release_date_from_latest_release(self) -> Optional[float]:
+    def _get_release_date_from_latest_release(self) -> float | None:
         cache_key = self._generate_cache_key_for_project_latest_release()
         timestamp = self.redis_client.get(name=cache_key)
         return float(timestamp) if timestamp else None

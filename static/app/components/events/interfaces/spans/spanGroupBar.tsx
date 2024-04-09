@@ -1,12 +1,5 @@
-import {
-  Fragment,
-  LegacyRef,
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import type {LegacyRef, MutableRefObject} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import maxBy from 'lodash/maxBy';
 
@@ -15,10 +8,10 @@ import {
   FREQUENCY_BOX_WIDTH,
   SpanFrequencyBox,
 } from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   getSpanBarColours,
   ROW_HEIGHT,
-  SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
@@ -40,11 +33,8 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {
-  AggregateEventTransaction,
-  EventOrGroupType,
-  EventTransaction,
-} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -52,14 +42,9 @@ import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
-import {
-  getMeasurementBounds,
-  getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  spanTargetHash,
-} from './utils';
+import type {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
+import {getMeasurementBounds, getMeasurements, spanTargetHash} from './utils';
 
 const MARGIN_LEFT = 0;
 
@@ -79,6 +64,7 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
@@ -151,13 +137,14 @@ function renderDivider(
 
 function renderMeasurements(
   event: Readonly<EventTransaction | AggregateEventTransaction>,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType,
+  measurements: Map<number, VerticalMark> | undefined
 ) {
-  const measurements = getMeasurements(event, generateBounds);
+  const barMeasurements = measurements ?? getMeasurements(event, generateBounds);
 
   return (
     <Fragment>
-      {Array.from(measurements).map(([timestamp, verticalMark]) => {
+      {Array.from(barMeasurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
         const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -194,6 +181,7 @@ export function SpanGroupBar(props: Props) {
     getCurrentLeftPos,
     spanBarType,
     event,
+    measurements,
   } = props;
 
   const theme = useTheme();
@@ -346,7 +334,7 @@ export function SpanGroupBar(props: Props) {
                 onClick={() => toggleSpanGroup()}
               >
                 {props.renderSpanRectangles()}
-                {renderMeasurements(event, generateBounds)}
+                {renderMeasurements(event, generateBounds, measurements)}
                 <SpanBarCursorGuide />
               </RowCell>
               <DividerLineGhostContainer

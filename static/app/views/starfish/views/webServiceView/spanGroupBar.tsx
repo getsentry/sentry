@@ -67,62 +67,54 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
     <FlexibleRowPanel>
       <Title>{t('Time Spent Breakdown')}</Title>
       <SegmentContainer>
-        {segments &&
-          segments.map((value, index) => {
-            const percent = getPercent(value, total);
-            const spanModule = value['span.module'];
-            const to =
-              spanModule === 'db'
-                ? `/${routingContext.baseURL}/performance/database/`
-                : '';
-            function handleModulePin() {
-              if (spanModule === pinnedModule) {
-                setPinnedModule(null);
-                onHover(null);
-              } else {
-                setPinnedModule(spanModule);
-                onHover(spanModule);
-              }
+        {segments?.map((value, index) => {
+          const percent = getPercent(value, total);
+          const spanModule = value['span.module'];
+          const to =
+            spanModule === 'db' ? `/${routingContext.baseURL}/performance/database/` : '';
+          function handleModulePin() {
+            if (spanModule === pinnedModule) {
+              setPinnedModule(null);
+              onHover(null);
+            } else {
+              setPinnedModule(spanModule);
+              onHover(spanModule);
             }
-            const tooltipHttp = (
-              <div
+          }
+          const tooltipHttp = (
+            <div
+              onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
+              onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
+              onClick={handleModulePin}
+            >
+              <div>
+                {tct('Time spent on [spanModule] across all endpoints', {spanModule})}
+              </div>
+              <IconPin isSolid={spanModule === pinnedModule} /> {percent}%
+            </div>
+          );
+          return (
+            <StyledTooltip key={index} title={tooltipHttp} percent={percent} isHoverable>
+              <Segment
+                to={to}
+                hasLink={to !== ''}
+                color={theme.barBreakdownColors[index]}
                 onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
                 onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
-                onClick={handleModulePin}
               >
-                <div>
-                  {tct('Time spent on [spanModule] across all endpoints', {spanModule})}
-                </div>
-                <IconPin isSolid={spanModule === pinnedModule} /> {percent}%
-              </div>
-            );
-            return (
-              <StyledTooltip
-                key={index}
-                title={tooltipHttp}
-                percent={percent}
-                isHoverable
-              >
-                <Segment
-                  to={to}
-                  hasLink={to !== ''}
-                  color={theme.barBreakdownColors[index]}
-                  onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
-                  onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
-                >
-                  <SegmentText fontColor={theme.barBreakdownFontColors[index]}>
-                    {spanModule === pinnedModule && (
-                      <StyledIconPin
-                        isSolid
-                        iconColor={theme.barBreakdownFontColors[index]}
-                      />
-                    )}
-                    {spanModule} {percent}%
-                  </SegmentText>
-                </Segment>
-              </StyledTooltip>
-            );
-          })}
+                <SegmentText fontColor={theme.barBreakdownFontColors[index]}>
+                  {spanModule === pinnedModule && (
+                    <StyledIconPin
+                      isSolid
+                      iconColor={theme.barBreakdownFontColors[index]}
+                    />
+                  )}
+                  {spanModule} {percent}%
+                </SegmentText>
+              </Segment>
+            </StyledTooltip>
+          );
+        })}
       </SegmentContainer>
     </FlexibleRowPanel>
   );

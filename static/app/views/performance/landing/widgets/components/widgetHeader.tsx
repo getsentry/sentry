@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
-import {
+import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
@@ -19,8 +19,17 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 ) {
   const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
     props;
-  const isHighestOpportunityPagesWidget =
-    chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES;
+  const isWebVitalsWidget = [
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
+    PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
+  ].includes(chartSetting);
+
+  const isResourcesWidget =
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
+
+  const featureBadge =
+    isWebVitalsWidget || isResourcesWidget ? <FeatureBadge type="new" /> : null;
+
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -30,7 +39,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isHighestOpportunityPagesWidget && <FeatureBadge type="alpha" />}
+          {featureBadge}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />

@@ -1,7 +1,7 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
-import {EventTag, Measurement} from 'sentry/types/event';
-import {
+import type {EventTag, Measurement} from 'sentry/types/event';
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
@@ -83,6 +83,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   measurements?: Record<string, Measurement>;
   profile_id?: string;
   tags?: EventTag[];
+  transaction?: string;
 };
 
 export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {

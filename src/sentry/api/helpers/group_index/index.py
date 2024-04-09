@@ -1,7 +1,9 @@
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -33,7 +35,7 @@ EndpointFunction = Callable[..., Response]
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = [
+advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
@@ -44,7 +46,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
-    user: User,
+    user: User | AnonymousUser,
 ) -> Sequence[SearchFilter]:
     try:
         search_filters = convert_query_values(
@@ -61,7 +63,7 @@ def build_query_params_from_request(
     request: Request,
     organization: "Organization",
     projects: Sequence["Project"],
-    environments: Optional[Sequence["Environment"]],
+    environments: Sequence["Environment"] | None,
 ) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
@@ -78,8 +80,15 @@ def build_query_params_from_request(
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
-    query = request.GET.get("query", "is:unresolved").strip()
-    if request.GET.get("savedSearch") == "0" and request.user:
+
+    has_query = request.GET.get("query")
+    query = request.GET.get("query", None)
+    if query is None:
+        query = _get_default_query(organization)
+
+    query = query.strip()
+
+    if request.GET.get("savedSearch") == "0" and request.user and not has_query:
         saved_searches = (
             SavedSearch.objects
             # Do not include pinned or personal searches from other users in
@@ -204,10 +213,10 @@ def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFuncti
 
 
 def calculate_stats_period(
-    stats_period: Optional[str],
-    start: Optional[datetime],
-    end: Optional[datetime],
-) -> Tuple[Optional[str], Optional[datetime], Optional[datetime]]:
+    stats_period: str | None,
+    start: datetime | None,
+    end: datetime | None,
+) -> tuple[str | None, datetime | None, datetime | None]:
     if stats_period is None:
         # default
         stats_period = "24h"
@@ -228,8 +237,8 @@ def prep_search(
     cls: Any,
     request: Request,
     project: "Project",
-    extra_query_kwargs: Optional[Mapping[str, Any]] = None,
-) -> Tuple[CursorResult[Group], Mapping[str, Any]]:
+    extra_query_kwargs: Mapping[str, Any] | None = None,
+) -> tuple[CursorResult[Group], Mapping[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
@@ -255,7 +264,7 @@ def prep_search(
 def get_first_last_release(
     request: Request,
     group: "Group",
-) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
     first_release = group.get_first_release()
     if first_release is not None:
         last_release = group.get_last_release()
@@ -309,3 +318,10 @@ def get_first_last_release_info(
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
+
+
+def _get_default_query(organization: Organization) -> str:
+    if features.has("organizations:issue-priority-ui", organization):
+        return "is:unresolved issue.priority:[high, medium]"
+
+    return "is:unresolved"

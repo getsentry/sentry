@@ -1,6 +1,6 @@
 import {ProjectReleaseCount} from 'sentry/views/organizationStats/teamInsights/teamReleases';
 
-export function TeamReleaseCounts(): ProjectReleaseCount {
+export function TeamReleaseCountsFixture(): ProjectReleaseCount {
   return {
     release_counts: {
       '2021-03-11': 1,

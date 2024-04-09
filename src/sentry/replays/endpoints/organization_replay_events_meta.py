@@ -1,5 +1,3 @@
-from typing import Sequence
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +8,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.snuba import discover
 
 
 @region_silo_endpoint
@@ -27,10 +24,10 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
+    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [
             "error.type",
             "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
@@ -50,6 +47,8 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
+        dataset = self.get_dataset(request)
+
         def data_fn(offset, limit):
             query_details = {
                 "selected_columns": self.get_field_list(organization, request),
@@ -67,7 +66,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "transform_alias_to_input_format": True,
             }
 
-            return discover.query(**query_details)
+            return dataset.query(**query_details)
 
         return self.paginate(
             request=request,

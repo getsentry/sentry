@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from hashlib import md5
-from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -17,8 +18,8 @@ from sentry.event_manager import (
     _get_or_create_group_release,
     _increment_release_associated_counts,
     _process_existing_aggregate,
-    _save_grouphash_and_group,
     get_event_type,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
@@ -27,6 +28,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -38,8 +40,7 @@ logger = logging.getLogger(__name__)
 
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
-) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    process_occurrence_data(occurrence_data)
+) -> tuple[IssueOccurrence, GroupInfo | None]:
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -66,28 +67,30 @@ def save_issue_occurrence(
     return occurrence, group_info
 
 
-def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:
+def process_occurrence_data(data: dict[str, Any]) -> None:
+    if "fingerprint" not in data:
+        return
+
     # Hash fingerprints to make sure they're a consistent length
-    occurrence_data["fingerprint"] = [
-        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
-    ]
+    data["fingerprint"] = [md5(part.encode("utf-8")).hexdigest() for part in data["fingerprint"]]
 
 
 class IssueArgs(TypedDict):
-    platform: Optional[str]
+    platform: str | None
     message: str
-    level: Optional[int]
+    level: int | None
     culprit: str
     last_seen: datetime
     first_seen: datetime
     active_at: datetime
     type: int
     data: OccurrenceMetadata
-    first_release: Optional[Release]
+    first_release: Release | None
+    priority: int | None
 
 
 def _create_issue_kwargs(
-    occurrence: IssueOccurrence, event: Event, release: Optional[Release]
+    occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
     kwargs: IssueArgs = {
         "platform": event.platform,
@@ -102,6 +105,11 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
+        "priority": (
+            occurrence.initial_issue_priority
+            if occurrence.initial_issue_priority is not None
+            else occurrence.type.default_priority
+        ),
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -112,7 +120,7 @@ class OccurrenceMetadata(TypedDict):
     culprit: str
     metadata: Mapping[str, Any]
     title: str
-    location: Optional[str]
+    location: str | None
     last_received: str
 
 
@@ -128,6 +136,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+    event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -136,6 +145,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
+        event_metadata["source"] = occurrence.evidence_data.get("source")
 
     return {
         "type": event_type.key,
@@ -149,8 +159,8 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
 
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
-    occurrence: IssueOccurrence, event: Event, release: Optional[Release]
-) -> Optional[GroupInfo]:
+    occurrence: IssueOccurrence, event: Event, release: Release | None
+) -> GroupInfo | None:
     project = event.project
     issue_kwargs = _create_issue_kwargs(occurrence, event, release)
     # We need to augment the message with occurrence data here since we can't build a `GroupEvent`
@@ -189,16 +199,16 @@ def save_issue_from_occurrence(
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
-        with sentry_sdk.start_span(
-            op="issues.save_issue_from_occurrence.transaction"
-        ) as span, metrics.timer(
-            "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
-            sample_rate=1.0,
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            metrics.timer(
+                "issues.save_issue_from_occurrence.transaction",
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                sample_rate=1.0,
+            ) as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = _save_grouphash_and_group(
+            group, is_new = save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )
             is_regression = False
@@ -207,7 +217,11 @@ def save_issue_from_occurrence(
             metrics.incr(
                 "group.created",
                 skip_internal=True,
-                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                tags={
+                    "platform": event.platform or "unknown",
+                    "type": occurrence.type.type_id,
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
@@ -220,6 +234,7 @@ def save_issue_from_occurrence(
                     tags={
                         "platform": event.platform or "unknown",
                         "frame_mix": frame_mix,
+                        "sdk": normalized_sdk_tag_from_event(event),
                     },
                 )
     else:
@@ -249,7 +264,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    eventstream.insert(
+    eventstream.backend.insert(
         event=group_event,
         is_new=group_info.is_new,
         is_regression=group_info.is_regression,

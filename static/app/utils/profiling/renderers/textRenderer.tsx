@@ -1,4 +1,4 @@
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, resizeCanvasToDisplaySize} from '../gl/utils';
 
 const TEST_STRING = 'Who knows if this changed, font-display: swap wont tell me';

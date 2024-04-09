@@ -1,11 +1,9 @@
 import partition from 'lodash/partition';
 
 import type {PlatformKey} from 'sentry/types';
-import {Project} from 'sentry/types/project';
-import {
-  getDocsPlatformSDKForPlatform,
-  SupportedProfilingPlatformSDK,
-} from 'sentry/utils/profiling/platforms';
+import type {Project} from 'sentry/types/project';
+import type {SupportedProfilingPlatformSDK} from 'sentry/utils/profiling/platforms';
+import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
 
 export const profilingOnboardingDocKeys = [
   '0-alert',
@@ -43,27 +41,25 @@ export const supportedPlatformExpectedDocKeys: Record<
   'php-laravel': ['1-install', '2-configure-performance', '3-configure-profiling'],
   'php-symfony2': ['1-install', '2-configure-performance', '3-configure-profiling'],
   ruby: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
-  'javascript-nextjs': [
-    '0-alert',
-    '1-install',
-    '2-configure-performance',
-    '3-configure-profiling',
-  ],
-  'javascript-remix': [
-    '0-alert',
-    '1-install',
-    '2-configure-performance',
-    '3-configure-profiling',
-  ],
+  'javascript-nextjs': ['1-install', '2-configure-performance', '3-configure-profiling'],
+  'javascript-remix': ['1-install', '2-configure-performance', '3-configure-profiling'],
   'javascript-sveltekit': [
-    '0-alert',
     '1-install',
     '2-configure-performance',
     '3-configure-profiling',
   ],
   javascript: ['1-install', '2-configure-document-policy', '3-configure'],
   'javascript-react': ['1-install', '2-configure-document-policy', '3-configure'],
+  'javascript-angular': ['1-install', '2-configure-document-policy', '3-configure'],
+  'javascript-vue': ['1-install', '2-configure-document-policy', '3-configure'],
   'react-native': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
+  flutter: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
+  'dart-flutter': [
     '0-alert',
     '1-install',
     '2-configure-performance',

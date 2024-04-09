@@ -1,33 +1,36 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {urlEncode} from '@sentry/utils';
-import {Location, Query} from 'history';
-import isString from 'lodash/isString';
+import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {
   NewQuery,
   Organization,
   OrganizationSummary,
   Project,
   SelectValue,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {
-  aggregateFunctionOutputType,
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
   Aggregation,
-  AGGREGATIONS,
   Column,
   ColumnType,
   ColumnValueType,
-  explodeFieldString,
   Field,
+} from 'sentry/utils/discover/fields';
+import {
+  aggregateFunctionOutputType,
+  AGGREGATIONS,
+  explodeFieldString,
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
@@ -40,17 +43,20 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import type {DisplayModes} from 'sentry/utils/discover/types';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboards/types';
+import type {WidgetQuery} from '../dashboards/types';
+import {DashboardWidgetSource, DisplayType} from '../dashboards/types';
 import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
-import {FieldValue, FieldValueKind, TableColumn} from './table/types';
+import type {FieldValue, TableColumn} from './table/types';
+import {FieldValueKind} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 
 export type QueryWithColumnState =
@@ -82,6 +88,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     if (isEquation(f.field)) {
       column.key = f.field;
       column.name = getEquation(columnName);
+      column.type = 'number';
     } else {
       column.key = columnName;
       column.name = columnName;
@@ -96,7 +103,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
         column.type = outputType;
       }
       const aggregate = AGGREGATIONS[col.function[0]];
-      column.isSortable = aggregate && aggregate.isSortable;
+      column.isSortable = aggregate?.isSortable;
     } else if (col.kind === 'field') {
       if (getFieldDefinition(col.field) !== null) {
         column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
@@ -287,7 +294,7 @@ export function getExpandedResults(
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
-  // update the columns according the the expansion above
+  // update the columns according the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
       column === null
@@ -350,8 +357,8 @@ function generateAdditionalConditions(
         value === null || value === undefined
           ? ''
           : shouldQuote
-          ? String(value)
-          : String(value).trim();
+            ? String(value)
+            : String(value).trim();
 
       if (isMeasurement(column.field) && !nextValue) {
         // Do not add measurement conditions if nextValue is falsey.
@@ -744,7 +751,7 @@ export function getTargetForTransactionSummaryLink(
   let projectID: string | string[] | undefined;
   const filterProjects = location?.query.project;
 
-  if (isString(filterProjects) && filterProjects !== '-1') {
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
     // Project selector in discover has just one selected project
     projectID = filterProjects;
   } else {

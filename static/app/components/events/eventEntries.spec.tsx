@@ -1,19 +1,23 @@
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture, EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
 describe('EventEntries', function () {
   const defaultProps = {
-    organization: Organization(),
-    project: TestStubs.Project(),
-    event: TestStubs.Event(),
-    location: TestStubs.location(),
+    organization: OrganizationFixture(),
+    project: ProjectFixture(),
+    event: EventFixture(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/grouping-info/',
@@ -26,27 +30,30 @@ describe('EventEntries', function () {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/actionable-items/',
+    });
   });
 
   it('renders the replay section in the correct place', async function () {
     render(
       <EventEntries
         {...defaultProps}
-        event={TestStubs.Event({
-          entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
+        event={EventFixture({
+          entries: [EventEntryFixture(), EntryDebugMetaFixture()],
           contexts: {
             replay_id: 1,
           },
         })}
       />,
-      {organization: Organization({features: ['session-replay']})}
+      {organization: OrganizationFixture({features: ['session-replay']})}
     );
 
-    await screen.findByText(/message/i);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/event-section/)).toHaveLength(5); //  event tags + 3 entries + event grouping
+    });
 
     const sections = screen.getAllByTestId(/event-section/);
-
-    expect(sections).toHaveLength(5); //  event tags + 3 entries + event grouping
 
     // Replay should be after message but before images loaded
     expect(sections[1]).toHaveTextContent(/message/i);

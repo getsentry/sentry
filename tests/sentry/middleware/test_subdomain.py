@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.subdomain import SubdomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import no_silo_test
 
 
 class SubdomainMiddlewareTest(TestCase):
@@ -87,6 +88,7 @@ urlpatterns = [
 ]
 
 
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
@@ -111,7 +113,7 @@ class End2EndTest(APITestCase):
         response = self.client.get(
             reverse("test-endpoint"),
             SERVER_NAME="albertos_apples.testserver",
-            follow=True,
         )
-        assert response.status_code == 200
-        assert response.redirect_chain == [("http://testserver", 302)]
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.status_code == 302
+        assert response.url == "http://testserver"

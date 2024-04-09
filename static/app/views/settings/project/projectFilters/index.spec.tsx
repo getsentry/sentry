@@ -1,6 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
-import {Tombstones} from 'sentry-fixture/tombstones';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -50,7 +51,7 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: Tombstones(),
+      body: TombstonesFixture(),
     });
   });
 
@@ -108,15 +109,17 @@ describe('ProjectFilters', function () {
     renderComponent();
 
     expect(
-      await screen.findByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+      })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 10'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 10'})
     ).not.toBeChecked();
   });
 
@@ -127,7 +130,9 @@ describe('ProjectFilters', function () {
     const mock = createFilterMock(filter);
 
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Safari Version 5 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Safari (Deprecated) Version 5 and lower',
+      })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
@@ -139,7 +144,7 @@ describe('ProjectFilters', function () {
 
     // Toggle filter off
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 11'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 11'})
     );
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
@@ -152,10 +157,12 @@ describe('ProjectFilters', function () {
 
     // Click ie9 and < ie9
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
     );
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      screen.getByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+      })
     );
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
@@ -173,15 +180,15 @@ describe('ProjectFilters', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
+      'safari_pre_6',
+      'android_pre_4',
+      'edge_pre_79',
       'ie_pre_9',
       'ie9',
       'ie10',
       'ie11',
-      'safari_pre_6',
       'opera_pre_15',
       'opera_mini_pre_8',
-      'android_pre_4',
-      'edge_pre_79',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
@@ -266,7 +273,7 @@ describe('ProjectFilters', function () {
         params={{projectId: project.slug, filterType: ''}}
         project={project}
       />,
-      {organization: Organization({access: []})}
+      {organization: OrganizationFixture({access: []})}
     );
 
     const checkboxes = await screen.findAllByRole('checkbox');
@@ -299,11 +306,11 @@ describe('ProjectFilters', function () {
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
-    const discardProject = TestStubs.Project({
+    const discardProject = ProjectFixture({
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = Organization({access: [], features: ['discard-groups']});
+    const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
     render(
       <ProjectFilters

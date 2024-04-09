@@ -12,12 +12,12 @@ from django.http import HttpRequest
 
 from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
@@ -63,7 +63,7 @@ class TestVSTSOAuthCallbackView(TestCase):
         assert result["refresh_token"] == "zzzzzzzzzz"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestAccountConfigView(TestCase):
     def setUp(self):
         responses.reset()
@@ -176,12 +176,12 @@ class TestAccountConfigView(TestCase):
         assert mock_render_to_response.call_args[1]["context"] == {"no_accounts": True}
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsIdentityProviderTest(TestCase):
     client_secret = "12345678"
 
     def setUp(self):
-        self.identity_provider_model = IdentityProvider.objects.create(type="vsts")
+        self.identity_provider_model = self.create_identity_provider(type="vsts")
         self.identity = Identity.objects.create(
             idp=self.identity_provider_model,
             user=self.user,

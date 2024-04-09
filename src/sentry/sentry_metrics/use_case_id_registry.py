@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-import re
+from collections.abc import Mapping
 from enum import Enum
-from typing import Mapping, Optional
-
-from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
-MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
+
+class UseCaseIDAPIAccess(Enum):
+    """
+    Represents the access levels of a UseCaseID for sentry's APIs.
+    """
+
+    PUBLIC = 0
+    PRIVATE = 1
 
 
 class UseCaseID(Enum):
@@ -17,7 +21,21 @@ class UseCaseID(Enum):
     SESSIONS = "sessions"
     ESCALATING_ISSUES = "escalating_issues"
     CUSTOM = "custom"
+    PROFILES = "profiles"
+    BUNDLE_ANALYSIS = "bundle_analysis"
+    METRIC_STATS = "metric_stats"
 
+
+USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
+    UseCaseID.SPANS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.TRANSACTIONS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.SESSIONS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.ESCALATING_ISSUES: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.CUSTOM: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.PROFILES: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,
+}
 
 # UseCaseKey will be renamed to MetricPathKey
 METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
@@ -26,6 +44,9 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
+    UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
+    UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
+    UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
@@ -41,6 +62,7 @@ USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
     UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
     UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
+    UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
 }
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
@@ -51,16 +73,11 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
-    return METRIC_PATH_MAPPING.get(use_case_id)
-
-
-def extract_use_case_id(mri: str) -> UseCaseID:
+def get_use_case_id_api_access(use_case_id: UseCaseID) -> UseCaseIDAPIAccess:
     """
-    Returns the use case ID given the MRI, returns None if MRI is invalid.
+    Returns the api access visibility of a use case and defaults to private in case no api access is provided.
+
+    The rationale for defaulting to private visibility is that we do not want to leak by mistake any internal metrics
+    that users should not have access to.
     """
-    if matched := MRI_RE_PATTERN.match(mri):
-        use_case_str = matched.group(2)
-        if use_case_str in {id.value for id in UseCaseID}:
-            return UseCaseID(use_case_str)
-    raise ValidationError(f"Invalid mri: {mri}")
+    return USE_CASE_ID_API_ACCESSES.get(use_case_id, UseCaseIDAPIAccess.PRIVATE)

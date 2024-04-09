@@ -1,11 +1,14 @@
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY, // ms in day
   formatAbbreviatedNumber,
+  formatAbbreviatedNumberWithDynamicPrecision,
   formatFloat,
+  formatNumberWithDynamicDecimalPoints,
   formatPercentage,
   formatRate,
   formatSecondsToClock,
+  formatSpanOperation,
   getDuration,
   getExactDuration,
   MONTH, // ms in month
@@ -186,6 +189,13 @@ describe('parseClockToSeconds', function () {
 });
 
 describe('formatAbbreviatedNumber()', function () {
+  it('should format numbers smaller than 1', function () {
+    expect(formatAbbreviatedNumber(0.1)).toBe('0.1');
+    expect(formatAbbreviatedNumber(0.01)).toBe('0.01');
+    expect(formatAbbreviatedNumber(0.123)).toBe('0.123');
+    expect(formatAbbreviatedNumber(0.99999)).toBe('1');
+  });
+
   it('should abbreviate numbers', function () {
     expect(formatAbbreviatedNumber(0)).toBe('0');
     expect(formatAbbreviatedNumber(100)).toBe('100');
@@ -208,18 +218,71 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber(100.12)).toBe('100.12');
     expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
+    expect(formatAbbreviatedNumber(1011)).toBe('1k');
+    expect(formatAbbreviatedNumber(10911)).toBe('10.9k');
+    expect(formatAbbreviatedNumber(11911)).toBe('11k');
   });
 
-  it('should round to set amount of significant digits', () => {
+  it('should round to set amount of significant digits', function () {
     expect(formatAbbreviatedNumber(100.12, 3)).toBe('100');
     expect(formatAbbreviatedNumber(199.99, 3)).toBe('200');
     expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122, 3)).toBe('1.21m');
+    expect(formatAbbreviatedNumber(-1213122, 3)).toBe('-1.21m');
     expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1500b');
 
     expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
     expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
+  });
+
+  it('should format negative numbers', function () {
+    expect(formatAbbreviatedNumber(-100)).toBe('-100');
+    expect(formatAbbreviatedNumber(-1095)).toBe('-1k');
+    expect(formatAbbreviatedNumber(-10000000)).toBe('-10m');
+    expect(formatAbbreviatedNumber(-1000000000000)).toBe('-1000b');
+  });
+});
+
+describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
+  it('should format numbers smaller than 1', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.1)).toBe('0.1');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.01)).toBe('0.01');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.123)).toBe('0.123');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.0000046898378059268)).toBe(
+      '0.00000469'
+    );
+  });
+
+  it('should abbreviate numbers', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0)).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100)).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1000)).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(10000000)).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100000000000)).toBe('100b');
+  });
+
+  it('should abbreviate numbers that are strings', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision('00')).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('100')).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('1000')).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('10000000')).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('100000000000')).toBe('100b');
+  });
+
+  it('should round to max two digits', () => {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1.00001)).toBe('1');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100.12)).toBe('100.12');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(199.99)).toBe('199.99');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1500)).toBe('1.5k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(146789)).toBe('146.79k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(153789)).toBe('153.79k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1213122)).toBe('1.21m');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('1249.23421')).toBe('1.25k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('124b');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('158.80421626984128')).toBe(
+      '158.8'
+    );
   });
 });
 
@@ -229,8 +292,8 @@ describe('formatRate()', function () {
   });
 
   it('Accepts a unit', () => {
-    expect(formatRate(0.3142, RateUnits.PER_MINUTE)).toBe('0.314/min');
-    expect(formatRate(0.3142, RateUnits.PER_HOUR)).toBe('0.314/hr');
+    expect(formatRate(0.3142, RateUnit.PER_MINUTE)).toBe('0.314/min');
+    expect(formatRate(0.3142, RateUnit.PER_HOUR)).toBe('0.314/hr');
   });
 
   it('Formats to 3 significant digits for numbers > minimum', () => {
@@ -395,5 +458,79 @@ describe('parseLargestSuffix', () => {
     expect(parseLargestSuffix(SEC_IN_WK, 'minutes')).toEqual([10080, 'minutes']);
     expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
     expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
+  });
+});
+
+describe('formatNumberWithDynamicDecimals', () => {
+  it('rounds to two decimal points without forcing them', () => {
+    expect(formatNumberWithDynamicDecimalPoints(1)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.0)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.5)).toEqual('1.5');
+    expect(formatNumberWithDynamicDecimalPoints(1.05)).toEqual('1.05');
+    expect(formatNumberWithDynamicDecimalPoints(1.004)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.005)).toEqual('1.01');
+    expect(formatNumberWithDynamicDecimalPoints(1.1009)).toEqual('1.1');
+    expect(formatNumberWithDynamicDecimalPoints(2.236)).toEqual('2.24');
+  });
+
+  it('rounds up to the maximum fraction digits passed', () => {
+    expect(formatNumberWithDynamicDecimalPoints(1, 2)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.0, 2)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345, 1)).toEqual('1.2');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345, 2)).toEqual('1.23');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345, 3)).toEqual('1.235');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345, 4)).toEqual('1.2345');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345, 5)).toEqual('1.2345');
+  });
+
+  it('preserves significant decimal places', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0.001234)).toEqual('0.0012');
+    expect(formatNumberWithDynamicDecimalPoints(0.000125)).toEqual('0.00013');
+    expect(formatNumberWithDynamicDecimalPoints(0.0000123)).toEqual('0.000012');
+  });
+
+  it('handles zero, NaN and Infinity', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0)).toEqual('0');
+    expect(formatNumberWithDynamicDecimalPoints(NaN)).toEqual('NaN');
+    expect(formatNumberWithDynamicDecimalPoints(Infinity)).toEqual('∞');
+    expect(formatNumberWithDynamicDecimalPoints(-Infinity)).toEqual('-∞');
+  });
+
+  it('handles negative numbers', () => {
+    expect(formatNumberWithDynamicDecimalPoints(-1)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.0)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.5)).toEqual('-1.5');
+    expect(formatNumberWithDynamicDecimalPoints(-1.05)).toEqual('-1.05');
+    expect(formatNumberWithDynamicDecimalPoints(-1.004)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.005)).toEqual('-1.01');
+    expect(formatNumberWithDynamicDecimalPoints(-1.1009)).toEqual('-1.1');
+    expect(formatNumberWithDynamicDecimalPoints(-2.236)).toEqual('-2.24');
+  });
+});
+
+describe('formatSpanOperation', () => {
+  it('falls back to "span"', () => {
+    expect(formatSpanOperation()).toEqual('span');
+  });
+
+  it.each([
+    ['db', 'query'],
+    ['db.redis', 'query'],
+    ['task.run', 'task'],
+    ['http.get', 'request'],
+    ['resource.js', 'resource'],
+  ])('formats short description for %s span operation', (operation, description) => {
+    expect(formatSpanOperation(operation)).toEqual(description);
+  });
+
+  it.each([
+    ['db', 'database query'],
+    ['db.redis', 'cache query'],
+    ['task.run', 'application task'],
+    ['http.get', 'URL request'],
+    ['resource.script', 'JavaScript file'],
+    ['resource.img', 'image'],
+  ])('formats long description for %s span operation', (operation, description) => {
+    expect(formatSpanOperation(operation, 'long')).toEqual(description);
   });
 });

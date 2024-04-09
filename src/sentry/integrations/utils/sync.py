@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.group import Group
@@ -80,7 +81,13 @@ def sync_group_assignee_inbound(
         orgs_with_sync_enabled,
         external_issue_key,
     )
+    log_context = {
+        "integration_id": integration.id,
+        "email": email,
+        "issue_key": external_issue_key,
+    }
     if not affected_groups:
+        logger.info("no-affected-groups", extra=log_context)
         return []
 
     if not assign:
@@ -100,14 +107,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.assign(group, user)
             groups_assigned.append(group)
         else:
-            logger.info(
-                "assignee-not-found-inbound",
-                extra={
-                    "integration_id": integration.id,
-                    "email": email,
-                    "issue_key": external_issue_key,
-                },
-            )
+            logger.info("assignee-not-found-inbound", extra=log_context)
     return groups_assigned
 
 

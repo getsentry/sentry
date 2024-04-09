@@ -1,10 +1,8 @@
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test(stable=True)
 class ExternalTeamTest(APITestCase):
     endpoint = "sentry-api-0-external-team"
     method = "post"
@@ -42,9 +40,10 @@ class ExternalTeamTest(APITestCase):
             "provider": "github",
             "integrationId": self.integration.id,
         }
-        response = self.get_error_response(
-            self.organization.slug, self.team.slug, status_code=403, **data
-        )
+        with self.feature({"organizations:integrations-codeowners": False}):
+            response = self.get_error_response(
+                self.organization.slug, self.team.slug, status_code=403, **data
+            )
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_missing_provider(self):

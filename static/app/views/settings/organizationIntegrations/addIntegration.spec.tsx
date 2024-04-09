@@ -1,14 +1,15 @@
-import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
-import {Organization} from 'sentry-fixture/organization';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
-  const provider = GitHubIntegrationProvider();
-  const integration = TestStubs.GitHubIntegration();
+  const provider = GitHubIntegrationProviderFixture();
+  const integration = GitHubIntegrationFixture();
 
   function interceptMessageEvent(event: MessageEvent) {
     if (event.origin === '') {
@@ -51,7 +52,11 @@ describe('AddIntegration', function () {
     global.open = open;
 
     render(
-      <AddIntegration organization={Organization()} provider={provider} onInstall={onAdd}>
+      <AddIntegration
+        organization={OrganizationFixture()}
+        provider={provider}
+        onInstall={onAdd}
+      >
         {openDialog => (
           <a href="#" onClick={() => openDialog()}>
             Click

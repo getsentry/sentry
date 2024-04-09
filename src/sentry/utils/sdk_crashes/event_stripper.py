@@ -1,5 +1,6 @@
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum, auto
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -38,8 +39,8 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.NEVER.with_explanation(
-                        "The filename path could contain the app name."
+                    "filename": Allow.SIMPLE_TYPE.with_explanation(
+                        "We overwrite the filename for SDK frames and it's acceptable to keep it for system library frames."
                     ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,
@@ -53,6 +54,7 @@ EVENT_DATA_ALLOWLIST = {
                     "image_addr": Allow.SIMPLE_TYPE,
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
+                    "lineno": Allow.SIMPLE_TYPE,
                 }
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
@@ -121,15 +123,15 @@ def strip_event_data(
 
 
 def _strip_event_data_with_allowlist(
-    data: Mapping[str, Any], allowlist: Optional[Mapping[str, Any]]
-) -> Optional[Mapping[str, Any]]:
+    data: Mapping[str, Any], allowlist: Mapping[str, Any] | None
+) -> Mapping[str, Any] | None:
     """
     Recursively traverses the data and only keeps values based on the allowlist.
     """
     if allowlist is None:
         return None
 
-    stripped_data: Dict[str, Any] = {}
+    stripped_data: dict[str, Any] = {}
     for data_key, data_value in data.items():
         allowlist_for_data = allowlist.get(data_key)
         if allowlist_for_data is None:
@@ -163,13 +165,11 @@ def _strip_frames(
 
     This method sets in_app to True for SDK frames for grouping. The grouping config
     will set in_app false for all SDK frames. To not change the grouping logic, we must
-    add a stacktrace rule for each path_replacement_name configured in
-    `SDKCrashDetectorConfig.sdk_frame_path_replacement_names` and
-    `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name` like
-    `stack.abs_path:{{abs_path_replacement}} +app` to the project configured for the
-    platform in the options.
+    add a stacktrace rule for each path configured in
+    `SDKCrashDetectorConfig.sdk_frame_config.path_replacer` and
+    `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name`.
 
-    For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app` to it's project in Sentry.
+    For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app +group` to it's project in Sentry.
     """
 
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
@@ -177,9 +177,12 @@ def _strip_frames(
             frame["in_app"] = True
 
             # The path field usually contains the name of the application, which we can't keep.
-            for field in sdk_crash_detector.fields_containing_paths:
-                if frame.get(field):
-                    frame[field] = sdk_crash_detector.replace_sdk_frame_path(field)
+            for path_field_key in sdk_crash_detector.fields_containing_paths:
+                path_field_value: str = frame.get(path_field_key, "")
+                if path_field_value:
+                    frame[path_field_key] = sdk_crash_detector.replace_sdk_frame_path(
+                        path_field_key, path_field_value
+                    )
         else:
             frame["in_app"] = False
 

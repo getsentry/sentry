@@ -1,9 +1,10 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -15,14 +16,20 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getSeriesSelection} from 'sentry/components/charts/utils';
+import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
+import type {PlaceholderProps} from 'sentry/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -30,9 +37,9 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
-  AggregationOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -44,10 +51,12 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
+import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget} from '../types';
+import type {Widget} from '../types';
+import {DisplayType} from '../types';
 
-import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -75,6 +84,7 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -135,7 +145,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization, selection} = this.props;
+    const {location, widget, selection} = this.props;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -168,8 +178,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
-          organization={organization}
           stickyHeaders
+          fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
           getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
         />
       );
@@ -246,6 +256,23 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       );
     });
   }
+
+  chartRef: ReactEchartsRef | null = null;
+
+  handleRef = (chartRef: ReactEchartsRef): void => {
+    if (chartRef && !this.chartRef) {
+      this.chartRef = chartRef;
+      // add chart to the group so that it has synced cursors
+      const instance = chartRef.getEchartsInstance?.();
+      if (instance && !instance.group && this.props.chartGroup) {
+        instance.group = this.props.chartGroup;
+      }
+    }
+
+    if (!chartRef) {
+      this.chartRef = null;
+    }
+  };
 
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
@@ -358,6 +385,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const durationUnit = isDurationChart
       ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
       : undefined;
+    const bucketSize = getBucketSize(timeseriesResults);
+
+    const valueFormatter = (value: number, seriesName?: string) => {
+      const aggregateName = seriesName?.split(':').pop()?.trim();
+      if (aggregateName) {
+        return timeseriesResultsTypes
+          ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+          : tooltipFormatter(value, aggregateOutputType(aggregateName));
+      }
+      return tooltipFormatter(value, 'number');
+    };
 
     const chartOptions = {
       autoHeightResize,
@@ -372,14 +410,24 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) => {
-          const aggregateName = seriesName?.split(':').pop()?.trim();
-          if (aggregateName) {
-            return timeseriesResultsTypes
-              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-              : tooltipFormatter(value, aggregateOutputType(aggregateName));
+        formatter: (params, asyncTicket) => {
+          const {chartGroup} = this.props;
+          const isInGroup =
+            chartGroup && chartGroup === this.chartRef?.getEchartsInstance().group;
+
+          // tooltip is triggered whenever any chart in the group is hovered,
+          // so we need to check if the mouse is actually over this chart
+          if (isInGroup && !isChartHovered(this.chartRef)) {
+            return '';
           }
-          return tooltipFormatter(value, 'number');
+
+          return getFormatter({
+            valueFormatter,
+            isGroupedByDate: true,
+            bucketSize,
+            addSecondsToTimeFormat: false,
+            showTimeInTooltip: true,
+          })(params, asyncTicket);
         },
       },
       yAxis: {
@@ -390,14 +438,19 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               return axisLabelFormatterUsingAggregateOutputType(
                 value,
                 outputType,
-                undefined,
+                true,
                 durationUnit
               );
             }
-            return axisLabelFormatter(value, aggregateOutputType(axisLabel));
+            return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
           },
         },
         minInterval: durationUnit ?? 0,
+      },
+      xAxis: {
+        axisPointer: {
+          snap: true,
+        },
       },
     };
 
@@ -421,8 +474,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           }
 
           const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
-          const shouldColorOther = timeseriesResults?.some(
-            ({seriesName}) => seriesName && seriesName.match(otherRegex)
+          const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
+            seriesName?.match(otherRegex)
           );
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(
@@ -453,6 +506,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
           const seriesStart = series[0]?.data[0]?.name;
           const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
+
+          const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
@@ -474,6 +530,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                     legend,
                     series,
                     onLegendSelectChanged,
+                    forwardedRef,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}
@@ -485,6 +542,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     );
   }
 }
+
+const getBucketSize = (series: Series[] | undefined) => {
+  if (!series || series.length < 2) {
+    return 0;
+  }
+
+  return Number(series[0].data[1]?.name) - Number(series[0].data[0]?.name);
+};
 
 export default withTheme(WidgetCardChart);
 

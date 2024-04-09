@@ -1,9 +1,7 @@
 from django.urls import reverse
 
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -121,7 +119,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] is None
 
 
-@region_silo_test
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
         one_min_ago = iso_format(before_now(minutes=1))
@@ -130,26 +127,22 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         four_min_ago = iso_format(before_now(minutes=4))
 
         prev_event_id = "a" * 32
-        self.prev_event, prev_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=prev_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": prev_event_id,
-                "project_id": self.project.id,
+        self.prev_event, _ = self.process_occurrence(
+            event_id=prev_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": four_min_ago,
                 "message_timestamp": four_min_ago,
             },
         )
 
         cur_event_id = "b" * 32
-        self.cur_event, cur_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=cur_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": cur_event_id,
-                "project_id": self.project.id,
+        self.cur_event, cur_group_info = self.process_occurrence(
+            event_id=cur_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": three_min_ago,
                 "message_timestamp": three_min_ago,
             },
@@ -158,13 +151,11 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         self.cur_group = cur_group_info.group
 
         next_event_id = "c" * 32
-        self.next_event, next_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=next_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": next_event_id,
-                "project_id": self.project.id,
+        self.next_event, _ = self.process_occurrence(
+            event_id=next_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": two_min_ago,
                 "message_timestamp": two_min_ago,
                 "tags": {"environment": "production"},
@@ -172,18 +163,16 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         )
 
         unrelated_event_id = "d" * 32
-        process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=unrelated_event_id, project_id=self.project.id, fingerprint=["group-2"]
-            ),
-            {
-                "event_id": unrelated_event_id,
-                "project_id": self.project.id,
+        self.process_occurrence(
+            event_id=unrelated_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-2"],
+            event_data={
                 "timestamp": one_min_ago,
                 "message_timestamp": one_min_ago,
                 "tags": {"environment": "production"},
             },
-        )[0]
+        )
 
     def test_generic_event_with_occurrence(self):
         url = reverse(
@@ -202,7 +191,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         assert response.data["occurrence"]["id"] == self.cur_event.id
 
 
-@region_silo_test
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -327,7 +315,6 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["groupID"] is None
 
 
-@region_silo_test
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -1,10 +1,10 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -73,7 +73,7 @@ describe('useProfileEvents', function () {
     });
 
     await waitFor(() => result.current.isError);
-    expect(result.current.status).toEqual('error');
+    await waitFor(() => expect(result.current.status).toEqual('error'));
   });
 });
 

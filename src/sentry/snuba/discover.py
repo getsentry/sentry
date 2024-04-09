@@ -2,15 +2,14 @@ import logging
 import math
 import random
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
-from typing_extensions import TypedDict
+from snuba_sdk import Condition, Function, Op
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -30,7 +29,6 @@ from sentry.search.events.fields import (
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     SnubaTSResult,
@@ -68,11 +66,22 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
 class EventsMeta(TypedDict):
-    fields: Dict[str, str]
+    fields: dict[str, str]
+    datasetReason: NotRequired[str]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+
+
+# When calling make build-spectacular-docs we hit this issue
+# https://github.com/tfranzel/drf-spectacular/issues/1041
+# This is a work around
+EventsMeta.__annotations__["datasetReason"] = str
+EventsMeta.__annotations__["isMetricsData"] = bool
+EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     meta: EventsMeta
 
 
@@ -109,7 +118,7 @@ def format_time(data, start, end, rollup, orderby):
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -125,20 +134,22 @@ def format_time(data, start, end, rollup, orderby):
     return rv
 
 
-def zerofill(data, start, end, rollup, orderby):
+def zerofill(data, start, end, rollup, orderby, time_col_name=None):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
 
     for obj in data:
+        if time_col_name and time_col_name in obj:
+            obj["time"] = obj.pop(time_col_name)
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
             # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -187,6 +198,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -257,16 +269,17 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, Any],
+    params: ParamsType,
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -329,15 +342,17 @@ def timeseries_query(
         for snql_query, result in zip(query_list, query_results):
             results.append(
                 {
-                    "data": zerofill(
-                        result["data"],
-                        snql_query.params.start,
-                        snql_query.params.end,
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"],
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
                     "meta": result["meta"],
                 }
             )
@@ -412,6 +427,8 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -492,9 +509,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -536,9 +555,11 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                 },
                 params["start"],
@@ -558,8 +579,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    cursor: Optional[int] = 0,
+    per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -577,7 +598,7 @@ def get_facets(
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
-    fetch_projects = len(params.get("project_id", [])) > 1
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(
@@ -593,6 +614,15 @@ def get_facets(
             offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
+        non_sample_columns = [
+            key_name_builder.resolve_column("trace"),
+            key_name_builder.resolve_column("id"),
+        ]
+        for condition in key_name_builder.where:
+            if isinstance(condition, Condition):
+                if condition.lhs in non_sample_columns:
+                    key_name_builder.turbo = False
+                    break
         key_names = key_name_builder.run_query(referrer)
         # Sampling keys for multi-project results as we don't need accuracy
         # with that much data.
@@ -725,6 +755,7 @@ def spans_histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -813,6 +844,7 @@ def histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1390,8 +1422,8 @@ def check_multihistogram_fields(fields):
 
 
 def corr_snuba_timeseries(
-    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
-    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    x: Sequence[tuple[int, Sequence[dict[str, float]]]],
+    y: Sequence[tuple[int, Sequence[dict[str, float]]]],
 ):
     """
     Returns the Pearson's coefficient of two snuba timeseries.

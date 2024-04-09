@@ -1,56 +1,45 @@
-import {PureComponent} from 'react';
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
-type Props = {
-  location: Location;
-  repositories: Array<Repository>;
-  router: InjectedRouter;
+interface RepositorySwitcherProps {
+  repositories: Repository[];
   activeRepository?: Repository;
-};
+}
 
-class RepositorySwitcher extends PureComponent<Props> {
-  handleRepoFilterChange = (activeRepo: string) => {
-    const {router, location} = this.props;
+function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcherProps) {
+  const router = useRouter();
+  const location = useLocation();
 
+  const handleRepoFilterChange = (activeRepo: string) => {
     router.push({
       ...location,
       query: {...location.query, cursor: undefined, activeRepo},
     });
   };
 
-  render() {
-    const {activeRepository, repositories} = this.props;
+  const activeRepo = activeRepository?.name;
 
-    const activeRepo = activeRepository?.name;
-
-    return (
-      <StyledCompactSelect
-        triggerLabel={activeRepo}
-        triggerProps={{prefix: t('Filter')}}
-        value={activeRepo}
-        options={repositories.map(repo => ({
-          value: repo.name,
-          textValue: repo.name,
-          label: <RepoLabel>{repo.name}</RepoLabel>,
-        }))}
-        onChange={opt => this.handleRepoFilterChange(String(opt?.value))}
-      />
-    );
-  }
+  return (
+    <CompactSelect
+      triggerLabel={activeRepo}
+      triggerProps={{prefix: t('Filter')}}
+      value={activeRepo}
+      options={repositories.map(repo => ({
+        value: repo.name,
+        textValue: repo.name,
+        label: <RepoLabel>{repo.name}</RepoLabel>,
+      }))}
+      onChange={opt => handleRepoFilterChange(String(opt?.value))}
+    />
+  );
 }
 
 export default RepositorySwitcher;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  margin-bottom: ${space(1)};
-`;
 
 const RepoLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}

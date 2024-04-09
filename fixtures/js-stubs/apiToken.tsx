@@ -1,10 +1,11 @@
-import type {InternalAppApiToken as InternalAppApiTokenType} from 'sentry/types';
+import type {NewInternalAppApiToken} from 'sentry/types';
 
-export function ApiToken(
-  params: Partial<InternalAppApiTokenType> = {}
-): InternalAppApiTokenType {
+export function ApiTokenFixture(
+  params: Partial<NewInternalAppApiToken> = {}
+): NewInternalAppApiToken {
   return {
     id: '1',
+    name: 'token_name1',
     token: 'apitoken123',
     dateCreated: new Date('Thu Jan 11 2018 18:01:41 GMT-0800 (PST)').toISOString(),
     scopes: ['project:read', 'project:write'],
@@ -12,6 +13,7 @@ export function ApiToken(
     refreshToken: 'refresh_token',
     expiresAt: new Date('Thu Jan 11 2018 18:01:41 GMT-0800 (PST)').toISOString(),
     state: 'active',
+    tokenLastCharacters: 'n123',
     ...params,
   };
 }

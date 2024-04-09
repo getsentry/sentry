@@ -72,7 +72,8 @@ metadata = IntegrationMetadata(
 
 
 class MsTeamsIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> MsTeamsClient:
+        return MsTeamsClient(self.model)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

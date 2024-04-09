@@ -6,8 +6,9 @@ web-server
 import logging
 import os.path
 from collections import namedtuple
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, cast
+from typing import cast
 
 import sentry_relay.consts
 import sentry_relay.processing
@@ -18,7 +19,7 @@ from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
 
-def get_all_languages() -> List[str]:
+def get_all_languages() -> list[str]:
     results = []
     for path in os.listdir(os.path.join(MODULE_ROOT, "locale")):
         if path.startswith("."):
@@ -42,7 +43,7 @@ COMMIT_RANGE_DELIMITER = ".."
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = {
-    "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
@@ -263,6 +264,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -272,6 +274,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
     "sentry.rules.filters.issue_severity.IssueSeverityFilter",
@@ -295,6 +298,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     ]
 )
 
@@ -320,7 +324,7 @@ WARN_SESSION_EXPIRED = _("Your session has expired.")
 MAX_SYM = 256
 
 # Known debug information file mimetypes
-KNOWN_DIF_FORMATS: Dict[str, str] = {
+KNOWN_DIF_FORMATS: dict[str, str] = {
     "text/x-breakpad": "breakpad",
     "application/x-mach-binary": "macho",
     "application/x-elf-binary": "elf",
@@ -351,7 +355,7 @@ MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 #                           "link": "https://docs.sentry.io/clients/java/integrations/#logback",
 #                           "id": "java-logback",
 #                           "name": "Logback"}
-INTEGRATION_ID_TO_PLATFORM_DATA: Dict[str, Dict[str, str]] = {}
+INTEGRATION_ID_TO_PLATFORM_DATA: dict[str, dict[str, str]] = {}
 
 
 def _load_platform_data() -> None:
@@ -410,7 +414,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
-def get_integration_id_for_marketing_slug(slug: str) -> Optional[str]:
+def get_integration_id_for_marketing_slug(slug: str) -> str | None:
     if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
@@ -435,8 +439,8 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
 #  "sdk": {"name": "sentry-java",
 #          "integrations": ["java.util.logging"]}} -> java-logging
 def get_integration_id_for_event(
-    platform: str, sdk_name: str, integrations: List[str]
-) -> Optional[str]:
+    platform: str, sdk_name: str, integrations: list[str]
+) -> str | None:
     if integrations:
         for integration in integrations:
             # check special cases
@@ -472,7 +476,7 @@ class ObjectStatus:
     DISABLED = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
             (cls.DISABLED, "disabled"),
@@ -494,7 +498,7 @@ class SentryAppStatus:
     DELETION_IN_PROGRESS_STR = "deletion_in_progress"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
             (cls.PUBLISHED, cls.PUBLISHED_STR),
@@ -541,7 +545,7 @@ class SentryAppInstallationStatus:
     INSTALLED_STR = "installed"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.PENDING, cls.PENDING_STR),
             (cls.INSTALLED, cls.INSTALLED_STR),
@@ -564,11 +568,11 @@ class ExportQueryType:
     DISCOVER_STR = "Discover"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
 
     @classmethod
-    def as_str_choices(cls) -> Sequence[Tuple[str, str]]:
+    def as_str_choices(cls) -> Sequence[tuple[str, str]]:
         return (
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
@@ -614,6 +618,7 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+ALL_ACCESS_PROJECT_ID = -1
 ALL_ACCESS_PROJECTS_SLUG = "$all"
 
 # Most number of events for the top-n graph
@@ -633,15 +638,15 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
@@ -706,6 +711,56 @@ HEALTH_CHECK_GLOBS = [
     "*/readyz",
     "*/ping",
 ]
+
+
+NEL_CULPRITS = {
+    # https://w3c.github.io/network-error-logging/#predefined-network-error-types
+    "dns.unreachable": "DNS server is unreachable",
+    "dns.name_not_resolved": "DNS server responded but is unable to resolve the address",
+    "dns.failed": "Request to the DNS server failed due to reasons not covered by previous errors",
+    "dns.address_changed": "Indicates that the resolved IP address for a request's origin has changed since the corresponding NEL policy was received",
+    "tcp.timed_out": "TCP connection to the server timed out",
+    "tcp.closed": "The TCP connection was closed by the server",
+    "tcp.reset": "The TCP connection was reset",
+    "tcp.refused": "The TCP connection was refused by the server",
+    "tcp.aborted": "The TCP connection was aborted",
+    "tcp.address_invalid": "The IP address is invalid",
+    "tcp.address_unreachable": "The IP address is unreachable",
+    "tcp.failed": "The TCP connection failed due to reasons not covered by previous errors",
+    "tls.version_or_cipher_mismatch": "The TLS connection was aborted due to version or cipher mismatch",
+    "tls.bad_client_auth_cert": "The TLS connection was aborted due to invalid client certificate",
+    "tls.cert.name_invalid": "The TLS connection was aborted due to invalid name",
+    "tls.cert.date_invalid": "The TLS connection was aborted due to invalid certificate date",
+    "tls.cert.authority_invalid": "The TLS connection was aborted due to invalid issuing authority",
+    "tls.cert.invalid": "The TLS connection was aborted due to invalid certificate",
+    "tls.cert.revoked": "The TLS connection was aborted due to revoked server certificate",
+    "tls.cert.pinned_key_not_in_cert_chain": "The TLS connection was aborted due to a key pinning error",
+    "tls.protocol.error": "The TLS connection was aborted due to a TLS protocol error",
+    "tls.failed": "The TLS connection failed due to reasons not covered by previous errors",
+    "http.error": "The user agent successfully received a response, but it had a {} status code",
+    "http.protocol.error": "The connection was aborted due to an HTTP protocol error",
+    "http.response.invalid": "Response is empty, has a content-length mismatch, has improper encoding, and/or other conditions that prevent user agent from processing the response",
+    "http.response.redirect_loop": "The request was aborted due to a detected redirect loop",
+    "http.failed": "The connection failed due to errors in HTTP protocol not covered by previous errors",
+    "abandoned": "User aborted the resource fetch before it is complete",
+    "unknown": "error type is unknown",
+    # Chromium-specific errors, not documented in the spec
+    # https://chromium.googlesource.com/chromium/src/+/HEAD/net/network_error_logging/network_error_logging_service.cc
+    "dns.protocol": "ERR_DNS_MALFORMED_RESPONSE",
+    "dns.server": "ERR_DNS_SERVER_FAILED",
+    "tls.unrecognized_name_alert": "ERR_SSL_UNRECOGNIZED_NAME_ALERT",
+    "h2.ping_failed": "ERR_HTTP2_PING_FAILED",
+    "h2.protocol.error": "ERR_HTTP2_PROTOCOL_ERROR",
+    "h3.protocol.error": "ERR_QUIC_PROTOCOL_ERROR",
+    "http.response.invalid.empty": "ERR_EMPTY_RESPONSE",
+    "http.response.invalid.content_length_mismatch": "ERR_CONTENT_LENGTH_MISMATCH",
+    "http.response.invalid.incomplete_chunked_encoding": "ERR_INCOMPLETE_CHUNKED_ENCODING",
+    "http.response.invalid.invalid_chunked_encoding": "ERR_INVALID_CHUNKED_ENCODING",
+    "http.request.range_not_satisfiable": "ERR_REQUEST_RANGE_NOT_SATISFIABLE",
+    "http.response.headers.truncated": "ERR_RESPONSE_HEADERS_TRUNCATED",
+    "http.response.headers.multiple_content_disposition": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION",
+    "http.response.headers.multiple_content_length": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH",
+}
 
 # Generated from https://raw.githubusercontent.com/github-linguist/linguist/master/lib/linguist/languages.yml and our list of platforms/languages
 EXTENSION_LANGUAGE_MAP = {
@@ -851,6 +906,9 @@ EXTENSION_LANGUAGE_MAP = {
     "pm": "perl",
     "psgi": "perl",
     "t": "perl",
+    "ps1": "powershell",
+    "psd1": "powershell",
+    "psm1": "powershell",
     "py": "python",
     "gyp": "python",
     "gypi": "python",

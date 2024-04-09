@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
@@ -15,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
@@ -25,7 +24,6 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import JSONData
 from tests.sentry.backup import get_matching_exportable_models
 
@@ -52,7 +50,6 @@ class ExportTestCase(BackupTestCase):
         return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
 
-@region_silo_test(stable=True)
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
@@ -132,19 +129,18 @@ class ScopingTests(ExportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.
     """
 
     @staticmethod
-    def count(data: JSONData, model: Type[models.base.BaseModel]) -> int:
+    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
-        data: JSONData, model: Type[models.base.BaseModel], key: str, value: Any | None = None
+        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
             if d["model"] == str(get_model_name(model)):
@@ -165,11 +161,10 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserIP`. Because `Email` and `UserEmail` have some automagic going on that
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
             # causes them to be created when a `User` is, we explicitly check to ensure that they
             # are behaving correctly as well.
             assert self.count(data, User) == 1
-            assert self.count(data, UserIP) == 1
             assert self.count(data, UserEmail) == 1
             assert self.count(data, Email) == 1
 
@@ -190,7 +185,6 @@ class FilteringTests(ExportTestCase):
             )
 
             assert self.count(data, User) == 3
-            assert self.count(data, UserIP) == 3
             assert self.count(data, UserEmail) == 3
             assert self.count(data, Email) == 2
 
@@ -234,7 +228,6 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 4
-            assert self.count(data, UserIP) == 4
             assert self.count(data, UserEmail) == 4
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 
@@ -271,7 +264,6 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 5
-            assert self.count(data, UserIP) == 5
             assert self.count(data, UserEmail) == 5
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 

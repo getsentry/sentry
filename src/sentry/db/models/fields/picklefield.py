@@ -26,6 +26,18 @@ class PickledObjectField(django_picklefield.PickledObjectField):
         if value is None:
             return None
         try:
-            return json.loads(value)
+            return json.loads(value, skip_trace=True)
         except (ValueError, TypeError):
+            from sentry.utils import metrics
+
+            try:
+                table = self.model.__name__  # not always present for unbound
+            except AttributeError:
+                table = "(unknown)"
+
+            metrics.incr(
+                "pickle.pickled_object_field_fallback",
+                tags={"pickle_field_table": table},
+                sample_rate=1,
+            )
             return super().to_python(value)

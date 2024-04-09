@@ -1,8 +1,8 @@
-import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
+import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
 import type {DetailedOrganization} from 'sentry/types';
 
-export function Organization(
+export function OrganizationFixture(
   params: Partial<DetailedOrganization> = {}
 ): DetailedOrganization {
   const slug = params.slug ?? 'org-slug';
@@ -62,6 +62,7 @@ export function Organization(
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,
+    genAIConsent: false,
     openMembership: false,
     pendingAccessRequests: 0,
     quota: {
@@ -75,13 +76,14 @@ export function Organization(
     safeFields: [],
     scrubIPAddresses: false,
     sensitiveFields: [],
+    aggregatedDataConsent: false,
     storeCrashReports: 0,
     trustedRelays: [],
     teams: [],
     projects: [],
     ...params,
 
-    orgRoleList: OrgRoleList(),
-    teamRoleList: TeamRoleList(),
+    orgRoleList: OrgRoleListFixture(),
+    teamRoleList: TeamRoleListFixture(),
   };
 }

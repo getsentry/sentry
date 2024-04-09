@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import List
+from collections.abc import Sequence
 
-from django.http import HttpResponse
+import sentry_sdk
+from django.http.response import HttpResponse, HttpResponseBase
+from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
 from sentry.integrations.slack.views.link_team import SlackLinkTeamView
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
@@ -19,14 +22,17 @@ from sentry.integrations.slack.webhooks.action import (
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
+from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
+from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
+from sentry.utils import json
 from sentry.utils.signing import unsign
 
-from .base import BaseRequestParser
+from .base import BaseRequestParser, create_async_request_payload
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,7 @@ ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTIN
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
     webhook_identifier = WebhookProviderIdentifier.SLACK
+    response_url: str | None = None
 
     control_classes = [
         SlackLinkIdentityView,
@@ -47,9 +54,15 @@ class SlackRequestParser(BaseRequestParser):
         SlackUnlinkTeamView,
         SlackCommandsEndpoint,
         SlackEventEndpoint,
+        SlackOptionsLoadEndpoint,
     ]
 
-    webhook_endpoints = [SlackCommandsEndpoint, SlackActionEndpoint, SlackEventEndpoint]
+    webhook_endpoints = [
+        SlackCommandsEndpoint,
+        SlackActionEndpoint,
+        SlackEventEndpoint,
+        SlackOptionsLoadEndpoint,
+    ]
     """
     Endpoints which provide integration info in the request headers.
     See: `src/sentry/integrations/slack/webhooks`
@@ -66,22 +79,19 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
-    def handle_action_endpoint(self, regions: List[Region]) -> HttpResponse:
-        drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-        slack_request = self.view_class.slack_request_class(drf_request)
-        action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
-
-        if action_option in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
+    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
+        if self.response_url is None:
             return self.get_response_from_control_silo()
-        else:
-            response_map = self.get_responses_from_region_silos(regions=regions)
-            successful_responses = [
-                result for result in response_map.values() if result.response is not None
-            ]
-            if len(successful_responses) == 0:
-                error_map = {region: result.error for region, result in response_map.items()}
-                raise SiloClientError("No successful region responses", error_map)
-            return successful_responses[0].response
+
+        convert_to_async_slack_response.apply_async(
+            kwargs={
+                "region_names": [r.name for r in regions],
+                "payload": create_async_request_payload(self.request),
+                "response_url": self.response_url,
+            }
+        )
+        # We may want to enrich this with a waiting message
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.webhook_endpoints:
@@ -97,6 +107,7 @@ class SlackRequestParser(BaseRequestParser):
                     "slack.validation_error", extra={"path": self.request.path, "error": error}
                 )
                 return None
+            self.response_url = slack_request.response_url
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
         elif self.view_class in self.django_views:
@@ -106,28 +117,6 @@ class SlackRequestParser(BaseRequestParser):
 
         return None
 
-    def get_response_from_first_region(self):
-        regions = self.get_regions_from_organizations()
-        first_region = regions[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_region])
-        region_result = response_map[first_region.name]
-        if region_result.error is not None:
-            # We want to fail loudly so that devs know this error happened on the region silo (for now)
-            error = SiloClientError(region_result.error)
-            raise SiloClientError(error)
-        return region_result.response
-
-    def get_response_from_all_regions(self):
-        regions = self.get_regions_from_organizations()
-        response_map = self.get_responses_from_region_silos(regions=regions)
-        successful_responses = [
-            result for result in response_map.values() if result.response is not None
-        ]
-        if len(successful_responses) == 0:
-            error_map = {region: result.error for region, result in response_map.items()}
-            raise SiloClientError("No successful region responses", error_map)
-        return successful_responses[0].response
-
     def get_response(self):
         """
         Slack Webhook Requests all require synchronous responses.
@@ -135,22 +124,46 @@ class SlackRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+        # Handle event interactions challenge request
+        data = None
+        try:
+            data = json.loads(self.request.body.decode(encoding="utf-8"))
+        except Exception:
+            pass
+        if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
+
+        try:
+            regions = self.get_regions_from_organizations()
+        except Integration.DoesNotExist:
+            # Alert, as there may be a misconfiguration issue
+            sentry_sdk.capture_exception()
+            return self.get_default_missing_integration_response()
+        except OrganizationIntegration.DoesNotExist:
+            # Swallow this exception, as this is likely due to a user removing
+            # their org's slack integration, and slack will continue to retry
+            # this request until it succeeds.
+            return HttpResponse(status=202)
 
         if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
+            self.response_url = slack_request.response_url
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
-
             # All actions other than those below are sent to every region
             if action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
-                return self.get_response_from_all_regions()
+                return (
+                    self.get_async_region_response(regions=regions)
+                    if self.response_url
+                    else self.get_response_from_all_regions()
+                )
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
         # places where we post to slack on their webhook request. This would cause multiple
         # calls back to slack for every region we forward to.
         # By convention, we use the first integration organization/region
-        return self.get_response_from_first_region()
+        return (
+            self.get_async_region_response(regions=[regions[0]])
+            if self.response_url
+            else self.get_response_from_first_region()
+        )

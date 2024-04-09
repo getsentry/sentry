@@ -2,13 +2,13 @@ import functools
 import os.path
 import random
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import randint
 from urllib.parse import quote, urlencode
 
 from django import template
 from django.template.defaultfilters import stringfilter
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -220,7 +220,7 @@ def timesince(value, now=None):
     from django.utils.timesince import timesince
 
     if now is None:
-        now = timezone.now()
+        now = django_timezone.now()
     if not value:
         return _("never")
     if value < (now - timedelta(days=5)):
@@ -263,7 +263,7 @@ def duration(value):
 def date(dt, arg=None):
     from django.template.defaultfilters import date
 
-    if isinstance(dt, datetime) and not timezone.is_aware(dt):
+    if isinstance(dt, datetime) and not django_timezone.is_aware(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return date(dt, arg)
 
@@ -318,3 +318,17 @@ def random_int(a, b=None):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, "")
+
+
+@register.filter
+@stringfilter
+def sanitize_periods(value):
+    """
+    Primarily used in email templates when a field may contain a domain name to prevent
+    email clients from creating a clickable link to the domain.
+    """
+    word_joiner = "\u2060"
+
+    # Adding the Unicode character before every period
+    output_string = value.replace(".", word_joiner + ".")
+    return output_string

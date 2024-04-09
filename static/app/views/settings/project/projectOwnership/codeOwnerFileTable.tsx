@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -149,7 +149,7 @@ export function CodeOwnerFileTable({
               triggerProps={{
                 'aria-label': t('Actions'),
                 size: 'xs',
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 showChevron: false,
                 disabled,
               }}

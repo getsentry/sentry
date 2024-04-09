@@ -1,4 +1,5 @@
-import {Event as MockEvent} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -20,7 +21,7 @@ describe('Regression message', () => {
   });
 
   it('does not show a Go to Summary button if the breakpoint is under 14 days old', () => {
-    const mockEvent = MockEvent({
+    const mockEvent = EventFixture({
       occurrence: {
         evidenceData: {
           breakpoint: (Date.now() - DAY) / 1000,
@@ -44,7 +45,7 @@ describe('Regression message', () => {
       },
     });
 
-    const mockGroup = TestStubs.Group({
+    const mockGroup = GroupFixture({
       issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
     });
 
@@ -54,7 +55,7 @@ describe('Regression message', () => {
   });
 
   it('shows a Go to Summary button if the breakpoint is over 14 days old', async () => {
-    const mockEvent = MockEvent({
+    const mockEvent = EventFixture({
       occurrence: {
         evidenceData: {
           breakpoint: (Date.now() - 20 * DAY) / 1000,
@@ -78,7 +79,7 @@ describe('Regression message', () => {
       },
     });
 
-    const mockGroup = TestStubs.Group({
+    const mockGroup = GroupFixture({
       issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
     });
 

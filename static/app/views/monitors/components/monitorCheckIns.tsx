@@ -3,15 +3,18 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
-import StatusIndicator from 'sentry/components/statusIndicator';
+import {
+  StatusIndicator,
+  type StatusIndicatorProps,
+} from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
@@ -24,12 +27,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import {
-  CheckIn,
-  CheckInStatus,
-  Monitor,
-  MonitorEnvironment,
-} from 'sentry/views/monitors/types';
+import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
 
 type Props = {
@@ -38,9 +37,9 @@ type Props = {
   orgSlug: string;
 };
 
-const checkStatusToIndicatorStatus: Record<
+export const checkStatusToIndicatorStatus: Record<
   CheckInStatus,
-  'success' | 'error' | 'muted' | 'warning'
+  StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
@@ -53,7 +52,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
@@ -129,19 +128,22 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                           date={checkIn.dateCreated}
                           forcedTimezone={monitor.config.timezone ?? 'UTC'}
                           timeZone
-                          timeOnly
                           seconds
                         />
                       }
                     >
-                      {<DateTime date={checkIn.dateCreated} timeZone timeOnly seconds />}
+                      <DateTime date={checkIn.dateCreated} timeZone seconds />
                     </Tooltip>
                   </div>
                 ) : (
                   emptyCell
                 )}
                 {defined(checkIn.duration) ? (
-                  <Duration seconds={checkIn.duration / 1000} />
+                  <div>
+                    <Tooltip title={<Duration exact seconds={checkIn.duration / 1000} />}>
+                      <Duration seconds={checkIn.duration / 1000} />
+                    </Tooltip>
+                  </div>
                 ) : (
                   emptyCell
                 )}
@@ -157,19 +159,17 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                         organization={organization}
                         key={id}
                       >
-                        {
-                          <StyledShortId
-                            shortId={shortId}
-                            avatar={
-                              <ProjectBadge
-                                project={monitor.project}
-                                hideName
-                                avatarSize={12}
-                              />
-                            }
-                            to={`/issues/${id}`}
-                          />
-                        }
+                        <StyledShortId
+                          shortId={shortId}
+                          avatar={
+                            <ProjectBadge
+                              project={monitor.project}
+                              hideName
+                              avatarSize={12}
+                            />
+                          }
+                          to={`/issues/${id}`}
+                        />
                       </QuickContextHovercard>
                     ))}
                   </IssuesContainer>
@@ -180,7 +180,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   <div>
                     <Button
                       size="xs"
-                      icon={<IconDownload size="xs" />}
+                      icon={<IconDownload />}
                       href={generateDownloadUrl(checkIn)}
                     >
                       {t('Attachment')}
@@ -191,19 +191,23 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 )}
                 {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
                 <div>
-                  <Tooltip
-                    disabled={!customTimezone}
-                    title={
-                      <DateTime
-                        date={checkIn.expectedTime}
-                        forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                        timeZone
-                        seconds
-                      />
-                    }
-                  >
-                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                  </Tooltip>
+                  {checkIn.expectedTime ? (
+                    <Tooltip
+                      disabled={!customTimezone}
+                      title={
+                        <DateTime
+                          date={checkIn.expectedTime}
+                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
+                          timeZone
+                          seconds
+                        />
+                      }
+                    >
+                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                    </Tooltip>
+                  ) : (
+                    emptyCell
+                  )}
                 </div>
               </Fragment>
             ))}

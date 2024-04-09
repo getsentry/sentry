@@ -1,13 +1,9 @@
+import logging
 from datetime import datetime
 
-from sentry.monitors.models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorIncident,
-    MonitorObjectStatus,
-    MonitorStatus,
-)
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+
+logger = logging.getLogger(__name__)
 
 
 def mark_ok(checkin: MonitorCheckIn, ts: datetime):
@@ -22,15 +18,13 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         "next_checkin_latest": next_checkin_latest,
     }
 
-    if (
-        monitor_env.monitor.status != MonitorObjectStatus.DISABLED
-        and monitor_env.status != MonitorStatus.OK
-    ):
-        params["status"] = MonitorStatus.OK
-        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold")
+    if monitor_env.status != MonitorStatus.OK and checkin.status == CheckInStatus.OK:
+        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
+        if not recovery_threshold:
+            recovery_threshold = 1
 
         # Run incident logic if recovery threshold is set
-        if recovery_threshold:
+        if recovery_threshold > 1:
             # Check if our incident is recovering
             previous_checkins = (
                 MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
@@ -43,22 +37,50 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 previous_checkin["status"] == CheckInStatus.OK
                 for previous_checkin in previous_checkins
             )
+        else:
+            # Mark any open incidents as recovering by default
+            incident_recovering = True
 
-            # Resolve the incident
-            if incident_recovering:
-                MonitorIncident.objects.filter(
-                    monitor_environment=monitor_env,
-                    grouphash=monitor_env.incident_grouphash,
-                ).update(
+        # Resolve any open incidents
+        if incident_recovering:
+            params["status"] = MonitorStatus.OK
+            incident = monitor_env.active_incident
+            if incident:
+                resolve_incident_group(incident.grouphash, checkin.monitor.project_id)
+                incident.update(
                     resolving_checkin=checkin,
                     resolving_timestamp=checkin.date_added,
                 )
-
-                params["last_state_change"] = ts
-            else:
-                # Don't update status if incident isn't recovered
-                params.pop("status", None)
+                logger.info(
+                    "monitors.logic.mark_ok.resolving_incident",
+                    extra={
+                        "monitor_env_id": monitor_env.id,
+                        "incident_id": incident.id,
+                        "grouphash": incident.grouphash,
+                    },
+                )
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params
+    )
+
+
+def resolve_incident_group(
+    fingerprint: str,
+    project_id: int,
+):
+    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+    from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.group import GroupStatus
+
+    status_change = StatusChangeMessage(
+        fingerprint=[fingerprint],
+        project_id=project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
     )

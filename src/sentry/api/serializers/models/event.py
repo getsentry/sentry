@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Sequence
+from typing import Any
 
 import sentry_sdk
 import sqlparse
@@ -237,7 +238,7 @@ class EventSerializer(Serializer):
             # Sentry at one point attempted to record invalid types here.
             # Remove after June 2 2016
             try:
-                received = datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc)
+                received = datetime.fromtimestamp(received, timezone.utc)
             except TypeError:
                 received = None
 
@@ -292,12 +293,18 @@ class EventSerializer(Serializer):
         """
         Add attributes that are only present on transaction events.
         """
-        return {
+        transaction_attrs = {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
             "measurements": obj.data.get("measurements"),
             "breakdowns": obj.data.get("breakdowns"),
         }
+
+        # The _ reflects the temporary nature of this field.
+        if (transaction_metrics_summary := obj.data.get("_metrics_summary")) is not None:
+            transaction_attrs["_metrics_summary"] = transaction_metrics_summary
+
+        return transaction_attrs
 
     def __serialize_error_attrs(self, attrs, obj):
         """
@@ -319,7 +326,10 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self.formatted_sql_cache: Dict[str, str] = {}
+        self.formatted_sql_cache: dict[str, str] = {}
+
+    def get_attrs(self, item_list, user, is_public=False, **kwargs):
+        return super().get_attrs(item_list, user, is_public=is_public)
 
     # Various checks to ensure that we don't spend too much time formatting
     def _should_skip_formatting(self, query: str):
@@ -374,6 +384,23 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
+    def _get_release_info(self, user, event, include_full_release_data: bool):
+        version = event.get_tag("sentry:release")
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {"version": version}
+        if include_full_release_data:
+            return serialize(release, user)
+        else:
+            return serialize(release, user, GroupEventReleaseSerializer())
+
     def _format_db_spans(self, event_data: dict[str, Any], event: Event | GroupEvent, user: User):
         try:
             spans = next(
@@ -394,12 +421,13 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
 
         with sentry_sdk.start_span(op="serialize", description="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
+            result["release"] = self._get_release_info(user, obj, include_full_release_data)
 
         return result
 
@@ -414,27 +442,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     ):
         return super().get_attrs(item_list, user, is_public)
 
-    def _get_release_info(self, user, event, include_full_release_data: bool):
-        version = event.get_tag("sentry:release")
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {"version": version}
-        if include_full_release_data:
-            return serialize(release, user)
-        else:
-            return serialize(release, user, GroupEventReleaseSerializer())
-
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> List[str]:
+    def _get_resolved_with(self, obj: Event) -> list[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
@@ -447,8 +458,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         return list(unique_resolution_methods)
 
     def serialize(self, obj, attrs, user, include_full_release_data=False):
-        result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj, include_full_release_data)
+        result = super().serialize(obj, attrs, user, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["resolvedWith"] = self._get_resolved_with(obj)

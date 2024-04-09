@@ -15,7 +15,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
     def post(self, request: Request, organization) -> Response:
@@ -40,5 +40,8 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
             },
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        return Response({}, status=200)
+            errors = serializer.errors.copy()
+            # need to include warnings even if there are errors
+            errors.update({"warnings": serializer.query_warnings})
+            return Response(errors, status=400)
+        return Response({"warnings": serializer.query_warnings}, status=200)

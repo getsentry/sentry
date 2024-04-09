@@ -3,9 +3,11 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-class SentryAppDetailsDocs(APIDocsTestCase):
+class SentryAppDetailsDocsTest(APIDocsTestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.project = self.create_project(organization=self.org)
@@ -16,7 +18,8 @@ class SentryAppDetailsDocs(APIDocsTestCase):
         self.install = SentryAppInstallation(
             sentry_app=self.sentry_app, organization_id=self.org.id
         )
-        self.install.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.install.save()
         self.external_issue = self.create_platform_external_issue(
             group=self.group,
             service_type=self.sentry_app.slug,

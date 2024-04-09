@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface SortConfig {

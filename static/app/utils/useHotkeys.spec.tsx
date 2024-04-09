@@ -6,7 +6,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 describe('useHotkeys', function () {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
 
-  function makeKeyEvent(keyCode, options) {
+  function makeKeyEventFixture(keyCode, options) {
     return {
       keyCode: getKeyCode(keyCode),
       preventDefault: jest.fn(),
@@ -39,7 +39,7 @@ describe('useHotkeys', function () {
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    const evt = makeKeyEvent('s', {ctrlKey: true});
+    const evt = makeKeyEventFixture('s', {ctrlKey: true});
     events.keydown(evt);
 
     expect(evt.preventDefault).toHaveBeenCalled();
@@ -56,12 +56,12 @@ describe('useHotkeys', function () {
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
-    events.keydown(makeKeyEvent('m', {metaKey: true}));
+    events.keydown(makeKeyEventFixture('m', {metaKey: true}));
 
     expect(callback).toHaveBeenCalled();
   });
@@ -77,7 +77,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
 
     events.keydown(
-      makeKeyEvent('x', {
+      makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
         shiftKey: true,
@@ -99,7 +99,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
 
     events.keydown(
-      makeKeyEvent('x', {
+      makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
         shiftKey: true,
@@ -123,17 +123,17 @@ describe('useHotkeys', function () {
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
     rerender({match: 'command+m'});
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('m', {metaKey: true}));
+    events.keydown(makeKeyEventFixture('m', {metaKey: true}));
     expect(callback).toHaveBeenCalled();
   });
 
@@ -144,7 +144,7 @@ describe('useHotkeys', function () {
       initialProps: [{match: ['/'], callback}],
     });
 
-    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+    events.keydown(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
     expect(callback).not.toHaveBeenCalled();
   });
@@ -156,7 +156,7 @@ describe('useHotkeys', function () {
       initialProps: [{match: ['/'], callback, includeInputs: true}],
     });
 
-    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+    events.keydown(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
     expect(callback).toHaveBeenCalled();
   });
@@ -168,7 +168,7 @@ describe('useHotkeys', function () {
       initialProps: [{match: 'ctrl+s', callback, skipPreventDefault: true}],
     });
 
-    const evt = makeKeyEvent('s', {ctrlKey: true});
+    const evt = makeKeyEventFixture('s', {ctrlKey: true});
     events.keydown(evt);
 
     expect(evt.preventDefault).not.toHaveBeenCalled();

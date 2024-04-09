@@ -13,6 +13,11 @@ export type FeedbackIssue = Overwrite<
       name: string;
       title: string;
       value: string;
+      sdk?: {
+        name: string;
+        name_normalized: string;
+      };
+      source?: null | string;
     };
     owners: null | unknown;
   }
@@ -20,7 +25,7 @@ export type FeedbackIssue = Overwrite<
 
 export type FeedbackEvent = Event;
 
-export type FeedbackIssueList = Overwrite<
+export type FeedbackIssueListItem = Overwrite<
   BaseGroup & GroupStats,
   {
     issueCategory: 'feedback';
@@ -31,7 +36,12 @@ export type FeedbackIssueList = Overwrite<
       name: string;
       title: string;
       value: string;
+      sdk?: {
+        name: string;
+        name_normalized: string;
+      };
+      source?: null | string;
     };
     owners: null | unknown;
   }
->[];
+>;

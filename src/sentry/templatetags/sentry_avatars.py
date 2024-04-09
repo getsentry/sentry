@@ -3,9 +3,9 @@ from urllib.parse import urlencode
 from django import template
 from django.urls import reverse
 
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 from sentry.utils.http import absolute_uri
 
@@ -27,11 +27,11 @@ def letter_avatar_svg(context, display_name, identifier, size=None):
 
 @register.simple_tag(takes_context=True)
 def profile_photo_url(context, user_id, size=None):
-    try:
-        avatar = UserAvatar.objects.get_from_cache(user=user_id)
-    except UserAvatar.DoesNotExist:
+    user_avatar = user_service.get_user_avatar(user_id=user_id)
+
+    if not user_avatar:
         return
-    url = reverse("sentry-user-avatar-url", args=[avatar.ident])
+    url = reverse("sentry-user-avatar-url", args=[user_avatar.ident])
     if size:
         url += "?" + urlencode({"s": size})
     return absolute_uri(url)

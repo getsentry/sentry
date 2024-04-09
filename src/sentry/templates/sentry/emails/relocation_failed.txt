@@ -1,0 +1,9 @@
+Your relocation has failed for the following reason:
+
+{%if reason != "" %}
+{{ reason }}
+{% endif %}
+
+Please contact support at https://help.sentry.io for further assistance if necessary.
+
+ID: {{ uuid }}

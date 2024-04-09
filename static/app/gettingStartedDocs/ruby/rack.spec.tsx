@@ -1,18 +1,48 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {GettingStartedWithRubyRack, steps} from './rack';
+import docs from './rack';
 
-describe('GettingStartedWithRubyRack', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithRubyRack dsn="test-dsn" projectSlug="test-project" />);
+describe('GettingStartedWithSpring', function () {
+  it('renders errors onboarding docs correctly', function () {
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+  });
+
+  it('renders performance onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/config.traces_sample_rate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders profiling onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/config.profiles_sample_rate/))
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Ruby Profiling beta is available/))
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Make sure stackprof is loaded before sentry-ruby/)
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 import responses
@@ -9,16 +10,14 @@ from rest_framework import status
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -53,7 +52,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             content_type="application/json",
         )
 
-    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> HttpResponseBase:
+    def get_success_response(self, data: Mapping[str, Any] | None = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
         if data is not None:
             response = self.client.post(
@@ -66,7 +65,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
 
     def get_error_response(
         self,
-        data: Optional[Mapping[str, Any]] = None,
+        data: Mapping[str, Any] | None = None,
         status_code: int = status.HTTP_404_NOT_FOUND,
     ) -> HttpResponseBase:
         if data:
@@ -89,7 +88,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
 
     def get_linked_teams(
-        self, team_ids: Optional[Sequence[int]] = None, organization: Optional[Organization] = None
+        self, team_ids: Sequence[int] | None = None, organization: Organization | None = None
     ) -> QuerySet:
         team_ids = team_ids or [self.team.id]
         organization = organization or self.organization
@@ -102,12 +101,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             external_id=self.channel_id,
         )
 
-    def _create_user_with_valid_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        self.team.update(org_role="admin")
-        self.create_member(organization=self.organization, user=user, teams=[self.team])
-        self.login_as(user)
-
     def _create_user_valid_through_team_admin(self):
         user = self.create_user(email="foo@example.com")
         self.create_member(
@@ -118,14 +111,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
         self.login_as(user)
 
-    def _create_user_with_member_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        member_team = self.create_team(org_role="member")
-        self.create_member(organization=self.organization, user=user, teams=[member_team])
-        self.login_as(user)
 
-
-@region_silo_test(stable=True)
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -161,17 +147,15 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
+            team_settings = NotificationSettingProvider.objects.filter(
+                team_id=self.team.id,
+                provider="slack",
+                type="alerts",
+                scope_type="team",
+                scope_identifier=self.team.id,
+                value="always",
             )
             assert len(team_settings) == 1
-
-    @responses.activate
-    def test_link_team_with_valid_role_through_team(self):
-        """Test that we successfully link a team to a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_link_team()
 
     @responses.activate
     def test_link_team_valid_through_team_admin(self):
@@ -203,19 +187,12 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
     @responses.activate
-    def test_errors_when_no_teams_found(self):
-        """Test that we successfully render an error page when no teams are found."""
-        # login as a member with no applicable teams
-        self._create_user_with_member_role_through_team()
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
-
-    @responses.activate
     def test_link_team_multiple_organizations(self):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
 
@@ -266,13 +243,12 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Test that we didn't make an NotificationSetting object
         # Instead we will use the default in notificationcontroller.py
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
+            team_settings = NotificationSettingProvider.objects.filter(
+                team_id=self.team.id,
             )
             assert len(team_settings) == 0
 
 
-@region_silo_test(stable=True)
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -307,17 +283,8 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
-            )
+            team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
-
-    @responses.activate
-    def test_unlink_team_with_valid_role_through_team(self):
-        """Test that a team can be unlinked from a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_unlink_team()
 
     @responses.activate
     def test_unlink_team_valid_through_team_admin(self):
@@ -325,13 +292,6 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
-
-    @responses.activate
-    def test_unlink_team_with_member_role_through_team(self):
-        """Test that a team can not be unlinked from a Slack channel with a member role"""
-        self._create_user_with_member_role_through_team()
-
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_unlink_multiple_teams(self):
@@ -364,9 +324,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
-            )
+            team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
     @responses.activate
@@ -375,7 +333,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
         self.link_team(team2)

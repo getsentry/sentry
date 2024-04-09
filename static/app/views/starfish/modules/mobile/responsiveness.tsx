@@ -4,10 +4,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -22,7 +19,7 @@ export default function ResponsivenessModule() {
   return (
     <SentryDocumentTitle title={ROUTE_NAMES.responsiveness} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageErrorProvider>
+        <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>{ROUTE_NAMES.responsiveness}</Layout.Title>
@@ -31,7 +28,7 @@ export default function ResponsivenessModule() {
 
           <Layout.Body>
             <Layout.Main fullWidth>
-              <PageErrorAlert />
+              <PageAlert />
               <StarfishPageFiltersContainer>
                 <SearchContainerWithFilterAndMetrics>
                   <PageFilterBar condensed>
@@ -44,7 +41,7 @@ export default function ResponsivenessModule() {
               </StarfishPageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
-        </PageErrorProvider>
+        </PageAlertProvider>
       </Layout.Page>
     </SentryDocumentTitle>
   );

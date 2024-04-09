@@ -1,9 +1,9 @@
-import {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types';
 
 // If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
 // in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
 // Otherwise, creating a project will cause an error in the backend, saying "Invalid platform".
-const platforms: PlatformIntegration[] = [
+export const platforms: PlatformIntegration[] = [
   {
     id: 'android',
     name: 'Android',
@@ -240,7 +240,7 @@ const platforms: PlatformIntegration[] = [
     name: 'Spring',
     type: 'framework',
     language: 'java',
-    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+    link: 'https://docs.sentry.io/platforms/java/guides/spring/',
   },
   {
     id: 'java-spring-boot',
@@ -353,6 +353,13 @@ const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'native',
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
+  },
+  {
+    id: 'nintendo',
+    name: 'Nintendo',
+    type: 'framework',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/nintendo',
   },
   {
     id: 'node',
@@ -559,7 +566,7 @@ const platforms: PlatformIntegration[] = [
   },
   {
     id: 'python-serverless',
-    name: 'Serverless',
+    name: 'Serverless (Python)',
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/serverless/',

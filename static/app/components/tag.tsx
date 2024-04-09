@@ -1,22 +1,23 @@
-import {cloneElement, isValidElement} from 'react';
-import {Theme} from '@emotion/react';
+import {useCallback} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link, {LinkProps} from 'sentry/components/links/link';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import theme, {Color} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
+import theme from 'sentry/utils/theme';
 
-const TAG_HEIGHT = '20px';
-
-interface Props extends React.HTMLAttributes<HTMLSpanElement> {
+interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -57,7 +58,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   type?: keyof Theme['tag'];
 }
 
-function Tag({
+function BaseTag({
   type = 'default',
   icon,
   tooltipText,
@@ -69,22 +70,47 @@ function Tag({
   children,
   textMaxWidth = 150,
   ...props
-}: Props) {
+}: TagProps) {
   const iconsProps: SVGIconProps = {
     size: 'xs',
-    color: theme.tag[type].iconColor as Color,
+    color: theme.tag[type].color as Color,
   };
+
+  const isLink = href !== undefined || to !== undefined;
+
+  // Links use the IconOpen by default
+  const linkIcon = isLink ? <IconOpen /> : null;
+  const tagIcon = icon || icon === null ? icon : linkIcon;
+
+  const handleDismiss = useCallback<React.MouseEventHandler>(
+    event => {
+      event.preventDefault();
+      onDismiss?.();
+    },
+    [onDismiss]
+  );
+
+  const trackClickEvent = useCallback(() => {
+    trackAnalytics('tag.clicked', {
+      is_clickable: onClick !== undefined || isLink,
+      organization: null,
+    });
+  }, [isLink, onClick]);
 
   const tag = (
     <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
       <Background type={type}>
-        {tagIcon()}
+        {tagIcon && (
+          <IconWrapper>
+            <IconDefaultsProvider {...iconsProps}>{tagIcon}</IconDefaultsProvider>
+          </IconWrapper>
+        )}
 
         <Text type={type} maxWidth={textMaxWidth}>
           {children}
         </Text>
 
-        {defined(onDismiss) && (
+        {onDismiss !== undefined && (
           <DismissButton
             onClick={handleDismiss}
             size="zero"
@@ -97,63 +123,29 @@ function Tag({
     </Tooltip>
   );
 
-  function handleDismiss(event: React.MouseEvent) {
-    event.preventDefault();
-    onDismiss?.();
-  }
-
-  const trackClickEvent = () => {
-    trackAnalytics('tag.clicked', {
-      is_clickable: defined(onClick) || defined(to) || defined(href),
-      organization: null,
-    });
-  };
-
-  function tagIcon() {
-    if (isValidElement(icon)) {
-      return <IconWrapper>{cloneElement(icon, {...iconsProps})}</IconWrapper>;
-    }
-
-    if ((defined(href) || defined(to)) && icon === undefined) {
-      return (
-        <IconWrapper>
-          <IconOpen {...iconsProps} />
-        </IconWrapper>
-      );
-    }
-
-    return null;
-  }
-
-  function tagWithParent() {
-    if (defined(href)) {
-      return <ExternalLink href={href}>{tag}</ExternalLink>;
-    }
-
-    if (defined(to) && defined(onClick)) {
-      return (
-        <Link to={to} onClick={onClick}>
-          {tag}
-        </Link>
-      );
-    }
-    if (defined(to)) {
-      return <Link to={to}>{tag}</Link>;
-    }
-
-    return tag;
-  }
+  const tagWithParent =
+    href !== undefined ? (
+      <ExternalLink href={href}>{tag}</ExternalLink>
+    ) : to !== undefined ? (
+      <Link to={to} onClick={onClick}>
+        {tag}
+      </Link>
+    ) : (
+      tag
+    );
 
   return (
-    <TagWrapper {...props} onClick={trackClickEvent}>
-      {tagWithParent()}
-    </TagWrapper>
+    <span {...props} onClick={trackClickEvent}>
+      {tagWithParent}
+    </span>
   );
 }
 
-const TagWrapper = styled('span')`
+const Tag = styled(BaseTag)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
+
+const TAG_HEIGHT = '20px';
 
 export const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
@@ -171,10 +163,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p =>
-    ['black', 'white'].includes(p.type)
-      ? p.theme.tag[p.type].iconColor
-      : p.theme.textColor};
+  color: ${p => p.theme.tag[p.type].color};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
@@ -188,4 +177,4 @@ const DismissButton = styled(Button)`
   border: none;
 `;
 
-export default Tag;
+export {Tag, type TagProps};

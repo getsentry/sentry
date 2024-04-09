@@ -22,5 +22,5 @@ def view(request: HttpRequest, reason: str = "") -> HttpResponse:
                 scope.set_tag("is_superuser", "yes")
             if is_staff or is_superuser:
                 scope.set_tag("csrf_failure", "yes")
-                logging.exception("CSRF failure for staff or superuser")
+                logging.error("CSRF failure for staff or superuser")
     return render_to_response("sentry/403-csrf-failure.html", context, request, status=403)

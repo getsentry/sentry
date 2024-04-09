@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -22,7 +23,8 @@ import {
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -164,7 +166,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <Layout.Header>
-            <Layout.HeaderContent>
+            <StyledHeaderContent>
               <Layout.Title>
                 {t('Profiling')}
                 <PageHeadingQuestionTooltip
@@ -174,7 +176,8 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   )}
                 />
               </Layout.Title>
-            </Layout.HeaderContent>
+              <FeedbackWidgetButton />
+            </StyledHeaderContent>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -232,13 +235,14 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <ProfilingUpgradeButton
                     organization={organization}
                     priority="primary"
+                    onClick={onSetupProfilingClick}
                     fallback={
                       <Button onClick={onSetupProfilingClick} priority="primary">
                         {t('Set Up Profiling')}
                       </Button>
                     }
                   >
-                    {t('Update plan')}
+                    {t('Set Up Profiling')}
                   </ProfilingUpgradeButton>
                   <Button href="https://docs.sentry.io/product/profiling/" external>
                     {t('Read Docs')}
@@ -317,6 +321,7 @@ const BASE_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -327,6 +332,13 @@ const BASE_FIELDS = [
 const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
 
 const ActionBar = styled('div')`
   display: grid;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -58,7 +59,7 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_assignee(self) -> str:
         return get_assignee_str(self.activity, self.organization)
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         return "{author} assigned {an issue} to {assignee}", None, {"assignee": self.get_assignee()}
 
     def get_notification_title(

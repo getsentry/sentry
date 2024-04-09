@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {
   deepFreeze,
   descopeFeatureName,
@@ -178,12 +180,12 @@ describe('utils.explodeSlug', function () {
 describe('utils.projectDisplayCompare', function () {
   it('sorts by bookmark and project slug', function () {
     const projects = [
-      TestStubs.Project({isBookmarked: true, slug: 'm'}),
-      TestStubs.Project({isBookmarked: false, slug: 'm'}),
-      TestStubs.Project({isBookmarked: false, slug: 'a'}),
-      TestStubs.Project({isBookmarked: true, slug: 'a'}),
-      TestStubs.Project({isBookmarked: true, slug: 'z'}),
-      TestStubs.Project({isBookmarked: false, slug: 'z'}),
+      ProjectFixture({isBookmarked: true, slug: 'm'}),
+      ProjectFixture({isBookmarked: false, slug: 'm'}),
+      ProjectFixture({isBookmarked: false, slug: 'a'}),
+      ProjectFixture({isBookmarked: true, slug: 'a'}),
+      ProjectFixture({isBookmarked: true, slug: 'z'}),
+      ProjectFixture({isBookmarked: false, slug: 'z'}),
     ];
 
     const expected = [

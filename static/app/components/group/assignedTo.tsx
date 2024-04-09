@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {
-  AssigneeSelectorDropdown,
+import type {
   OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
@@ -22,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -92,7 +93,7 @@ function getSuggestedReason(owner: IssueOwner) {
  * ```ts
  *   actor: <
  *    type,              # Either user or team
- *    SentryTypes.User,  # API expanded user object
+ *    {User},            # API expanded user object
  *    {email, id, name}  # Sentry user which is *not* expanded
  *    {email, name}      # Unidentified user (from commits)
  *    {id, name},        # Sentry team (check `type`)
@@ -219,20 +220,22 @@ function AssignedTo({
       <StyledSidebarTitle>
         {t('Assigned To')}
         <Access access={['project:read']}>
-          <Button
-            onClick={() => {
-              openIssueOwnershipRuleModal({
-                project,
-                organization,
-                issueId: group.id,
-                eventData: event!,
-              });
-            }}
-            aria-label={t('Create Ownership Rule')}
-            icon={<IconSettings />}
-            borderless
-            size="xs"
-          />
+          <GuideAnchor target="issue_sidebar_owners" position="bottom">
+            <Button
+              onClick={() => {
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconSettings />}
+              borderless
+              size="xs"
+            />
+          </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>

@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import {Tooltip} from 'sentry/components/tooltip';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,14 +16,14 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
+import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {SpanType} from './types';
+import type {SpanType} from './types';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
@@ -164,6 +164,8 @@ export function SpanProfileDetails({
     return null;
   }
 
+  const percentage = formatPercentage(nodes[index].count / totalWeight);
+
   return (
     <Fragment>
       <SpanDetails>
@@ -172,19 +174,27 @@ export function SpanProfileDetails({
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
-            <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
-              {tct('Showing stacks [index] of [total] ([percentage])', {
-                index: index + 1,
-                total: maxNodes,
-                percentage: formatPercentage(nodes[index].count / totalWeight),
-              })}
-            </Tooltip>
+            {tct('Showing stacks [index] of [total] ([percentage])', {
+              index: index + 1,
+              total: maxNodes,
+              percentage,
+            })}
           </SectionSubtext>
         </SpanDetailsItem>
+        <QuestionTooltip
+          position="top"
+          size="xs"
+          title={t(
+            '%s out of %s (%s) of the call stacks collected during this span',
+            nodes[index].count,
+            totalWeight,
+            percentage
+          )}
+        />
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" size="xs" />}
+              icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
               size="xs"
               disabled={!hasPrevious}
@@ -193,7 +203,7 @@ export function SpanProfileDetails({
               }}
             />
             <Button
-              icon={<IconChevron direction="right" size="xs" />}
+              icon={<IconChevron direction="right" />}
               aria-label={t('Next')}
               size="xs"
               disabled={!hasNext}
@@ -323,7 +333,6 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
       context: [],
-      errors: null,
       filename: node.frame.file ?? null,
       function: node.frame.name ?? null,
       inApp: node.frame.is_application,

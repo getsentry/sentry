@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -12,9 +12,9 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import withApi from 'sentry/utils/withApi';
 

@@ -38,7 +38,7 @@ if "VIRTUAL_ENV" in os.environ:
 def main():
     try:
         from sentry.lint.engine import get_modified_files, run
-    except ModuleNotFoundError as e:
+    except ModuleNotFoundError:
         if "VIRTUAL_ENV" not in os.environ:
             sys.stderr.write(
                 "ERROR: You're executing outside of the venv. Try this command: direnv allow\n"
@@ -47,7 +47,7 @@ def main():
 
         sys.stdout.write("ERROR: You may be able to fix this by executing: make install-py-dev.\n")
 
-        raise (e)
+        raise
 
     files_modified = [text_type(f) for f in get_modified_files(os.getcwd()) if os.path.exists(f)]
 

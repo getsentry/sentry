@@ -2,7 +2,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as ActionCreators from 'sentry/actionCreators/formSearch';
 import FormSource from 'sentry/components/search/sources/formSource';
-import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
+import type {FormSearchField} from 'sentry/stores/formSearchStore';
+import FormSearchStore from 'sentry/stores/formSearchStore';
 
 describe('FormSource', function () {
   const searchMap: FormSearchField[] = [

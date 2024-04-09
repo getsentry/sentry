@@ -1,27 +1,27 @@
+import importlib.resources
 import os
 import warnings
 
 import click
 
-DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
+from sentry.runner import importer
+
 DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 
 
-def generate_secret_key():
+def generate_secret_key() -> str:
     from django.utils.crypto import get_random_string
 
     chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
     return get_random_string(50, chars)
 
 
-def load_config_template(path, version="default"):
-    from pkg_resources import resource_string
-
-    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
+def load_config_template(path: str, version: str = "default") -> str:
+    return importlib.resources.files("sentry").joinpath(f"data/config/{path}.{version}").read_text()
 
 
-def generate_settings(dev=False):
+def generate_settings(dev: bool = False) -> tuple[str, str]:
     """
     This command is run when ``default_path`` doesn't exist, or ``init`` is
     run and returns a string representing the default data to put into their
@@ -38,7 +38,7 @@ def generate_settings(dev=False):
     return py, yaml
 
 
-def get_sentry_conf():
+def get_sentry_conf() -> str:
     """
     Fetch the SENTRY_CONF value, either from the click context
     if available, or SENTRY_CONF environment variable.
@@ -53,7 +53,7 @@ def get_sentry_conf():
             return "~/.sentry"
 
 
-def discover_configs():
+def discover_configs() -> tuple[str, str, str | None]:
     """
     Discover the locations of three configuration components:
      * Config directory (~/.sentry)
@@ -79,7 +79,9 @@ def discover_configs():
     )
 
 
-def configure(ctx, py, yaml, skip_service_validation=False):
+def configure(
+    ctx: click.Context | None, py: str, yaml: str | None, skip_service_validation: bool = False
+) -> None:
     """
     Given the two different config files, set up the environment.
 
@@ -109,8 +111,6 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     ):
         mimetypes.add_type(type, "." + ext)
 
-    from .importer import install
-
     if yaml is None:
         # `yaml` will be None when SENTRY_CONF is pointed
         # directly to a file, in which case, this file must exist
@@ -135,9 +135,9 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
         reload_on_change(yaml)
 
-    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry_config"
+    importer.SENTRY_CONF_PY = py
 
-    install("sentry_config", py, DEFAULT_SETTINGS_MODULE)
+    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.runner.default_settings"
 
     from django.conf import settings
 

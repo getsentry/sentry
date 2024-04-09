@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Group} from 'sentry-fixture/group';
-import {Tags} from 'sentry-fixture/tags';
-import {TagValues} from 'sentry-fixture/tagvalues';
+import {GroupFixture} from 'sentry-fixture/group';
+import {TagsFixture} from 'sentry-fixture/tags';
+import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -15,8 +15,8 @@ import {
 
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
-const group = Group();
-const tags = Tags();
+const group = GroupFixture();
+const tags = TagsFixture();
 
 function init(tagKey: string) {
   return initializeOrg({
@@ -47,7 +47,7 @@ describe('GroupTagValues', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
     });
     render(
       <GroupTagValues
@@ -78,7 +78,7 @@ describe('GroupTagValues', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
       headers: {
         Link:
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -115,7 +115,7 @@ describe('GroupTagValues', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
     });
     render(
       <GroupTagValues

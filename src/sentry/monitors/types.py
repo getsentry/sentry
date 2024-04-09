@@ -1,13 +1,15 @@
 from dataclasses import dataclass
-from typing import Dict, Literal, TypedDict, Union
+from datetime import datetime
+from typing import Literal, NotRequired, TypedDict, Union
 
-from typing_extensions import NotRequired
+from django.utils.functional import cached_property
+from django.utils.text import slugify
+
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 
 
 class CheckinMessage(TypedDict):
-    # TODO(epurkhiser): We should make this required and ensure the message
-    # produced by relay includes this message type
-    message_type: NotRequired[Literal["check_in"]]
+    message_type: Literal["check_in"]
     payload: str
     start_time: float
     project_id: str
@@ -32,8 +34,52 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[Dict]
+    monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
+
+
+@dataclass
+class CheckinItem:
+    """
+    Represents a check-in to be processed
+    """
+
+    ts: datetime
+    """
+    The timestamp the check-in was produced into the kafka topic. This differs
+    from the start_time that is part of the CheckinMessage
+    """
+
+    partition: int
+    """
+    The kafka partition id the check-in was produced into.
+    """
+
+    message: CheckinMessage
+    """
+    The original unpacked check-in message contents.
+    """
+
+    payload: CheckinPayload
+    """
+    The json-decoded check-in payload contained within the message. Includes
+    the full check-in details.
+    """
+
+    @cached_property
+    def valid_monitor_slug(self):
+        return slugify(self.payload["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+
+    @property
+    def processing_key(self):
+        """
+        This key is used to uniquely identify the check-in group this check-in
+        belongs to. Check-ins grouped together will never be processed in
+        parallel with other check-ins belonging to the same group
+        """
+        project_id = self.message["project_id"]
+        env = self.payload.get("environment")
+        return f"{project_id}:{self.valid_monitor_slug}:{env}"
 
 
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]

@@ -1,11 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Event, EventOrGroupType} from 'sentry/types/event';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {ReleaseStatus} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -18,7 +22,7 @@ const renderQuickContextContent = (
   contextType: ContextType = ContextType.ISSUE,
   eventView?: EventView
 ) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper
@@ -32,15 +36,6 @@ const renderQuickContextContent = (
     </QueryClientProvider>,
     {organization}
   );
-};
-
-const makeEvent = (event: Partial<Event> = {}): Event => {
-  const evt: Event = {
-    ...TestStubs.Event(),
-    ...event,
-  };
-
-  return evt;
 };
 
 jest.mock('sentry/utils/useLocation');
@@ -139,14 +134,14 @@ describe('Quick Context', function () {
         url: `/organizations/org-slug/releases/${encodeURIComponent(
           'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
         )}/`,
-        body: TestStubs.Release({
+        body: ReleaseFixture({
           id: '1',
           shortVersion: 'sentry-android-shop@1.2.0',
           version: 'sentry-android-shop@1.2.0',
           dateCreated: '2010-05-17T02:41:20Z',
           lastEvent: '2011-10-17T02:41:20Z',
           firstEvent: '2010-05-17T02:41:20Z',
-          status: 'open',
+          status: ReleaseStatus.ACTIVE,
           commitCount: 4,
           lastCommit: mockedCommit,
           newGroups: 21,
@@ -170,7 +165,7 @@ describe('Quick Context', function () {
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+        body: EventFixture({type: EventOrGroupType.ERROR, entries: []}),
       });
 
       renderQuickContextContent(defaultRow, ContextType.EVENT);

@@ -4,7 +4,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTeamsById {
   ids: string[] | undefined;
@@ -32,7 +33,7 @@ type TeamQuery = [field: string, ids: string[]];
 function buildTeamsQueryKey(orgSlug: string, teamQuery: TeamQuery | null): ApiQueryKey {
   const query: {query?: string} = {};
 
-  if (teamQuery && teamQuery[1].length) {
+  if (teamQuery?.[1].length) {
     query.query = `${teamQuery[0]}:${teamQuery[1].join(',')}`;
   }
 

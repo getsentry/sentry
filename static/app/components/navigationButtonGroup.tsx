@@ -1,6 +1,7 @@
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,7 +40,7 @@ function NavigationButtonGroup({
         to={links[0]}
         disabled={!hasPrevious}
         aria-label={t('Oldest')}
-        icon={<IconPrevious size="xs" />}
+        icon={<IconPrevious />}
         onClick={onOldestClick}
       />
       <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
@@ -53,7 +54,7 @@ function NavigationButtonGroup({
         to={links[3]}
         disabled={!hasNext}
         aria-label={t('Newest')}
-        icon={<IconNext size="xs" />}
+        icon={<IconNext />}
         onClick={onNewestClick}
       />
     </ButtonBar>

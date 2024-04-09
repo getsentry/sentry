@@ -1,8 +1,8 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import AccountSettingsLayout from 'sentry/views/settings/account/accountSettingsLayout';
@@ -13,7 +13,7 @@ describe('AccountSettingsLayout', function () {
 
   const {routerProps} = initializeOrg();
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     id: '44',
     name: 'Org Index',
     slug: 'org-index',
@@ -27,7 +27,7 @@ describe('AccountSettingsLayout', function () {
     });
   });
 
-  it('fetches org details for SidebarDropdown', function () {
+  it('fetches org details for SidebarDropdown', async function () {
     const {rerender} = render(
       <BreadcrumbContextProvider>
         <AccountSettingsLayout {...routerProps}>content</AccountSettingsLayout>
@@ -43,11 +43,11 @@ describe('AccountSettingsLayout', function () {
       </BreadcrumbContextProvider>
     );
 
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     expect(spy).toHaveBeenCalledWith(expect.anything(), organization.slug, {
       setActive: true,
       loadProjects: true,
     });
-    expect(api).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch org details for SidebarDropdown', function () {
@@ -59,7 +59,7 @@ describe('AccountSettingsLayout', function () {
 
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout {...routerProps} organization={Organization()}>
+        <AccountSettingsLayout {...routerProps} organization={OrganizationFixture()}>
           content
         </AccountSettingsLayout>
       </BreadcrumbContextProvider>

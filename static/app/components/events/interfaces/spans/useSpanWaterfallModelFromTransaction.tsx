@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import omit from 'lodash/omit';
 
 import {useAggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {AggregateEventTransaction, EntryType, EventOrGroupType} from 'sentry/types';
+import type {AggregateEventTransaction} from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 export function useSpanWaterfallModelFromTransaction(
@@ -72,6 +73,17 @@ export function useSpanWaterfallModelFromTransaction(
 
   const [parentSpan, ...flattenedSpans] = spanList;
 
+  const hiddenSpans = useMemo(() => {
+    const hiddenSpans_ = new Set(
+      spanList
+        .filter(span => {
+          return span.frequency < 0.3;
+        })
+        .map(span => span.span_id)
+    );
+    return hiddenSpans_;
+  }, [spanList]);
+
   const event: AggregateEventTransaction = useMemo(() => {
     return {
       contexts: {
@@ -94,6 +106,9 @@ export function useSpanWaterfallModelFromTransaction(
       total: parentSpan?.total ?? 0,
     };
   }, [parentSpan, flattenedSpans]);
-  const waterfallModel = useMemo(() => new WaterfallModel(event, undefined), [event]);
+  const waterfallModel = useMemo(
+    () => new WaterfallModel(event, undefined, undefined, hiddenSpans),
+    [event, hiddenSpans]
+  );
   return {waterfallModel, event, isLoading};
 }

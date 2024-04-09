@@ -2,41 +2,50 @@ import {useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import moment from 'moment';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeatureBadge from 'sentry/components/featureBadge';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
-import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChevron, IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {
+  FID_DEPRECATION_DATE,
+  PerformanceScoreBreakdownChart,
+} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
+import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
-  PageSamplePerformanceTable,
-  TransactionSampleRowWithScoreAndExtra,
-} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+  AlertContent,
+  DismissButton,
+  StyledAlert,
+} from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -54,21 +63,6 @@ const LANDING_DISPLAYS = [
     label: t('Aggregate Spans'),
     field: LandingDisplayField.SPANS,
   },
-];
-
-const SAMPLES_COLUMN_ORDER: GridColumnOrder<
-  keyof TransactionSampleRowWithScoreAndExtra
->[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 function getCurrentTabSelection(selectedTab) {
@@ -103,9 +97,17 @@ export default function PageOverview() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
+  const user = ConfigStore.get('user');
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
+  });
+
   const query = decodeScalar(location.query.query);
 
-  const {data: pageData, isLoading} = useProjectWebVitalsQuery({transaction});
+  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
+  const {data: projectScores, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({transaction});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -126,18 +128,20 @@ export default function PageOverview() {
       projectID: project.id,
     });
 
-  const projectScore = isLoading
-    ? undefined
-    : calculatePerformanceScore({
-        lcp: pageData?.data[0]['p75(measurements.lcp)'] as number,
-        fcp: pageData?.data[0]['p75(measurements.fcp)'] as number,
-        cls: pageData?.data[0]['p75(measurements.cls)'] as number,
-        ttfb: pageData?.data[0]['p75(measurements.ttfb)'] as number,
-        fid: pageData?.data[0]['p75(measurements.fid)'] as number,
-      });
+  const projectScore =
+    isProjectScoresLoading || isLoading
+      ? undefined
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
+
+  const fidDeprecationTimestampString =
+    moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="starfish-browser-webvitals"
+    >
       <Tabs
         value={tab}
         onChange={value => {
@@ -172,7 +176,6 @@ export default function PageOverview() {
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
               {transaction ?? t('Page Loads')}
-              <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -196,7 +199,7 @@ export default function PageOverview() {
           </Layout.Body>
         ) : (
           <Layout.Body>
-            <FeedbackWidget />
+            <FloatingFeedbackWidget />
             <Layout.Main>
               <TopMenuContainer>
                 {transaction && (
@@ -212,9 +215,45 @@ export default function PageOverview() {
                 )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
+              {!isDismissed && (
+                <StyledAlert type="info" showIcon>
+                  <AlertContent>
+                    <span>
+                      {tct(
+                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in our performance score calculation.`,
+                        {
+                          fidDeprecationTimestampString,
+                          inpStrong: <strong />,
+                          fidStrong: <strong />,
+                        }
+                      )}
+                      <br />
+                      {tct(
+                        `Users should update their Sentry SDKs to the [link:latest version (7.104.0+)] and [enableInp:enable the INP option] to start receiving updated Performance Scores.`,
+                        {
+                          link: (
+                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.104.0" />
+                          ),
+                          enableInp: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#enableinp" />
+                          ),
+                        }
+                      )}
+                    </span>
+                    <DismissButton
+                      priority="link"
+                      icon={<IconClose />}
+                      onClick={dismiss}
+                      aria-label={t('Dismiss Alert')}
+                      title={t('Dismiss Alert')}
+                    />
+                  </AlertContent>
+                </StyledAlert>
+              )}
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
               </Flex>
@@ -230,12 +269,12 @@ export default function PageOverview() {
                     setState({...state, webVital});
                   }}
                   transaction={transaction}
+                  showTooltip={false}
                 />
               </WebVitalMetersContainer>
               <PageSamplePerformanceTableContainer>
                 <PageSamplePerformanceTable
                   transaction={transaction}
-                  columnOrder={SAMPLES_COLUMN_ORDER}
                   limit={15}
                   search={query}
                 />
@@ -245,6 +284,7 @@ export default function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
+                projectScoreIsLoading={isLoading}
               />
             </Layout.Side>
           </Layout.Body>
@@ -286,5 +326,5 @@ const PageSamplePerformanceTableContainer = styled('div')`
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${space(2)} 0 ${space(4)} 0;
 `;

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {resolveRoute} from './resolveRoute';
 
@@ -17,8 +17,8 @@ jest.mock('sentry/constants', () => {
 describe('resolveRoute', () => {
   let devUi, host, initialData;
 
-  const organization = Organization();
-  const otherOrg = Organization({
+  const organization = OrganizationFixture();
+  const otherOrg = OrganizationFixture({
     features: ['customer-domains'],
     slug: 'other-org',
   });

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import msgpack
@@ -10,15 +10,16 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import killswitches
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import TIMEOUT
+from sentry.models.environment import Environment
+from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -26,6 +27,7 @@ from sentry.monitors.models import (
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
+from sentry.utils.outcomes import Outcome
 from sentry.utils.services import build_instance_from_options
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
@@ -49,8 +51,8 @@ class MonitorConsumerTest(TestCase):
     def send_checkin(
         self,
         monitor_slug: str,
-        guid: Optional[str] = None,
-        ts: Optional[datetime] = None,
+        guid: str | None = None,
+        ts: datetime | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -70,6 +72,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
+            "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
@@ -91,7 +94,7 @@ class MonitorConsumerTest(TestCase):
 
     def send_clock_pulse(
         self,
-        ts: Optional[datetime] = None,
+        ts: datetime | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
@@ -177,8 +180,8 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+    def test_muted(self):
+        monitor = self._create_monitor(is_muted=True)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -186,8 +189,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
-        # The created monitor environment is in line with the check-in, but the parent monitor
-        # is disabled
+        # The created monitor environment is in line with the check-in, but the
+        # parent monitor is muted
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
@@ -196,18 +199,6 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
             checkin.date_added
         )
-
-    def test_create_lock(self):
-        monitor = self._create_monitor(slug="my-monitor")
-        guid = uuid.uuid4().hex
-
-        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
-        lock.acquire()
-
-        self.send_checkin(monitor.slug, guid=guid)
-
-        # Lock should prevent creation of new check-in
-        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -240,6 +231,25 @@ class MonitorConsumerTest(TestCase):
         timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
         assert checkin.timeout_at == timeout_at
 
+    def test_check_in_timeout_late(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+
+        # mark monitor as timed-out
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        assert checkin.duration is None
+
+        # next check-in reports an OK
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now + timedelta(seconds=5))
+
+        # The check-in is still in TIMEOUT status, but has a duration now
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+        assert checkin.duration == 5000
+
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
@@ -247,6 +257,16 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
+
+    def test_check_in_update_with_reversed_dates(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now - timedelta(seconds=5))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.duration == 5000
 
     def test_check_in_existing_guid(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -285,7 +305,7 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
-        assert monitor_environment.environment.name == "jungle"
+        assert monitor_environment.get_environment().name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
@@ -306,7 +326,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.monitor.name == "my-new-monitor"
-        assert monitor_environment.environment.name == "production"
+        assert monitor_environment.get_environment().name == "production"
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
@@ -383,34 +403,41 @@ class MonitorConsumerTest(TestCase):
         assert closed_checkin.guid != uuid.UUID(int=0)
 
     def test_rate_limit(self):
+        now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")
 
         with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
-            self.send_checkin("my-monitor")
-            self.send_checkin("my-monitor")
+            self.send_checkin("my-monitor", ts=now)
+            self.send_checkin("my-monitor", ts=now)
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 1
 
             # Same monitor, diff environments
-            self.send_checkin("my-monitor", environment="dev")
+            self.send_checkin("my-monitor", environment="dev", ts=now)
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+            # Same monitor same env but a minute later, shuld NOT be rate-limited
+            self.send_checkin("my-monitor", ts=now + timedelta(minutes=1))
+
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 3
 
     def test_invalid_guid_environment_match(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_environment.environment.name == "production"
+        assert checkin.monitor_environment.get_environment().name == "production"
 
         self.send_checkin(monitor.slug, guid=self.guid, status="ok", environment="test")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert checkin.monitor_environment.environment.name != "test"
+        assert checkin.monitor_environment.get_environment().name != "test"
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -465,10 +492,27 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
 
-        monitor_environment = MonitorEnvironment.objects.get(
-            monitor=monitor, environment__name="my-environment"
+        env = Environment.objects.get(
+            organization_id=monitor.organization_id, name="my-environment"
         )
-        assert monitor_environment is not None
+        assert MonitorEnvironment.objects.filter(monitor=monitor, environment_id=env.id).exists()
+
+    def test_monitor_upsert_empty_timezone(self):
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "timezone": "",
+            },
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert "timezone" not in monitor.config
 
     def test_monitor_upsert_invalid_slug(self):
         self.send_checkin(
@@ -559,6 +603,13 @@ class MonitorConsumerTest(TestCase):
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == 0
 
+    def test_monitor_disabled(self):
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
+        self.send_checkin("my-monitor")
+
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 0
+
     def test_organization_killswitch(self):
         monitor = self._create_monitor(slug="my-monitor")
 
@@ -590,5 +641,95 @@ class MonitorConsumerTest(TestCase):
             try_monitor_tasks_trigger.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
-            logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
+            logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_tasks_trigger.side_effect = None
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_accept(self, check_accept_monitor_checkin):
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPT
+
+        # Explicitly leaving off the "disabled" status to validate that we're
+        # not dropping due to the monitor being disabled
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_drop(self, check_accept_monitor_checkin):
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        # Explicitly leaving off the "disabled" status to validate that we're
+        # not dropping due to the monitor being disabled
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 0
+
+    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_accept_upsert_with_seat(
+        self,
+        check_accept_monitor_checkin,
+        assign_monitor_seat,
+    ):
+        """
+        Validates that a monitor can be upserted and processes a full check-in
+        when the PermitCheckInStatus is ACCEPTED_FOR_UPSERT and a seat is
+        allocated with a Outcome.ACCEPTED.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assign_monitor_seat.assert_called_with(monitor)
+
+    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_accept_upsert_no_seat(
+        self,
+        check_accept_monitor_checkin,
+        assign_monitor_seat,
+    ):
+        """
+        Validates that a monitor can be upserted but have the check-in dropped
+        when the PermitCheckInStatus is ACCEPTED_FOR_UPSERT and a seat is
+        unable to be allocated with a Outcome.RATE_LIMITED
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            environment="my-environment",
+        )
+
+        # Check-in was not produced as we could not assign a monitor seat
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+        # Monitor was created, but is disabled
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert monitor.status == ObjectStatus.DISABLED
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assign_monitor_seat.assert_called_with(monitor)

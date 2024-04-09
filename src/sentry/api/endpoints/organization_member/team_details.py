@@ -1,4 +1,5 @@
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -7,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -24,13 +26,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
 from sentry.utils.json import JSONData
@@ -56,7 +58,6 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
 
 
 class OrganizationTeamMemberPermission(OrganizationPermission):
-
     scope_map = {
         "GET": [
             "org:read",
@@ -87,9 +88,9 @@ def _has_elevated_scope(access: Access) -> bool:
 
 
 def _is_org_owner_or_manager(access: Access) -> bool:
-    roles = access.get_organization_roles()
+    role = access.get_organization_role()
     # only org owners and managers have org:write scope
-    return any("org:write" in role.scopes for role in roles)
+    return "org:write" in role.scopes if role else False
 
 
 @extend_schema(tags=["Teams"])
@@ -101,6 +102,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -114,9 +116,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         access = request.access
 
         # When open membership is disabled, we need to check if the token has elevated permissions
-        # in order to ensure org tokens with only "org:read" scope cannot add members. This check
-        # comes first because access.has_global_access is True for all org tokens
-        if access.is_org_auth_token and not access.has_open_membership:
+        # in order to ensure integration tokens with only "org:read" scope cannot add members. This check
+        # comes first because access.has_global_access is True for all integration tokens
+        if access.is_integration_token and not access.has_open_membership:
             return _has_elevated_scope(access)
         return access.has_global_access or can_admin_team(access, team)
 
@@ -133,7 +135,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are removing their own membership
         * If they are a team admin or have global write access
         """
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         if not request.user.is_authenticated:
@@ -287,6 +289,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
+        if not organization_roles.get(member.role).is_team_roles_allowed:
+            return Response(
+                {
+                    "detail": f"The user with a '{member.role}' role cannot have team-level permissions."
+                },
+                status=403,
+            )
+
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
 
@@ -381,7 +391,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
             GlobalParams.TEAM_SLUG,
         ],
-        request=None,
         responses={
             200: BaseTeamSerializer,
             400: RESPONSE_BAD_REQUEST,

@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -11,8 +12,8 @@ describe('ProjectCard', function () {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={Organization()}
-        project={TestStubs.Project({
+        organization={OrganizationFixture()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -54,8 +55,8 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={Organization()}
-        project={TestStubs.Project({
+        organization={OrganizationFixture()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -90,8 +91,8 @@ describe('ProjectCard', function () {
   it('renders header link for errors', function () {
     render(
       <ProjectCard
-        organization={Organization()}
-        project={TestStubs.Project({
+        organization={OrganizationFixture()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -113,8 +114,8 @@ describe('ProjectCard', function () {
   it('renders header link for transactions', function () {
     render(
       <ProjectCard
-        organization={Organization({features: ['performance-view']})}
-        project={TestStubs.Project({
+        organization={OrganizationFixture({features: ['performance-view']})}
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -138,8 +139,8 @@ describe('ProjectCard', function () {
   it('renders loading placeholder card if there are no stats', function () {
     render(
       <ProjectCard
-        organization={Organization()}
-        project={TestStubs.Project()}
+        organization={OrganizationFixture()}
+        project={ProjectFixture()}
         hasProjectAccess={false}
         api={new MockApiClient()}
       />

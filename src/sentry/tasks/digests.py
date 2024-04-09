@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import List, Optional
 
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -44,14 +43,14 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str] = None):
+def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None = None):
     from sentry import digests
     from sentry.mail import mail_adapter
 
     try:
         project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
-        logger.info(f"Cannot deliver digest {key} due to error: {error}")
+        logger.info("Cannot deliver digest %s due to error: %s", key, error)
         digests.delete(key)
         return
 
@@ -67,7 +66,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
                 if not notification_uuid:
                     notification_uuid = get_notification_uuid_from_records(records)
         except InvalidState as error:
-            logger.info(f"Skipped digest delivery: {error}", exc_info=True)
+            logger.info("Skipped digest delivery: %s", error, exc_info=True)
             return
 
         if digest:
@@ -92,7 +91,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
             )
 
 
-def get_notification_uuid_from_records(records: List[Record]) -> Optional[str]:
+def get_notification_uuid_from_records(records: list[Record]) -> str | None:
     for record in records:
         try:
             notification_uuid = record.value.notification_uuid

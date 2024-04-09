@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -11,6 +12,7 @@ from sentry.api.serializers.models.integration import IntegrationProviderSeriali
 
 @region_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -23,16 +25,17 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             feature_flag_name = "organizations:integrations-%s" % provider_key
             return features.has(feature_flag_name, organization, actor=request.user)
 
-        providers = list(filter(is_provider_enabled, list(integrations.all())))
+        providers = list(integrations.all())
+        if "provider_key" in request.GET:
+            providers = [p for p in providers if p.key == request.GET["provider_key"]]
+
+        providers = list(filter(is_provider_enabled, providers))
 
         providers.sort(key=lambda i: i.key)
 
         serialized = serialize(
             providers, organization=organization, serializer=IntegrationProviderSerializer()
         )
-
-        if "provider_key" in request.GET:
-            serialized = [d for d in serialized if d["key"] == request.GET["provider_key"]]
 
         if not serialized:
             return Response({"detail": "Providers do not exist"}, status=404)

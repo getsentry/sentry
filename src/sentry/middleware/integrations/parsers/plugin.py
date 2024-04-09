@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.http import HttpResponse
+
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -27,7 +29,7 @@ class PluginRequestParser(BaseRequestParser):
         organization_id = self.match.kwargs.get("organization_id")
         logging_extra: dict[str, Any] = {"path": self.request.path}
         if not organization_id:
-            logger.info(f"{self.provider}no_organization_id", extra=logging_extra)
+            logger.info("%s.no_organization_id", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
 
         try:
@@ -37,14 +39,21 @@ class PluginRequestParser(BaseRequestParser):
         except OrganizationMapping.DoesNotExist as e:
             logging_extra["error"] = str(e)
             logging_extra["organization_id"] = organization_id
-            logger.info(f"{self.provider}.no_mapping", extra=logging_extra)
-            return self.get_response_from_control_silo()
+            logger.info("%s.no_mapping", self.provider, extra=logging_extra)
+
+            # Webhook was for an org and that org no longer exists.
+            return HttpResponse(status=400)
 
         try:
             region = get_region_by_name(mapping.region_name)
         except RegionResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id
-            logger.info(f"{self.provider}.no_region", extra=logging_extra)
+            logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
-        return self.get_response_from_outbox_creation(regions=[region])
+
+        # Because outboxes are now sharded by integration and plugins don't have one,
+        # we use the org ID as the shard ID to batch these changes.
+        return self.get_response_from_webhookpayload(
+            regions=[region], shard_identifier_override=mapping.organization_id
+        )

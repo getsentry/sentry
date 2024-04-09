@@ -1,7 +1,9 @@
+import logging
 import os.path
-from distutils import log
 
 from .base import ROOT, BaseBuildCommand
+
+log = logging.getLogger(__name__)
 
 
 class BuildIntegrationDocsCommand(BaseBuildCommand):

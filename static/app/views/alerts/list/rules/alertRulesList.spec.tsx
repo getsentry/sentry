@@ -1,7 +1,10 @@
-import {Incident} from 'sentry-fixture/incident';
-import {MetricRule} from 'sentry-fixture/metricRule';
-import {Organization} from 'sentry-fixture/organization';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -17,17 +20,17 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-import {DatasetOption} from 'sentry/views/alerts/utils';
 
 import AlertRulesList from './alertRulesList';
 
 jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
-  const defaultOrg = Organization({
+  const defaultOrg = OrganizationFixture({
     access: ['alerts:write'],
   });
-  TeamStore.loadInitialData([TestStubs.Team()], false, null);
+
+  TeamStore.loadInitialData([TeamFixture()], false, null);
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
   const pageLinks =
@@ -39,33 +42,34 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: 'First Issue Alert',
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        MetricRule({
+        MetricRuleFixture({
           id: '345',
           projects: ['earth'],
-          latestIncident: Incident({
+          latestIncident: IncidentFixture({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        MetricRule({
+        MetricRuleFixture({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
         }),
       ],
     });
+
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'earth',
           platform: 'javascript',
-          teams: [TestStubs.Team()],
+          teams: [TeamFixture()],
         }),
       ],
     });
@@ -174,7 +178,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: deletedRuleName,
           projects: ['earth'],
@@ -240,7 +244,7 @@ describe('AlertRulesList', () => {
     const {routerContext, organization} = initializeOrg({
       organization: defaultOrg,
       router: {
-        location: TestStubs.location({
+        location: LocationFixture({
           query: {asc: '1', sort: 'name'},
           // Sort by the name column
           search: '?asc=1&sort=name`',
@@ -254,7 +258,7 @@ describe('AlertRulesList', () => {
       'ascending'
     );
 
-    expect(rulesMock).toHaveBeenCalledTimes(2);
+    expect(rulesMock).toHaveBeenCalledTimes(1);
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
@@ -293,47 +297,10 @@ describe('AlertRulesList', () => {
     );
   });
 
-  it('searches by alert type', async () => {
-    const {routerContext, organization, router} = initializeOrg();
-    render(<AlertRulesList />, {context: routerContext, organization});
-
-    const performanceControl = await screen.getByRole('radio', {name: 'Performance'});
-    expect(performanceControl).toBeInTheDocument();
-    await userEvent.click(performanceControl);
-
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          dataset: DatasetOption.PERFORMANCE,
-        },
-      })
-    );
-  });
-
-  it('calls api with correct query params when searching by alert type', () => {
-    const {routerContext, organization} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            dataset: DatasetOption.PERFORMANCE,
-          },
-        },
-      },
-    });
-    render(<AlertRulesList />, {context: routerContext, organization});
-
-    expect(rulesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: ['generic_metrics', 'transactions']}),
-      })
-    );
-  });
-
   it('uses empty team query parameter when removing all teams', async () => {
     const {routerContext, organization, router} = initializeOrg({
       router: {
-        location: TestStubs.location({
+        location: LocationFixture({
           query: {team: 'myteams'},
           search: '?team=myteams`',
         }),
@@ -376,7 +343,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           status: 'disabled',
@@ -394,7 +361,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           // both disabled and muted
@@ -415,7 +382,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           snooze: true,
@@ -433,7 +400,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        MetricRule({
+        MetricRuleFixture({
           projects: ['earth'],
           snooze: true,
         }),
@@ -480,5 +447,44 @@ describe('AlertRulesList', () => {
         },
       })
     );
+  });
+
+  it('does not display ACTIVATED Metric Alerts', async () => {
+    rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        ProjectAlertRuleFixture({
+          id: '123',
+          name: 'First Issue Alert',
+          projects: ['earth'],
+          createdBy: {name: 'Samwise', id: 1, email: ''},
+        }),
+        MetricRuleFixture({
+          id: '345',
+          projects: ['earth'],
+          name: 'Omitted Test Metric Alert',
+          monitorType: 1,
+          latestIncident: IncidentFixture({
+            status: IncidentStatus.CRITICAL,
+          }),
+        }),
+        MetricRuleFixture({
+          id: '678',
+          name: 'Test Metric Alert 2',
+          monitorType: 0,
+          projects: ['earth'],
+          latestIncident: null,
+        }),
+      ],
+    });
+
+    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {context: routerContext, organization});
+
+    expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+
+    expect(screen.queryByText('Omitted Test Metric Alert')).not.toBeInTheDocument();
   });
 });

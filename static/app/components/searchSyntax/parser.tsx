@@ -1,9 +1,10 @@
-import mergeWith from 'lodash/mergeWith';
+import * as Sentry from '@sentry/react';
+import merge from 'lodash/merge';
 import moment from 'moment';
-import {LocationRange} from 'pegjs';
+import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -258,7 +259,10 @@ type FilterTypeConfig = typeof filterTypeConfig;
  * invalidMessages option
  */
 export enum InvalidReason {
+  FREE_TEXT_NOT_ALLOWED = 'free-text-not-allowed',
   WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
+  LOGICAL_OR_NOT_ALLOWED = 'logic-or-not-allowed',
+  LOGICAL_AND_NOT_ALLOWED = 'logic-and-not-allowed',
   MUST_BE_QUOTED = 'must-be-quoted',
   FILTER_MUST_HAVE_VALUE = 'filter-must-have-value',
   INVALID_BOOLEAN = 'invalid-boolean',
@@ -441,6 +445,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.LOGIC_BOOLEAN as const,
     value: bool,
+    invalid: this.checkInvalidLogicalBoolean(bool),
   });
 
   tokenKeySimple = (value: string, quoted: boolean) => ({
@@ -661,11 +666,39 @@ export class TokenConverter {
    * Checks the validity of a free text based on the provided search configuration
    */
   checkInvalidFreeText = (value: string) => {
+    if (this.config.disallowFreeText) {
+      return {
+        type: InvalidReason.FREE_TEXT_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.FREE_TEXT_NOT_ALLOWED],
+      };
+    }
     if (this.config.disallowWildcard && value.includes('*')) {
       return {
         type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
+    }
+
+    return null;
+  };
+
+  /**
+   * Checks the validity of a logical boolean filter based on the provided search configuration
+   */
+  checkInvalidLogicalBoolean = (value: BooleanOperator) => {
+    if (this.config.disallowedLogicalOperators.has(value)) {
+      if (value === BooleanOperator.OR) {
+        return {
+          type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
+          reason: this.config.invalidMessages[InvalidReason.LOGICAL_OR_NOT_ALLOWED],
+        };
+      }
+      if (value === BooleanOperator.AND) {
+        return {
+          type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
+          reason: this.config.invalidMessages[InvalidReason.LOGICAL_AND_NOT_ALLOWED],
+        };
+      }
     }
 
     return null;
@@ -888,10 +921,6 @@ export type ParseResult = Array<
  */
 export type SearchConfig = {
   /**
-   * Enables boolean filtering (AND / OR)
-   */
-  allowBoolean: boolean;
-  /**
    * Keys considered valid for boolean filter types
    */
   booleanKeys: Set<string>;
@@ -900,9 +929,17 @@ export type SearchConfig = {
    */
   dateKeys: Set<string>;
   /**
+   * Disallow free text search
+   */
+  disallowFreeText: boolean;
+  /**
    * Disallow wildcards in free text search AND in tag values
    */
   disallowWildcard: boolean;
+  /**
+   * Disallow specific boolean operators
+   */
+  disallowedLogicalOperators: Set<BooleanOperator>;
   /**
    * Keys which are considered valid for duration filters
    */
@@ -942,7 +979,7 @@ export type SearchConfig = {
   validateKeys?: boolean;
 };
 
-const defaultConfig: SearchConfig = {
+export const defaultConfig: SearchConfig = {
   textOperatorKeys: new Set([
     'release.version',
     'release.build',
@@ -980,10 +1017,18 @@ const defaultConfig: SearchConfig = {
     'team_key_transaction',
   ]),
   sizeKeys: new Set([]),
-  allowBoolean: true,
+  disallowedLogicalOperators: new Set(),
+  disallowFreeText: false,
   disallowWildcard: false,
   invalidMessages: {
+    [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t('Free text is not supported in this search'),
     [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
+    [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: t(
+      'The OR operator is not allowed in this search'
+    ),
+    [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: t(
+      'The AND operator is not allowed in this search'
+    ),
     [InvalidReason.MUST_BE_QUOTED]: t('Quotes must enclose text or be escaped'),
     [InvalidReason.FILTER_MUST_HAVE_VALUE]: t('Filter must have a value'),
     [InvalidReason.INVALID_BOOLEAN]: t('Invalid boolean. Expected true, 1, false, or 0.'),
@@ -999,11 +1044,23 @@ const defaultConfig: SearchConfig = {
   },
 };
 
-const options = {
-  TokenConverter,
-  TermOperator,
-  FilterType,
-};
+function tryParseSearch<T extends {config: SearchConfig}>(
+  query: string,
+  config: T
+): ParseResult | null {
+  try {
+    return grammar.parse(query, config);
+  } catch (e) {
+    Sentry.withScope(scope => {
+      scope.setFingerprint(['search-syntax-parse-error']);
+      scope.setExtra('message', e.message?.slice(-100));
+      scope.setExtra('found', e.found);
+      Sentry.captureException(e);
+    });
+
+    return null;
+  }
+}
 
 /**
  * Parse a search query into a ParseResult. Failing to parse the search query
@@ -1013,25 +1070,16 @@ export function parseSearch(
   query: string,
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
-  const configCopy = {...defaultConfig};
+  const config = additionalConfig
+    ? merge({...defaultConfig}, additionalConfig)
+    : defaultConfig;
 
-  // Merge additionalConfig with defaultConfig
-  const config = mergeWith(configCopy, additionalConfig, (srcValue, destValue) => {
-    if (destValue instanceof Set) {
-      return new Set([...destValue, ...srcValue]);
-    }
-
-    // Use default merge behavior
-    return undefined;
+  return tryParseSearch(query, {
+    config,
+    TokenConverter,
+    TermOperator,
+    FilterType,
   });
-
-  try {
-    return grammar.parse(query, {...options, config});
-  } catch (e) {
-    // TODO(epurkhiser): Should we capture these errors somewhere?
-  }
-
-  return null;
 }
 
 /**

@@ -1,9 +1,12 @@
-import {GroupStats} from 'sentry-fixture/groupStats';
-import {Search} from 'sentry-fixture/search';
-import {Tags} from 'sentry-fixture/tags';
+import {GroupFixture} from 'sentry-fixture/group';
+import {GroupStatsFixture} from 'sentry-fixture/groupStats';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MemberFixture} from 'sentry-fixture/member';
+import {SearchFixture} from 'sentry-fixture/search';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
@@ -42,17 +45,17 @@ describe('IssueList -> Polling', function () {
       access: ['project:releases'],
     },
   });
-  const savedSearch = Search({
+  const savedSearch = SearchFixture({
     id: '789',
     query: 'is:unresolved',
     name: 'Unresolved Issues',
   });
 
-  const group = TestStubs.Group({project});
-  const group2 = TestStubs.Group({project, id: 2});
+  const group = GroupFixture({project});
+  const group2 = GroupFixture({project, id: '2'});
 
   const defaultProps = {
-    location: TestStubs.location({
+    location: LocationFixture({
       query: {query: 'is:unresolved'},
       search: 'query=is:unresolved',
     }),
@@ -106,12 +109,12 @@ describe('IssueList -> Polling', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [TestStubs.Member({projects: [project.slug]})],
+      body: [MemberFixture({projects: [project.slug]})],
     });
 
     MockApiClient.addMockResponse({
@@ -133,7 +136,7 @@ describe('IssueList -> Polling', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [GroupStats()],
+      body: [GroupStatsFixture()],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
@@ -155,13 +158,15 @@ describe('IssueList -> Polling', function () {
   it('toggles polling for new issues', async function () {
     await renderComponent();
 
-    expect(issuesRequest).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // Should be called with default query
-        data: expect.stringContaining('is%3Aunresolved'),
-      })
-    );
+    await waitFor(() => {
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aunresolved'),
+        })
+      );
+    });
 
     // Enable realtime updates
     await userEvent.click(
@@ -195,7 +200,9 @@ describe('IssueList -> Polling', function () {
     });
 
     await renderComponent();
-    expect(screen.getByText(textWithMarkupMatcher('1-1 of 1'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher('1-1 of 1'))
+    ).toBeInTheDocument();
 
     // Enable realtime updates
     await userEvent.click(
@@ -223,7 +230,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 
@@ -245,7 +252,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 
@@ -267,7 +274,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 

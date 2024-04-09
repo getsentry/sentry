@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import List
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -69,7 +70,26 @@ class AuthProvider(ReplicatedControlModel):
             auth_provider=serialized, region_name=region_name
         )
 
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
+
+        region_replica_service.delete_replicated_auth_provider(
+            auth_provider_id=identifier, region_name=region_name
+        )
+
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Grant access to members who have not linked SSO accounts.
         allow_unlinked: bool
         # Enable SCIM for member and team provisioning and syncing.
@@ -149,7 +169,7 @@ class AuthProvider(ReplicatedControlModel):
         )
         self.flags.scim_enabled = True
 
-    def outboxes_for_reset_idp_flags(self) -> List[ControlOutbox]:
+    def outboxes_for_reset_idp_flags(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,
@@ -191,7 +211,7 @@ class AuthProvider(ReplicatedControlModel):
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
 
-    def outboxes_for_mark_invalid_sso(self, user_id: int) -> List[ControlOutbox]:
+    def outboxes_for_mark_invalid_sso(self, user_id: int) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,

@@ -4,7 +4,8 @@ import {Button} from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearchType} from 'sentry/types';
+import type {Organization} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -94,8 +95,8 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
   // Hide if we are already on the default search,
   // except when the user has a different search pinned.
   if (
-    isDefaultIssueStreamSearch({query, sort}) &&
-    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch))
+    isDefaultIssueStreamSearch({query, sort}, {organization}) &&
+    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch, {organization}))
   ) {
     return null;
   }

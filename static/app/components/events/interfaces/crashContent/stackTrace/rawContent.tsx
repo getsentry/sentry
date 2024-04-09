@@ -1,6 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {ExceptionValue, Frame} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {ExceptionValue, Frame} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined, trim} from 'sentry/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
@@ -167,12 +167,18 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
 export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
-  exception?: ExceptionValue
+  exception?: ExceptionValue,
+  hasSimilarityEmbeddingsFeature: boolean = false
 ) {
   const frames: string[] = [];
 
   (data?.frames ?? []).forEach((frame, frameIdx) => {
-    frames.push(getFrame(frame, frameIdx, platform));
+    if (
+      !hasSimilarityEmbeddingsFeature ||
+      (frame.inApp && hasSimilarityEmbeddingsFeature)
+    ) {
+      frames.push(getFrame(frame, frameIdx, platform));
+    }
   });
 
   if (platform !== 'python') {

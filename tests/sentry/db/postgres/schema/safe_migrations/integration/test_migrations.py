@@ -15,7 +15,9 @@ class BaseSafeMigrationTest(TestCase):
     migrate_to: str
 
     def run_migration(self):
-        with override_settings(INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",)):
+        with override_settings(
+            INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
+        ):
             migrate_from = [(self.app, self.migrate_from)]
             migrate_to = [(self.app, self.migrate_to)]
             executor = MigrationExecutor(connection)

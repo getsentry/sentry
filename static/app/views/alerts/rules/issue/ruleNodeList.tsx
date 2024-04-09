@@ -4,15 +4,16 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueOwnership, Organization, Project} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
+import type {Organization, Project} from 'sentry/types';
+import type {
+  IssueAlertConfiguration,
+  IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
@@ -22,7 +23,7 @@ import {
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode, {hasStreamlineTargeting} from './ruleNode';
+import RuleNode from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -34,7 +35,7 @@ type Props = {
   /**
    * All available actions or conditions
    */
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  nodes: IssueAlertConfiguration[keyof IssueAlertConfiguration] | null;
   onAddRow: (
     value: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate
   ) => void;
@@ -49,33 +50,25 @@ type Props = {
   project: Project;
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
-  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
 const createSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
+  actions: IssueAlertRuleActionTemplate[]
 ): Array<{
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
-      let label = t('Issue Owners, Team, or Member');
-      if (hasStreamlineTargeting(organization)) {
-        label = t('Suggested Assignees, Team, or Member');
-      }
+      const label = t('Suggested Assignees, Team, or Member');
       return {
         value: node,
         label,
       };
     }
 
-    if (
-      node.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-      organization.features.includes('escalating-issues')
-    ) {
+    if (node.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       const label = t('The issue changes state from archived to escalating');
       return {
         value: node,
@@ -101,10 +94,7 @@ const groupLabels = {
 /**
  * Group options by category
  */
-const groupSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
-) => {
+const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   const grouped = actions.reduce<
     Record<
       keyof typeof groupLabels,
@@ -144,7 +134,7 @@ const groupSelectOptions = (
     .map(([key, values]) => {
       return {
         label: groupLabels[key],
-        options: createSelectOptions(values, organization),
+        options: createSelectOptions(values),
       };
     });
 };
@@ -159,14 +149,18 @@ class RuleNodeList extends Component<Props> {
   getNode = (
     template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
-  ): IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null => {
+  ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes?.find(n => {
-      return (
-        n.id === template.id &&
+      if ('sentryAppInstallationUuid' in n) {
         // Match more than just the id for sentryApp actions, they share the same id
-        n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
-      );
+        return (
+          n.id === template.id &&
+          n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
+        );
+      }
+
+      return n.id === template.id;
     });
 
     if (!node) {
@@ -180,13 +174,13 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx] as IssueAlertRuleCondition;
+    const item = items[itemIdx];
 
-    let changeAlertNode: IssueAlertRuleConditionTemplate = {
-      ...node,
+    let changeAlertNode: IssueAlertGenericConditionConfig = {
+      ...(node as IssueAlertGenericConditionConfig),
       label: node.label.replace('...', ' {comparisonType}'),
       formFields: {
-        ...node.formFields,
+        ...(node.formFields as IssueAlertGenericConditionConfig['formFields']),
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,
@@ -249,7 +243,6 @@ class RuleNodeList extends Component<Props> {
       placeholder,
       items,
       organization,
-      ownership,
       project,
       disabled,
       error,
@@ -262,8 +255,8 @@ class RuleNodeList extends Component<Props> {
 
     const options =
       selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes, organization)
-        : createSelectOptions(enabledNodes, organization);
+        ? groupSelectOptions(enabledNodes)
+        : createSelectOptions(enabledNodes);
 
     return (
       <Fragment>
@@ -282,7 +275,6 @@ class RuleNodeList extends Component<Props> {
                 organization={organization}
                 project={project}
                 disabled={disabled}
-                ownership={ownership}
                 incompatibleRule={incompatibleRules?.includes(idx)}
                 incompatibleBanner={incompatibleBanner === idx}
               />

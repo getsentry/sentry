@@ -1,10 +1,10 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;

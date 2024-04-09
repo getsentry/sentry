@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,10 +11,10 @@ import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
 
-const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('Errors and Transactions')],
-  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-];
+// const DATASET_CHOICES: [DataSet, string][] = [
+//   [DataSet.EVENTS, t('Errors and Transactions')],
+//   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
+// ];
 
 interface Props {
   dataSet: DataSet;
@@ -37,6 +38,14 @@ export function DataSetStep({
     ]);
   }
 
+  const datasetChoices = new Map<string, string>();
+  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+
+  if (hasReleaseHealthFeature) {
+    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
+  }
+
   return (
     <BuildStep
       title={t('Choose your dataset')}
@@ -52,14 +61,7 @@ export function DataSetStep({
       <DataSetChoices
         label="dataSet"
         value={dataSet}
-        choices={
-          hasReleaseHealthFeature
-            ? [
-                ...DATASET_CHOICES,
-                [DataSet.RELEASES, t('Releases (Sessions, Crash rates)')],
-              ]
-            : DATASET_CHOICES
-        }
+        choices={[...datasetChoices.entries()]}
         disabledChoices={disabledChoices}
         onChange={newDataSet => {
           onChange(newDataSet as DataSet);

@@ -12,11 +12,12 @@ external source, makes decisions around what to query and when, and is responsib
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
 """
+
 from __future__ import annotations
 
-from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union, cast
+from typing import Any, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -45,7 +46,7 @@ from sentry.utils.snuba import raw_snql_query
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -57,6 +58,8 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
@@ -89,7 +92,7 @@ def handle_search_filters(
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: Union[And, Or],
+    condition_type: And | Or,
 ):
     """Unnecessary query optimization.
 
@@ -107,30 +110,22 @@ def attempt_compressed_condition(
 def search_filter_to_condition(
     search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
-) -> Condition:
-    # The field-name is whatever the API says it is.  We take it at face value.
-    field_name = search_filter.key.name
-
-    # If the field-name is in the search config then we can apply the search filter and return a
-    # result.  If its not then its a tag and the same operation is performed only with a few more
-    # steps.
-    field = search_config.get(field_name)
+) -> Condition | None:
+    field = search_config.get(search_filter.key.name)
     if isinstance(field, (ColumnField, ComputedField)):
         return field.apply(search_filter)
 
-    if field is None:
-        # Tags are represented with an "*" field by convention.  We could name it `tags` and
-        # update our search config to point to this field-name.
+    if "*" in search_config:
         field = cast(TagField, search_config["*"])
+        return field.apply(search_filter)
 
-    # The field_name in this case does not represent a column_name but instead it represents a
-    # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
-    # function.
-    return field.apply(search_filter)
+    return None
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
+import dataclasses
+
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -139,19 +134,24 @@ from sentry.replays.usecases.query.configs.scalar import (
     scalar_search_config,
 )
 
-Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+@dataclasses.dataclass
+class Paginators:
+    limit: int
+    offset: int
 
 
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
-    pagination: Paginators | None,
+    pagination: Paginators,
     organization: Organization | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None = None,
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -185,16 +185,21 @@ def query_using_optimized_search(
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
 
-    if pagination:
-        query = query.set_limit(pagination.limit)
-        query = query.set_offset(pagination.offset)
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
 
     subquery_response = execute_query(query, tenant_id, referrer)
+
+    # The query "has more rows" if the number of rows found matches the limit (which is
+    # the requested limit + 1).
+    has_more = len(subquery_response.get("data", [])) == pagination.limit
+    if has_more:
+        subquery_response["data"].pop()
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return []
+        return [], has_more
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -208,16 +213,17 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_end=period_stop,
+            request_user_id=request_user_id,
         ),
         tenant_id,
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results)
+    return _make_ordered(replay_ids, results), has_more
 
 
 def make_scalar_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -249,7 +255,7 @@ def make_scalar_search_conditions_query(
 
 
 def make_aggregate_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -281,15 +287,16 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
+    request_user_id: int | None,
 ) -> Query:
     """Return a query to fetch every replay in the set."""
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
+    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
 
-    def _select_from_fields() -> list[Union[Column, Function]]:
+    def _select_from_fields() -> list[Column | Function]:
         if fields:
-            return select_from_fields(list(set(fields)))
+            return select_from_fields(list(set(fields)), user_id=request_user_id)
         else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values())
+            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
 
     return Query(
         match=Entity("replays"),

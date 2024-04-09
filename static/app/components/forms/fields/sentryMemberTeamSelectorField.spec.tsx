@@ -1,9 +1,10 @@
-import selectEvent from 'react-select-event';
-import {Project} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -12,10 +13,10 @@ import TeamStore from 'sentry/stores/teamStore';
 import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
 
 describe('SentryMemberTeamSelectorField', () => {
-  const org = TestStubs.Organization();
-  const mockUsers = [User()];
-  const mockTeams = [Team()];
-  const mockProjects = [Project()];
+  const org = OrganizationFixture();
+  const mockUsers = [UserFixture()];
+  const mockTeams = [TeamFixture()];
+  const mockProjects = [ProjectFixture()];
 
   beforeEach(() => {
     MemberListStore.init();

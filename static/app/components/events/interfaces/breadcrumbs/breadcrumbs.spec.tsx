@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -26,7 +28,7 @@ describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
   beforeEach(() => {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
@@ -39,8 +41,8 @@ describe('Breadcrumbs', () => {
     });
 
     props = {
-      organization: Organization(),
-      event: TestStubs.Event({entries: [], projectID: project.id}),
+      organization: OrganizationFixture(),
+      event: EventFixture({entries: [], projectID: project.id}),
       data: {
         values: [
           {
@@ -146,13 +148,13 @@ describe('Breadcrumbs', () => {
   });
 
   describe('render', function () {
-    it('should display the correct number of crumbs with no filter', function () {
+    it('should display the correct number of crumbs with no filter', async function () {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.getAllByTestId('crumb')).toHaveLength(4);
+      expect(await screen.findAllByTestId('crumb')).toHaveLength(4);
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
@@ -171,7 +173,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should not crash if data contains a toString attribute', function () {
+    it('should not crash if data contains a toString attribute', async function () {
       // Regression test: A "toString" property in data should not falsely be
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
@@ -189,7 +191,7 @@ describe('Breadcrumbs', () => {
       render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.getByTestId('crumb')).toBeInTheDocument();
+      expect(await screen.findByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });

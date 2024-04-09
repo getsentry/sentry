@@ -1,15 +1,16 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import {Query} from 'history';
-import * as qs from 'query-string';
+import type {Query} from 'history';
+import type * as qs from 'query-string';
 
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
+import type {FlamegraphState} from './flamegraphContext';
+import {DEFAULT_FLAMEGRAPH_STATE} from './flamegraphContext';
 
 // Intersect the types so we can properly guard
 type PossibleQuery =

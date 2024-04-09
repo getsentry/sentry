@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import logging
 from random import randint
-from typing import Any, Optional, Union
+from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -43,6 +45,8 @@ from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+
+logger = logging.getLogger("sentry.auth")
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -85,14 +89,14 @@ class AuthLoginView(BaseView):
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
         return super().handle(request=request, *args, **kwargs)
 
-    def get(self, request: Request, **kwargs) -> HttpResponse:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
         if request.user.is_authenticated:
             return self.redirect_authenticated_user(request=request, next_uri=next_uri)
@@ -133,7 +137,7 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseRedirect:
+    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseBase:
         """
         If an authenticated user sends a GET request to AuthLoginView, we redirect them forwards in the auth process.
         """
@@ -239,7 +243,7 @@ class AuthLoginView(BaseView):
 
         return HttpResponseRedirect(redirect_to=redirect_uri)
 
-    def get_auth_provider_if_exists(self, org_slug: str) -> Union[AuthProvider, None]:
+    def get_auth_provider_if_exists(self, org_slug: str) -> AuthProvider | None:
         """
         Returns the auth provider for the given org, or None if there isn't one.
         """
@@ -273,7 +277,6 @@ class AuthLoginView(BaseView):
             )
             return self.add_to_org_and_redirect_to_next_register_step(request=request, user=user)
         else:
-
             context.update(
                 {
                     "op": "register",
@@ -317,16 +320,14 @@ class AuthLoginView(BaseView):
 
     def add_to_org_and_redirect_to_next_register_step(
         self, request: Request, user: User
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Given a valid register form, adds them to their org, accepts their invite, and
         redirects the user to their next step.
         """
 
         # Attempt to directly accept any pending invites
-        invite_helper = ApiInviteHelper.from_session(
-            request=request,
-        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
         # In single org mode, associate the user to the only organization.
         #
@@ -356,7 +357,7 @@ class AuthLoginView(BaseView):
 
     def accept_invite_and_redirect_to_org(
         self, request: Request, invite_helper: ApiInviteHelper
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Accepts an invite on behalf of a user and redirects them to their org login
         """
@@ -410,7 +411,7 @@ class AuthLoginView(BaseView):
 
         attempted_login = request.POST.get("username") and request.POST.get("password")
 
-        return attempted_login and ratelimiter.is_limited(
+        return attempted_login and ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(value=request.POST["username"])).hexdigest()
             ),
@@ -463,7 +464,7 @@ class AuthLoginView(BaseView):
         return self.redirect(url=get_login_redirect(request=request))
 
     def _handle_login(
-        self, request: Request, user: User, organization: Optional[RpcOrganization]
+        self, request: Request, user: User, organization: RpcOrganization | None
     ) -> None:
         """
         Logs a user in and determines their active org.
@@ -482,6 +483,8 @@ class AuthLoginView(BaseView):
             user_id=request.user.id,
             slug=organization.slug,
             only_visible=False,
+            include_projects=False,
+            include_teams=False,
         )
         if org_context:
             if org_context.member and request.user and not is_active_superuser(request=request):
@@ -540,9 +543,7 @@ class AuthLoginView(BaseView):
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
 
-    def get_join_request_link(
-        self, organization: RpcOrganization, request: Request
-    ) -> Union[str, None]:
+    def get_join_request_link(self, organization: RpcOrganization, request: Request) -> str | None:
         if not organization:
             return None
 
@@ -555,9 +556,7 @@ class AuthLoginView(BaseView):
         redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return redirect_uri
 
-    def handle_basic_auth(
-        self, request: Request, **kwargs
-    ) -> Union[HttpResponse, HttpResponseRedirect]:
+    def handle_basic_auth(self, request: Request, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
         This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
@@ -618,9 +617,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(
-                request=request,
-            )
+            invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
             # In single org mode, associate the user to the only organization.
             #
@@ -656,7 +653,7 @@ class AuthLoginView(BaseView):
                 op == "login" and request.POST.get("username") and request.POST.get("password")
             )
 
-            if login_attempt and ratelimiter.is_limited(
+            if login_attempt and ratelimiter.backend.is_limited(
                 "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
@@ -685,6 +682,8 @@ class AuthLoginView(BaseView):
                         user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
+                        include_projects=False,
+                        include_teams=False,
                     )
                     if org_context:
                         if org_context.member and request.user and not is_active_superuser(request):

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from enum import Enum
+from typing import Any
+from urllib.parse import urlencode
 
-import requests
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -16,15 +17,18 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
-from sentry.integrations.discord.commands import DiscordCommandManager
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
 
-DESCRIPTION = "Discord’s your place to collaborate, share, and just talk about your day – or commiserate about app errors. Connect Sentry to your Discord server and get [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via direct message when sh%t hits the fan."
+DESCRIPTION = """Discord’s your place to collaborate, share, and just talk about your day – or
+commiserate about app errors. Connect Sentry to your Discord server and get
+[alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via
+direct message when sh%t hits the fan."""
 
 FEATURES = [
     FeatureDescription(
@@ -35,6 +39,24 @@ FEATURES = [
         "Configure rule based Discord notifications to automatically be posted into a specific channel.",
         IntegrationFeatures.ALERT_RULE,
     ),
+]
+
+COMMANDS: list[object] = [
+    {
+        "name": "link",
+        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
+        "type": 1,
+    },
+    {
+        "name": "unlink",
+        "description": "Unlink your Discord account from your Sentry account.",
+        "type": 1,
+    },
+    {
+        "name": "help",
+        "description": "View a list of Sentry bot commands and what they do.",
+        "type": 1,
+    },
 ]
 
 metadata = IntegrationMetadata(
@@ -50,12 +72,7 @@ metadata = IntegrationMetadata(
 
 class DiscordIntegration(IntegrationInstallation):
     def get_client(self) -> DiscordClient:
-        org_integration_id = self.org_integration.id if self.org_integration else None
-
-        return DiscordClient(
-            integration_id=self.model.id,
-            org_integration_id=org_integration_id,
-        )
+        return DiscordClient()
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove
@@ -113,7 +130,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # remove this when we remove the discord feature flag
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
@@ -136,15 +152,31 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.client_secret = options.get("discord.client-secret")
         self.client = DiscordClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
+        self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [DiscordInstallPipeline(self._get_bot_install_url())]
+        return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        guild_name = self._get_guild_name(guild_id)
-        discord_user_id = self._get_discord_user_id(str(state.get("code")))
+        try:
+            guild_name = self.client.get_guild_name(guild_id=guild_id)
+        except (ApiError, AttributeError):
+            guild_name = guild_id
+
+        discord_config = state.get("discord", {})
+        if isinstance(discord_config, dict):
+            use_configure = discord_config.get("use_configure") == "1"
+        else:
+            use_configure = False
+        url = self.configure_url if use_configure else self.setup_url
+
+        auth_code = str(state.get("code"))
+        if auth_code:
+            discord_user_id = self._get_discord_user_id(auth_code, url)
+        else:
+            raise IntegrationError("Missing code from state.")
 
         return {
             "name": guild_name,
@@ -157,20 +189,42 @@ class DiscordIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self) -> None:
-        if self._credentials_exist():
-            DiscordCommandManager().register_commands()
-
-    def _get_guild_name(self, guild_id: str) -> str:
-        url = self.client.GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {self.bot_token}"}
+    def _has_application_commands(self) -> bool:
         try:
-            response = self.client.get(url, headers=headers)
-            return response["name"]  # type: ignore
-        except (ApiError, AttributeError):
-            return guild_id
+            return self.client.has_application_commands()
+        except ApiError as e:
+            logger.error(
+                "discord.fail.setup.get_application_commands",
+                extra={
+                    "status": e.code,
+                    "error": str(e),
+                    "application_id": self.application_id,
+                },
+            )
+            raise ApiError(str(e))
 
-    def _get_discord_user_id(self, auth_code: str) -> str:
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        if self._credentials_exist() and not self._has_application_commands():
+            try:
+                for command in COMMANDS:
+                    self.client.set_application_command(command)
+            except ApiError as e:
+                logger.error(
+                    "discord.fail.setup.set_application_command",
+                    extra={
+                        "status": e.code,
+                        "error": str(e),
+                        "application_id": self.application_id,
+                    },
+                )
+                raise ApiError(str(e))
+
+    def _get_discord_user_id(self, auth_code: str, url: str) -> str:
         """
         Helper function for completing the oauth2 flow and grabbing the
         installing user's Discord user id so we can link their identities.
@@ -183,54 +237,68 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
-        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={self.setup_url}"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
+        try:
+            access_token = self.client.get_access_token(auth_code, url)
+        except ApiError:
+            raise IntegrationError("Failed to get Discord access token from API.")
+        except KeyError:
+            raise IntegrationError("Failed to get Discord access token from key.")
+        try:
+            user_id = self.client.get_user_id(access_token)
+        except ApiError:
+            raise IntegrationError("Failed to get Discord user ID from API.")
+        except KeyError:
+            raise IntegrationError("Failed to get Discord user ID from key.")
+        return user_id
+
+    def get_params_for_oauth(
+        self,
+    ):
+        return {
+            "client_id": self.application_id,
+            "permissions": self.bot_permissions,
+            "scope": " ".join(self.oauth_scopes),
+            "response_type": "code",
         }
 
-        try:
-            response = self.client.post(
-                "https://discord.com/api/v10/oauth2/token",
-                json=False,
-                data=form_data,
-                headers=headers,
-            )
-            token = response["access_token"]  # type: ignore
-
-        except ApiError as e:
-            logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"code": e.code})
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError:
-            logger.error("discord.install.failed_to_extract_oauth2_access_token")
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-
-        headers = {"Authorization": f"Bearer {token}"}
-        # Can't use self.client.get because that will overwrite our header
-        # with our bot's authorization
-        response = requests.get(f"{self.client.base_url}/users/@me", headers=headers)
-        if response.status_code == 200:
-            return response.json()["id"]
-
-        logger.error(
-            "discord.install.failed_to_get_discord_user_id", extra={"code": response.status_code}
-        )
-        raise IntegrationError("Could not retrieve Discord user information.")
-
-    def _get_bot_install_url(self):
-        return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
-
     def _credentials_exist(self) -> bool:
-        return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
+        has_credentials = all(
+            (self.application_id, self.public_key, self.bot_token, self.client_secret)
+        )
+        if not has_credentials:
+            logger.error(
+                "discord.install.fail.credentials_exist",
+                extra={
+                    "application_id": self.application_id,
+                    "has_public_key": bool(self.public_key),
+                    "has_bot_token": bool(self.bot_token),
+                    "has_client_secret": bool(self.client_secret),
+                },
+            )
+        return has_credentials
 
 
 class DiscordInstallPipeline(PipelineView):
-    def __init__(self, install_url: str):
-        self.install_url = install_url
+    def __init__(self, params):
+        self.params = params
         super().__init__()
 
     def dispatch(self, request, pipeline):
         if "guild_id" not in request.GET or "code" not in request.GET:
-            return self.redirect(self.install_url)
+            state = pipeline.fetch_state(key="discord") or {}
+            redirect_uri = (
+                absolute_uri("extensions/discord/configure/")
+                if state.get("use_configure") == "1"
+                else absolute_uri("extensions/discord/setup/")
+            )
+            params = urlencode(
+                {
+                    "redirect_uri": redirect_uri,
+                    **self.params,
+                }
+            )
+            redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
+            return self.redirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

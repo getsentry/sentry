@@ -1,22 +1,23 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
+import pickBy from 'lodash/pickBy';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Organization} from 'sentry/types';
-import {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import type {Organization} from 'sentry/types';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
@@ -60,18 +61,40 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
+  const spanDescription = decodeScalar(location.query?.['span.description']);
+  const spanAction = decodeScalar(location.query?.['span.action']);
+  const spanDomain = decodeScalar(location.query?.['span.domain']);
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const {isLoading, data, meta, pageLinks} = useSpanList(
-    moduleName ?? ModuleName.ALL,
-    endpoint,
-    method,
-    spanCategory,
-    [sort],
+  const filters = {
+    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+    'span.module': moduleName ?? ModuleName.ALL,
+    transaction: endpoint,
+    'transaction.method': method,
+    has: 'span.description',
+  };
+
+  const {isLoading, data, meta, pageLinks} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(pickBy(filters, value => value !== undefined)),
+    fields: [
+      PROJECT_ID,
+      SPAN_OP,
+      SPAN_GROUP,
+      SPAN_DESCRIPTION,
+      SPAN_DOMAIN,
+      'spm()',
+      `sum(${SPAN_SELF_TIME})`,
+      `avg(${SPAN_SELF_TIME})`,
+      'http_error_count()',
+      'time_spent_percentage()',
+    ],
+    sorts: [sort],
     limit,
-    'api.starfish.use-span-list',
-    cursor
-  );
+    cursor,
+    referrer: 'api.starfish.use-span-list',
+  });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({

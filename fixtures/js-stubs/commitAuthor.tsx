@@ -1,6 +1,6 @@
 import {User} from 'sentry/types';
 
-export function CommitAuthor(params: Partial<User> = {}): User {
+export function CommitAuthorFixture(params: Partial<User> = {}): User {
   return {
     username: 'example@sentry.io',
     lastLogin: '2018-11-30T21:18:09.812Z',
@@ -38,6 +38,7 @@ export function CommitAuthor(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'gravatar',
       theme: 'light',
+      issueDetailsNewExperienceQ42023: false,
     },
     permissions: new Set(),
     canReset2fa: false,

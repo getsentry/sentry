@@ -2,6 +2,7 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytest
+from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.integrations.slack.requests.action import SlackActionRequest
@@ -10,12 +11,11 @@ from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SlackRequestTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -33,7 +33,7 @@ class SlackRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackRequest(self.request)
 
@@ -49,6 +49,13 @@ class SlackRequestTest(TestCase):
             "slack_channel_id": "1",
             "slack_user_id": "2",
             "slack_api_app_id": "S1",
+            "request_data": {
+                "api_app_id": "S1",
+                "channel": {"id": "1"},
+                "team_id": "T001",
+                "type": "foo",
+                "user": {"id": "2"},
+            },
         }
 
     def test_disregards_None_logging_values(self):
@@ -58,6 +65,13 @@ class SlackRequestTest(TestCase):
             "slack_team_id": "T001",
             "slack_channel_id": "1",
             "slack_user_id": "2",
+            "request_data": {
+                "api_app_id": None,
+                "channel": {"id": "1"},
+                "team_id": "T001",
+                "type": "foo",
+                "user": {"id": "2"},
+            },
         }
 
     def test_validate_existence_of_data(self):
@@ -91,8 +105,33 @@ class SlackRequestTest(TestCase):
             self.slack_request.validate()
             assert e.status == 403
 
+    def test_none_in_data(self):
+        request = mock.Mock()
+        request.data = {
+            "type": "foo",
+            "team": None,
+            "channel": {"id": "1"},
+            "user": {"id": "2"},
+            "api_app_id": "S1",
+        }
+        request.body = urlencode(self.request.data).encode("utf-8")
+        request.META = (options.get("slack.signing-secret"), self.request.body)
 
-@region_silo_test(stable=True)
+        slack_request = SlackRequest(request)
+        assert slack_request.logging_data == {
+            "slack_channel_id": "1",
+            "slack_user_id": "2",
+            "slack_api_app_id": "S1",
+            "request_data": {
+                "api_app_id": "S1",
+                "channel": {"id": "1"},
+                "team": None,
+                "type": "foo",
+                "user": {"id": "2"},
+            },
+        }
+
+
 class SlackEventRequestTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -112,7 +151,7 @@ class SlackEventRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackEventRequest(self.request)
 
@@ -198,7 +237,7 @@ class SlackActionRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackActionRequest(self.request)
 

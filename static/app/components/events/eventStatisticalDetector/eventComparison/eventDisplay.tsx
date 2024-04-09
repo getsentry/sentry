@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
@@ -21,13 +21,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Project} from 'sentry/types';
+import type {EventTransaction, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -141,7 +142,6 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
@@ -166,8 +166,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex =
-    eventIds && eventIds.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
@@ -220,10 +219,10 @@ function EventDisplay({
             <LinkButton
               title={t('Full Event Details')}
               size={BUTTON_SIZE}
-              to={eventDetailsRoute({
-                eventSlug: generateEventSlug({project: project.slug, id: eventData.id}),
-                orgSlug: organization.slug,
-              })}
+              to={getTransactionDetailsUrl(
+                organization.slug,
+                generateEventSlug({project: project.slug, id: eventData.id})
+              )}
               aria-label={t('Full Event Details')}
               icon={<IconOpen />}
             />
@@ -255,10 +254,10 @@ function EventDisplay({
         </StyledControlBar>
         <ComparisonContentWrapper>
           <Link
-            to={eventDetailsRoute({
-              eventSlug: generateEventSlug({project: project.slug, id: selectedEventId}),
-              orgSlug: organization.slug,
-            })}
+            to={getTransactionDetailsUrl(
+              organization.slug,
+              generateEventSlug({project: project.slug, id: selectedEventId})
+            )}
           >
             <MinimapContainer>
               <MinimapPositioningContainer>
@@ -282,12 +281,7 @@ function EventDisplay({
         </ComparisonContentWrapper>
       </div>
 
-      <EventTags
-        event={eventData}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      <EventTags event={eventData} projectSlug={project.slug} />
     </EventDisplayContainer>
   );
 }

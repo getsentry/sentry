@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, TypedDict
+from typing import TypedDict
 
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema_serializer
@@ -15,7 +15,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.strings import oxfordize_list
 
 
-def format_choices_text(choices: List[Tuple[int, str]]):
+def format_choices_text(choices: list[tuple[int, str]]):
     choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
     return oxfordize_list(choices_as_display_text)
 
@@ -35,7 +35,7 @@ class NotificationActionInputData(TypedDict):
     integration_id: int
     target_identifier: str
     target_display: str
-    projects: List[Project]
+    projects: list[Project]
     sentry_app_id: int
     target_type: int
 
@@ -135,7 +135,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         return target_type_value
 
     def validate_trigger_type(self, trigger_type: str) -> int:
-        valid_triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
+        valid_triggers: dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
         trigger_type_value = valid_triggers.get(trigger_type)
         if trigger_type_value is None:
             trigger_text = format_choices_text(NotificationAction.get_trigger_types())
@@ -227,7 +227,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            _prefix, channel_id, timed_out, = get_channel_id(
+            (_prefix, channel_id, timed_out,) = get_channel_id(
                 organization=self.context["organization"],
                 integration=self.integration,
                 channel_name=channel_name,
@@ -276,7 +276,6 @@ Required if **service_type** is `slack` or `opsgenie`.
             validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
-                integration_id=self.integration.id,
                 guild_name=self.integration.name,
             )
         except Exception as e:

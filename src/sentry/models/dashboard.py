@@ -10,6 +10,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, 
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.slug import SentrySlugField
 
 
 @region_silo_only_model
@@ -81,7 +82,7 @@ class DashboardTombstone(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = models.CharField(max_length=255)
+    slug = SentrySlugField(max_length=255, db_index=False)
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -215,7 +216,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "fields": ["geo.country_code", "geo.region", "count()"],
                         "aggregates": ["count()"],
                         "columns": ["geo.country_code", "geo.region"],
-                        "orderby": "",
+                        "orderby": "-count()",
                     }
                 ],
             },
@@ -231,7 +232,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "fields": ["browser.name", "count()"],
                         "aggregates": ["count()"],
                         "columns": ["browser.name"],
-                        "orderby": "-count",
+                        "orderby": "-count()",
                     }
                 ],
             },
@@ -294,7 +295,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "aggregates": [],
                         "columns": ["assignee", "issue", "title"],
                         "conditions": "assigned_or_suggested:me is:unresolved",
-                        "orderby": "priority",
+                        "orderby": "trends",
                     },
                 ],
                 "widgetType": "issue",

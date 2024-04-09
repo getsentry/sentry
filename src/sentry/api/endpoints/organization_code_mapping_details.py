@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
@@ -22,6 +23,7 @@ from .organization_code_mappings import (
 
 @region_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
@@ -57,6 +59,8 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
             # We expect there to exist an org_integration
@@ -90,6 +94,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         :auth: required
         """
+
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             config.delete()
             return self.respond(status=status.HTTP_204_NO_CONTENT)

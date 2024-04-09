@@ -1,4 +1,5 @@
-import XAxis, {XAxisProps} from 'sentry/components/charts/components/xAxis';
+import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
+import XAxis from 'sentry/components/charts/components/xAxis';
 import {lightTheme} from 'sentry/utils/theme';
 
 jest.mock('moment', () => {

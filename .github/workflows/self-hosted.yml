@@ -1,0 +1,87 @@
+name: self-hosted
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  self-hosted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+        with:
+          python-version: 3.11.6
+          cache-dependency-path: requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip && pip install pip setuptools wheel -c requirements-dev-frozen.txt
+
+      - name: Step configurations
+        id: config
+        run: |
+          echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
+          echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
+
+      - name: webpack cache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('webpack.config.ts') }}
+
+      - name: node_modules cache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --production
+
+      - run: |
+          SETUPTOOLS_USE_DISTUTILS=stdlib python setup.py bdist_wheel --build-number 0
+          cp requirements-frozen.txt dist/
+
+      - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event_name != 'pull_request'
+
+      - run: docker buildx create --driver docker-container --use
+
+      - run: |
+          if [ ${{ github.event_name }} = 'push' ]; then
+            args=(
+              --tag ghcr.io/getsentry/sentry-self-hosted:latest
+              --push
+            )
+          else
+            args=()
+          fi
+
+          docker buildx build \
+            --pull \
+            --cache-from ghcr.io/getsentry/sentry-self-hosted:latest \
+            --cache-to type=inline \
+            --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
+            --file self-hosted/Dockerfile \
+            --build-arg SOURCE_COMMIt=${{ github.sha }} \
+            "${args[@]}" \
+            .

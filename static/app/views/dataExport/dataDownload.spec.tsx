@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,7 +10,7 @@ import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload
 describe('DataDownload', function () {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const mockRouteParams = {
     orgId: organization.slug,
     dataExportId: '721',
@@ -25,9 +26,7 @@ describe('DataDownload', function () {
   it('should send a request to the data export endpoint', function () {
     const getValid = getDataExportDetails(DownloadStatus.VALID);
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalledTimes(1);
   });
 
@@ -43,9 +42,7 @@ describe('DataDownload', function () {
     };
     getDataExportDetails({errors}, 403);
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(screen.getByText('403 -')).toBeInTheDocument(); // Either the code or the mock is mistaken about the data return format
   });
 
@@ -53,9 +50,7 @@ describe('DataDownload', function () {
     const status = DownloadStatus.EARLY;
     getDataExportDetails({status});
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(
       screen.getByText(textWithMarkupMatcher('What are you doing here?'))
     ).toBeInTheDocument();
@@ -67,9 +62,7 @@ describe('DataDownload', function () {
     const response = {status, query: {type: ExportQueryType.ISSUES_BY_TAG}};
     getDataExportDetails(response);
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(screen.getByText('This is awkward.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start a New Download'})).toHaveAttribute(
       'href',
@@ -81,9 +74,7 @@ describe('DataDownload', function () {
     const status = DownloadStatus.VALID;
     getDataExportDetails({dateExpired, status});
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(screen.getByText('All done.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download CSV'})).toHaveAttribute(
       'href',
@@ -107,9 +98,7 @@ describe('DataDownload', function () {
       },
     });
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 
@@ -124,9 +113,7 @@ describe('DataDownload', function () {
       },
     });
 
-    render(
-      <DataDownload {...TestStubs.routeComponentProps()} params={mockRouteParams} />
-    );
+    render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
     expect(
       screen.queryByRole('button', {name: 'Open in Discover'})
     ).not.toBeInTheDocument();

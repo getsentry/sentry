@@ -1,6 +1,5 @@
 import abc
 from datetime import timedelta
-from typing import FrozenSet, List, Optional
 
 from django.utils import timezone
 
@@ -21,13 +20,13 @@ _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 class AccessService(abc.ABC):
     @abc.abstractmethod
-    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         pass
 
     @abc.abstractmethod
     def get_auth_identity_for_user(
         self, auth_provider_id: int, user_id: int
-    ) -> Optional[RpcAuthIdentity]:
+    ) -> RpcAuthIdentity | None:
         pass
 
     @abc.abstractmethod
@@ -37,14 +36,6 @@ class AccessService(abc.ABC):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
-        pass
-
-    @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
-        pass
-
-    @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
 
     def auth_identity_is_valid(
@@ -69,9 +60,9 @@ class AccessService(abc.ABC):
     def query_sso_state(
         self,
         *,
-        organization_id: Optional[int],
+        organization_id: int | None,
         is_super_user: bool,
-        member: Optional[RpcOrganizationMemberSummary],
+        member: RpcOrganizationMemberSummary | None,
     ) -> RpcMemberSsoState:
         if organization_id is None:
             return _SSO_NONMEMBER
@@ -110,16 +101,19 @@ class AccessService(abc.ABC):
         *,
         user_id: int,
         is_superuser: bool,
-        organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
+        is_staff: bool,
+        organization_id: int | None,
+        org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
         sso_state = self.query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
 
-        if is_superuser:
+        # Unfortunately we are unable to combine the is_superuser and is_staff
+        # into a single argument b/c query_sso_state specifically needs is_superuser
+        if is_superuser or is_staff:
             # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
-            # have them, you can only use them when you are acting, as a superuser.  This is intentional.
+            # have them, you can only use them when you are acting, as a superuser or staff.  This is intentional.
             permissions = list(self.get_permissions_for_user(user_id))
         else:
             permissions = []
@@ -127,7 +121,7 @@ class AccessService(abc.ABC):
         return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     @abc.abstractmethod
-    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
+    def get_permissions_for_user(self, user_id: int) -> frozenset[str]:
         pass
 
 

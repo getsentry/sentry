@@ -1,12 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -15,25 +15,26 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import AnomaliesQuery, {
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
   AnomalyInfo,
   AnomalyPayload,
   ChildrenProps,
 } from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 
 import {GenericPerformanceWidget} from '../../landing/widgets/components/performanceWidget';
 import {WidgetEmptyStateWarning} from '../../landing/widgets/components/selectableList';
-import {QueryDefinition, WidgetDataResult} from '../../landing/widgets/types';
+import type {QueryDefinition, WidgetDataResult} from '../../landing/widgets/types';
 import {
   PerformanceWidgetSetting,
   WIDGET_DEFINITIONS,
 } from '../../landing/widgets/widgetDefinitions';
-import {SetStateAction} from '../types';
+import type {SetStateAction} from '../types';
 
 import AnomaliesTable from './anomaliesTable';
 import {AnomalyChart} from './anomalyChart';

@@ -5,42 +5,40 @@ import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
-import {
-  FrameSourceMapDebuggerData,
-  SourceMapsDebuggerModal,
-} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
-import Tag from 'sentry/components/tag';
-import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {Tag} from 'sentry/components/tag';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Frame,
   Organization,
   PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from '../debugMeta/debugImage';
+import type DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
-import {SymbolicatorStatus} from '../types';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
-import PackageLink from './packageLink';
-import PackageStatus, {PackageStatusIcon} from './packageStatus';
-import Symbol, {FunctionNameToggleIcon} from './symbol';
-import TogglableAddress, {AddressToggleIcon} from './togglableAddress';
+import {OpenInContextLine} from './openInContextLine';
+import {PackageStatusIcon} from './packageStatus';
+import {FunctionNameToggleIcon} from './symbol';
+import {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -54,7 +52,9 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.js',
   '.mjs',
   '.cjs',
-  '.jsbundle', // React Native file ending
+  '.jsbundle', // React Native iOS file ending
+  '.bundle', // React Native Android file ending
+  '.hbc', // Hermes Bytecode (from Expo updates) file ending
   '.js.gz', // file ending idiomatic for Ember.js
 ];
 
@@ -103,6 +103,7 @@ interface Props extends DeprecatedLineProps {
 }
 
 type State = {
+  isHovering: boolean;
   isExpanded?: boolean;
 };
 
@@ -130,10 +131,19 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
+    isHovering: false,
+  };
+
+  handleMouseEnter = () => {
+    this.setState({isHovering: true});
+  };
+
+  handleMouseLeave = () => {
+    this.setState({isHovering: false});
   };
 
   toggleContext = evt => {
-    evt && evt.preventDefault();
+    evt?.preventDefault();
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -163,17 +173,6 @@ export class DeprecatedLine extends Component<Props, State> {
       emptySourceNotation,
       isOnlyFrame,
     });
-  }
-
-  shouldShowLinkToImage() {
-    const {isHoverPreviewed, data} = this.props;
-    const {symbolicatorStatus} = data;
-
-    return (
-      !!symbolicatorStatus &&
-      symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-      !isHoverPreviewed
-    );
   }
 
   packageStatus() {
@@ -221,7 +220,6 @@ export class DeprecatedLine extends Component<Props, State> {
       return null;
     }
 
-    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
@@ -229,8 +227,7 @@ export class DeprecatedLine extends Component<Props, State> {
         className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
-        title={t('Toggle Context')}
-        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
       >
         <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
@@ -240,7 +237,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
   leadsToApp() {
     const {data, nextFrame} = this.props;
-    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+    return !data.inApp && (nextFrame?.inApp || !nextFrame);
   }
 
   isFoundByStackScanning() {
@@ -311,7 +308,9 @@ export class DeprecatedLine extends Component<Props, State> {
       lockAddress,
       isSubFrame,
       hiddenFrameCount,
+      event,
     } = this.props;
+    const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
       isANR &&
@@ -343,6 +342,16 @@ export class DeprecatedLine extends Component<Props, State> {
       sdk_version: this.props.event.sdk?.version,
     };
 
+    const activeLineNumber = data.lineNo;
+    const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
+    // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
+    const hasStacktraceLink =
+      (data.inApp || event.platform === 'csharp') &&
+      !!data.filename &&
+      (isHovering || isExpanded);
+    const showSentryAppStacktraceLinkInFrame =
+      hasStacktraceLink && this.props.components.length > 0;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -350,6 +359,8 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
+          onMouseEnter={() => this.handleMouseEnter()}
+          onMouseLeave={() => this.handleMouseLeave()}
         >
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
@@ -371,6 +382,24 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
+            {hasStacktraceLink && !shouldShowSourceMapDebuggerButton && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={data.lineNo}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
             {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
@@ -424,96 +453,6 @@ export class DeprecatedLine extends Component<Props, State> {
     );
   }
 
-  renderNativeLine() {
-    const {
-      data,
-      showingAbsoluteAddress,
-      onAddressToggle,
-      onFunctionNameToggle,
-      image,
-      maxLengthOfRelativeAddress,
-      includeSystemFrames,
-      isFrameAfterLastNonApp,
-      showCompleteFunctionName,
-      isHoverPreviewed,
-      isSubFrame,
-      hiddenFrameCount,
-    } = this.props;
-
-    const leadHint = this.renderLeadHint();
-    const packageStatus = this.packageStatus();
-
-    return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine
-          className="title as-table"
-          data-test-id="title"
-          isSubFrame={!!isSubFrame}
-          hasToggle={!!hiddenFrameCount}
-        >
-          <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-            <PackageInfo>
-              {leadHint}
-              <PackageLink
-                includeSystemFrames={!!includeSystemFrames}
-                withLeadHint={leadHint !== null}
-                packagePath={data.package}
-                onClick={this.scrollToImage}
-                isClickable={this.shouldShowLinkToImage()}
-                isHoverPreviewed={isHoverPreviewed}
-              >
-                {!isHoverPreviewed && (
-                  <PackageStatus
-                    status={packageStatus}
-                    tooltip={t('Go to Images Loaded')}
-                  />
-                )}
-              </PackageLink>
-            </PackageInfo>
-            {data.instructionAddr && (
-              <TogglableAddress
-                address={data.instructionAddr}
-                startingAddress={image ? image.image_addr ?? null : null}
-                isAbsolute={!!showingAbsoluteAddress}
-                isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={!!this.isInlineFrame()}
-                onToggle={onAddressToggle}
-                relativeAddressMaxlength={maxLengthOfRelativeAddress}
-                isHoverPreviewed={isHoverPreviewed}
-              />
-            )}
-            <Symbol
-              frame={data}
-              showCompleteFunctionName={!!showCompleteFunctionName}
-              onFunctionNameToggle={onFunctionNameToggle}
-              isHoverPreviewed={isHoverPreviewed}
-            />
-          </NativeLineContent>
-          <DefaultLineTagWrapper>
-            <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
-              {this.renderExpander()}
-            </DefaultLineTitleWrapper>
-
-            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
-          </DefaultLineTagWrapper>
-        </DefaultLine>
-      </StrictClick>
-    );
-  }
-
-  renderLine() {
-    switch (this.getPlatform()) {
-      case 'objc':
-      // fallthrough
-      case 'cocoa':
-      // fallthrough
-      case 'native':
-        return this.renderNativeLine();
-      default:
-        return this.renderDefaultLine();
-    }
-  }
-
   render() {
     const data = this.props.data;
 
@@ -523,14 +462,13 @@ export class DeprecatedLine extends Component<Props, State> {
       expanded: this.state.isExpanded,
       collapsed: !this.state.isExpanded,
       'system-frame': !data.inApp,
-      'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
     });
     const props = {className};
 
     return (
       <StyledLi data-test-id="line" {...props}>
-        {this.renderLine()}
+        {this.renderDefaultLine()}
         <Context
           frame={data}
           event={this.props.event}
@@ -541,10 +479,10 @@ export class DeprecatedLine extends Component<Props, State> {
           hasContextRegisters={hasContextRegisters(this.props.registers)}
           emptySourceNotation={this.props.emptySourceNotation}
           hasAssembly={hasAssembly(data, this.props.platform)}
-          expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
+          platform={this.props.platform}
         />
       </StyledLi>
     );
@@ -554,16 +492,6 @@ export class DeprecatedLine extends Component<Props, State> {
 export default withOrganization(
   withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
 );
-
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    order: 0;
-  }
-`;
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
@@ -584,29 +512,6 @@ const LeftLineTitle = styled('div')`
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
-`;
-
-const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
-  display: grid;
-  flex: 1;
-  gap: ${space(0.5)};
-  grid-template-columns: ${p =>
-    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
-  align-items: center;
-  justify-content: flex-start;
-
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    grid-template-columns:
-      ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
-      1fr;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints.large}) and (max-width: ${props =>
-      props.theme.breakpoints.xlarge}) {
-    grid-template-columns:
-      ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
-      1fr;
-  }
 `;
 
 const DefaultLine = styled('div')<{

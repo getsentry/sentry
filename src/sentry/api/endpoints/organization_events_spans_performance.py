@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from itertools import chain
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 import sentry_sdk
 from rest_framework import serializers
@@ -19,6 +20,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
@@ -33,12 +35,12 @@ from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 @dataclasses.dataclass(frozen=True)
 class SpanPerformanceColumn:
-    suspect_op_group_columns: List[str]
-    suspect_op_group_sort: List[str]
-    suspect_example_functions: List[str]
+    suspect_op_group_columns: list[str]
+    suspect_op_group_sort: list[str]
+    suspect_example_functions: list[str]
 
 
-SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
+SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
         ["count()", "sumArray(spans_exclusive_time)"],
         ["count()", "sumArray(spans_exclusive_time)"],
@@ -85,7 +87,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> Dict[str, Any]:
+    ) -> ParamsType:
         params = super().get_snuba_params(request, organization, check_global_views)
 
         if len(params.get("project_id", [])) != 1:
@@ -93,7 +95,7 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
 
         return params
 
-    def get_orderby_column(self, request: Request) -> Tuple[str, str]:
+    def get_orderby_column(self, request: Request) -> tuple[str, str]:
         orderbys = super().get_orderby(request)
 
         if orderbys is None:
@@ -148,11 +150,10 @@ class SpansPerformanceSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -191,7 +192,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
             return [suspect.serialize() for suspect in suspects]
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -227,11 +228,10 @@ class SpanSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -279,7 +279,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
                 }
             ]
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request,
                 paginator=SpanExamplesPaginator(data_fn=data_fn),
@@ -292,7 +292,7 @@ class SpanExamplesPaginator:
     def __init__(self, data_fn: Callable[[int, int], Any]):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Optional[Cursor] = None) -> CursorResult:
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
@@ -312,11 +312,10 @@ class SpanExamplesPaginator:
 @region_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         serializer = SpanSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -327,10 +326,10 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: Dict[str, str],
+            params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: Optional[datetime] = None,
+            comparison_delta: datetime | None = None,
         ) -> SnubaTSResult:
             with sentry_sdk.start_span(
                 op="discover.discover", description="timeseries.filter_transform"
@@ -400,6 +399,7 @@ class ExampleSpan:
     start_timestamp: float
     finish_timestamp: float
     exclusive_time: float
+    trace_id: str
 
     def serialize(self) -> Any:
         return {
@@ -407,17 +407,18 @@ class ExampleSpan:
             "startTimestamp": self.start_timestamp,
             "finishTimestamp": self.finish_timestamp,
             "exclusiveTime": self.exclusive_time,
+            "trace": self.trace_id,
         }
 
 
 @dataclasses.dataclass(frozen=True)
 class ExampleTransaction:
     id: str
-    description: Optional[str]
+    description: str | None
     start_timestamp: float
     finish_timestamp: float
     non_overlapping_exclusive_time: float
-    spans: List[ExampleSpan]
+    spans: list[ExampleSpan]
 
     def serialize(self) -> Any:
         return {
@@ -434,15 +435,15 @@ class ExampleTransaction:
 class SuspectSpan:
     op: str
     group: str
-    description: Optional[str]
-    frequency: Optional[int]
-    count: Optional[int]
-    avg_occurrences: Optional[float]
-    sum_exclusive_time: Optional[float]
-    p50_exclusive_time: Optional[float]
-    p75_exclusive_time: Optional[float]
-    p95_exclusive_time: Optional[float]
-    p99_exclusive_time: Optional[float]
+    description: str | None
+    frequency: int | None
+    count: int | None
+    avg_occurrences: float | None
+    sum_exclusive_time: float | None
+    p50_exclusive_time: float | None
+    p75_exclusive_time: float | None
+    p95_exclusive_time: float | None
+    p99_exclusive_time: float | None
 
     def serialize(self) -> Any:
         return {
@@ -485,21 +486,21 @@ class EventID:
 
 def query_suspect_span_groups(
     params: ParamsType,
-    fields: List[str],
-    query: Optional[str],
-    span_ops: Optional[List[str]],
-    exclude_span_ops: Optional[List[str]],
-    span_groups: Optional[List[str]],
+    fields: list[str],
+    query: str | None,
+    span_ops: list[str] | None,
+    exclude_span_ops: list[str] | None,
+    span_groups: list[str] | None,
     direction: str,
     orderby: str,
     limit: int,
     offset: int,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
-) -> List[SuspectSpan]:
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
+) -> list[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
 
-    selected_columns: List[str] = [
+    selected_columns: list[str] = [
         column
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if not is_equation(column)
@@ -510,7 +511,7 @@ def query_suspect_span_groups(
         "any(id)",
     ]
 
-    equations: List[str] = [
+    equations: list[str] = [
         strip_equation(column)
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if is_equation(column)
@@ -613,8 +614,8 @@ class SpanQueryBuilder(QueryBuilder):
         function: str,
         span: Span,
         alias: str,
-        min_exclusive_time: Optional[float] = None,
-        max_exclusive_time: Optional[float] = None,
+        min_exclusive_time: float | None = None,
+        max_exclusive_time: float | None = None,
     ):
         op = span.op
         group = span.group
@@ -661,20 +662,20 @@ class SpanQueryBuilder(QueryBuilder):
 
 def query_example_transactions(
     params: ParamsType,
-    query: Optional[str],
+    query: str | None,
     direction: str,
     orderby: str,
     span: Span,
     per_suspect: int = 5,
-    offset: Optional[int] = None,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
-) -> Dict[Span, List[EventID]]:
+    offset: int | None = None,
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
+) -> dict[Span, list[EventID]]:
     # there aren't any suspects, early return to save an empty query
     if per_suspect == 0:
         return {}
 
-    selected_columns: List[str] = [
+    selected_columns: list[str] = [
         "id",
         "project.id",
     ]
@@ -721,7 +722,7 @@ def query_example_transactions(
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-examples")
 
-    examples: Dict[Span, List[EventID]] = {Span(span.op, span.group): []}
+    examples: dict[Span, list[EventID]] = {Span(span.op, span.group): []}
 
     for example in results["data"]:
         value = EventID(params["project_id"][0], example["id"])
@@ -734,7 +735,7 @@ def get_span_description(
     event: EventID,
     span_op: str,
     span_group: str,
-) -> Optional[str]:
+) -> str | None:
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
@@ -754,8 +755,8 @@ def get_example_transaction(
     event: EventID,
     span_op: str,
     span_group: str,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
@@ -798,12 +799,13 @@ def get_example_transaction(
             continue
         description = span["description"]
 
-    spans: List[ExampleSpan] = [
+    spans: list[ExampleSpan] = [
         ExampleSpan(
             id=span["span_id"],
             start_timestamp=span["start_timestamp"],
             finish_timestamp=span["timestamp"],
             exclusive_time=span["exclusive_time"],
+            trace_id=trace_context["trace_id"],
         )
         for span in matching_spans
     ]
@@ -833,7 +835,7 @@ def get_example_transaction(
     )
 
 
-def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[TimeWindow]:
+def get_exclusive_time_windows(span: ExampleSpan, spans: list[Any]) -> list[TimeWindow]:
     non_overlapping_children_time_windows = union_time_windows(
         [
             TimeWindow(start=child["start_timestamp"], end=child["timestamp"])

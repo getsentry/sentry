@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
-from typing import Any, ClassVar, Collection, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -26,15 +27,13 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory
-from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -133,11 +132,6 @@ class OrganizationManager(BaseManager["Organization"]):
         The default top priority role in Sentry is owner.
         """
 
-        orgs = Organization.objects.filter(
-            member_set__user_id=user_id,
-            status=OrganizationStatus.ACTIVE,
-        )
-
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
@@ -145,18 +139,7 @@ class OrganizationManager(BaseManager["Organization"]):
             member_set__role=roles.get_top_dog().id,
         )
 
-        # get owner teams
-        owner_teams = Team.objects.filter(
-            organization__in=orgs, org_role=roles.get_top_dog().id
-        ).values_list("id", flat=True)
-
-        # get the orgs in which the user is a member of an owner team
-        owner_team_member_orgs = OrganizationMemberTeam.objects.filter(
-            team_id__in=owner_teams
-        ).values_list("organizationmember__organization_id", flat=True)
-
-        # use .union() (UNION) as opposed to | (OR) because it's faster
-        return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
+        return owner_role_orgs
 
 
 @region_silo_only_model
@@ -172,7 +155,7 @@ class Organization(
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
-    slug: models.Field[str, str] = models.SlugField(unique=True)
+    slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
@@ -181,6 +164,11 @@ class Organization(
     is_test = models.BooleanField(default=False)
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Allow members to join and leave teams without requiring approval
         allow_joinleave: bool
 
@@ -207,12 +195,15 @@ class Organization(
         # Enable codecov integration.
         codecov_access: bool
 
+        # Disable org-members from creating new projects
+        disable_member_project_creation: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
-    customer_id: Optional[str] = None
+    customer_id: str | None = None
 
     class Meta:
         app_label = "sentry"
@@ -264,7 +255,7 @@ class Organization(
 
     def delete(self, **kwargs):
         if self.is_default:
-            raise Exception("You cannot delete the the default organization.")
+            raise Exception("You cannot delete the default organization.")
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
@@ -351,28 +342,12 @@ class Organization(
         roles: Collection[str],
         include_null_users: bool = False,
     ):
-        members_with_role_query = self.member_set.filter(role__in=roles)
+        members_with_role = self.member_set.filter(role__in=roles)
         if not include_null_users:
-            user_ids = members_with_role_query.filter(
-                user_id__isnull=False, user_is_active=True
-            ).values_list("user_id", flat=True)
-            members_with_role_query = members_with_role_query.filter(user_id__in=user_ids)
-
-        members_with_role = set(members_with_role_query.values_list("id", flat=True))
-
-        teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
-
-        # may be empty
-        members_on_teams_with_role = set(
-            OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
-                "organizationmember__id", flat=True
-            )
-        )
+            members_with_role = members_with_role.filter(user_id__isnull=False, user_is_active=True)
 
         # use union of sets because a subset may be empty
-        return OrganizationMember.objects.filter(
-            id__in=members_with_role.union(members_on_teams_with_role)
-        )
+        return members_with_role
 
     @property
     def option_manager(self) -> OptionManager:
@@ -431,7 +406,7 @@ class Organization(
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    def get_scopes(self, role: Role) -> FrozenSet[str]:
+    def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """
@@ -444,11 +419,3 @@ class Organization(
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
-
-    def get_teams_with_org_roles(self, roles: Optional[Collection[str]]) -> QuerySet:
-        from sentry.models.team import Team
-
-        if roles is not None:
-            return Team.objects.filter(org_role__in=roles, organization=self)
-
-        return Team.objects.filter(organization=self).exclude(org_role=None)

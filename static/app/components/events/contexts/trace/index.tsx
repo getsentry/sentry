@@ -1,12 +1,13 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
-import {TraceKnownData, TraceKnownDataType} from './types';
+import type {TraceKnownData} from './types';
+import {TraceKnownDataType} from './types';
 
 export const traceKnownDataValues = [
   TraceKnownDataType.STATUS,
@@ -22,11 +23,12 @@ const traceIgnoredDataValues = [];
 type Props = {
   data: TraceKnownData & Record<string, any>;
   event: Event;
+  meta?: Record<string, any>;
 };
 
-export function TraceEventContext({event, data}: Props) {
+export function TraceEventContext({event, data, meta: propsMeta}: Props) {
   const organization = useOrganization();
-  const meta = event._meta?.contexts?.trace ?? {};
+  const meta = propsMeta ?? getContextMeta(event, 'trace');
 
   return (
     <ErrorBoundary mini>

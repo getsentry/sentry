@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, FrozenSet
+from typing import Any
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -18,7 +18,7 @@ def delete_pending_deletion_option(instance: M, **kwargs: Any) -> None:
 
 
 class PendingDeletionMixin:
-    _rename_fields_on_pending_delete: FrozenSet[str] = frozenset()
+    _rename_fields_on_pending_delete: frozenset[str] = frozenset()
 
     def build_pending_deletion_key(self) -> str:
         return f"pending-delete:{self.__class__.__name__}:{self.id}"

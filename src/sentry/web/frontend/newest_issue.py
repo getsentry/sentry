@@ -3,9 +3,10 @@ from django.urls import reverse
 from rest_framework.request import Request
 
 from sentry.models.group import Group, GroupStatus
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 
+@region_silo_view
 class NewestIssueView(OrganizationView):
     def handle(self, request: Request, organization, issue_type="error", **kwargs) -> HttpResponse:
         issue_list_url = organization.absolute_url(

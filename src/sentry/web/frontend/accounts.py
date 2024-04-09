@@ -5,31 +5,37 @@ from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
 from django.db import router, transaction
-from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.template.context_processors import csrf
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.project import Project
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.security import capture_security_activity
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
-from sentry.signals import email_verified
-from sentry.types.integrations import ExternalProviders
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.signals import email_verified, terms_accepted
 from sentry.utils import auth
-from sentry.web.decorators import login_required, set_referrer_policy, signed_auth_required
+from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
+
+ERR_CONFIRMING_EMAIL = _(
+    "There was an error confirming your email. Please try again or "
+    "visit your Account Settings to resend the verification email."
+)
+
+
+class InvalidRequest(Exception):
+    pass
 
 
 def get_template(mode, name):
@@ -37,19 +43,22 @@ def get_template(mode, name):
 
 
 @login_required
+@control_silo_function
 def login_redirect(request):
     login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
+@control_silo_function
 def expired(request, user):
     hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-    LostPasswordHash.send_email(user, hash, request)
+    LostPasswordHash.send_recover_password_email(user, hash, request.META["REMOTE_ADDR"])
 
     context = {"email": user.email}
     return render_to_response(get_template("recover", "expired"), context, request)
 
 
+@control_silo_function
 def recover(request):
     from sentry import ratelimits as ratelimiter
 
@@ -58,7 +67,7 @@ def recover(request):
         "user_agent": request.META.get("HTTP_USER_AGENT"),
     }
 
-    if request.method == "POST" and ratelimiter.is_limited(
+    if request.method == "POST" and ratelimiter.backend.is_limited(
         "accounts:recover:{}".format(extra["ip_address"]),
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
@@ -80,7 +89,9 @@ def recover(request):
         email = form.cleaned_data["user"]
         if email:
             password_hash = lost_password_hash_service.get_or_create(user_id=email.id)
-            LostPasswordHash.send_email(email, password_hash.hash, request)
+            LostPasswordHash.send_recover_password_email(
+                email, password_hash.hash, request.META["REMOTE_ADDR"]
+            )
 
             extra["passwordhash_id"] = password_hash.id
             extra["user_id"] = password_hash.user_id
@@ -91,7 +102,7 @@ def recover(request):
 
         return render_to_response(get_template("recover", "sent"), context, request)
 
-    if form._errors:
+    if form.errors:
         logger.warning("recover.error", extra=extra)
 
     context = {"form": form}
@@ -100,6 +111,7 @@ def recover(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
+@control_silo_function
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -111,14 +123,35 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         return render_to_response(get_template(mode, "failure"), {}, request)
 
     # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
-    form = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
+    form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
-        form = form(request.POST, user=user)
+        form = form_cls(request.POST, user=user)
         if form.is_valid():
+            if mode == "relocate":
+                # Relocation form required users to accept TOS and privacy policy
+                # Only need first membership, since all of user's orgs will be in the same region.
+                membership = OrganizationMemberMapping.objects.filter(user=user).first()
+                mapping = OrganizationMapping.objects.get(
+                    organization_id=membership.organization_id
+                )
+                # These service calls need to be outside of the transaction block
+                rpc_user = user_service.get_user(user_id=user.id)
+                orgs = organization_service.get_organizations_by_user_and_scope(
+                    region_name=mapping.region_name, user=rpc_user
+                )
+                for org in orgs:
+                    terms_accepted.send_robust(
+                        user=user,
+                        organization=org,
+                        ip_address=request.META["REMOTE_ADDR"],
+                        sender=recover_confirm,
+                    )
+
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":
                     user.username = form.cleaned_data["username"]
                     user.is_unclaimed = False
+
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
@@ -143,7 +176,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = form(user=user)
+        form = form_cls(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
@@ -160,10 +193,11 @@ relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 @login_required
 @require_http_methods(["POST"])
+@control_silo_function
 def start_confirm_email(request):
     from sentry import ratelimits as ratelimiter
 
-    if ratelimiter.is_limited(
+    if ratelimiter.backend.is_limited(
         f"auth:confirm-email:{request.user.id}",
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
@@ -207,24 +241,28 @@ def start_confirm_email(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
+@login_required
+@control_silo_function
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
     try:
+        if request.user.id != int(user_id):
+            raise InvalidRequest
         email = UserEmail.objects.get(user=user_id, validation_hash=hash)
         if not email.hash_is_valid():
             raise UserEmail.DoesNotExist
     except UserEmail.DoesNotExist:
         if request.user.is_anonymous or request.user.has_unverified_emails():
-            msg = _(
-                "There was an error confirming your email. Please try again or "
-                "visit your Account Settings to resend the verification email."
-            )
+            msg = ERR_CONFIRMING_EMAIL
             level = messages.ERROR
+    except InvalidRequest:
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
     else:
         email.is_verified = True
         email.validation_hash = ""
-        email.save()
+        email.save(update_fields=["is_verified", "validation_hash"])
         email_verified.send(email=email.email, sender=email)
         logger.info(
             "user.email.confirm",
@@ -236,31 +274,3 @@ def confirm_email(request, user_id, hash):
         )
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-
-@csrf_protect
-@never_cache
-@signed_auth_required
-def email_unsubscribe_project(request, project_id):
-    # For now we only support getting here from the signed link.
-    if not request.user_from_signed_request:
-        raise Http404()
-    try:
-        project = Project.objects.get(pk=project_id)
-    except Project.DoesNotExist:
-        raise Http404()
-
-    if request.method == "POST":
-        if "cancel" not in request.POST:
-            notifications_service.update_settings(
-                external_provider=ExternalProviders.EMAIL,
-                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-                setting_option=NotificationSettingOptionValues.NEVER,
-                actor=RpcActor.from_object(request.user),
-                project_id=project.id,
-            )
-        return HttpResponseRedirect(auth.get_login_url())
-
-    context = csrf(request)
-    context["project"] = project
-    return render_to_response("sentry/account/email_unsubscribe_project.html", context, request)

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.api_gateway import proxy_request_if_needed
+from sentry.hybridcloud.apigateway import proxy_request_if_needed
 
 
 class ApiGatewayMiddleware:

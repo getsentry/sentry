@@ -3,11 +3,8 @@ import {useReducer} from 'react';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import {
-  makeUndoableReducer,
-  UndoableNode,
-  useUndoableReducer,
-} from 'sentry/utils/useUndoableReducer';
+import type {UndoableNode} from 'sentry/utils/useUndoableReducer';
+import {makeUndoableReducer, useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
 describe('makeUndoableReducer', () => {
   it('does not overflow undo/redo', () => {
@@ -92,7 +89,8 @@ describe('makeUndoableReducer', () => {
 
       reactHooks.act(() => result.current[1]('add'));
       expect(result.current[0]).toEqual(2);
-      expect(reducer).toHaveBeenNthCalledWith(2, 0, 'add');
+      // TODO(react18): switch back to .toHaveBeenNthCalledWith(2, 1, 'add');
+      expect(reducer).toHaveBeenLastCalledWith(1, 'add');
     });
 
     it('can undo state', () => {

@@ -11,7 +11,7 @@ from sentry.utils.email import group_id_to_email
 body_plain = "foo bar"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestMailgunInboundWebhookView(TestCase):
     def setUp(self):
         super().setUp()
@@ -50,6 +50,25 @@ class TestMailgunInboundWebhookView(TestCase):
             },
         )
         assert resp.status_code == 500
+        qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
+        assert qs.exists() is False
+
+    def test_missing_body_plain(self):
+        token = "a" * 50
+        timestamp = "1422513193"
+        signature = "e018afea61a8eeb2f309972385b123e376079462895ebd1ede5391fb7680b6db"
+        with self.options({"mail.mailgun-api-key": token}):
+            resp = self.client.post(
+                reverse("sentry-mailgun-inbound-hook"),
+                {
+                    "recipient": self.mailto,
+                    "sender": self.user.email,
+                    "signature": signature,
+                    "token": token,
+                    "timestamp": timestamp,
+                },
+            )
+        assert resp.status_code == 200
         qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
         assert qs.exists() is False
 

@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -14,8 +15,9 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 @region_silo_endpoint
 class EventIdLookupEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     enforce_rate_limit = True
     rate_limits = {

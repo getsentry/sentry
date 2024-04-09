@@ -6,54 +6,18 @@
   "platform": "java",
   "message": "",
   "tags": [
-    [
-      "device",
-      "sdk_gphone64_arm64"
-    ],
-    [
-      "device.family",
-      "sdk_gphone64_arm64"
-    ],
-    [
-      "environment",
-      "debug"
-    ],
-    [
-      "isSideLoaded",
-      "true"
-    ],
-    [
-      "level",
-      "info"
-    ],
-    [
-      "os",
-      "Android 13"
-    ],
-    [
-      "os.name",
-      "Android"
-    ],
-    [
-      "os.rooted",
-      "no"
-    ],
-    [
-      "dist",
-      "2"
-    ],
-    [
-      "release",
-      "io.sentry.samples.android@1.1.0+2"
-    ],
-    [
-      "user",
-      "id:7f2dd6f6-ed6d-4ccc-90ff-9b00d61da3f4"
-    ],
-    [
-      "transaction",
-      "MainActivity"
-    ]
+    ["device", "sdk_gphone64_arm64"],
+    ["device.family", "sdk_gphone64_arm64"],
+    ["environment", "debug"],
+    ["isSideLoaded", "true"],
+    ["level", "info"],
+    ["os", "Android 13"],
+    ["os.name", "Android"],
+    ["os.rooted", "no"],
+    ["dist", "2"],
+    ["release", "io.sentry.samples.android@1.1.0+2"],
+    ["user", "id:7f2dd6f6-ed6d-4ccc-90ff-9b00d61da3f4"],
+    ["transaction", "MainActivity"]
   ],
   "_metrics": {
     "bytes.ingested.event": 4491,
@@ -155,9 +119,7 @@
       "simulator": true,
       "boot_time": "2023-03-15T05:26:28.140Z",
       "timezone": "Europe/Vienna",
-      "archs": [
-        "arm64-v8a"
-      ],
+      "archs": ["arm64-v8a"],
       "id": "7f2dd6f6-ed6d-4ccc-90ff-9b00d61da3f4",
       "language": "en",
       "locale": "en_US",

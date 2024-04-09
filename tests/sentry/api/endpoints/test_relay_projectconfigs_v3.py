@@ -189,4 +189,5 @@ def test_return_project_and_global_config(
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
         "pending": [],
         "global": {"global_mock_config": True},
+        "global_status": "ready",
     }

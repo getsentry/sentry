@@ -3,15 +3,25 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {generateFieldAsString, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  OnDemandExtractionState,
+  type ValidateWidgetResponse,
+} from 'sentry/views/dashboards/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {QueryField} from './queryField';
 import {SortableQueryField} from './sortableQueryField';
@@ -23,10 +33,16 @@ type FieldOptions = ReturnType<typeof generateFieldOptions>;
 interface Props {
   fieldOptions: FieldOptions;
   onChange: (fields: QueryFieldValue[]) => void;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
 }
 
-export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
+export function GroupBySelector({
+  fieldOptions,
+  columns = [],
+  onChange,
+  validatedWidgetResponse,
+}: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   function handleAdd() {
@@ -137,6 +153,12 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                       ...filteredFieldOptions,
                       ...columnsAsFieldOptions[index],
                     }}
+                    fieldValidationError={
+                      <FieldValidationErrors
+                        column={column}
+                        validatedWidgetResponse={validatedWidgetResponse}
+                      />
+                    }
                     onChange={value => handleSelect(value, index)}
                     onDelete={() => handleRemove(index)}
                     canDrag={canDrag}
@@ -171,6 +193,25 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
       )}
     </Fragment>
   );
+}
+
+function FieldValidationErrors(props: {
+  column: QueryFieldValue;
+  validatedWidgetResponse: Props['validatedWidgetResponse'];
+}) {
+  const organization = useOrganization();
+  if (!hasOnDemandMetricWidgetFeature(organization)) {
+    return null;
+  }
+
+  return props.column.kind === 'field' &&
+    props.validatedWidgetResponse.data?.warnings?.columns[props.column.field ?? ''] ===
+      OnDemandExtractionState.DISABLED_HIGH_CARDINALITY ? (
+    <OnDemandWarningIcon
+      color="yellow300"
+      msg={t('This group has too many unique values to collect metrics for it.')}
+    />
+  ) : null;
 }
 
 const StyledField = styled(FieldGroup)`

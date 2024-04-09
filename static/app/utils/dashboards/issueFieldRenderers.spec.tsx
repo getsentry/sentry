@@ -1,3 +1,7 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +17,8 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: TestStubs.Project(),
-      projects: [TestStubs.Project()],
+      project: ProjectFixture(),
+      projects: [ProjectFixture()],
     });
     organization = context.organization;
     project = context.project;
@@ -71,7 +75,7 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        TestStubs.User({
+        UserFixture({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
@@ -81,11 +85,13 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = TestStubs.Group({project});
+      const group = GroupFixture({project});
       GroupStore.add([
         {
           ...group,
-          owners: [{owner: 'user:1', type: 'suspectCommit'}],
+          owners: [
+            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
+          ],
           assignedTo: {
             email: 'test@sentry.io',
             type: 'user',

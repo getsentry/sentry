@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
@@ -8,8 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
-import Highlight from 'sentry/components/highlight';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconClose} from 'sentry/icons';
@@ -21,6 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {
   Actor,
+  Group,
   Organization,
   SuggestedOwner,
   SuggestedOwnerReason,
@@ -28,6 +29,7 @@ import type {
   User,
 } from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -39,6 +41,30 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
 
 const onOpenNoop = (e?: React.MouseEvent) => {
   e?.stopPropagation();
+
+  Sentry.withScope(scope => {
+    const span = Sentry.startInactiveSpan({
+      name: 'assignee_selector_dropdown.open',
+      op: 'ui.render',
+      forceTransaction: true,
+    });
+
+    if (!span) {
+      return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      scope.setTag('finish_strategy', 'idle_callback');
+      window.requestIdleCallback(() => {
+        span.end();
+      });
+    } else {
+      scope.setTag('finish_strategy', 'timeout');
+      setTimeout(() => {
+        span.end();
+      }, 1_000);
+    }
+  });
 };
 
 export type SuggestedAssignee = Actor & {
@@ -71,8 +97,10 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
+  alignMenu?: 'left' | 'right' | undefined;
   assignedTo?: Actor | null;
   disabled?: boolean;
+  group?: Group | FeedbackIssue;
   memberList?: User[];
   onAssign?: OnAssignCallback;
   onClear?: () => void;
@@ -182,7 +210,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   assignableTeams(): AssignableTeam[] {
-    const group = GroupStore.get(this.props.id);
+    const group = GroupStore.get(this.props.id) ?? this.props.group;
     if (!group) {
       return [];
     }
@@ -270,7 +298,7 @@ export class AssigneeSelectorDropdown extends Component<
     return {
       value: {type: 'member', assignee: member},
       searchKey: `${member.email} ${member.name}`,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper
           data-test-id="assignee-option"
           key={buildUserId(member.id)}
@@ -281,11 +309,9 @@ export class AssigneeSelectorDropdown extends Component<
           </IconContainer>
           <div>
             <AssigneeLabel>
-              <Highlight text={inputValue}>
-                {sessionUser.id === member.id
-                  ? `${member.name || member.email} ${t('(You)')}`
-                  : member.name || member.email}
-              </Highlight>
+              {sessionUser.id === member.id
+                ? `${member.name || member.email} ${t('(You)')}`
+                : member.name || member.email}
             </AssigneeLabel>
             {suggestedReason && (
               <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
@@ -312,15 +338,13 @@ export class AssigneeSelectorDropdown extends Component<
     return {
       value: {type: 'team', assignee: team},
       searchKey: team.slug,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper data-test-id="assignee-option" key={id} onSelect={handleSelect}>
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
           <div>
-            <AssigneeLabel>
-              <Highlight text={inputValue}>{display}</Highlight>
-            </AssigneeLabel>
+            <AssigneeLabel>{display}</AssigneeLabel>
             {suggestedReason && (
               <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
             )}
@@ -416,13 +440,11 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   renderInviteMemberLink() {
-    const {loading} = this.state;
-
     return (
       <InviteMemberLink
         to="#invite-member"
         data-test-id="invite-member"
-        disabled={loading}
+        disabled={this.state.loading}
         onClick={event => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
@@ -518,7 +540,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   render() {
-    const {disabled, children, assignedTo} = this.props;
+    const {alignMenu, disabled, children, assignedTo} = this.props;
     const {loading} = this.state;
     const memberList = this.memberList();
 
@@ -533,7 +555,7 @@ export class AssigneeSelectorDropdown extends Component<
           memberList !== undefined ? this.renderNewDropdownItems.bind(this) : () => null
         }
         onSelect={this.handleAssign}
-        alignMenu="right"
+        alignMenu={alignMenu ?? 'right'}
         itemSize="small"
         searchPlaceholder={t('Filter teams and people')}
         menuFooter={
@@ -597,21 +619,11 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled('div')<{
-  disabled?: boolean;
-  py?: number;
-}>`
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
   padding: ${space(0.5)} ${space(0.5)};
-  ${p =>
-    typeof p.py !== 'undefined' &&
-    `
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
-    `};
 `;
 
 const MenuItemFooterWrapper = styled('div')`

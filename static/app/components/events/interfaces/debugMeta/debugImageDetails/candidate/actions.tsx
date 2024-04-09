@@ -12,8 +12,9 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconDownload, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {CandidateDownloadStatus, ImageCandidate} from 'sentry/types/debugImage';
+import type {Organization, Project} from 'sentry/types';
+import type {ImageCandidate} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -64,7 +65,7 @@ function Actions({
                   <ActionButton
                     aria-label={t('Actions')}
                     disabled={deleted}
-                    icon={<IconEllipsis size="sm" />}
+                    icon={<IconEllipsis />}
                   />
                 }
                 anchorRight
@@ -99,7 +100,7 @@ function Actions({
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
                   <Button
                     size="xs"
-                    icon={<IconDownload size="xs" />}
+                    icon={<IconDownload />}
                     href={downloadUrl}
                     disabled={!hasRole}
                   >
@@ -115,7 +116,7 @@ function Actions({
                   >
                     <Button
                       priority="danger"
-                      icon={<IconDelete size="xs" />}
+                      icon={<IconDelete />}
                       size="xs"
                       disabled={!hasAccess}
                       aria-label={t('Delete')}

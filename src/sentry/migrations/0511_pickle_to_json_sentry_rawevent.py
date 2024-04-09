@@ -16,12 +16,12 @@ def _backfill(apps, schema_editor):
         try:
             obj.save(update_fields=["data"])
         except DatabaseError as e:
-            logging.warning(f"ignoring save error (row was likely deleted): {e}")
+            logging.warning("ignoring save error (row was likely deleted): %s", e)
 
 
 class Migration(CheckedMigration):
     # data migration: must be run out of band
-    is_dangerous = True
+    is_post_deployment = True
 
     # data migration: run outside of a transaction
     atomic = False

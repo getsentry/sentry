@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';

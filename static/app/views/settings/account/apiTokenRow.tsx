@@ -1,38 +1,50 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
+  tokenPrefix?: string;
 };
 
-function ApiTokenRow({token, onRemove}: Props) {
+function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        <InputWrapper>
-          <TextCopyInput>
-            {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
-          </TextCopyInput>
-        </InputWrapper>
-        <Button
-          onClick={() => onRemove(token)}
-          icon={<IconSubtract isCircled size="xs" />}
-        >
-          {t('Remove')}
-        </Button>
+        {token.name ? token.name : ''}
+        <ButtonWrapper>
+          <Button
+            data-test-id="token-delete"
+            onClick={() => onRemove(token)}
+            icon={<IconSubtract isCircled size="xs" />}
+          >
+            {t('Remove')}
+          </Button>
+        </ButtonWrapper>
       </Controls>
 
       <Details>
+        <TokenWrapper>
+          <Heading>{t('Token')}</Heading>
+          <TokenPreview aria-label={t('Token preview')}>
+            {tokenPreview(
+              getDynamicText({
+                value: token.tokenLastCharacters,
+                fixed: 'ABCD',
+              }),
+              tokenPrefix
+            )}
+          </TokenPreview>
+        </TokenWrapper>
         <ScopesWrapper>
           <Heading>{t('Scopes')}</Heading>
           <ScopeList>{token.scopes.join(', ')}</ScopeList>
@@ -64,19 +76,19 @@ const Controls = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const InputWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
 const Details = styled('div')`
   display: flex;
   margin-top: ${space(1)};
 `;
 
-const ScopesWrapper = styled('div')`
+const TokenWrapper = styled('div')`
   flex: 1;
+  margin-right: ${space(1)};
+`;
+
+const ScopesWrapper = styled('div')`
+  flex: 2;
+  margin-right: ${space(4)};
 `;
 
 const ScopeList = styled('div')`
@@ -94,6 +106,20 @@ const Heading = styled('div')`
   text-transform: uppercase;
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
+`;
+
+const TokenPreview = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
+const ButtonWrapper = styled('div')`
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  font-size: ${p => p.theme.fontSizeSmall};
+  gap: ${space(1)};
 `;
 
 export default ApiTokenRow;

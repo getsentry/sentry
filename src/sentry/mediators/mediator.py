@@ -5,9 +5,9 @@ import logging
 from contextlib import contextmanager
 
 from django.db import transaction
+from django.utils.functional import cached_property
 
 import sentry
-from sentry.utils.cache import memoize
 from sentry.utils.functional import compact
 
 from .param import Param
@@ -215,7 +215,7 @@ class Mediator:
         # that it matches the name we'll be invoking on the Mediator instance.
         return {k[1:]: v for k, v in self.__class__.__dict__.items() if isinstance(v, Param)}
 
-    @memoize
+    @cached_property
     def _logging_name(self):
         return ".".join([self.__class__.__module__, self.__class__.__name__])
 
@@ -254,9 +254,9 @@ class Mediator:
 
         try:
             yield
-        except Exception as e:
+        except Exception:
             context.log(at="exception", elapsed=self._milliseconds_since(start))
-            raise e
+            raise
 
         context.log(at="finish", elapsed=self._milliseconds_since(start))
 

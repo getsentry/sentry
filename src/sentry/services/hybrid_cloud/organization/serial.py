@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Set
+from collections.abc import Iterable, MutableMapping
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -58,10 +58,10 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
 
     omts = OrganizationMemberTeam.objects.filter(
         organizationmember=member, is_active=True, team__status=TeamStatus.ACTIVE
-    )
+    ).select_related("team")
 
-    all_project_ids: Set[int] = set()
-    project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
+    all_project_ids: set[int] = set()
+    project_ids_by_team_id: MutableMapping[int, list[int]] = defaultdict(list)
     for pt in ProjectTeam.objects.filter(
         project__status=ObjectStatus.ACTIVE, team_id__in={omt.team_id for omt in omts}
     ):
@@ -97,7 +97,6 @@ def serialize_rpc_team(team: Team) -> RpcTeam:
         status=team.status,
         organization_id=team.organization_id,
         slug=team.slug,
-        org_role=team.org_role,
         name=team.name,
     )
 
@@ -126,7 +125,12 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     )
 
 
-def serialize_rpc_organization(org: Organization) -> RpcOrganization:
+def serialize_rpc_organization(
+    org: Organization,
+    *,
+    include_projects: bool | None = True,
+    include_teams: bool | None = True,
+) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,
         id=org.id,
@@ -137,10 +141,13 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
         date_added=org.date_added,
     )
 
-    projects: List[Project] = Project.objects.filter(organization=org)
-    teams: List[Team] = Team.objects.filter(organization=org)
-    rpc_org.projects.extend(serialize_project(project) for project in projects)
-    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+    if include_projects:
+        projects: list[Project] = Project.objects.filter(organization=org)
+        rpc_org.projects.extend(serialize_project(project) for project in projects)
+    if include_teams:
+        teams: list[Team] = Team.objects.filter(organization=org)
+        rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+
     return rpc_org
 
 

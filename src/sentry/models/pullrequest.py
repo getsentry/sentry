@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Mapping, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
@@ -70,7 +71,10 @@ class PullRequest(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pull_request"
-        index_together = (("repository_id", "date_added"), ("organization_id", "merge_commit_sha"))
+        indexes = (
+            models.Index(fields=("repository_id", "date_added")),
+            models.Index(fields=("organization_id", "merge_commit_sha")),
+        )
         unique_together = (("repository_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")
@@ -97,7 +101,7 @@ class CommentType:
     OPEN_PR = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return ((cls.MERGED_PR, "merged_pr"), (cls.OPEN_PR, "open_pr"))
 
 
@@ -118,4 +122,4 @@ class PullRequestComment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_comment"
-        unique_together = ("pull_request", "comment_type")
+        unique_together = (("pull_request", "comment_type"),)

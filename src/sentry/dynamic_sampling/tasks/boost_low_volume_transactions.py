@@ -1,6 +1,8 @@
+from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime
-from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import TypedDict, cast
 
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -21,10 +23,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
-from sentry.dynamic_sampling.rules.base import (
-    is_sliding_window_enabled,
-    is_sliding_window_org_enabled,
-)
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -39,12 +37,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
@@ -75,9 +73,9 @@ class ProjectTransactions(TypedDict, total=True):
 
     project_id: int
     org_id: int
-    transaction_counts: List[Tuple[str, float]]
-    total_num_transactions: Optional[float]
-    total_num_classes: Optional[int]
+    transaction_counts: list[tuple[str, float]]
+    total_num_transactions: float | None
+    total_num_classes: int | None
 
 
 class ProjectTransactionsTotals(TypedDict, total=True):
@@ -167,22 +165,19 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     except Organization.DoesNotExist:
         organization = None
 
-    # By default, this bias uses the blended sample rate.
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        log_skipped_job(org_id, "boost_low_volume_transactions")
+        return
 
-    # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
-    # on sliding window per project or per org.
-    if organization is not None and is_sliding_window_enabled(organization):
-        sample_rate = get_sliding_window_sample_rate(
-            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
-        )
-        log_sample_rate_source(
-            org_id, project_id, "boost_low_volume_transactions", "sliding_window", sample_rate
-        )
-    elif organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_boost_low_volume_projects_sample_rate(
-            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
-        )
+    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+    # resort to the blended sample rate of the org.
+    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+        org_id=org_id,
+        project_id=project_id,
+        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
         log_sample_rate_source(
             org_id,
             project_id,
@@ -195,8 +190,14 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
             org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
         )
 
-    if sample_rate is None or sample_rate == 1.0:
-        # no sampling => no rebalancing
+    if sample_rate is None:
+        sentry_sdk.capture_message(
+            "Sample rate of project not found when trying to adjust the sample rates of "
+            "its transactions"
+        )
+        return
+
+    if sample_rate == 1.0:
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
@@ -231,7 +232,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     )
 
 
-def is_same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
+def is_same_project(left: ProjectIdentity | None, right: ProjectIdentity | None) -> bool:
     if left is None or right is None:
         return False
 
@@ -251,7 +252,7 @@ class FetchProjectTransactionTotals:
     """
 
     def __init__(self, orgs: Sequence[int]):
-        self.log_state: Optional[DynamicSamplingLogState] = None
+        self.log_state: DynamicSamplingLogState | None = None
 
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
@@ -262,8 +263,8 @@ class FetchProjectTransactionTotals:
         self.org_ids = list(orgs)
         self.offset = 0
         self.has_more_results = True
-        self.cache: List[Dict[str, Union[int, float]]] = []
-        self.last_org_id: Optional[int] = None
+        self.cache: list[dict[str, int | float]] = []
+        self.last_org_id: int | None = None
 
     def __iter__(self):
         return self
@@ -407,11 +408,11 @@ class FetchProjectTransactionVolumes:
 
     def __init__(
         self,
-        orgs: List[int],
+        orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
     ):
-        self.log_state: Optional[DynamicSamplingLogState] = None
+        self.log_state: DynamicSamplingLogState | None = None
 
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
@@ -423,7 +424,7 @@ class FetchProjectTransactionVolumes:
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
         self.has_more_results = True
-        self.cache: List[ProjectTransactions] = []
+        self.cache: list[ProjectTransactions] = []
 
         if self.large_transactions:
             self.transaction_ordering = Direction.DESC
@@ -517,9 +518,9 @@ class FetchProjectTransactionVolumes:
         return self._get_from_cache()
 
     def _add_results_to_cache(self, data):
-        transaction_counts: List[Tuple[str, float]] = []
-        current_org_id: Optional[int] = None
-        current_proj_id: Optional[int] = None
+        transaction_counts: list[tuple[str, float]] = []
+        current_org_id: int | None = None
+        current_proj_id: int | None = None
 
         self._ensure_log_state()
         assert self.log_state is not None
@@ -607,8 +608,8 @@ class FetchProjectTransactionVolumes:
 
 def merge_transactions(
     left: ProjectTransactions,
-    right: Optional[ProjectTransactions],
-    totals: Optional[ProjectTransactionsTotals],
+    right: ProjectTransactions | None,
+    totals: ProjectTransactionsTotals | None,
 ) -> ProjectTransactions:
     if right is None and left is None:
         raise ValueError(
@@ -658,7 +659,7 @@ def merge_transactions(
 
 def next_totals(
     totals: Iterator[ProjectTransactionsTotals],
-) -> Callable[[ProjectIdentity], Optional[ProjectTransactionsTotals]]:
+) -> Callable[[ProjectIdentity], ProjectTransactionsTotals | None]:
     """
     Advances the total iterator until it reaches the required identity
 
@@ -667,11 +668,11 @@ def next_totals(
     in a for loop). If it finds the match it will return the total for the match.
 
     """
-    current: List[Optional[ProjectTransactionsTotals]] = [None]
+    current: list[ProjectTransactionsTotals | None] = [None]
     # protection for the case when the caller passes a list instead of an iterator
     totals = iter(totals)
 
-    def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
+    def inner(match: ProjectIdentity) -> ProjectTransactionsTotals | None:
         if is_same_project(current[0], match):
             temp = current[0]
             current[0] = None

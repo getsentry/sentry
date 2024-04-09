@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry import features
 from sentry.models.group import Group
@@ -58,8 +59,7 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
-        if features.has("organizations:escalating-issues", project.organization):
-            send_workflow_webhooks(project.organization, issue, user, "issue.archived")
+        send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
 @comment_created.connect(weak=False)
@@ -121,6 +121,6 @@ def send_workflow_webhooks(
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
-def installations_to_notify(organization, event) -> List[RpcSentryAppInstallation]:
+def installations_to_notify(organization, event) -> list[RpcSentryAppInstallation]:
     installations = app_service.get_installed_for_organization(organization_id=organization.id)
     return [i for i in installations if event in i.sentry_app.events]

@@ -1,6 +1,6 @@
 import {type EntryStacktrace, EntryType} from 'sentry/types';
 
-export function EventEntryStacktrace(params = {}): EntryStacktrace {
+export function EventEntryStacktraceFixture(params = {}): EntryStacktrace {
   return {
     type: EntryType.STACKTRACE,
     data: {
@@ -36,7 +36,6 @@ export function EventEntryStacktrace(params = {}): EntryStacktrace {
           colNo: null,
           inApp: false,
           trust: null,
-          errors: null,
           vars: {
             "'culprit'": null,
             "'data'": {
@@ -111,7 +110,6 @@ export function EventEntryStacktrace(params = {}): EntryStacktrace {
           colNo: null,
           inApp: false,
           trust: null,
-          errors: null,
           vars: {
             "'data'": null,
             "'date'": null,
@@ -163,7 +161,6 @@ export function EventEntryStacktrace(params = {}): EntryStacktrace {
           colNo: null,
           inApp: false,
           trust: null,
-          errors: null,
           vars: {
             "'kwargs'": {
               "'data'": null,
@@ -210,7 +207,6 @@ export function EventEntryStacktrace(params = {}): EntryStacktrace {
           colNo: null,
           inApp: false,
           trust: null,
-          errors: null,
           vars: {
             "'client'": '<raven.base.Client object at 0x107bb8210>',
             "'data'": null,
@@ -246,7 +242,6 @@ export function EventEntryStacktrace(params = {}): EntryStacktrace {
           colNo: null,
           inApp: false,
           trust: null,
-          errors: null,
           vars: {
             "'args'": [
               "'test'",

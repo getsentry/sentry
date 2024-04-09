@@ -1,24 +1,14 @@
 import logging
 import random
-from collections import defaultdict, deque
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence, Sequence
+from dataclasses import dataclass
+from typing import Any, cast
 
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import ValidationError
@@ -27,7 +17,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -37,7 +27,8 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -49,10 +40,10 @@ MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
-Headers = MutableSequence[Tuple[str, bytes]]
+Headers = MutableSequence[tuple[str, bytes]]
 
 
-def valid_metric_name(name: Optional[str]) -> bool:
+def valid_metric_name(name: str | None) -> bool:
     if name is None:
         return False
     if len(name) > MAX_NAME_LENGTH:
@@ -64,6 +55,35 @@ def valid_metric_name(name: Optional[str]) -> bool:
 def _should_sample_debug_log() -> bool:
     rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
     return (rate > 0) and random.random() <= rate
+
+
+@dataclass
+class IndexerBatchMetrics:
+    message_count: int = 0
+    total_bytes: int = 0
+    total_tags_len: int = 0
+    total_value_len: int = 0
+    max_bytes: int = 0
+    max_tags_len: int = 0
+    max_value_len: int = 0
+
+    def add_metric(self, num_bytes: int, tags_len: int, value_len: int) -> None:
+        self.message_count += 1
+        self.total_bytes += num_bytes
+        self.total_tags_len += tags_len
+        self.total_value_len += value_len
+        self.max_bytes = max(self.max_bytes, num_bytes)
+        self.max_tags_len = max(self.max_tags_len, tags_len)
+        self.max_value_len = max(self.max_value_len, value_len)
+
+    def avg_bytes(self) -> float:
+        return self.total_bytes / self.message_count
+
+    def avg_tags_len(self) -> float:
+        return self.total_tags_len / self.message_count
+
+    def avg_value_len(self) -> float:
+        return self.total_value_len / self.message_count
 
 
 class IndexerBatch:
@@ -81,15 +101,15 @@ class IndexerBatch:
         self.tags_validator = tags_validator
         self.schema_validator = schema_validator
 
-        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self._message_metrics: MutableMapping[
+            UseCaseID, MutableMapping[str, IndexerBatchMetrics]
+        ] = defaultdict(lambda: defaultdict(IndexerBatchMetrics))
 
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
         # DLQ while discarding the filtered messages
-        self.invalid_msg_meta: Set[BrokerMeta] = set()
-        self.filtered_msg_meta: Set[BrokerMeta] = set()
+        self.invalid_msg_meta: set[BrokerMeta] = set()
+        self.filtered_msg_meta: set[BrokerMeta] = set()
         self.parsed_payloads_by_meta: MutableMapping[BrokerMeta, ParsedMessage] = {}
 
         self._extract_messages()
@@ -111,7 +131,6 @@ class IndexerBatch:
         skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
 
         for msg in self.outer_message.payload:
-
             assert isinstance(msg.value, BrokerValue)
             broker_meta = BrokerMeta(msg.value.partition, msg.value.offset)
 
@@ -129,10 +148,9 @@ class IndexerBatch:
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
             except Exception as e:
                 self.invalid_msg_meta.add(broker_meta)
-                logger.error(
-                    e,
+                logger.exception(
+                    str(e),
                     extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
                 )
 
         for namespace, cnt in skipped_msgs_cnt.items():
@@ -152,10 +170,9 @@ class IndexerBatch:
                 msg.payload.value.decode("utf-8"), use_rapid_json=True
             )
         except rapidjson.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
             )
             raise
 
@@ -173,15 +190,15 @@ class IndexerBatch:
                 exc_info=True,
             )
 
-        self.__message_count[use_case_id] += 1
-        self.__message_size_max[use_case_id] = max(
-            len(msg.payload.value), self.__message_size_max[use_case_id]
+        self._message_metrics[use_case_id][parsed_payload["type"]].add_metric(
+            len(msg.payload.value),
+            len(parsed_payload.get("tags", {})),
+            len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1,
         )
-        self.__message_size_sum[use_case_id] += len(msg.payload.value)
 
         return parsed_payload
 
-    def _extract_namespace(self, headers: Headers) -> Optional[str]:
+    def _extract_namespace(self, headers: Headers) -> str | None:
         for string, endcoded in headers:
             if string == "namespace":
                 return endcoded.decode("utf-8")
@@ -253,8 +270,8 @@ class IndexerBatch:
         self.filtered_msg_meta.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
-    def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, Set[str]]]:
-        strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]] = defaultdict(
+    def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, set[str]]]:
+        strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -289,18 +306,27 @@ class IndexerBatch:
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
+        mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, int | None]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        new_messages: MutableSequence[Message[RoutingPayload | KafkaPayload | InvalidMessage]] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
-            used_tags: Set[str] = set()
-            output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
+            used_tags: set[str] = set()
+            output_message_meta: dict[str, dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
-            if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
+            if broker_meta in self.filtered_msg_meta:
+                continue
+            if broker_meta in self.invalid_msg_meta:
+                new_messages.append(
+                    Message(
+                        message.value.replace(
+                            InvalidMessage(broker_meta.partition, broker_meta.offset)
+                        )
+                    )
+                )
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
@@ -312,31 +338,17 @@ class IndexerBatch:
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: Dict[str, Union[str, int]] = {}
+            new_tags: dict[str, str | int] = {}
             exceeded_global_quotas = 0
             exceeded_org_quotas = 0
 
-            try:
-                for k, v in tags.items():
-                    used_tags.update({k, v})
-                    new_k = mapping[use_case_id][org_id][k]
-                    if new_k is None:
-                        metadata = bulk_record_meta[use_case_id][org_id].get(k)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
-                        else:
-                            exceeded_org_quotas += 1
-                        continue
-
-                    value_to_write: Union[int, str] = v
-                    if self.__should_index_tag_values:
-                        new_v = mapping[use_case_id][org_id][v]
-                        if new_v is None:
-                            metadata = bulk_record_meta[use_case_id][org_id].get(v)
+            with metrics.timer("metrics_consumer.reconstruct_messages.get_indexed_tags"):
+                try:
+                    for k, v in tags.items():
+                        used_tags.update({k, v})
+                        new_k = mapping[use_case_id][org_id][k]
+                        if new_k is None:
+                            metadata = bulk_record_meta[use_case_id][org_id].get(k)
                             if (
                                 metadata
                                 and metadata.fetch_type_ext
@@ -346,13 +358,28 @@ class IndexerBatch:
                             else:
                                 exceeded_org_quotas += 1
                             continue
-                        else:
-                            value_to_write = new_v
 
-                    new_tags[str(new_k)] = value_to_write
-            except KeyError:
-                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
-                continue
+                        value_to_write: int | str = v
+                        if self.__should_index_tag_values:
+                            new_v = mapping[use_case_id][org_id][v]
+                            if new_v is None:
+                                metadata = bulk_record_meta[use_case_id][org_id].get(v)
+                                if (
+                                    metadata
+                                    and metadata.fetch_type_ext
+                                    and metadata.fetch_type_ext.is_global
+                                ):
+                                    exceeded_global_quotas += 1
+                                else:
+                                    exceeded_org_quotas += 1
+                                continue
+                            else:
+                                value_to_write = new_v
+
+                        new_tags[str(new_k)] = value_to_write
+                except KeyError:
+                    logger.exception("process_messages.key_error", extra={"tags": tags})
+                    continue
 
             if exceeded_org_quotas or exceeded_global_quotas:
                 metrics.incr(
@@ -422,86 +449,156 @@ class IndexerBatch:
             # used for end-to-end latency metrics
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
-            if self.__should_index_tag_values:
-                # Metrics don't support gauges (which use dicts), so assert value type
-                value = old_payload_value["value"]
-                assert isinstance(value, (int, float, list))
-                new_payload_v1: Metric = {
-                    "tags": new_tags,
-                    # XXX: relay actually sends this value unconditionally
-                    "retention_days": old_payload_value.get("retention_days", 90),
-                    "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"].value,
-                    "metric_id": numeric_metric_id,
-                    "org_id": old_payload_value["org_id"],
-                    "timestamp": old_payload_value["timestamp"],
-                    "project_id": old_payload_value["project_id"],
-                    "type": old_payload_value["type"],
-                    "value": value,
-                    "sentry_received_timestamp": sentry_received_timestamp,
-                }
+            with metrics.timer("metrics_consumer.reconstruct_messages.build_new_payload"):
+                if self.__should_index_tag_values:
+                    # Metrics don't support gauges (which use dicts), so assert value type
+                    value = old_payload_value["value"]
+                    assert isinstance(value, (int, float, list))
+                    new_payload_v1: Metric = {
+                        "tags": cast(dict[str, int], new_tags),
+                        # XXX: relay actually sends this value unconditionally
+                        "retention_days": old_payload_value.get("retention_days", 90),
+                        "mapping_meta": output_message_meta,
+                        "use_case_id": old_payload_value["use_case_id"].value,
+                        "metric_id": numeric_metric_id,
+                        "org_id": old_payload_value["org_id"],
+                        "timestamp": old_payload_value["timestamp"],
+                        "project_id": old_payload_value["project_id"],
+                        "type": old_payload_value["type"],
+                        "value": value,
+                        "sentry_received_timestamp": sentry_received_timestamp,
+                    }
 
-                new_payload_value = new_payload_v1
-            else:
-                # When sending tag values as strings, set the version on the payload
-                # to 2. This is used by the consumer to determine how to decode the
-                # tag values.
-                new_payload_v2: GenericMetric = {
-                    "tags": cast(Dict[str, str], new_tags),
-                    "version": 2,
-                    "retention_days": old_payload_value.get("retention_days", 90),
-                    "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"].value,
-                    "metric_id": numeric_metric_id,
-                    "org_id": old_payload_value["org_id"],
-                    "timestamp": old_payload_value["timestamp"],
-                    "project_id": old_payload_value["project_id"],
-                    "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
-                    "sentry_received_timestamp": sentry_received_timestamp,
-                }
-                if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                    new_payload_v2["aggregation_option"] = aggregation_option.value
+                    new_payload_value = new_payload_v1
+                else:
+                    # When sending tag values as strings, set the version on the payload
+                    # to 2. This is used by the consumer to determine how to decode the
+                    # tag values.
+                    new_payload_v2: GenericMetric = {
+                        "tags": cast(dict[str, str], new_tags),
+                        "version": 2,
+                        "retention_days": old_payload_value.get("retention_days", 90),
+                        "mapping_meta": output_message_meta,
+                        "use_case_id": old_payload_value["use_case_id"].value,
+                        "metric_id": numeric_metric_id,
+                        "org_id": old_payload_value["org_id"],
+                        "timestamp": old_payload_value["timestamp"],
+                        "project_id": old_payload_value["project_id"],
+                        "type": old_payload_value["type"],
+                        "value": old_payload_value["value"],
+                        "sentry_received_timestamp": sentry_received_timestamp,
+                    }
+                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
+                        # TODO: This should eventually handle multiple aggregation options
+                        option = list(aggregation_options.items())[0][0]
+                        assert option is not None
+                        new_payload_v2["aggregation_option"] = option.value
 
-                new_payload_value = new_payload_v2
+                    new_payload_value = new_payload_v2
 
-            kafka_payload = KafkaPayload(
-                key=message.payload.key,
-                value=rapidjson.dumps(new_payload_value).encode(),
-                headers=[
-                    *message.payload.headers,
-                    ("mapping_sources", mapping_header_content),
-                    # XXX: type mismatch, but seems to work fine in prod
-                    ("metric_type", new_payload_value["type"]),  # type: ignore
-                ],
+                with metrics.timer(
+                    "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
+                ):
+                    kafka_payload = KafkaPayload(
+                        key=message.payload.key,
+                        value=rapidjson.dumps(new_payload_value).encode(),
+                        headers=[
+                            *message.payload.headers,
+                            ("mapping_sources", mapping_header_content),
+                            # XXX: type mismatch, but seems to work fine in prod
+                            ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
+                        ],
+                    )
+                if self.is_output_sliced:
+                    routing_payload = RoutingPayload(
+                        routing_header={"org_id": org_id},
+                        routing_message=kafka_payload,
+                    )
+                    new_messages.append(Message(message.value.replace(routing_payload)))
+                else:
+                    new_messages.append(Message(message.value.replace(kafka_payload)))
+
+        with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
+            for use_case_id, metrics_by_type in self._message_metrics.items():
+                for metric_type, batch_metric in metrics_by_type.items():
+                    if batch_metric.message_count == 0:
+                        continue
+                    metrics.incr(
+                        "metrics_consumer.process_message.messages_seen",
+                        amount=batch_metric.message_count,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_size_in_batch",
+                        batch_metric.avg_bytes(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="byte",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                        batch_metric.avg_tags_len(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                        batch_metric.avg_value_len(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_size_in_batch",
+                        batch_metric.max_bytes,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="byte",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_tags_len_in_batch",
+                        batch_metric.max_tags_len,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_value_len_in_batch",
+                        batch_metric.max_value_len,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+            num_messages = sum(
+                type_metrics.message_count
+                for use_case_metrics in self._message_metrics.values()
+                for type_metrics in use_case_metrics.values()
             )
-            if self.is_output_sliced:
-                routing_payload = RoutingPayload(
-                    routing_header={"org_id": org_id},
-                    routing_message=kafka_payload,
+            if not num_messages == 0:
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_size_in_batch",
+                    sum(
+                        type_metrics.total_bytes
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                new_messages.append(Message(message.value.replace(routing_payload)))
-            else:
-                new_messages.append(Message(message.value.replace(kafka_payload)))
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                    sum(
+                        type_metrics.total_tags_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
+                )
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                    sum(
+                        type_metrics.total_value_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
+                )
 
-        for use_case_id in self.__message_count:
-            metrics.incr(
-                "metrics_consumer.process_message.messages_seen",
-                amount=self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.avg",
-                self.__message_size_sum[use_case_id] / self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.max",
-                self.__message_size_max[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
         return IndexerOutputMessageBatch(
             new_messages,
-            deque(sorted(self.invalid_msg_meta)),
             cogs_usage,
         )

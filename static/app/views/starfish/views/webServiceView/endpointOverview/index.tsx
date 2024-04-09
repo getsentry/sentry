@@ -4,9 +4,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -16,14 +15,14 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory, NewQuery} from 'sentry/types';
-import type {SeriesDataUnit} from 'sentry/types/echarts';
-import {Series} from 'sentry/types/echarts';
+import type {NewQuery} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -34,6 +33,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {
+  ChartType,
   computeAxisMax,
   useSynchronizeCharts,
 } from 'sentry/views/starfish/components/chart';
@@ -48,7 +48,7 @@ import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {getSampleSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
+import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -203,7 +203,6 @@ export default function EndpointOverview() {
             height={80}
             data={[percentileData, avgLine]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',
@@ -212,7 +211,7 @@ export default function EndpointOverview() {
             }}
             disableXAxis
             definedAxisTicks={2}
-            isLineChart
+            type={ChartType.LINE}
             chartColors={[AVG_COLOR]}
             scatterPlot={sampleData}
             tooltipFormatterOptions={{
@@ -242,13 +241,12 @@ export default function EndpointOverview() {
             height={80}
             data={[throughputResults, tpsLine]}
             loading={loading}
-            utc={false}
-            isLineChart
+            type={ChartType.LINE}
             definedAxisTicks={2}
             disableXAxis
             chartColors={[THROUGHPUT_COLOR]}
             aggregateOutputFormat="rate"
-            rateUnit={RateUnits.PER_SECOND}
+            rateUnit={RateUnit.PER_SECOND}
             grid={{
               left: '8px',
               right: '0',
@@ -256,7 +254,7 @@ export default function EndpointOverview() {
               bottom: '0',
             }}
             tooltipFormatterOptions={{
-              valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
+              valueFormatter: value => formatRate(value, RateUnit.PER_SECOND),
             }}
           />
           <SidebarSpacer />
@@ -285,7 +283,6 @@ export default function EndpointOverview() {
             height={80}
             data={[results['http_error_count()']]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',
@@ -293,7 +290,7 @@ export default function EndpointOverview() {
               bottom: '0',
             }}
             definedAxisTicks={2}
-            isLineChart
+            type={ChartType.LINE}
             chartColors={[ERRORS_COLOR]}
           />
           <SidebarSpacer />
@@ -360,7 +357,7 @@ export default function EndpointOverview() {
   );
   const sampleData: Series[] = data.map(
     ({timestamp, 'transaction.duration': duration, id}) => {
-      const {symbol, color} = getSampleSymbol(
+      const {symbol, color} = getSampleChartSymbol(
         duration,
         aggregatesData?.['avg(transaction.duration)'],
         theme

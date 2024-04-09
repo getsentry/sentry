@@ -1,6 +1,7 @@
 import math
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any
 
 import sentry_sdk
 from django.http import Http404
@@ -14,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg
 from sentry.snuba import discover
@@ -39,7 +41,7 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):
@@ -116,14 +118,14 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     return {"data": []}
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
+                    row["tags_value"] = tagstore.backend.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
                     )
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return results
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -140,7 +142,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -209,7 +211,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"tags": top_tags, "histogram": {"data": []}}
 
                 for row in histogram["data"]:
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return {"tags": top_tags, "histogram": histogram}
 
@@ -223,7 +225,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 ),
             }
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=HistogramPaginator(data_fn=data_fn),
@@ -258,9 +260,9 @@ class HistogramPaginator(GenericOffsetPaginator):
 def query_tag_data(
     params: Mapping[str, str],
     referrer: str,
-    filter_query: Optional[str] = None,
-    aggregate_column: Optional[str] = None,
-) -> Optional[Dict]:
+    filter_query: str | None = None,
+    aggregate_column: str | None = None,
+) -> dict | None:
     """
     Fetch general data about all the transactions with this transaction name to feed into the facet query
     :return: Returns the row with aggregate and count if the query was successful
@@ -308,11 +310,11 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
-    orderby: Optional[List[str]],
-    offset: Optional[int] = None,
-    aggregate_column: Optional[str] = None,
-    filter_query: Optional[str] = None,
-) -> Optional[List[Any]]:
+    orderby: list[str] | None,
+    offset: int | None = None,
+    aggregate_column: str | None = None,
+    filter_query: str | None = None,
+) -> list[Any] | None:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
     :return: Returns the row with the value, the aggregate and the count if the query was successful
@@ -321,7 +323,6 @@ def query_top_tags(
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
-
         if not orderby:
             orderby = ["-count"]
 
@@ -370,15 +371,15 @@ def query_facet_performance(
     params: Mapping[str, str],
     tag_data: Mapping[str, Any],
     referrer: str,
-    aggregate_column: Optional[str] = None,
-    filter_query: Optional[str] = None,
-    orderby: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    all_tag_keys: Optional[bool] = None,
-    tag_key: Optional[bool] = None,
-    include_count_delta: Optional[bool] = None,
-) -> Dict:
+    aggregate_column: str | None = None,
+    filter_query: str | None = None,
+    orderby: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+    all_tag_keys: bool | None = None,
+    tag_key: bool | None = None,
+    include_count_delta: bool | None = None,
+) -> dict:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
     transaction_count = tag_data["count"]
@@ -408,6 +409,7 @@ def query_facet_performance(
             sample_rate=sample_rate,
             turbo=sample_rate is not None,
             limit=limit,
+            offset=offset,
             limitby=["tags_key", tag_key_limit] if not tag_key else None,
         )
     translated_aggregate_column = tag_query.resolve_column(aggregate_column)
@@ -503,14 +505,14 @@ def query_facet_performance(
 
 def query_facet_performance_key_histogram(
     params: Mapping[str, str],
-    top_tags: List[Any],
+    top_tags: list[Any],
     tag_key: str,
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
-    aggregate_column: Optional[str] = None,
-    filter_query: Optional[str] = None,
-) -> Dict:
+    aggregate_column: str | None = None,
+    filter_query: str | None = None,
+) -> dict:
     precision = 0
 
     tag_values = [x["tags_value"] for x in top_tags]

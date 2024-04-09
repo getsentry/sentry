@@ -2,6 +2,7 @@
 
 Functions in this module coerce external types to internal types.  Else they die.
 """
+
 import uuid
 
 from sentry.replays.lib.new_query.errors import CouldNotParseValue
@@ -29,8 +30,4 @@ def parse_uuid(value: str) -> uuid.UUID:
     try:
         return uuid.UUID(value)
     except ValueError:
-        # Return an empty uuid. This emulates current behavior where inability to parse a UUID
-        # leads to an empty result-set rather than an error.
-        #
-        # TODO: Probably raise an error here...
-        return uuid.UUID("00000000000000000000000000000000")
+        raise CouldNotParseValue("Failed to parse uuid.")

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Tuple
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import resolve
 
+from sentry import options
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.ratelimits import backend as ratelimiter
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +26,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration | None = None
 
-    def _resolve_external_id(self) -> Tuple[str, str] | HttpResponse:
+    def _resolve_external_id(self) -> tuple[str, str] | HttpResponseBase:
         clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
@@ -59,21 +63,50 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
                 return self._integration
         except Exception:
             pass
+
         return None
 
     def get_response_from_gitlab_webhook(self):
         maybe_http_response = self._resolve_external_id()
-        if isinstance(maybe_http_response, HttpResponse):
+        if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+        try:
+            integration = self.get_integration_from_request()
+            if not integration:
+                return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation(regions=regions)
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            return self.get_default_missing_integration_response()
 
-    def get_response(self) -> HttpResponse:
+        identifier = self.get_mailbox_identifier(integration)
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=identifier, integration_id=integration.id
+        )
+
+    def get_mailbox_identifier(self, integration: RpcIntegration) -> str:
+        try:
+            data = json.loads(self.request.body)
+        except ValueError:
+            data = {}
+        enabled = options.get("hybridcloud.webhookpayload.use_mailbox_buckets")
+        project_id = data.get("project", {}).get("id", None)
+        if not project_id or not enabled:
+            return str(integration.id)
+
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        if not ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
+            return str(integration.id)
+
+        # Split high volume integrations into 100 buckets.
+        # 100 is arbitrary but we can't leave it unbounded.
+        bucket_number = project_id % 100
+
+        return f"{integration.id}:{bucket_number}"
+
+    def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:
             return self.get_response_from_gitlab_webhook()
         return self.get_response_from_control_silo()

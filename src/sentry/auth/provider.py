@@ -1,7 +1,8 @@
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.utils.encoding import force_str
 from django.views import View
@@ -41,6 +42,7 @@ class Provider(PipelineProvider, abc.ABC):
 
     is_partner = False
     requires_refresh = True
+    is_saml = False
 
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"

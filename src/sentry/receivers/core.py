@@ -50,7 +50,7 @@ def handle_db_failure(func, using=None, wrap_in_transaction=True):
 
 
 def create_default_projects(**kwds):
-    if not in_test_environment() and not is_self_hosted():
+    if not (in_test_environment() or is_self_hosted() or settings.DEBUG):
         # No op in production SaaS environments.
         return
 

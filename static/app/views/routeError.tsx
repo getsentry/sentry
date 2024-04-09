@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProject from 'sentry/utils/withProject';
@@ -100,7 +100,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       </p>
       <p>{t("If you're daring, you may want to try the following:")}</p>
       <List symbol="bullet">
-        {window && window.adblockSuspected && (
+        {window?.adblockSuspected && (
           <ListItem>
             {t(
               "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."

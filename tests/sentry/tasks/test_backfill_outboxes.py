@@ -1,4 +1,3 @@
-from typing import Type
 from unittest.mock import patch
 
 from django.apps import apps
@@ -24,12 +23,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    control_silo_test,
-    no_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.utils import redis
 
 
@@ -41,7 +35,7 @@ def reset_processing_state():
 
 
 @django_db_all
-@no_silo_test(stable=True)
+@no_silo_test
 def test_processing_awaits_options():
     reset_processing_state()
     org = Factories.create_organization()
@@ -66,7 +60,6 @@ def test_processing_awaits_options():
 
 
 @django_db_all
-@region_silo_test(stable=True)
 def test_region_processing(task_runner):
     with outbox_context(flush=False):
         for i in range(5):
@@ -84,7 +77,7 @@ def test_region_processing(task_runner):
 
 
 @django_db_all
-@control_silo_test(stable=True)
+@control_silo_test
 def test_control_processing(task_runner):
     reset_processing_state()
 
@@ -103,7 +96,7 @@ def test_control_processing(task_runner):
         assert not AuthProviderReplica.objects.filter(auth_provider_id=ap.id).exists()
         assert not AuthIdentityReplica.objects.filter(auth_provider_id=ap.id).exists()
 
-    def run_for_model(model: Type[BaseModel]):
+    def run_for_model(model: type[BaseModel]):
         while True:
             if process_outbox_backfill_batch(model, 1, force_synchronous=True) is None:
                 break

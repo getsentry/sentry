@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OptionsStoreTest(TestCase):
     @cached_property
     def store(self):

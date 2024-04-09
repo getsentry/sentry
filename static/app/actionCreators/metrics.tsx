@@ -1,10 +1,10 @@
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import type {DateString, MetricsApiResponse, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-export type DoMetricsRequestOptions = {
+export type DoReleaseHealthRequestOptions = {
   field: string[];
   orgSlug: Organization['slug'];
   cursor?: string;
@@ -25,7 +25,7 @@ export type DoMetricsRequestOptions = {
   statsPeriodStart?: string;
 };
 
-export const doMetricsRequest = (
+export const doReleaseHealthRequest = (
   api: Client,
   {
     field,
@@ -44,7 +44,7 @@ export const doMetricsRequest = (
     statsPeriodStart,
     statsPeriodEnd,
     ...dateTime
-  }: DoMetricsRequestOptions
+  }: DoReleaseHealthRequestOptions
 ): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,

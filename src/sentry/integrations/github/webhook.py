@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any, Callable, Dict, List, Mapping, MutableMapping
+from typing import Any
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
@@ -15,6 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics, options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
@@ -23,6 +25,7 @@ from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -37,8 +40,10 @@ from sentry.services.hybrid_cloud.integration.model import (
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
@@ -66,6 +71,10 @@ def get_file_language(filename: str) -> str | None:
 
 
 class Webhook:
+    """
+    Base class for GitHub webhooks handled in region silos.
+    """
+
     provider = "github"
 
     def _handle(
@@ -107,8 +116,6 @@ class Webhook:
                     id__in=[install.organization_id for install in installs]
                 )
             }
-
-            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
@@ -176,8 +183,15 @@ class Webhook:
             )
 
 
-class InstallationEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationevent
+class InstallationEventWebhook:
+    """
+    Unlike other GitHub webhooks, installation webhooks are handled in control silo.
+
+    https://developer.github.com/v3/activity/events/types/#installationevent
+    """
+
+    provider = "github"
+
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
 
@@ -218,13 +232,13 @@ class InstallationEventWebhook(Webhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.exception("Installation is missing.")
+                logger.error("Installation is missing.")
 
     def _handle_delete(
         self,
         event: Mapping[str, Any],
         integration: RpcIntegration,
-        org_integrations: List[RpcOrganizationIntegration],
+        org_integrations: list[RpcOrganizationIntegration],
     ) -> None:
         org_ids = {oi.organization_id for oi in org_integrations}
 
@@ -239,11 +253,12 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-        Repository.objects.filter(
-            organization_id__in=org_ids,
-            provider=f"integrations:{self.provider}",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+        for organization_id in org_ids:
+            repository_service.disable_repositories_for_integration(
+                organization_id=organization_id,
+                provider=f"integrations:{self.provider}",
+                integration_id=integration.id,
+            )
 
 
 class PushEventWebhook(Webhook):
@@ -442,12 +457,12 @@ class PullRequestEventWebhook(Webhook):
         repo: Repository,
         host: str | None = None,
     ) -> None:
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
+        action = event["action"]
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -501,7 +516,7 @@ class PullRequestEventWebhook(Webhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            pr, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -513,15 +528,50 @@ class PullRequestEventWebhook(Webhook):
                     "merge_commit_sha": merge_commit_sha,
                 },
             )
+
+            if action == "opened" and created:
+                if not OrganizationOption.objects.get_value(
+                    organization=organization,
+                    key="sentry:github_open_pr_bot",
+                    default=True,
+                ):
+                    logger.info(
+                        "github.open_pr_comment.option_missing",
+                        extra={"organization_id": organization.id},
+                    )
+                    return
+
+                metrics.incr("github.open_pr_comment.queue_task")
+                logger.info(
+                    "github.open_pr_comment.queue_task",
+                    extra={"pr_id": pr.id},
+                )
+                open_pr_comment_workflow.delay(pr_id=pr.id)
+
         except IntegrityError:
             pass
 
 
-class GitHubWebhookBase(Endpoint):
-    """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
+@all_silo_endpoint
+class GitHubIntegrationsWebhookEndpoint(Endpoint):
+    """
+    GitHub Webhook API reference:
+    https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks
+    """
 
     authentication_classes = ()
     permission_classes = ()
+
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
+    _handlers = {
+        "push": PushEventWebhook,
+        "pull_request": PullRequestEventWebhook,
+        "installation": InstallationEventWebhook,
+    }
 
     def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
         handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
@@ -543,12 +593,17 @@ class GitHubWebhookBase(Endpoint):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_logging_data(self) -> Dict[str, Any] | None:
-        """TODO(mgaeta): Get logger.error() to with with Mapping."""
-        return None
+    def get_logging_data(self) -> dict[str, Any] | None:
+        return {
+            "request_method": self.request.method,
+            "request_path": self.request.path,
+        }
 
     def get_secret(self) -> str | None:
-        raise NotImplementedError
+        return options.get("github-app.webhook-secret")
+
+    def post(self, request: Request) -> HttpResponse:
+        return self.handle(request)
 
     def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
@@ -566,12 +621,12 @@ class GitHubWebhookBase(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error("github.webhook.missing-event", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
         if not handler:
-            logger.error(
+            logger.info(
                 "github.webhook.missing-handler",
                 extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
@@ -580,7 +635,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
             logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
@@ -591,36 +646,9 @@ class GitHubWebhookBase(Endpoint):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
-                "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
-            )
+            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         handler()(event)
         return HttpResponse(status=204)
-
-
-@all_silo_endpoint
-class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
-    publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
-    _handlers = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-    }
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
-
-    def post(self, request: Request) -> HttpResponse:
-        return self.handle(request)

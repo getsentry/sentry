@@ -5,9 +5,9 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-feedback: 0003_feedback_add_env
-hybridcloud: 0008_add_externalactorreplica
+feedback: 0004_index_together
+hybridcloud: 0015_apitokenreplica_hashed_token_index
 nodestore: 0002_nodestore_no_dictfield
-replays: 0003_add_size_to_recording_segment
-sentry: 0587_remove_unused_neglectedrule_rows
+replays: 0004_index_together
+sentry: 0689_drop_config_from_cron_checkin
 social_auth: 0002_default_auto_field

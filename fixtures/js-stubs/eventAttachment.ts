@@ -1,6 +1,6 @@
-import type {EventAttachment as TEventAttachment} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types';
 
-export function EventAttachment(params = {}): TEventAttachment {
+export function EventAttachmentFixture(params = {}): EventAttachment {
   return {
     id: '1',
     name: 'screenshot.png',

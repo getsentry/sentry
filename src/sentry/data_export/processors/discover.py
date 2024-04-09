@@ -7,7 +7,9 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
+from sentry.snuba.utils import get_dataset
 
 from ..base import ExportError
 
@@ -23,7 +25,7 @@ class DiscoverProcessor:
         self.projects = self.get_projects(organization_id, discover_query)
         self.environments = self.get_environments(organization_id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": organization_id,
             "project_id": [project.id for project in self.projects],
             "start": self.start,
@@ -45,6 +47,7 @@ class DiscoverProcessor:
             query=discover_query["query"],
             params=self.params,
             sort=discover_query.get("sort"),
+            dataset=discover_query.get("dataset"),
         )
 
     @staticmethod
@@ -76,9 +79,13 @@ class DiscoverProcessor:
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, equations, query, params, sort):
+    def get_data_fn(fields, equations, query, params, sort, dataset):
+        dataset = get_dataset(dataset)
+        if dataset is None:
+            dataset = discover
+
         def data_fn(offset, limit):
-            return discover.query(
+            return dataset.query(
                 selected_columns=fields,
                 equations=equations,
                 query=query,

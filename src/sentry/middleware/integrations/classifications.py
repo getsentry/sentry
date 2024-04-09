@@ -3,11 +3,16 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from typing import TYPE_CHECKING, List, Mapping, Type, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, cast
 
-from django.http import HttpRequest
+import sentry_sdk
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
+from rest_framework import status
 
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -59,23 +64,28 @@ class IntegrationClassification(BaseClassification):
     logger = logging.getLogger(f"{__name__}.integration")
 
     @property
-    def integration_parsers(self) -> Mapping[str, Type[BaseRequestParser]]:
+    def integration_parsers(self) -> Mapping[str, type[BaseRequestParser]]:
         from .parsers import (
             BitbucketRequestParser,
             BitbucketServerRequestParser,
+            DiscordRequestParser,
             GithubEnterpriseRequestParser,
             GithubRequestParser,
             GitlabRequestParser,
+            GoogleRequestParser,
             JiraRequestParser,
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         )
 
-        active_parsers: List[Type[BaseRequestParser]] = [
+        active_parsers: list[type[BaseRequestParser]] = [
             BitbucketRequestParser,
             BitbucketServerRequestParser,
+            DiscordRequestParser,
+            GoogleRequestParser,
             GithubEnterpriseRequestParser,
             GithubRequestParser,
             GitlabRequestParser,
@@ -83,6 +93,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         ]
         return {cast(str, parser.provider): parser for parser in active_parsers}
@@ -93,9 +104,11 @@ class IntegrationClassification(BaseClassification):
             e.g. `/extensions/slack/commands/` -> `slack`
         """
         integration_prefix_regex = re.escape(self.integration_prefix)
-        provider_regex = rf"^{integration_prefix_regex}(\w+)"
+        provider_regex = rf"^{integration_prefix_regex}([^/]+)"
         result = re.search(provider_regex, request.path)
-        return result[1] if result else None
+        if not result:
+            return None
+        return result[1].replace("-", "_")
 
     def should_operate(self, request: HttpRequest) -> bool:
         return (
@@ -115,23 +128,39 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            self.logger.error(
-                "integration_control.unknown_provider",
-                extra={"path": request.path, "provider": provider},
-            )
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag("provider", provider)
+                scope.set_tag("path", request.path)
+                sentry_sdk.capture_exception(
+                    Exception("Unknown provider was extracted from integration extension url")
+                )
             return self.response_handler(request)
 
         parser = parser_class(
             request=request,
             response_handler=self.response_handler,
         )
-        self.logger.info(
-            f"integration_control.routing_request.{parser.provider}", extra={"path": request.path}
-        )
-        response = parser.get_response()
+        try:
+            response = parser.get_response()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            metrics.incr(
+                f"hybrid_cloud.integration_control.integration.{parser.provider}",
+                tags={"url_name": parser.match.url_name, "status_code": 404},
+            )
+            return HttpResponse("", status=status.HTTP_404_NOT_FOUND)
+
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},
             sample_rate=1.0,
+        )
+        self.logger.info(
+            f"integration_control.routing_request.{parser.provider}.response",
+            extra={
+                "request.path": request.path,
+                "request.method": request.method,
+                "url_name": parser.match.url_name,
+                "response.status_code": response.status_code,
+            },
         )
         return response

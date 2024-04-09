@@ -1,20 +1,29 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict
+from collections import defaultdict
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urljoin
 
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
+from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DRFResponse
+from sentry_sdk import Scope
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
-    PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
+    PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
+    PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
     trim_leading_slashes,
@@ -27,9 +36,12 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
+    publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
+    owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: Dict[str, str | int] = {}
+    log_extra: dict[str, str | int] = {}
+    enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
@@ -75,10 +87,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_integration_id = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id is None:
+        org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
+        org_integration_id = int(org_integration_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (
@@ -104,8 +117,16 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         installation = self.integration.get_installation(
             organization_id=self.org_integration.organization_id
         )
-        self.client: IntegrationProxyClient = installation.get_client()
+
+        # Get the client, some integrations use a keyring approach so
+        # we need to pass in the keyid
+        keyid = request.headers.get(PROXY_KEYID_HEADER)
+        if keyid:
+            self.client: IntegrationProxyClient = installation.get_keyring_client(keyid)
+        else:
+            self.client: IntegrationProxyClient = installation.get_client()
         client_class = self.client.__class__
+
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
             logger.info("integration_proxy.invalid_client", extra=self.log_extra)
@@ -119,18 +140,24 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+            logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_mode", sample_rate=1.0)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
+            logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
+            logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
 
+        logger.info("integration_proxy.valid_request", extra=self.log_extra)
         return True
 
     def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
@@ -142,7 +169,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         ).prepare()
         # Third-party authentication headers will be added in client.authorize_request which runs
         # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client._request(
+        raw_response: Response = self.client.request(
             request.method,
             self.proxy_path,
             allow_text=True,
@@ -161,13 +188,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
+        # Removes leading slashes as it can result in incorrect urls being generated
+        self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
         self.log_extra["method"] = request.method
         self.log_extra["path"] = self.proxy_path
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
-            raise Http404
+            return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
 
@@ -178,16 +206,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        if self.client.should_delegate():
-            response: HttpResponse = self.client.delegate(
-                request=request,
-                proxy_path=self.proxy_path,
-                headers=headers,
-            )
-        else:
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
@@ -196,3 +215,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         logger.info("proxy_success", extra=self.log_extra)
         return response
+
+    def handle_exception(  # type: ignore[override]
+        self,
+        request: DRFRequest,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> DRFResponse:
+        if isinstance(exc, IdentityNotValid):
+            return self.respond(status=400)
+
+        return super().handle_exception(request, exc, handler_context, scope)

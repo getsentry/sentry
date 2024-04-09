@@ -1,4 +1,5 @@
-import {Fragment, ReactEventHandler, useState} from 'react';
+import type {ReactEventHandler} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
@@ -14,7 +15,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import type {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import ImageVisualization from './imageVisualization';
@@ -67,7 +68,7 @@ function Screenshot({
               disabled={screenshotInFocus === 0}
               aria-label={t('Previous Screenshot')}
               onClick={onPrevious}
-              icon={<IconChevron direction="left" size="xs" />}
+              icon={<IconChevron direction="left" />}
               size="xs"
             />
             {tct('[currentScreenshot] of [totalScreenshots]', {
@@ -78,7 +79,7 @@ function Screenshot({
               disabled={screenshotInFocus + 1 === totalScreenshots}
               aria-label={t('Next Screenshot')}
               onClick={onNext}
-              icon={<IconChevron direction="right" size="xs" />}
+              icon={<IconChevron direction="right" />}
               size="xs"
             />
           </StyledPanelHeader>
@@ -123,7 +124,7 @@ function Screenshot({
                 offset={4}
                 triggerProps={{
                   showChevron: false,
-                  icon: <IconEllipsis size="xs" />,
+                  icon: <IconEllipsis />,
                   'aria-label': t('More screenshot actions'),
                 }}
                 size="xs"

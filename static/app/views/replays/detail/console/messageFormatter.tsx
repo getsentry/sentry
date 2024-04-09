@@ -1,8 +1,6 @@
 import {memo} from 'react';
-import isObject from 'lodash/isObject';
 
-import {OnExpandCallback} from 'sentry/components/objectInspector';
-import {objectIsEmpty} from 'sentry/utils';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import Format from 'sentry/views/replays/detail/console/format';
@@ -25,8 +23,9 @@ function isSerializedError(frame: ConsoleFrame) {
     typeof frame.message === 'string' &&
     Array.isArray(args) &&
     args.length <= 2 &&
-    isObject(args[0]) &&
-    objectIsEmpty(args[0])
+    args[0] &&
+    typeof args[0] === 'object' &&
+    Object.keys(args[0]).length === 0
   );
 }
 

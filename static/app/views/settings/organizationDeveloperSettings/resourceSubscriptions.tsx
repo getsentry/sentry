@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FormContext from 'sentry/components/forms/formContext';
-import {Permissions, WebhookEvent} from 'sentry/types';
+import type {Permissions, WebhookEvent} from 'sentry/types';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -49,6 +49,7 @@ export default class Subscriptions extends Component<Props> {
     }
   }
 
+  declare context: Required<React.ContextType<typeof FormContext>>;
   static contextType = FormContext;
 
   onChange = (resource: Resource, checked: boolean) => {

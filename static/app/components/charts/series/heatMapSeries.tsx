@@ -3,7 +3,7 @@ import 'echarts/lib/component/visualMap';
 
 import type {HeatmapSeriesOption} from 'echarts';
 
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 export default function HeatMapSeries(
   props: Omit<HeatmapSeriesOption, 'data'> & {

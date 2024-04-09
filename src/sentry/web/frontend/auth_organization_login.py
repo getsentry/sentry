@@ -1,5 +1,7 @@
+import logging
+
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -12,12 +14,11 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
-TERMS_URL = "https://sentry.io/terms/"
-PRIVACY_POLICY_URL = "https://sentry.io/privacy/"
+logger = logging.getLogger("sentry.saml_setup_error")
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponse:
+    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponseBase:
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
@@ -35,11 +36,16 @@ class AuthOrganizationLoginView(AuthLoginView):
                 helper.initialize()
 
             if not helper.is_valid():
+                logger.info(
+                    "AuthOrganizationLoginView",
+                    extra=helper.state.get_state(),
+                )
                 return helper.error("Something unexpected happened during authentication.")
 
             return helper.current_step()
 
         provider = auth_provider.get_provider()
+
         context = {
             "CAN_REGISTER": False,
             "organization": organization,
@@ -47,15 +53,12 @@ class AuthOrganizationLoginView(AuthLoginView):
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated,
             "referrer": referrer,
-            "terms_url": TERMS_URL,
-            "privacy_policy_url": PRIVACY_POLICY_URL,
-            "is_provider_partner": provider.is_partner,
         }
 
         return self.respond("sentry/organization-login.html", context)
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, organization_slug) -> HttpResponse:
+    def handle(self, request: Request, organization_slug) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )

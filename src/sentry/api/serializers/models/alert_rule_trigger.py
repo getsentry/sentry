@@ -1,11 +1,11 @@
 from collections import defaultdict
-from typing import DefaultDict, Dict, List
+from typing import DefaultDict
 
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
@@ -18,7 +18,7 @@ class AlertRuleTriggerSerializer(Serializer):
         prefetch_related_objects(item_list, "alert_rule")
 
         triggers = {item.id: item for item in item_list}
-        result: DefaultDict[str, Dict[str, List[str]]] = defaultdict(dict)
+        result: DefaultDict[str, dict[str, list[str]]] = defaultdict(dict)
 
         actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=item_list).order_by(
             "id"
@@ -50,7 +50,7 @@ class AlertRuleTriggerSerializer(Serializer):
 class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         triggers = {item.id: item for item in item_list}
-        result: DefaultDict[str, Dict[str, List[str]]] = defaultdict(dict)
+        result: DefaultDict[str, dict[str, list[str]]] = defaultdict(dict)
         for trigger_id, project_slug in AlertRuleTriggerExclusion.objects.filter(
             alert_rule_trigger__in=item_list
         ).values_list("alert_rule_trigger_id", "query_subscription__project__slug"):

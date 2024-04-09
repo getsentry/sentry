@@ -1,6 +1,7 @@
-import {IntegrationType, SentryAppStatus} from 'sentry/types';
+import type {IntegrationType, SentryAppStatus} from 'sentry/types';
 
-import {platformEventMap, PlatformEventParameters} from './platformAnalyticsEvents';
+import type {PlatformEventParameters} from './platformAnalyticsEvents';
+import {platformEventMap} from './platformAnalyticsEvents';
 
 export type IntegrationView = {
   view?:

@@ -6,18 +6,8 @@ __all__ = ["FeatureManager"]
 
 import abc
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    MutableSet,
-    Optional,
-    Sequence,
-    Type,
-)
+from collections.abc import Iterable, Mapping, MutableMapping, MutableSet, Sequence
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.conf import settings
@@ -42,7 +32,7 @@ class RegisteredFeatureManager:
     """
 
     def __init__(self) -> None:
-        self._handler_registry: MutableMapping[str, List[FeatureHandler]] = defaultdict(list)
+        self._handler_registry: MutableMapping[str, list[FeatureHandler]] = defaultdict(list)
 
     def add_handler(self, handler: FeatureHandler) -> None:
         """
@@ -54,7 +44,7 @@ class RegisteredFeatureManager:
         for feature_name in handler.features:
             self._handler_registry[feature_name].append(handler)
 
-    def _get_handler(self, feature: Feature, actor: User) -> Optional[bool]:
+    def _get_handler(self, feature: Feature, actor: User) -> bool | None:
         for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
@@ -62,7 +52,7 @@ class RegisteredFeatureManager:
         return None
 
     @abc.abstractmethod
-    def _get_feature_class(self, name: str) -> Type[Feature]:
+    def _get_feature_class(self, name: str) -> type[Feature]:
         """
         We need this abstract method on this class because the `has_for_batch()`
         method instantiates a `FeatureCheckBatch` and sets `manager` as `self`
@@ -75,7 +65,7 @@ class RegisteredFeatureManager:
         name: str,
         organization: Organization,
         objects: Sequence[Project],
-        actor: Optional[User] = None,
+        actor: User | None = None,
     ) -> Mapping[Project, bool]:
         """
         Determine in a batch if a feature is enabled.
@@ -135,11 +125,11 @@ class RegisteredFeatureManager:
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
         super().__init__()
-        self._feature_registry: MutableMapping[str, Type[Feature]] = {}
+        self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
-        self._entity_handler: Optional[FeatureHandler] = None
+        self._entity_handler: FeatureHandler | None = None
 
-    def all(self, feature_type: Type[Feature] = Feature) -> Mapping[str, Type[Feature]]:
+    def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
@@ -149,7 +139,7 @@ class FeatureManager(RegisteredFeatureManager):
     def add(
         self,
         name: str,
-        cls: Type[Feature] = Feature,
+        cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
     ) -> None:
         """
@@ -168,7 +158,7 @@ class FeatureManager(RegisteredFeatureManager):
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
-    def _get_feature_class(self, name: str) -> Type[Feature]:
+    def _get_feature_class(self, name: str) -> type[Feature]:
         try:
             return self._feature_registry[name]
         except KeyError:
@@ -189,9 +179,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         self._entity_handler = handler
 
-    def has(
-        self, name: str, *args: Any, skip_entity: Optional[bool] = False, **kwargs: Any
-    ) -> bool:
+    def has(self, name: str, *args: Any, skip_entity: bool | None = False, **kwargs: Any) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
         mechanism is used for feature checking.
@@ -249,10 +237,10 @@ class FeatureManager(RegisteredFeatureManager):
     def batch_has(
         self,
         feature_names: Sequence[str],
-        actor: Optional[User] = None,
-        projects: Optional[Sequence[Project]] = None,
-        organization: Optional[Organization] = None,
-    ) -> Optional[Mapping[str, Mapping[str, bool | None]]]:
+        actor: User | None = None,
+        projects: Sequence[Project] | None = None,
+        organization: Organization | None = None,
+    ) -> Mapping[str, Mapping[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.

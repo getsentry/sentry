@@ -15,7 +15,7 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Commit} from 'sentry/types';
+import type {Commit} from 'sentry/types';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -120,7 +120,7 @@ function CommitRow({
         </Meta>
       </CommitMessage>
 
-      {commit.pullRequest && commit.pullRequest.externalUrl && (
+      {commit.pullRequest?.externalUrl && (
         <Button
           external
           href={commit.pullRequest.externalUrl}

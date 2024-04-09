@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 
 type State = {
   cursor: string | null;

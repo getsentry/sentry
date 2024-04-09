@@ -4,8 +4,9 @@ import abc
 import contextlib
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any
 
 from django import forms
 from django.core.cache import cache
@@ -14,7 +15,7 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.condition_activity import (
@@ -62,7 +63,7 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        choices=tuple(comparison_types.items()),
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
@@ -74,7 +75,10 @@ class EventFrequencyForm(forms.Form):
     )
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
+
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
             del cleaned_data["comparisonInterval"]
@@ -110,7 +114,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def _get_options(self) -> Tuple[str | None, float | None]:
+    def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
         try:
             interval = self.get_option("interval")
@@ -124,13 +128,17 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if not (interval and value is not None):
             return False
 
+        # Assumes that the first event in a group will always be below the threshold.
+        if state.is_new and value > 1:
+            return False
+
         # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
-        logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
+        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -158,10 +166,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result > value
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
+        """
+        Queries Snuba for a unique condition for a single group.
+        """
         query_result = self.query_hook(event, start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
@@ -175,15 +186,43 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        """ """
-        raise NotImplementedError  # subclass must implement
+        """
+        Abstract method that specifies how to query Snuba for a single group
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    def batch_query(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Queries Snuba for a unique condition for multiple groups.
+        """
+        batch_query_result = self.batch_query_hook(group_ids, start, end, environment_id)
+        metrics.incr(
+            "rules.conditions.queried_snuba",
+            tags={
+                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
+                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
+            },
+        )
+        return batch_query_result
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Abstract method that specifies how to query Snuba for multiple groups
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
 
     def get_rate(self, event: GroupEvent, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
-        option_override_cm = contextlib.nullcontext()
+        option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
         with option_override_cm:
@@ -214,8 +253,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
         # TODO(mgaeta): Bug: Rule is optional.
-        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
+        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore[union-attr]
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]  # type: ignore[union-attr]
         return guess
 
 
@@ -239,7 +278,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "count", "roundedTime"
 
 
@@ -263,7 +302,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         )
         return totals[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
 
 
@@ -343,7 +382,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
             with options_override({"consistent": False}):
-                session_count_last_hour = release_health.get_project_sessions_count(  # type: ignore
+                session_count_last_hour = release_health.backend.get_project_sessions_count(
                     project_id=project_id,
                     environment_id=environment_id,
                     rollup=60,
@@ -386,12 +425,12 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return 0
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
 
-def bucket_count(start: datetime, end: datetime, buckets: Dict[datetime, int]) -> int:
+def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
     rounded_end = round_to_five_minute(end)
     rounded_start = round_to_five_minute(start)
     count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)

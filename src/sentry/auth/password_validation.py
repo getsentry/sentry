@@ -1,10 +1,17 @@
+import logging
+from hashlib import sha1
+
+import requests
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
 from django.utils.translation import ngettext
 
+from sentry import options
 from sentry.utils.imports import import_string
+
+logger = logging.getLogger(__name__)
 
 
 def get_default_password_validators():
@@ -94,3 +101,47 @@ class MaximumLengthValidator:
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,
         ) % {"max_length": self.max_length}
+
+
+class PwnedPasswordsValidator:
+    """
+    Validate whether a password has previously appeared in a data breach.
+    """
+
+    def __init__(self, threshold=1, timeout=0.200):
+        self.threshold = threshold
+        self.timeout = timeout
+
+    def validate(self, password, user=None):
+        digest = sha1(password.encode("utf-8")).hexdigest().upper()
+        prefix = digest[:5]
+        suffix = digest[5:]
+
+        url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        headers = {
+            "User-Agent": "Sentry @ {}".format(options.get("system.url-prefix")),
+        }
+
+        try:
+            r = requests.get(url, headers=headers, timeout=self.timeout)
+        except Exception as e:
+            logger.warning(
+                "Unable to fetch PwnedPasswords API",
+                extra={
+                    "exception": str(e),
+                    "prefix": prefix,
+                },
+            )
+            return
+
+        for line in r.text.split("\n"):
+            if ":" not in line:
+                continue
+
+            breached_suffix, occurrences = line.rstrip().split(":")
+            if breached_suffix == suffix:
+                if int(occurrences) >= self.threshold:
+                    raise ValidationError(
+                        f"This password has previously appeared in data breaches {occurrences} times."
+                    )
+                break

@@ -56,10 +56,10 @@ class IssueDetailsPage(BasePage):
         # Resolve should become unresolve
         self.browser.wait_until('[aria-label="Resolved"]')
 
-    def ignore_issue(self):
-        self.browser.click('[aria-label="Ignore"]')
+    def archive_issue(self):
+        self.browser.click('[aria-label="Archive"]')
         # Ignore should become unresolve
-        self.browser.wait_until('[aria-label="Ignored"]')
+        self.browser.wait_until('[aria-label="Archived"]')
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')

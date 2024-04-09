@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import {CreateProjectsFooter} from './components/createProjectsFooter';
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();

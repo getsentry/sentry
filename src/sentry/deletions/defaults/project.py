@@ -7,7 +7,8 @@ class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
-        from sentry.incidents.models import AlertRule, IncidentProject
+        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.incidents.models.incident import IncidentProject
         from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
@@ -23,7 +24,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
-            models.EventUser,
             models.GroupAssignee,
             models.GroupBookmark,
             models.GroupEmailThread,
@@ -36,6 +36,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
+            models.ReleaseThreshold,
             ProjectTeam,
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig

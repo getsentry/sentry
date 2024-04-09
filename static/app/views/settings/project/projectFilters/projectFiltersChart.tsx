@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,11 +9,11 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, Project} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
-import {UsageSeries} from 'sentry/views/organizationStats/types';
+import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
 type Props = {
   api: Client;

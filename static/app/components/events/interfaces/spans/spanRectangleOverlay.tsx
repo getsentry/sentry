@@ -1,4 +1,4 @@
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   getDurationDisplay,
@@ -6,8 +6,9 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 
-import {EnhancedSpan} from './types';
-import {getSpanGroupTimestamps, SpanViewBoundsType} from './utils';
+import type {EnhancedSpan} from './types';
+import type {SpanViewBoundsType} from './utils';
+import {getSpanGroupTimestamps} from './utils';
 
 export function SpanRectangleOverlay({
   bounds,

@@ -18,17 +18,20 @@ fi
 
 venv_name=".venv"
 
+# XDG paths' standardized defaults:
+# (see https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables )
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}"
+export XDG_CONFIG_DIRS="${XDG_CONFIG_DIRS:-/etc/xdg}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/var/run}"
+
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
-}
-
-configure-sentry-cli() {
-    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
-        if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
-        fi
-    fi
 }
 
 query-valid-python-version() {
@@ -54,11 +57,11 @@ EOF
     else
         minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
         patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+        if [ "$minor" -ne 11 ] || [ "$patch" -lt 6 ]; then
             cat <<EOF
     ${red}${bold}
     ERROR: You're running a virtualenv with Python ${python_version}.
-    We only support >= 3.8.10, < 3.9.
+    We only support >= 3.11.6, < 3.12.
     Either run "rm -rf ${venv_name} && direnv allow" to
     OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
@@ -76,11 +79,11 @@ sudo-askpass() {
 }
 
 pip-install() {
-    pip install --constraint requirements-dev-frozen.txt "$@"
+    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
 upgrade-pip() {
-    pip-install pip setuptools wheel
+    pip-install pip
 }
 
 install-py-dev() {
@@ -99,7 +102,7 @@ install-py-dev() {
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e . --no-deps
+    python3 -m tools.fast_editable --path .
 }
 
 setup-git-config() {
@@ -120,16 +123,8 @@ setup-git() {
 
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-    # shellcheck disable=SC2016
-    python3 -c '' || (
-        echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
-        exit 1
-    )
-    if ! require pre-commit; then
-        pip-install -r requirements-dev.txt
-    fi
-    pre-commit install --install-hooks
-    echo ""
+
+    .venv/bin/pre-commit install --install-hooks
 }
 
 node-version-check() {
@@ -162,7 +157,7 @@ develop() {
 }
 
 init-config() {
-    sentry init --dev
+    sentry init --dev --no-clobber
 }
 
 run-dependent-services() {
@@ -172,13 +167,14 @@ run-dependent-services() {
 create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
     echo "--> Creating 'control' and 'region' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
 apply-migrations() {
+    create-db
     echo "--> Applying migrations"
     sentry upgrade --noinput
 }
@@ -204,7 +200,6 @@ bootstrap() {
     develop
     init-config
     run-dependent-services
-    create-db
     apply-migrations
     create-superuser
     # Load mocks requires a superuser
@@ -228,26 +223,17 @@ clean() {
 drop-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Dropping existing 'sentry' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres sentry
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
     echo "--> Dropping 'control' and 'region' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres control
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
 }
 
 reset-db() {
     drop-db
-    create-db
     apply-migrations
     create-superuser
-    echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
-}
-
-prerequisites() {
-    if [ -z "${CI+x}" ]; then
-        brew update -q && brew bundle -q
-    else
-        HOMEBREW_NO_AUTO_UPDATE=on brew install pyenv
-    fi
+    echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }
 
 direnv-help() {

@@ -1,4 +1,4 @@
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {extractSlug} from 'sentry/utils/extractSlug';
 
 const BOOTSTRAP_URL = '/api/client-config/';
@@ -44,6 +44,8 @@ function promiseRequest(url: string): Promise<any> {
   return new Promise(function (resolve, reject) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url);
+    xhr.setRequestHeader('sentry-trace', window.__initialData.initialTrace.sentry_trace);
+    xhr.setRequestHeader('baggage', window.__initialData.initialTrace.baggage);
     xhr.withCredentials = true;
     xhr.onload = function () {
       try {
@@ -92,9 +94,12 @@ function preloadOrganizationData(config: Config) {
   const preloadPromises: Record<string, any> = {orgSlug: slug};
   window.__sentry_preload = preloadPromises;
   try {
+    if (!slug) {
+      return;
+    }
     preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
     preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (e) {

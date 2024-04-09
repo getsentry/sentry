@@ -1,10 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
 import type {CommitRowProps} from 'sentry/components/commitRow';
-import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -34,7 +33,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
-    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+    const commitsWithAuthors = committers.flatMap(({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,
@@ -80,7 +79,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
-    <DataSection>
+    <div>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
@@ -110,7 +109,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
           />
         ))}
       </StyledPanel>
-    </DataSection>
+    </div>
   );
 }
 

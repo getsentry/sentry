@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Sequence
 from itertools import islice
-from typing import Any, Sequence
+from typing import Any
 
 import sentry_sdk
 
@@ -25,6 +26,10 @@ logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tas
 #: NOTE: We could make this configurable through django settings or even per-project in the future.
 MERGE_THRESHOLD = 200
 
+#: We're only using span clustering for resource spans right now, where we expect path segments to be either
+#: very low-cardinality or very high-cardinality, so we can use a more aggressive threshold.
+MERGE_THRESHOLD_SPANS = 50
+
 #: Number of projects to process in one celery task
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
@@ -32,7 +37,7 @@ PROJECTS_PER_TASK = 100
 #: Estimated limit for a clusterer run per project, in seconds.
 #: NOTE: using this in a per-project basis may not be enough. Consider using
 #: this estimation for project batches instead.
-CLUSTERING_TIMEOUT_PER_PROJECT = 0.15
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 
 
 @instrumented_task(
@@ -154,8 +159,8 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                 span.set_data("project_id", project.id)
                 descriptions = list(redis.get_span_descriptions(project))
                 new_rules = []
-                if len(descriptions) >= MERGE_THRESHOLD:
-                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                if len(descriptions) >= MERGE_THRESHOLD_SPANS:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD_SPANS)
                     clusterer.add_input(descriptions)
                     new_rules = clusterer.get_rules()
                     # Span description rules must match a prefix in the string
@@ -163,7 +168,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                     # the clusterer to avoid scrubbing other tokens. The prefix
                     # `**` in the glob ensures we match the prefix but we don't
                     # scrub it.
-                    new_rules = [ReplacementRule(f"**{r}") for r in new_rules]
+                    new_rules = [ReplacementRule(r) for r in new_rules]
 
                 track_clusterer_run(ClustererNamespace.SPANS, project)
 

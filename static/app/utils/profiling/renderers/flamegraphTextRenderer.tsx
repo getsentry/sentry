@@ -1,6 +1,6 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -11,10 +11,12 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
-import {Flamegraph} from '../flamegraph';
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
-import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
+import type {Flamegraph} from '../flamegraph';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from '../flamegraphFrame';
+import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import type {Rect} from '../speedscope';
+import {findRangeBinarySearch, trimTextCenter} from '../speedscope';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;

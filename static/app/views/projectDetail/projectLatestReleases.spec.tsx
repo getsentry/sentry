@@ -1,3 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ReleaseFixture} from 'sentry-fixture/release';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -16,14 +19,11 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
-      body: [
-        TestStubs.Release({version: '1.0.0'}),
-        TestStubs.Release({version: '1.0.1'}),
-      ],
+      body: [ReleaseFixture({version: '1.0.0'}), ReleaseFixture({version: '1.0.1'})],
     });
     endpointOlderReleasesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
-      body: [TestStubs.Release({version: '1.0.0'})],
+      body: [ReleaseFixture({version: '1.0.0'})],
     });
   });
 
@@ -113,7 +113,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         projectId={project.slug}
@@ -135,7 +135,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         projectId={project.slug}

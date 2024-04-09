@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, RepositoryProjectPathConfig} from 'sentry/types';
+import type {Project, RepositoryProjectPathConfig} from 'sentry/types';
 
 type Props = {
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;

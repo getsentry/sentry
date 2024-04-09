@@ -1,15 +1,17 @@
 import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
-import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
+import type {AriaListBoxOptions} from '@react-aria/listbox';
+import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
+import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -17,7 +19,7 @@ import {ListBoxSection} from './section';
 interface ListBoxProps
   extends Omit<
       React.HTMLAttributes<HTMLUListElement>,
-      'onBlur' | 'onFocus' | 'autoFocus'
+      'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
     Omit<
       AriaListBoxOptions<any>,
@@ -41,6 +43,7 @@ interface ListBoxProps
    * `useListBox()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -51,7 +54,7 @@ interface ListBoxProps
    * and before `onChange`.
    */
   onSectionToggle?: (
-    section: SelectSection<React.Key>,
+    section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
   size?: FormSize;

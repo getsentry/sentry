@@ -8,7 +8,7 @@ from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
 
 
-def _check_history():
+def _check_history() -> None:
     connection = connections["default"]
     cursor = connection.cursor()
     try:
@@ -25,8 +25,12 @@ def _check_history():
         raise click.ClickException("Could not determine migration state. Aborting")
 
     # Either of these migrations need to have been run for us to proceed.
-    # The first migration is 'pre-squash' and the second is the new squash
-    migration_heads = ("0200_release_indices", "0001_squashed_0200_release_indices")
+    # The first migration is 'pre-squash' and the other entries are squashes
+    migration_heads = (
+        "0200_release_indices",
+        "0001_squashed_0200_release_indices",
+        "0001_squashed_0484_break_org_member_user_fk",
+    )
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
@@ -39,7 +43,14 @@ def _check_history():
         )
 
 
-def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_nodestore):
+def _upgrade(
+    interactive: bool,
+    traceback: bool,
+    verbosity: int,
+    repair: bool,
+    run_post_upgrade: bool,
+    with_nodestore: bool,
+) -> None:
     from django.core.management import call_command as dj_call_command
 
     _check_history()
@@ -92,17 +103,24 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
 )
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
 @configuration
-@click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade, with_nodestore):
+def upgrade(
+    verbosity: int,
+    traceback: bool,
+    noinput: bool,
+    lock: bool,
+    no_repair: bool,
+    no_post_upgrade: bool,
+    with_nodestore: bool,
+) -> None:
     "Perform any pending database migrations and upgrades."
 
     if lock:
         from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
-        lock = locks.get("upgrade", duration=0, name="command_upgrade")
+        lock_inst = locks.get("upgrade", duration=0, name="command_upgrade")
         try:
-            with lock.acquire():
+            with lock_inst.acquire():
                 _upgrade(
                     not noinput,
                     traceback,

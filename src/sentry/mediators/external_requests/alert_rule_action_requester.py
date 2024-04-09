@@ -4,6 +4,7 @@ from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from django.db import router
+from django.utils.functional import cached_property
 from requests import RequestException
 from requests.models import Response
 
@@ -12,7 +13,6 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
@@ -45,16 +45,19 @@ class AlertRuleActionRequester(Mediator):
         urlparts[2] = self.uri
         return urlunparse(urlparts)
 
-    def _get_response_message(self, response: Response, default_message: str) -> str:
+    def _get_response_message(self, response: Response | None, default_message: str) -> str:
         """
         Returns the message from the response body, if in the expected location.
         Used to bubble up info from the Sentry App to the UI.
         The location should be coordinated with the docs on Alert Rule Action UI Components.
         """
-        try:
-            message = response.json().get("message", default_message)
-        except Exception:
+        if response is None:
             message = default_message
+        else:
+            try:
+                message = response.json().get("message", default_message)
+            except Exception:
+                message = default_message
 
         return f"{self.sentry_app.name}: {message}"
 
@@ -95,7 +98,7 @@ class AlertRuleActionRequester(Mediator):
             "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
         }
 
-    @memoize
+    @cached_property
     def body(self):
         return json.dumps(
             {
@@ -104,6 +107,6 @@ class AlertRuleActionRequester(Mediator):
             }
         )
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app

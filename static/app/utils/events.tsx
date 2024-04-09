@@ -1,25 +1,27 @@
-import uniq from 'lodash/uniq';
-
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
-import {
+import type {
   BaseGroup,
   EntryException,
   EntryRequest,
   EntryThreads,
   EventMetadata,
-  EventOrGroupType,
   Group,
   GroupActivityAssigned,
-  GroupActivityType,
   GroupTombstoneHelper,
-  IssueCategory,
-  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {
+  EventOrGroupType,
+  GroupActivityType,
+  IssueCategory,
+  IssueType,
+} from 'sentry/types';
+import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {uniq} from 'sentry/utils/array/uniq';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -157,6 +159,7 @@ export function getTitle(
       };
     }
     case EventOrGroupType.CSP:
+    case EventOrGroupType.NEL:
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
@@ -207,7 +210,7 @@ export function getShortEventId(eventId: string) {
  * Returns a comma delineated list of errors
  */
 function getEventErrorString(event: Event) {
-  return uniq(event.errors?.map(error => error.type)).join(',') || '';
+  return uniq(event.errors?.map(error => error.type)).join(',');
 }
 
 function hasTrace(event: Event) {
@@ -280,6 +283,15 @@ export function eventHasSourceContext(event: Event) {
 }
 
 /**
+ * Function to determine if an event has local variables
+ */
+export function eventHasLocalVariables(event: Event) {
+  const frames = getAllFrames(event, false);
+
+  return frames.some(frame => defined(frame.vars));
+}
+
+/**
  * Function to get status about how many frames have source maps
  */
 export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
@@ -306,10 +318,8 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
 function getExceptionFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
   const frames = exceptions
-    .map(exception => exception.data.values || [])
-    .flat()
-    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
-    .flat();
+    .flatMap(exception => exception.data.values || [])
+    .flatMap(exceptionValue => exceptionValue?.stacktrace?.frames || []);
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
@@ -324,18 +334,14 @@ function getExceptionEntries(event: Event) {
 /**
  * Returns all stack frames of type 'exception' or 'threads' of this event
  */
-function getAllFrames(event: Event, inAppOnly: boolean) {
-  const exceptions = getEntriesWithFrames(event);
-  const frames = exceptions
-    .map(
-      (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
-    )
-    .flat()
-    .map(
+function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
+  const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
+  const frames: Frame[] = exceptions
+    .flatMap(withStacktrace => withStacktrace.data.values ?? [])
+    .flatMap(
       (withStacktrace: ExceptionValue | Thread) =>
-        withStacktrace?.stacktrace?.frames || []
-    )
-    .flat();
+        withStacktrace?.stacktrace?.frames ?? []
+    );
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
@@ -395,8 +401,8 @@ function getNumberOfThreadsWithNames(event: Event) {
 
 export function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
-  return exceptionEntries.some(
-    entry => entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 
@@ -432,6 +438,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
+    num_event_tags: event?.tags?.length ?? 0,
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
@@ -443,6 +450,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
+    has_local_variables: event ? eventHasLocalVariables(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
@@ -483,6 +491,7 @@ export type CommonGroupAnalyticsData = {
   issue_level?: string;
   issue_status?: string;
   issue_substatus?: string | null;
+  priority?: string;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
@@ -509,6 +518,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     num_participants: group?.participants?.length ?? 0,
     num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
+    priority: group?.priority,
   };
 }
 

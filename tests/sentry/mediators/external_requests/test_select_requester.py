@@ -58,9 +58,32 @@ class TestSelectRequester(TestCase):
         assert requests[0]["event_type"] == "select_options.requested"
 
     @responses.activate
-    def test_invalid_response_format(self):
+    def test_invalid_response_missing_label(self):
         # missing 'label'
         invalid_format = {"value": "12345"}
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            json=invalid_format,
+            status=200,
+            content_type="application/json",
+        )
+
+        with pytest.raises(APIError):
+            SelectRequester.run(
+                install=self.install,
+                project_slug=self.project.slug,
+                group=self.group,
+                uri="/get-issues",
+                fields={},
+            )
+
+    @responses.activate
+    def test_invalid_response_missing_value(self):
+        # missing 'label' and 'value'
+        invalid_format = [
+            {"project": "ACME", "webUrl": "foo"},
+        ]
         responses.add(
             method=responses.GET,
             url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",

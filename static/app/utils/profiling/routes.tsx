@@ -1,7 +1,7 @@
-import {Location, LocationDescriptor, Path} from 'history';
+import type {Location, LocationDescriptor, Path} from 'history';
 
-import {Organization, Project} from 'sentry/types';
-import {Trace} from 'sentry/types/profiling/core';
+import type {Organization, Project} from 'sentry/types';
+import type {Trace} from 'sentry/types/profiling/core';
 
 export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
   return `/organizations/${orgSlug}/profiling/`;
@@ -27,6 +27,43 @@ export function generateProfileFlamechartRoute({
   projectSlug: Project['slug'];
 }): string {
   return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
+}
+
+export function generateProfileDifferentialFlamegraphRoute({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}): string {
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/differential-flamegraph/`;
+}
+
+export function generateProfileDifferentialFlamegraphRouteWithQuery({
+  orgSlug,
+  projectSlug,
+  query,
+  fingerprint,
+  transaction,
+  breakpoint,
+}: {
+  breakpoint: number;
+  fingerprint: number;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  transaction: string;
+  query?: Location['query'];
+}): LocationDescriptor {
+  const pathname = generateProfileDifferentialFlamegraphRoute({orgSlug, projectSlug});
+  return {
+    pathname,
+    query: {
+      ...query,
+      transaction,
+      fingerprint,
+      breakpoint,
+    },
+  };
 }
 
 export function generateProfileDetailsRoute({

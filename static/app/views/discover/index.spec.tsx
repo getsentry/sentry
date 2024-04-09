@@ -1,7 +1,10 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverLanding} from 'sentry/views/discover/landing';
@@ -11,7 +14,7 @@ describe('Discover > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -73,18 +76,18 @@ describe('Discover > Landing', function () {
   it('denies access on missing feature', function () {
     render(
       <DiscoverLanding
-        organization={Organization()}
-        {...TestStubs.routeComponentProps()}
+        organization={OrganizationFixture()}
+        {...RouteComponentPropsFixture()}
       />
     );
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('has the right sorts', function () {
-    const org = Organization({features});
+  it('has the right sorts', async function () {
+    const org = OrganizationFixture({features});
 
-    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />);
+    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
 
     const expectedSorts = [
       'My Queries',
@@ -98,7 +101,7 @@ describe('Discover > Landing', function () {
     ];
 
     // Open menu
-    selectEvent.openMenu(screen.getByRole('button', {name: 'Sort By My Queries'}));
+    await selectEvent.openMenu(screen.getByRole('button', {name: 'Sort By My Queries'}));
 
     // Check that all sorts are there
     expectedSorts.forEach(sort =>
@@ -106,14 +109,14 @@ describe('Discover > Landing', function () {
     );
   });
 
-  it('links back to the homepage', () => {
-    const org = Organization({features});
+  it('links back to the homepage', async () => {
+    const org = OrganizationFixture({features});
 
-    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
-      context: TestStubs.routerContext(),
+    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />, {
+      context: RouterContextFixture(),
     });
 
-    expect(screen.getByText('Discover')).toHaveAttribute(
+    expect(await screen.findByText('Discover')).toHaveAttribute(
       'href',
       '/organizations/org-slug/discover/homepage/'
     );

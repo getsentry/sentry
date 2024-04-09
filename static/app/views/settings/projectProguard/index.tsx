@@ -1,16 +1,17 @@
 import {Fragment, useCallback, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import {DebugIdBundleAssociation, Organization, Project} from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
-import {ApiQueryKey, useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import type {DebugIdBundleAssociation, Organization, Project} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

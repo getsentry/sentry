@@ -1,4 +1,4 @@
-import {ShortcutType} from 'sentry/components/smartSearchBar/types';
+import type {ShortcutType} from 'sentry/components/smartSearchBar/types';
 
 type SearchEventBase = {
   query: string;

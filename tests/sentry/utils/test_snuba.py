@@ -1,9 +1,11 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
+from urllib3 import HTTPConnectionPool
+from urllib3.exceptions import HTTPError, ReadTimeoutError
 
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
@@ -11,6 +13,8 @@ from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (
+    ROUND_UP,
+    RetrySkipTimeout,
     SnubaQueryParams,
     UnqualifiedQueryError,
     _prepare_query_params,
@@ -24,9 +28,7 @@ from sentry.utils.snuba import (
 
 class SnubaUtilsTest(TestCase):
     def setUp(self):
-        self.now = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
         self.proj1group1 = self.create_group(self.proj1)
@@ -299,7 +301,37 @@ class PrepareQueryParamsTest(TestCase):
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
-        self.now = django_timezone.now().replace(microsecond=0)
+        self.now = timezone.now().replace(microsecond=0)
+
+    def test_quantizes_with_duration(self):
+        key_hash = 0
+        time = datetime(2023, 12, 27, 4, 4, 24)
+
+        assert quantize_time(time, key_hash, 60) == datetime(2023, 12, 27, 4, 4, 0)
+        assert quantize_time(time, key_hash, 120) == datetime(2023, 12, 27, 4, 4, 0)
+        assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 0)
+
+    def test_quantizes_with_key_hash(self):
+        key_hash = 12
+        time = datetime(2023, 12, 27, 4, 4, 24)
+
+        assert quantize_time(time, key_hash, 60) == datetime(2023, 12, 27, 4, 4, 12)
+        assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 12)
+
+    def test_quantizes_if_already_quantized(self):
+        key_hash = 1
+        duration = 10
+        time = datetime(2023, 12, 27, 21, 22, 41)
+
+        assert quantize_time(time, key_hash, duration) == datetime(2023, 12, 27, 21, 22, 31)
+
+    def test_quantizes_with_rounding_up(self):
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 0), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 4, 0
+        )
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 24), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 5, 0
+        )
 
     def test_cache_suffix_time(self):
         starting_key = quantize_time(self.now, 0)
@@ -375,3 +407,36 @@ class QuantizeTimeTest(unittest.TestCase):
                 break
 
         assert i != j
+
+
+class FakeConnectionPool(HTTPConnectionPool):
+    def __init__(self, connection, **kwargs):
+        self.connection = connection
+        super().__init__(**kwargs)
+
+    def _new_conn(self):
+        return self.connection
+
+
+def test_retries():
+    """
+    Tests that, even if I set up 5 retries, there is only one request
+    made since it times out.
+    """
+    connection_mock = mock.Mock()
+
+    snuba_pool = FakeConnectionPool(
+        connection=connection_mock,
+        host="www.test.com",
+        port=80,
+        retries=RetrySkipTimeout(total=5, allowed_methods={"GET", "POST"}),
+        timeout=30,
+        maxsize=10,
+    )
+
+    connection_mock.request.side_effect = ReadTimeoutError(snuba_pool, "test.com", "Timeout")
+
+    with pytest.raises(HTTPError):
+        snuba_pool.urlopen("POST", "/query", body="{}")
+
+    assert connection_mock.request.call_count == 1

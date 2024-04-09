@@ -1,13 +1,14 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function () {
-  const org = Organization();
-  const router = TestStubs.router();
+  const org = OrganizationFixture();
+  const router = RouterFixture();
   const location = router.location;
 
   const routerProps = {router, location, routeParams: {}, routes: [], route: {}};
@@ -28,7 +29,7 @@ describe('OrganizationRepositories', function () {
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
-        itemList={[Repository()]}
+        itemList={[RepositoryFixture()]}
         {...routerProps}
       />
     );
@@ -40,7 +41,7 @@ describe('OrganizationRepositories', function () {
         onRepositoryChange={jest.fn()}
         organization={org}
         itemList={[
-          Repository({
+          RepositoryFixture({
             provider: {id: 'github', name: 'GitHub'},
           }),
         ]}

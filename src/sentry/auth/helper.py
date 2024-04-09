@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Collection, Dict, Mapping, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -111,7 +112,7 @@ class AuthIdentityHandler:
     organization: RpcOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
-    referrer: Optional[str] = "in-app"
+    referrer: str | None = "in-app"
 
     @cached_property
     def user(self) -> User | AnonymousUser:
@@ -133,7 +134,7 @@ class AuthIdentityHandler:
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
+            scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
             scope.set_extra("chosen_user", chosen_user.id)
@@ -238,14 +239,14 @@ class AuthIdentityHandler:
         request: Request,
         organization: RpcOrganization,
         auth_identity: AuthIdentity,
-    ) -> Tuple[User, RpcOrganizationMember]:
+    ) -> tuple[User, RpcOrganizationMember]:
         user = User.objects.get(id=auth_identity.user_id)
 
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
         invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization_id=organization.id, email=user.email
+            request=request, organization_id=organization.id, email=user.email, logger=logger
         )
 
         # If we are able to accept an existing invite for the user for this
@@ -443,7 +444,7 @@ class AuthIdentityHandler:
 
         return response
 
-    def has_verified_account(self, verification_value: Dict[str, Any]) -> bool:
+    def has_verified_account(self, verification_value: dict[str, Any]) -> bool:
         return bool(
             verification_value["email"] == self.identity["email"]
             and verification_value["user_id"] == self.user.id
@@ -590,7 +591,7 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[User | None, str]:
+    def _dispatch_to_confirmation(self, is_new_account: bool) -> tuple[User | None, str]:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 
@@ -703,9 +704,9 @@ class AuthHelper(Pipeline):
         request: HttpRequest,
         organization: RpcOrganization,
         flow: int,
-        auth_provider: Optional[AuthProvider] = None,
-        provider_key: Optional[str] = None,
-        referrer: Optional[str] = "in-app",
+        auth_provider: AuthProvider | None = None,
+        provider_key: str | None = None,
+        referrer: str | None = "in-app",
     ) -> None:
         assert provider_key or auth_provider
         self.flow = flow
@@ -717,7 +718,7 @@ class AuthHelper(Pipeline):
         # provider_key to get_provider, and our get_provider override accepts a null
         # provider_key. But it technically violates the type contract and we'll need
         # to change the superclass to accommodate this one.
-        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore[arg-type]
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization

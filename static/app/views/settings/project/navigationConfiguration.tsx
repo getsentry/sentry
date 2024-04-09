@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {Organization, Project} from 'sentry/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;
@@ -15,7 +15,7 @@ export default function getConfiguration({
   organization,
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
-  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
+  const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),
@@ -48,9 +48,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: organization?.features?.includes('streamline-targeting-context')
-            ? t('Ownership Rules')
-            : t('Issue Owners'),
+          title: t('Ownership Rules'),
           description: t('Manage ownership rules for a project'),
         },
         {
@@ -111,6 +109,25 @@ export default function getConfiguration({
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
           show: () => !!organization?.features?.includes('performance-view'),
+        },
+        {
+          path: `${pathPrefix}/metrics/`,
+          title: t('Metrics'),
+          show: () =>
+            !!(
+              organization?.features?.includes('custom-metrics') &&
+              organization?.features?.includes('ddm-ui')
+            ),
+        },
+        {
+          path: `${pathPrefix}/replays/`,
+          title: t('Replays'),
+          show: () => !!organization?.features?.includes('session-replay-ui'),
+        },
+        {
+          path: `${pathPrefix}/user-feedback-processing/`,
+          title: t('User Feedback'),
+          show: () => !!organization?.features?.includes('user-feedback-ui'),
         },
       ],
     },

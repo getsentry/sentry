@@ -5,8 +5,8 @@
  * or used in multiple views.
  */
 import type {getInterval} from 'sentry/components/charts/utils';
-import {MenuListItemProps} from 'sentry/components/menuListItem';
-import type {API_ACCESS_SCOPES} from 'sentry/constants';
+import type {MenuListItemProps} from 'sentry/components/menuListItem';
+import type {ALLOWED_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -31,7 +31,7 @@ export type Actor = {
   email?: string;
 };
 
-export type Scope = (typeof API_ACCESS_SCOPES)[number];
+export type Scope = (typeof ALLOWED_SCOPES)[number];
 
 export type DateString = Date | string | null;
 
@@ -79,10 +79,11 @@ export enum DataCategory {
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
+  MONITOR_SEATS = 'monitorSeats',
 }
 
 /**
- * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+ * https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
  * Matches the backend singular backend enum directly.
  * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
  */
@@ -94,6 +95,8 @@ export enum DataCategoryExact {
   REPLAY = 'replay',
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
+  MONITOR = 'monitor',
+  MONITOR_SEAT = 'monitorSeat',
 }
 
 export interface DataCategoryInfo {

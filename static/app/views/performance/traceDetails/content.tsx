@@ -1,40 +1,51 @@
-import {Component, createRef, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Component, createRef, Fragment, useEffect} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+
+import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TimeSince from 'sentry/components/timeSince';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
+import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
-import {TraceInfo} from './types';
+import type {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
@@ -302,19 +313,8 @@ class TraceDetailsContent extends Component<Props, State> {
           </ExternalLink>
         </Alert>
       );
-    } else if (orphanErrors && orphanErrors.length > 1) {
-      warning = (
-        <Alert type="info" showIcon>
-          {tct(
-            "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-            {
-              tracingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-              ),
-            }
-          )}
-        </Alert>
-      );
+    } else if (orphanErrors && orphanErrors.length > 0) {
+      warning = <OnlyOrphanErrorWarnings orphanErrors={orphanErrors} />;
     }
 
     return warning;
@@ -420,6 +420,176 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+type OnlyOrphanErrorWarningsProps = {
+  orphanErrors: TraceError[];
+};
+function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
+  const {projects} = useProjects();
+  const projectSlug = orphanErrors[0] ? orphanErrors[0].project_slug : '';
+  const project = projects.find(p => p.slug === projectSlug);
+  const LOCAL_STORAGE_KEY = `${project?.id}:performance-orphan-error-onboarding-banner-hide`;
+  const currentPlatform = project?.platform;
+  const hasPerformanceOnboarding = currentPlatform
+    ? withPerformanceOnboarding.has(currentPlatform)
+    : false;
+
+  useEffect(() => {
+    if (hasPerformanceOnboarding && location.hash === '#performance-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+    }
+  }, [hasPerformanceOnboarding]);
+
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 7,
+  });
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 365,
+  });
+
+  if (!orphanErrors.length) {
+    return null;
+  }
+
+  if (!hasPerformanceOnboarding) {
+    return (
+      <Alert type="info" showIcon>
+        {t(
+          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
+        )}
+      </Alert>
+    );
+  }
+
+  if (isDismissed || isSnoozed) {
+    return null;
+  }
+
+  return (
+    <BannerWrapper>
+      <ActionsWrapper>
+        <BannerTitle>{t('Connect the Dots')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          )}
+        </BannerDescription>
+        <ButtonsWrapper>
+          <ActionButton>
+            <Button
+              priority="primary"
+              onClick={event => {
+                event.preventDefault();
+                window.location.hash = 'performance-sidequest';
+                SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+              }}
+            >
+              {t('Configure')}
+            </Button>
+          </ActionButton>
+          <ActionButton>
+            <Button href="https://docs.sentry.io/product/performance/" external>
+              {t('Learn More')}
+            </Button>
+          </ActionButton>
+        </ButtonsWrapper>
+      </ActionsWrapper>
+      {<Background image={connectDotsImg} />}
+      <CloseDropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          showChevron: false,
+          borderless: true,
+          icon: <IconClose color="subText" />,
+        }}
+        size="xs"
+        items={[
+          {
+            key: 'dismiss',
+            label: t('Dismiss'),
+            onAction: () => {
+              dismiss();
+            },
+          },
+          {
+            key: 'snooze',
+            label: t('Snooze'),
+            onAction: () => {
+              snooze();
+            },
+          },
+        ]}
+      />
+    </BannerWrapper>
+  );
+}
+
+const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)} ${space(3)};
+  margin-bottom: ${space(2)};
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+  min-width: 850px;
+`;
+
+const ActionsWrapper = styled('div')`
+  max-width: 50%;
+`;
+
+const ButtonsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+  font-weight: 600;
+`;
+
+const BannerDescription = styled('div')`
+  margin-bottom: ${space(1.5)};
+`;
+
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
+`;
+
+const Background = styled('div')<{image: any}>`
+  display: flex;
+  justify-self: flex-end;
+  position: absolute;
+  top: 14px;
+  right: 15px;
+  height: 81%;
+  width: 100%;
+  max-width: 413px;
+  background-image: url(${p => p.image});
+  background-repeat: no-repeat;
+  background-size: contain;
+`;
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-bottom: 0;

@@ -1,24 +1,25 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {createFilter} from 'react-select';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
-import SelectControl, {
+import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useTeams} from 'sentry/utils/useTeams';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -123,6 +124,10 @@ type Props = {
    * Controls whether the value in the dropdown is a team id or team slug
    */
   useId?: boolean;
+  /**
+   * Flag that lets the caller decide to use the team value by default if there is only one option
+   */
+  useTeamDefaultIfOnlyOne?: boolean;
 } & ControlProps;
 
 type TeamActor = {
@@ -142,6 +147,7 @@ function TeamSelector(props: Props) {
     includeUnassigned,
     styles: stylesProp,
     onChange,
+    useTeamDefaultIfOnlyOne = false,
     ...extraProps
   } = props;
   const {teamFilter, organization, project, multiple, value, useId} = props;
@@ -342,7 +348,7 @@ function TeamSelector(props: Props) {
     createTeamOutsideProjectOption,
   ]);
 
-  const handleInputCHange = useMemo(
+  const handleInputChange = useMemo(
     () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
     [onSearch]
   );
@@ -356,11 +362,28 @@ function TeamSelector(props: Props) {
     [includeUnassigned, multiple, stylesProp]
   );
 
+  useEffect(() => {
+    // Only take action after we've finished loading the teams
+    if (fetching) {
+      return;
+    }
+
+    // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
+    if (options.length === 1 && useTeamDefaultIfOnlyOne) {
+      const castedValue = multiple
+        ? (options as TeamOption[])
+        : (options[0] as TeamOption);
+      handleChange(castedValue);
+    }
+    // We only want to do this once when the component is finished loading for teams and mounted.
+    // If the user decides they do not want the default, we should not add the default value back.
+  }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <SelectControl
       ref={selectRef}
       options={options}
-      onInputChange={handleInputCHange}
+      onInputChange={handleInputChange}
       getOptionValue={getOptionValue}
       filterOption={filterOption}
       styles={styles}

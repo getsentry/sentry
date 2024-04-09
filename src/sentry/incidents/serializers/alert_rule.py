@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk import Column, Condition, Limit, Op
+from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -21,11 +21,18 @@ from sentry.incidents.logic import (
     check_aggregate_column_support,
     create_alert_rule,
     delete_alert_rule_trigger,
+    get_column_from_aggregate,
     query_datasets_to_type,
     translate_aggregate_field,
     update_alert_rule,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleMonitorType,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+)
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -35,6 +42,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
+from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
     CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
     QUERY_TYPE_VALID_DATASETS,
@@ -55,9 +63,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
-    # TODO: These might be slow for many projects, since it will query for each
-    # individually. If we find this to be a problem then we can look into batching.
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        max_length=1,
+    )
     excluded_projects = serializers.ListField(
         child=ProjectField(scope="project:read"), required=False
     )
@@ -82,6 +92,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
+    monitor_type = serializers.IntegerField(required=False, min_value=0)
+    activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
 
     class Meta:
         model = AlertRule
@@ -103,9 +115,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "excluded_projects",
             "triggers",
             "event_types",
+            "monitor_type",
+            "activation_condition",
         ]
         extra_kwargs = {
-            "name": {"min_length": 1, "max_length": 64},
+            "name": {"min_length": 1, "max_length": 256},
             "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
@@ -133,14 +147,24 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return query
 
     def validate_aggregate(self, aggregate):
+        allow_mri = features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
+
         try:
-            if not check_aggregate_column_support(aggregate):
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=allow_mri,
+            ):
                 raise serializers.ValidationError(
                     "Invalid Metric: We do not currently support this field."
                 )
         except InvalidSearchQuery as e:
             raise serializers.ValidationError(f"Invalid Metric: {e}")
-        return translate_aggregate_field(aggregate)
+
+        return translate_aggregate_field(aggregate, allow_mri=allow_mri)
 
     def validate_query_type(self, query_type):
         try:
@@ -178,6 +202,28 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 "Invalid threshold type, valid values are %s"
                 % [item.value for item in AlertRuleThresholdType]
+            )
+
+    def validate_monitor_type(self, monitor_type):
+        if monitor_type > 0 and not features.has(
+            "organizations:activated-alert-rules",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError("Invalid monitor type")
+
+        return AlertRuleMonitorType(monitor_type)
+
+    def validate_activation_condition(self, activation_condition):
+        if activation_condition is None:
+            return activation_condition
+
+        try:
+            return AlertRuleActivationConditionType(activation_condition)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid activation condition, valid values are %s"
+                % [item.value for item in AlertRuleActivationConditionType]
             )
 
     def validate(self, data):
@@ -242,6 +288,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             actor=self.context.get("user", None),
         ):
             dataset = data["dataset"] = Dataset.Metrics
+
+        if features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
+            if is_mri(column) and dataset != Dataset.PerformanceMetrics:
+                raise serializers.ValidationError(
+                    "You can use an MRI only on alerts on performance metrics"
+                )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
@@ -315,11 +372,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
+        entity = None
+        if features.has("organizations:metric-alert-ignore-archived", projects[0].organization):
+            entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
-                Condition(Column(time_col), Op.GTE, start),
-                Condition(Column(time_col), Op.LT, end),
+                Condition(Column(time_col, entity=entity), Op.GTE, start),
+                Condition(Column(time_col, entity=entity), Op.LT, end),
             ]
         )
         query_builder.limit = Limit(1)

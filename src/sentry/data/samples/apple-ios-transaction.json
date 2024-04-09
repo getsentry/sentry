@@ -16,8 +16,8 @@
     ["user", "id:2017"],
     ["transaction", "iOS_Swift.ViewController"]
   ],
-  "_meta": {"platform": {"": {"val": "apple-ios"}}},
-  "_metrics": {"bytes.ingested.event": 5867, "bytes.stored.event": 7590},
+  "_meta": { "platform": { "": { "val": "apple-ios" } } },
+  "_metrics": { "bytes.ingested.event": 5867, "bytes.stored.event": 7590 },
   "breadcrumbs": {
     "values": [
       {
@@ -32,39 +32,39 @@
         "type": "navigation",
         "category": "device.orientation",
         "level": "info",
-        "data": {"position": "portrait"}
+        "data": { "position": "portrait" }
       },
       {
         "timestamp": 1623159181.164,
         "type": "navigation",
         "category": "device.orientation",
         "level": "info",
-        "data": {"position": "portrait"}
+        "data": { "position": "portrait" }
       },
       {
         "timestamp": 1623159181.164,
         "type": "navigation",
         "category": "device.orientation",
         "level": "info",
-        "data": {"position": "portrait"}
+        "data": { "position": "portrait" }
       },
       {
         "timestamp": 1623159181.165,
         "type": "navigation",
         "category": "app.lifecycle",
         "level": "info",
-        "data": {"state": "foreground"}
+        "data": { "state": "foreground" }
       },
       {
         "timestamp": 1623159181.181,
         "type": "navigation",
         "category": "ui.lifecycle",
         "level": "info",
-        "data": {"screen": "iOS_Swift.ViewController"}
+        "data": { "screen": "iOS_Swift.ViewController" }
       }
     ]
   },
-  "breakdowns": {"span_ops": {"total.time": {"value": 1770.999909}}},
+  "breakdowns": { "span_ops": { "total.time": { "value": 1770.999909 } } },
   "contexts": {
     "app": {
       "device_app_hash": "2421fae1ac9237a8131e74883e52b0f7034a143f",
@@ -76,8 +76,8 @@
       "app_id": "3145EA1A-0EAE-3F8C-969A-13A01394D3EA",
       "type": "app"
     },
-    "device": {"family": "iOS", "model": "iPad13,2", "type": "device"},
-    "os": {"name": "iOS", "version": "14.5", "type": "os"},
+    "device": { "family": "iOS", "model": "iPad13,2", "type": "device" },
+    "os": { "name": "iOS", "version": "14.5", "type": "os" },
     "trace": {
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "span_id": "f8480676bfcc4054",
@@ -92,7 +92,9 @@
   },
   "culprit": "iOS_Swift.ViewController",
   "environment": "debug",
-  "extra": {"currentViewController": "<iOS_Swift.ViewController: 0x109a19b80>"},
+  "extra": {
+    "currentViewController": "<iOS_Swift.ViewController: 0x109a19b80>"
+  },
   "level": "info",
   "logger": "",
   "metadata": {},
@@ -107,7 +109,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.5075462924980586, "offset": 0},
+      "data": { "duration": 0.5075462924980586, "offset": 0 },
       "type": "trace"
     },
     {
@@ -119,7 +121,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.17801861513010295, "offset": 0.5075462924980586},
+      "data": { "duration": 0.17801861513010295, "offset": 0.5075462924980586 },
       "type": "trace"
     },
     {
@@ -131,7 +133,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.15193771479875243, "offset": 0.6855649076281616},
+      "data": { "duration": 0.15193771479875243, "offset": 0.6855649076281616 },
       "type": "trace"
     },
     {
@@ -143,7 +145,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.3265664340503061, "offset": 0.837502622426914},
+      "data": { "duration": 0.3265664340503061, "offset": 0.837502622426914 },
       "type": "trace"
     },
     {
@@ -155,7 +157,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.2108517470513121, "offset": 1.16406905647722},
+      "data": { "duration": 0.2108517470513121, "offset": 1.16406905647722 },
       "type": "trace"
     },
     {
@@ -167,7 +169,7 @@
       "parent_span_id": "7c6fa168c6484737",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.11425881401474564, "offset": 1.16406905647722},
+      "data": { "duration": 0.11425881401474564, "offset": 1.16406905647722 },
       "type": "trace"
     },
     {
@@ -179,7 +181,7 @@
       "parent_span_id": "7c6fa168c6484737",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.0790219541156238, "offset": 1.2783278704919656},
+      "data": { "duration": 0.0790219541156238, "offset": 1.2783278704919656 },
       "type": "trace"
     },
     {
@@ -191,7 +193,10 @@
       "parent_span_id": "7c6fa168c6484737",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.017570978920942615, "offset": 1.3573498246075897},
+      "data": {
+        "duration": 0.017570978920942615,
+        "offset": 1.3573498246075897
+      },
       "type": "trace"
     },
     {
@@ -203,7 +208,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.013791052931103024, "offset": 1.374920803528532},
+      "data": { "duration": 0.013791052931103024, "offset": 1.374920803528532 },
       "type": "trace"
     },
     {
@@ -215,7 +220,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.5185876340005693, "offset": 1.388711856459635},
+      "data": { "duration": 0.5185876340005693, "offset": 1.388711856459635 },
       "type": "trace"
     },
     {
@@ -227,7 +232,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.04486567334362931, "offset": 1.9072994904602043},
+      "data": { "duration": 0.04486567334362931, "offset": 1.9072994904602043 },
       "type": "trace"
     },
     {
@@ -239,7 +244,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.29295699390787355, "offset": 1.9521651638038335},
+      "data": { "duration": 0.29295699390787355, "offset": 1.9521651638038335 },
       "type": "trace"
     },
     {
@@ -251,7 +256,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.284910737108978, "offset": 2.245122157711707},
+      "data": { "duration": 0.284910737108978, "offset": 2.245122157711707 },
       "type": "trace"
     },
     {
@@ -263,7 +268,7 @@
       "parent_span_id": "f8480676bfcc4054",
       "trace_id": "9a35bef060494dcaa89ad70fcdaf59d9",
       "tags": {},
-      "data": {"duration": 0.9718889973454528, "offset": 2.530032894820685},
+      "data": { "duration": 0.9718889973454528, "offset": 2.530032894820685 },
       "type": "trace"
     }
   ],
@@ -276,7 +281,7 @@
     "email": "gloria@example.com",
     "ip_address": "25.151.64.144",
     "name": "Gloria",
-    "geo": {"country_code": "AU", "city": "Melbourne", "region": "VIC"}
+    "geo": { "country_code": "AU", "city": "Melbourne", "region": "VIC" }
   },
   "version": "5"
 }

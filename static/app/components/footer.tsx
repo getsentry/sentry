@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'sentry/components/hook';
@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const SentryLogoHook = HookOrDefault({
   hookName: 'component:sentry-logo',
@@ -24,7 +24,7 @@ type Props = {
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
-  const organization = useContext(OrganizationContext);
+  const organization = useOrganization({allowNull: true});
 
   return (
     <footer className={className}>
@@ -91,7 +91,7 @@ const RightLinks = styled('div')`
 
 const FooterLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }

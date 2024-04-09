@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import List, Sequence, Set, Tuple
+from collections.abc import Sequence
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -13,23 +13,17 @@ from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    TriggerStatus,
-)
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
+from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -114,7 +108,7 @@ class DefaultActionHandler(ActionHandler):
 class EmailActionHandler(ActionHandler):
     provider = "email"
 
-    def _get_targets(self) -> Set[int]:
+    def _get_targets(self) -> set[int]:
         target = self.action.target
         if not target:
             return set()
@@ -132,23 +126,17 @@ class EmailActionHandler(ActionHandler):
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = None
-            if should_use_notifications_v2(self.project.organization):
-                out = get_notification_recipients_v2(
-                    recipients=list(
-                        RpcActor(id=member.user_id, actor_type=ActorType.USER)
-                        for member in target.member_set
-                    ),
-                    type=NotificationSettingEnum.ISSUE_ALERTS,
-                    organization_id=self.project.organization_id,
-                    project_ids=[self.project.id],
-                    actor_type=ActorType.USER,
-                )
-                users = out[ExternalProviders.EMAIL]
-            else:
-                users = NotificationSetting.objects.filter_to_accepting_recipients(
-                    self.project,
-                    {RpcUser(id=member.user_id) for member in target.member_set},
-                )[ExternalProviders.EMAIL]
+            out = get_notification_recipients(
+                recipients=list(
+                    RpcActor(id=member.user_id, actor_type=ActorType.USER)
+                    for member in target.member_set
+                ),
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+                organization_id=self.project.organization_id,
+                project_ids=[self.project.id],
+                actor_type=ActorType.USER,
+            )
+            users = out[ExternalProviders.EMAIL]
 
             snoozed_users = RuleSnooze.objects.filter(
                 alert_rule=self.incident.alert_rule, user_id__in=[user.id for user in users]
@@ -157,7 +145,7 @@ class EmailActionHandler(ActionHandler):
 
         return set()
 
-    def get_targets(self) -> Sequence[Tuple[int, str]]:
+    def get_targets(self) -> Sequence[tuple[int, str]]:
         return list(get_email_addresses(self._get_targets(), project=self.project).items())
 
     def fire(
@@ -400,7 +388,9 @@ def generate_incident_trigger_email_context(
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
 
     aggregate = alert_rule.snuba_query.aggregate
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+    if is_mri_field(aggregate):
+        aggregate = format_mri_field(aggregate)
+    elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
     threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
@@ -425,7 +415,7 @@ def generate_incident_trigger_email_context(
 
     tz = settings.SENTRY_DEFAULT_TIME_ZONE
     if user is not None:
-        options: List[RpcUserOption] = user_option_service.get_many(
+        options: list[RpcUserOption] = user_option_service.get_many(
             filter=dict(keys=["timezone"], user_ids=[user.id])
         )
         if options and options[0].value is not None:

@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
-from sentry.models.eventuser import EventUser
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
@@ -27,6 +26,7 @@ from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.eventuser import EventUser
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -697,7 +697,16 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
     @mock.patch("sentry.analytics.record")
     def test_get_group_tag_values_for_users(self, mock_record):
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user1")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user1",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 2
@@ -713,7 +722,16 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert v.value == "user1"
 
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user2")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user2",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 1
@@ -1216,6 +1234,66 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
+    # mock default value only for "limit" argument of get_group_tag_value_iter()
+    # it is set to 1 to avoid creating 1000+ tags for the test
+    @mock.patch.object(
+        SnubaTagStorage.get_group_tag_value_iter,
+        "__defaults__",
+        (
+            (),
+            "-first_seen",
+            1,
+            0,
+            None,
+        ),
+    )
+    def test_get_group_tag_value_paginator_sort_by_last_seen(self):
+        # the tag with "quux" value has the lowest "first_seen"
+        self.store_event(
+            data={
+                "event_id": "5" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=5)),
+                "tags": {
+                    "foo": "quux",
+                },
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        # the tag with "quux" value has the highest "last_seen"
+        self.store_event(
+            data={
+                "event_id": "6" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now),
+                "tags": {
+                    "foo": "quux",
+                },
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        top_key = self.ts.get_group_tag_value_paginator(
+            self.proj1group1,
+            [],
+            "foo",
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+        ).get_result(1)[0]
+
+        # top key should be "quux" as it's the most recent than "bar"
+        assert top_key.value == "quux"
+
     def test_get_group_seen_values_for_environments(self):
         assert self.ts.get_group_seen_values_for_environments(
             [self.proj1.id],
@@ -1357,7 +1435,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
 
 
 class BaseSemverTest(TestCase, SnubaTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     KEY: str
 

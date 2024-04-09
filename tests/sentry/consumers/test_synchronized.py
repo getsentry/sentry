@@ -1,9 +1,10 @@
 import operator
 import time
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from datetime import datetime
 from threading import Event
-from typing import Callable, Iterator, Mapping, Optional, TypeVar
+from typing import TypeVar
 
 import pytest
 from arroyo.backends.abstract import Consumer
@@ -112,7 +113,8 @@ def test_synchronized_consumer() -> None:
                         "leader-a",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),
@@ -134,7 +136,8 @@ def test_synchronized_consumer() -> None:
                         "leader-b",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -164,7 +167,13 @@ def test_synchronized_consumer() -> None:
         producer.produce(
             commit_log_topic,
             commit_codec.encode(
-                Commit("leader-a", Partition(topic, 0), messages[3].offset, datetime.now())
+                Commit(
+                    "leader-a",
+                    Partition(topic, 0),
+                    messages[3].offset,
+                    datetime.now().timestamp(),
+                    None,
+                )
             ),
         ).result()
 
@@ -177,7 +186,8 @@ def test_synchronized_consumer() -> None:
                         "leader-b",
                         Partition(topic, 0),
                         messages[5].offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -218,7 +228,8 @@ def test_synchronized_consumer() -> None:
                         "leader-a",
                         Partition(topic, 0),
                         messages[5].offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -280,7 +291,8 @@ def test_synchronized_consumer_pause_resume() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -356,7 +368,8 @@ def test_synchronized_consumer_handles_end_of_partition() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),
@@ -375,7 +388,8 @@ def test_synchronized_consumer_handles_end_of_partition() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[1].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),
@@ -398,7 +412,7 @@ def test_synchronized_consumer_worker_crash_before_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
+        def poll(self, timeout: float | None = None) -> BrokerValue[KafkaPayload] | None:
             try:
                 raise BrokenConsumerException()
             finally:
@@ -431,7 +445,7 @@ def test_synchronized_consumer_worker_crash_after_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
+        def poll(self, timeout: float | None = None) -> BrokerValue[KafkaPayload] | None:
             if not self.tell():
                 return super().poll(timeout)
             else:

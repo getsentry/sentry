@@ -1,16 +1,15 @@
 from copy import deepcopy
-from datetime import datetime
-from typing import List
+from datetime import UTC, datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.utils.timezone import make_aware
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
@@ -28,14 +27,15 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
 )
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.api.utils import InvalidParams
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidParams
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
@@ -60,11 +60,15 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         return self.paginate(
             request,
@@ -135,6 +139,7 @@ class AlertRuleIndexMixin(Endpoint):
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -177,6 +182,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
+
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
@@ -238,7 +248,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if "date_triggered" in sort_key:
-            far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
@@ -272,8 +282,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
-        max_length=64,
-        help_text="The name for the rule, which has a maximimum length of 64 characters.",
+        max_length=256,
+        help_text="The name for the rule, which has a maximimum length of 256 characters.",
     )
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."
@@ -295,7 +305,7 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     # projects is not required in the serializer, however, the UI requires a project is chosen
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
-        help_text="The names of the projects to filter by.",
+        help_text="Metric alerts are currently limited to one project. The array should contain a single slug, representing the project to filter by.",
     )
     query = serializers.CharField(
         help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.'
@@ -340,6 +350,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """
     )
     environment = serializers.CharField(
@@ -376,11 +387,23 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -393,7 +416,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListMetricAlertRules", List[AlertRuleSerializerResponse]
+                "ListMetricAlertRules", list[AlertRuleSerializerResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

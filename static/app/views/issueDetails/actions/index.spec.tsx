@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -13,17 +16,17 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
-const project = TestStubs.Project({
+const project = ProjectFixture({
   id: '2448',
   name: 'project name',
   slug: 'project',
 });
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
@@ -31,7 +34,7 @@ const group = TestStubs.Group({
   project,
 });
 
-const organization = Organization({
+const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -50,7 +53,7 @@ describe('GroupActions', function () {
   });
 
   describe('render()', function () {
-    it('renders correctly', function () {
+    it('renders correctly', async function () {
       render(
         <GroupActions
           group={group}
@@ -59,6 +62,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
 
@@ -68,7 +72,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
+        body: GroupFixture({isSubscribed: false}),
       });
     });
 
@@ -99,7 +103,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isBookmarked: false}),
+        body: GroupFixture({isBookmarked: false}),
       });
     });
 
@@ -129,7 +133,7 @@ describe('GroupActions', function () {
 
   describe('reprocessing', function () {
     it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
@@ -150,7 +154,7 @@ describe('GroupActions', function () {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
@@ -208,7 +212,7 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       access: [...organization.access, 'event:admin'],
     });
@@ -286,7 +290,7 @@ describe('GroupActions', function () {
 
     rerender(
       <GroupActions
-        group={{...group, status: 'resolved'}}
+        group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
         organization={organization}
         disabled={false}
@@ -304,7 +308,6 @@ describe('GroupActions', function () {
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -315,10 +318,10 @@ describe('GroupActions', function () {
       <GroupActions
         group={group}
         project={project}
-        organization={org}
+        organization={organization}
         disabled={false}
       />,
-      {organization: org}
+      {organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));

@@ -1,5 +1,5 @@
 import {createRef, Fragment, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -20,11 +20,11 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import toPercent from 'sentry/utils/number/toPercent';
-import {
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
@@ -35,7 +35,7 @@ import {
   TraceViewHeaderContainer,
 } from 'sentry/views/performance/traceDetails/styles';
 import TransactionGroup from 'sentry/views/performance/traceDetails/transactionGroup';
-import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 import {
   getTraceInfo,
   hasTraceData,
@@ -86,23 +86,23 @@ function TraceHiddenMessage({
     numberOfHiddenTransactionsAbove < 1
       ? ''
       : numberOfHiddenTransactionsAbove === 1
-      ? tct('[numOfTransaction] hidden transaction', {
-          numOfTransaction,
-        })
-      : tct('[numOfTransaction] hidden transactions', {
-          numOfTransaction,
-        });
+        ? tct('[numOfTransaction] hidden transaction', {
+            numOfTransaction,
+          })
+        : tct('[numOfTransaction] hidden transactions', {
+            numOfTransaction,
+          });
 
   const hiddenErrorsMessage =
     numberOfHiddenErrorsAbove < 1
       ? ''
       : numberOfHiddenErrorsAbove === 1
-      ? tct('[numOfErrors] hidden error', {
-          numOfErrors,
-        })
-      : tct('[numOfErrors] hidden errors', {
-          numOfErrors,
-        });
+        ? tct('[numOfErrors] hidden error', {
+            numOfErrors,
+          })
+        : tct('[numOfErrors] hidden errors', {
+            numOfErrors,
+          });
 
   return (
     <MessageRow>
@@ -143,7 +143,7 @@ export default function TraceView({
   handleLimitChange,
   ...props
 }: Props) {
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+  const sentryTransaction = Sentry.getActiveTransaction();
   const sentrySpan = sentryTransaction?.startChild({
     op: 'trace.render',
     description: 'trace-view-content',
@@ -226,6 +226,7 @@ export default function TraceView({
           />
           <TransactionGroup
             location={location}
+            traceViewRef={traceViewRef}
             organization={organization}
             traceInfo={traceInfo}
             transaction={{
@@ -340,6 +341,7 @@ export default function TraceView({
           <TransactionGroup
             location={location}
             organization={organization}
+            traceViewRef={traceViewRef}
             traceInfo={traceInfo}
             transaction={{
               ...error,
@@ -378,6 +380,7 @@ export default function TraceView({
             <ScrollbarManager.Provider
               dividerPosition={dividerPosition}
               interactiveLayerRef={virtualScrollbarContainerRef}
+              isEmbedded
             >
               <StyledTracePanel>
                 <TraceViewHeaderContainer>
@@ -444,6 +447,7 @@ export default function TraceView({
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
                     onlyOrphanErrors={onlyOrphanErrors}
+                    traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage
@@ -467,7 +471,7 @@ export default function TraceView({
     </TraceDetailBody>
   );
 
-  sentrySpan?.finish();
+  sentrySpan?.end();
 
   return traceView;
 }

@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ describe('ProjectUserFeedback', function () {
     MockApiClient.addMockResponse({
       url,
       method: 'GET',
-      body: TestStubs.Project(),
+      body: ProjectFixture(),
     });
     MockApiClient.addMockResponse({
       url: `${url}keys/`,
@@ -38,7 +40,6 @@ describe('ProjectUserFeedback', function () {
       method: 'PUT',
     });
 
-    // Click Regenerate Token
     await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
 
     expect(mock).toHaveBeenCalledWith(

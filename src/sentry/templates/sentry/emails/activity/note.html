@@ -15,13 +15,7 @@
   <table class="note">
     <tr>
       <td class="avatar-column">
-        {% if author.get_avatar_type == 'upload' %}
-          <img class="avatar" src="{% profile_photo_url author.id 48 %}">
-        {% elif author.get_avatar_type == 'letter_avatar' %}
-          {% email_avatar author.get_display_name author.get_label 48 False %}
-        {% else %}
-          {% email_avatar author.get_display_name author.get_label 48 %}
-        {% endif %}
+          {{ html_description }}
       </td>
       <td class="notch-column">
         <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">

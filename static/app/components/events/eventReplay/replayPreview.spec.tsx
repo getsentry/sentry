@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -8,8 +9,6 @@ import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayPreview from './replayPreview';
 
@@ -44,7 +43,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
-  attachments: RRWebInitFrameEvents({
+  attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });
@@ -56,7 +55,7 @@ mockUseReplayReader.mockImplementation(() => {
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
-    projectSlug: TestStubs.Project().slug,
+    projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
@@ -64,7 +63,7 @@ mockUseReplayReader.mockImplementation(() => {
 });
 
 const render: typeof baseRender = children => {
-  const {router, routerContext} = initializeOrg({
+  const {routerContext} = initializeOrg({
     router: {
       routes: [
         {path: '/'},
@@ -78,21 +77,17 @@ const render: typeof baseRender = children => {
     },
   });
 
-  return baseRender(
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <OrganizationContext.Provider value={Organization()}>
-        {children}
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>,
-    {context: routerContext}
-  );
+  return baseRender(children, {
+    context: routerContext,
+    organization: OrganizationFixture({slug: mockOrgSlug}),
+  });
+};
+
+const defaultProps = {
+  analyticsContext: '',
+  orgSlug: mockOrgSlug,
+  replaySlug: mockReplaySlug,
+  eventTimestampMs: mockEventTimestampMs,
 };
 
 describe('ReplayPreview', () => {
@@ -105,20 +100,14 @@ describe('ReplayPreview', () => {
         fetchError: undefined,
         fetching: true,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
       };
     });
 
-    render(
-      <ReplayPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -132,45 +121,27 @@ describe('ReplayPreview', () => {
         fetchError: {status: 400} as RequestError,
         fetching: false,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
       };
     });
 
-    render(
-      <ReplayPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
   it('Should render details button when there is a replay', () => {
-    render(
-      <ReplayPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayPreview {...defaultProps} />);
 
     const detailButton = screen.getByLabelText('Open Replay');
     expect(detailButton).toHaveAttribute('href', mockButtonHref);
   });
 
   it('Should render all its elements correctly', () => {
-    render(
-      <ReplayPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayPreview {...defaultProps} />);
 
     // Expect replay view to be rendered
     expect(screen.getByTestId('player-container')).toBeInTheDocument();

@@ -53,7 +53,7 @@ def get_user_info(access_token, installation_data):
                 "error_message": f"{e}",
             },
         )
-        raise e
+        raise
     return resp.json()
 
 

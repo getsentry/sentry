@@ -1,22 +1,24 @@
 import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
-import {AriaGridListOptions, useGridList} from '@react-aria/gridlist';
+import type {AriaGridListOptions} from '@react-aria/gridlist';
+import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
+import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 
 import {GridListOption} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
-  extends React.HTMLAttributes<HTMLUListElement>,
+  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
       'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
@@ -33,6 +35,7 @@ interface GridListProps
    * `useGridList()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -43,7 +46,7 @@ interface GridListProps
    * and before `onChange`.
    */
   onSectionToggle?: (
-    section: SelectSection<React.Key>,
+    section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
   size?: FormSize;

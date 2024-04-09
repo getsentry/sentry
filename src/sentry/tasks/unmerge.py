@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from functools import reduce
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any
 
 from django.db import router, transaction
 
@@ -14,7 +15,6 @@ from sentry.eventstore.models import BaseEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.eventuser import EventUser
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -27,6 +27,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
+from sentry.utils.eventuser import EventUser
 from sentry.utils.query import celery_run_batch_query
 from sentry.utils.safe import get_path
 
@@ -178,9 +179,9 @@ def migrate_events(
     args: UnmergeArgs,
     events,
     locked_primary_hashes,
-    opt_destination_id: Optional[int],
-    opt_eventstream_state: Optional[Mapping[str, Any]],
-) -> Tuple[int, Mapping[str, Any]]:
+    opt_destination_id: int | None,
+    opt_eventstream_state: Mapping[str, Any] | None,
+) -> tuple[int, Mapping[str, Any]]:
     logger.info(
         "migrate_events.start",
         extra={
@@ -381,10 +382,12 @@ def get_event_user_from_interface(value, project):
         endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
     )
     return EventUser(
-        ident=value.get("id"),
+        user_ident=value.get("id"),
         email=value.get("email"),
         username=value.get("valuename"),
         ip_address=value.get("ip_address"),
+        project_id=project.id,
+        name=None,
     )
 
 
@@ -527,7 +530,8 @@ def unmerge(*posargs, **kwargs):
         unlock_hashes(args.project_id, locked_primary_hashes)
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
             logger.warning(
-                f"Unmerge complete (eventstream state: {eventstream_state})",
+                "Unmerge complete (eventstream state: %s)",
+                eventstream_state,
                 extra={"source_id": source.id},
             )
             if eventstream_state:

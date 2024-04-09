@@ -5,6 +5,7 @@ from typing import Any
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -16,6 +17,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
+
+ON_DEMAND_ENABLED_KEY = "enabled"
 
 
 class TypesClass:
@@ -44,14 +47,43 @@ class TypesClass:
 
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
+    """
+    Old way of accessing error events and transaction events simultaneously @deprecated. Use ERROR_EVENTS or TRANSACTION_LIKE instead.
+    """
     ISSUE = 1
-    METRICS = 2
+    RELEASE_HEALTH = 2
+    METRICS = 3
+    ERROR_EVENTS = 100
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 101
+    """
+    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    """
+
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
-        (METRICS, "metrics"),
+        (
+            RELEASE_HEALTH,
+            "metrics",
+        ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
+        (METRICS, "custom-metrics"),
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+# TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
+TransactionWidgetType = [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+# TODO: Can be replaced once conditions are replaced at all callsite to split transaction and error behaviour, and once dashboard no longer have saved Discover dataset.
+DiscoverFullFallbackWidgetType = [
+    DashboardWidgetTypes.DISCOVER,
+    DashboardWidgetTypes.ERROR_EVENTS,
+    DashboardWidgetTypes.TRANSACTION_LIKE,
+]
 
 
 class DashboardWidgetDisplayTypes(TypesClass):
@@ -100,6 +132,9 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now)
+    # Whether this query is hidden from the UI, used by metric widgets
+    is_hidden = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
@@ -107,6 +142,74 @@ class DashboardWidgetQuery(Model):
         unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
+
+
+@region_silo_only_model
+class DashboardWidgetQueryOnDemand(Model):
+    """
+    Tracks on_demand state and values for dashboard widget queries.
+    Only a subset of dashboard widget queries have conditions or columns that would
+    require on-demand extraction, and others are simply not applicable (eg. different dataset).
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard_widget_query = FlexibleForeignKey("sentry.DashboardWidgetQuery")
+
+    spec_hashes = ArrayField()
+
+    class OnDemandExtractionState(models.TextChoices):
+        DISABLED_NOT_APPLICABLE = "disabled:not-applicable", gettext_lazy("disabled:not-applicable")
+        """ This widget does not have on-demand metrics needing extraction. """
+        DISABLED_PREROLLOUT = "disabled:pre-rollout", gettext_lazy("disabled:pre-rollout")
+        """ This represents a pre-filled on-demand value to do load estimates before enabling extraction. """
+        DISABLED_MANUAL = "disabled:manual", gettext_lazy("disabled:manual")
+        """ The widget was manually disabled by a user """
+        DISABLED_SPEC_LIMIT = "disabled:spec-limit", gettext_lazy("disabled:spec-limit")
+        """ This widget query was disabled during rollout due to the organization reaching it's spec limit. """
+        DISABLED_HIGH_CARDINALITY = "disabled:high-cardinality", gettext_lazy(
+            "disabled:high-cardinality"
+        )
+        """ This widget query was disabled by the cardinality cron due to one of the columns having high cardinality """
+        ENABLED_ENROLLED = "enabled:enrolled", gettext_lazy("enabled:enrolled")
+        """ This widget query was enabled automatically during rollout for automatic support for users migrating from AM1. """
+        ENABLED_CREATION = "enabled:creation", gettext_lazy("enabled:creation")
+        """ This widget query was opted into on-demand during creation. """
+        ENABLED_MANUAL = "enabled:manual", gettext_lazy("enabled:manual")
+        """ This widget query was enabled manually post creation or otherwise. """
+
+    spec_version = models.IntegerField(null=True)
+    extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
+    date_modified = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    def can_extraction_be_auto_overridden(self):
+        """Determines whether tasks can override extraction state"""
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_MANUAL:
+            # Manually disabling a widget will cause it to stay off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_HIGH_CARDINALITY:
+            # High cardinality should remain off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_SPEC_LIMIT:
+            # Spec limits also can only be re-enabled manually.
+            return False
+
+        return True
+
+    def extraction_enabled(self):
+        """Whether on-demand is enabled or disabled for this widget.
+        If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
+        """
+        return self.extraction_state.startswith(ON_DEMAND_ENABLED_KEY)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardwidgetqueryondemand"
+
+    __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
 @region_silo_only_model
@@ -128,6 +231,9 @@ class DashboardWidget(Model):
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    discover_widget_split = BoundedPositiveIntegerField(
+        choices=DashboardWidgetTypes.as_choices(), null=True
+    )
 
     class Meta:
         app_label = "sentry"

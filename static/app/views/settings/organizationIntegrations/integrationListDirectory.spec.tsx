@@ -1,10 +1,11 @@
+import {DocIntegrationFixture} from 'sentry-fixture/docIntegration';
 import {
-  BitbucketIntegrationConfig,
-  OrgOwnedApps,
-  PluginListConfig,
-  ProviderList,
-  PublishedApps,
-  SentryAppInstalls,
+  BitbucketIntegrationConfigFixture,
+  OrgOwnedAppsFixture,
+  PluginListConfigFixture,
+  ProviderListFixture,
+  PublishedAppsFixture,
+  SentryAppInstallsFixture,
 } from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -26,18 +27,24 @@ describe('IntegrationListDirectory', function () {
   describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
-        [`/organizations/${org.slug}/config/integrations/`, ProviderList()],
-        [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
-        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
-        ['/sentry-apps/', PublishedApps()],
-        ['/doc-integrations/', [TestStubs.DocIntegration()]],
-        [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
-        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
+        [`/organizations/${org.slug}/config/integrations/`, ProviderListFixture()],
+        [
+          `/organizations/${org.slug}/integrations/`,
+          [BitbucketIntegrationConfigFixture()],
+        ],
+        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedAppsFixture()],
+        ['/sentry-apps/', PublishedAppsFixture()],
+        ['/doc-integrations/', [DocIntegrationFixture()]],
+        [
+          `/organizations/${org.slug}/sentry-app-installations/`,
+          SentryAppInstallsFixture(),
+        ],
+        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfigFixture()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
     });
 
-    it('shows installed integrations at the top in order of weight', function () {
+    it('shows installed integrations at the top in order of weight', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -50,7 +57,7 @@ describe('IntegrationListDirectory', function () {
         }
       );
 
-      expect(screen.getByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
       [
         'bitbucket',
@@ -63,7 +70,7 @@ describe('IntegrationListDirectory', function () {
       ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
-    it('does not show legacy plugin that has a First Party Integration if not installed', function () {
+    it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -74,10 +81,11 @@ describe('IntegrationListDirectory', function () {
         {context: routerContext}
       );
 
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
       expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
 
-    it('shows legacy plugin that has a First Party Integration if installed', function () {
+    it('shows legacy plugin that has a First Party Integration if installed', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -88,7 +96,7 @@ describe('IntegrationListDirectory', function () {
         {context: routerContext}
       );
 
-      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+      expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
     });
   });
 });

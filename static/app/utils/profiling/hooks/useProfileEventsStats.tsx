@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {EventsStatsSeries, PageFilters} from 'sentry/types';
+import type {EventsStatsSeries, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
@@ -14,6 +14,7 @@ interface UseProfileEventsStatsOptions<F> {
   referrer: string;
   yAxes: readonly F[];
   datetime?: PageFilters['datetime'];
+  enabled?: boolean;
   interval?: string;
   query?: string;
 }
@@ -25,6 +26,7 @@ export function useProfileEventsStats<F extends string>({
   query,
   referrer,
   yAxes,
+  enabled = true,
 }: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -57,6 +59,7 @@ export function useProfileEventsStats<F extends string>({
   };
 
   const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+    enabled,
     staleTime: Infinity,
   });
 
@@ -161,8 +164,8 @@ export function transformSingleSeries<F extends string>(
           'milliseconds'
         )
       : type === 'string'
-      ? value => value || ''
-      : value => value;
+        ? value => value || ''
+        : value => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,

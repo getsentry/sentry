@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <CompactSelect
         options={[
@@ -14,9 +14,10 @@ describe('CompactSelect', function () {
         ]}
       />
     );
+    expect(await screen.findByRole('button', {name: 'None'})).toBeEnabled();
   });
 
-  it('renders disabled', function () {
+  it('renders disabled', async function () {
     render(
       <CompactSelect
         disabled
@@ -26,7 +27,7 @@ describe('CompactSelect', function () {
         ]}
       />
     );
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'None'})).toBeDisabled();
   });
 
   it('renders with menu title', async function () {
@@ -72,13 +73,22 @@ describe('CompactSelect', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
     expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
     await userEvent.click(document.body);
-    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
 
     // Can be dismissed by pressing Escape
     await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
-    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+    });
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
 
     // When menu A is open, clicking once on menu B's trigger button closes menu A and
     // then opens menu B
@@ -165,7 +175,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', function () {
+    it('displays trigger button with prefix', async function () {
       render(
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
@@ -176,7 +186,9 @@ describe('CompactSelect', function () {
           ]}
         />
       );
-      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Prefix Option One'})
+      ).toBeInTheDocument();
     });
 
     it('can search', async function () {
@@ -230,11 +242,18 @@ describe('CompactSelect', function () {
       // there's a message prompting the user to use search to find more options
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+      });
       // Option Three is not reachable via keyboard, focus wraps back to Option One
       await userEvent.keyboard(`{ArrowDown}`);
-      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      await waitFor(() => {
+        expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      });
       await userEvent.keyboard(`{ArrowDown>2}`);
-      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      await waitFor(() => {
+        expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      });
 
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
@@ -371,7 +390,9 @@ describe('CompactSelect', function () {
 
       // close the menu
       await userEvent.click(document.body);
-      expect(onCloseMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(onCloseMock).toHaveBeenCalled();
+      });
     });
   });
 
@@ -454,7 +475,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', function () {
+    it('displays trigger button with prefix', async function () {
       render(
         <CompactSelect
           grid
@@ -466,7 +487,9 @@ describe('CompactSelect', function () {
           ]}
         />
       );
-      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Prefix Option One'})
+      ).toBeInTheDocument();
     });
 
     it('can search', async function () {
@@ -520,6 +543,9 @@ describe('CompactSelect', function () {
       // there's a message prompting the user to use search to find more options
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+      });
       // Option Three is not reachable via keyboard, focus wraps back to Option One
       await userEvent.keyboard(`{ArrowDown}`);
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
@@ -663,7 +689,9 @@ describe('CompactSelect', function () {
 
       // close the menu
       await userEvent.click(document.body);
-      expect(onCloseMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(onCloseMock).toHaveBeenCalled();
+      });
     });
 
     it('allows keyboard navigation to nested buttons', async function () {

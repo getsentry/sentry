@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, cast
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
-from .client import OpsgenieClient
+
+OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: int | None = None,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
@@ -38,13 +41,24 @@ def build_incident_attachment(
         "source": "Sentry",
         "priority": priority,
         "details": {
-            "URL": data["title_link"],  # type: ignore
+            "URL": data["title_link"],  # type: ignore[dict-item]
         },
     }
     return payload
 
 
-def get_team(team_id: Optional[str], org_integration: Optional[RpcOrganizationIntegration]):
+def attach_custom_priority(
+    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+) -> dict[str, Any]:
+    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
+        return data
+
+    priority = action.sentry_app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
+    data["priority"] = priority
+    return data
+
+
+def get_team(team_id: str | None, org_integration: RpcOrganizationIntegration | None):
     if not org_integration:
         return None
     teams = org_integration.config.get("team_table")
@@ -59,10 +73,12 @@ def get_team(team_id: Optional[str], org_integration: Optional[RpcOrganizationIn
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
@@ -76,24 +92,38 @@ def send_incident_alert_notification(
         logger.info("Opsgenie team removed, but the rule is still active.")
         return False
 
-    integration_key = team["integration_key"]
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=incident.organization_id,
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=org_integration.organization_id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = attach_custom_priority(attachment, action, new_status)
+
     try:
-        client.send_notification(attachment)
+        resp = client.send_notification(attachment)
+        logger.info(
+            "rule.success.opsgenie_incident_alert",
+            extra={
+                "status_code": resp.status_code,
+                "organization_id": incident.organization_id,
+                "data": attachment,
+                "status": new_status.value,
+                "team_name": team["team"],
+                "team_id": team["id"],
+                "integration_id": action.integration_id,
+            },
+        )
         return True
     except ApiError as e:
         logger.info(
             "rule.fail.opsgenie_notification",
             extra={
                 "error": str(e),
+                "data": attachment,
                 "team_name": team["team"],
                 "team_id": team["id"],
                 "integration_id": action.integration_id,
             },
         )
-        raise e
+        raise

@@ -1,7 +1,12 @@
-import {DetailedEvents} from 'sentry-fixture/events';
+import {DetailedEventsFixture} from 'sentry-fixture/events';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
 import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
@@ -9,7 +14,7 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 jest.mock('sentry/api');
 
 describe('Issues -> Merged View', function () {
-  const events = DetailedEvents();
+  const events = DetailedEventsFixture();
   const mockData = {
     merged: [
       {
@@ -34,7 +39,7 @@ describe('Issues -> Merged View', function () {
     });
   });
 
-  it('renders initially with loading component', function () {
+  it('renders initially with loading component', async function () {
     const {organization, project, router, routerContext} = initializeOrg({
       project: {
         slug: 'projectId',
@@ -61,6 +66,7 @@ describe('Issues -> Merged View', function () {
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await act(tick);
   });
 
   it('renders with mocked data', async function () {

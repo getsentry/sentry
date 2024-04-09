@@ -1,16 +1,17 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: Organization({
+    organization: OrganizationFixture({
       features: ['dashboards-edit'],
     }),
     router: {orgId: 'orgId'},
@@ -85,7 +86,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -96,7 +97,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
-    expect(screen.getByText('assignee')).toBeInTheDocument();
+    expect(await screen.findByText('assignee')).toBeInTheDocument();
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
     expect(screen.getByText('DU')).toBeInTheDocument();
@@ -115,7 +116,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -144,7 +145,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -168,7 +169,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -200,7 +201,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}

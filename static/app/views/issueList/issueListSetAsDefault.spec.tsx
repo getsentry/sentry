@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Search} from 'sentry-fixture/search';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +9,7 @@ import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault'
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueListSetAsDefault', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   const {router} = initializeOrg();
 
@@ -37,7 +37,7 @@ describe('IssueListSetAsDefault', () => {
     const mockPinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'PUT',
-      body: Search({
+      body: SearchFixture({
         isPinned: true,
         visibility: SavedSearchVisibility.OWNER_PINNED,
       }),
@@ -60,7 +60,7 @@ describe('IssueListSetAsDefault', () => {
   it('can remove a default search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [Search({isPinned: true, query: 'browser:firefox'})],
+      body: [SearchFixture({isPinned: true, query: 'browser:firefox'})],
     });
     const mockUnpinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
@@ -84,7 +84,7 @@ describe('IssueListSetAsDefault', () => {
   it('does not render anything when on default search and no pinned search', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [Search({isPinned: false, query: 'browser:firefox'})],
+      body: [SearchFixture({isPinned: false, query: 'browser:firefox'})],
     });
 
     render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
@@ -97,7 +97,7 @@ describe('IssueListSetAsDefault', () => {
   it('does render when on default search and existing pinned search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [Search({isPinned: true, query: 'browser:firefox'})],
+      body: [SearchFixture({isPinned: true, query: 'browser:firefox'})],
     });
 
     render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {

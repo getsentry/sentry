@@ -1,12 +1,11 @@
-import type {Frame as FrameType} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
-export function Frame(props: Partial<FrameType> = {}): FrameType {
+export function FrameFixture(props: Partial<Frame> = {}): Frame {
   return {
     absPath: 'abs/path/to/file.js',
     colNo: null,
     lineNo: null,
     context: [],
-    errors: [],
     filename: 'file.js',
     function: 'functionName',
     inApp: true,

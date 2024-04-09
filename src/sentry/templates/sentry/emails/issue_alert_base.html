@@ -64,7 +64,7 @@
 <div class="container">
   <div class="inner">
     <h2 {% if notification_reason %}style="margin-bottom: 4px"{% else %}style="margin-bottom: 15px"{% endif %}>
-        {% if has_issue_states and group_header %}
+        {% if group_header %}
         {{ group_header }}
         {% else %}
         New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
@@ -95,11 +95,6 @@
             <th colspan="2">Issue</th>
         </tr>
         <tr>
-          {% if not has_issue_states %}
-          <td class="error-level">
-              <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
-          </td>
-          {% endif %}
           <td class="event-detail">
             <div class="issue">
               {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
@@ -174,7 +169,6 @@
         {% endif %}
       </div>
 
-      {% if has_issue_states %}
       <div class="interface">
         <table>
           <colgroup>
@@ -198,7 +192,6 @@
           </tbody>
         </table>
       </div>
-      {% endif %}
 
 
       {% if commits %}

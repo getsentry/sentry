@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -40,7 +41,7 @@ def actor_type_to_class(type: int) -> type[Team] | type[User]:
         raise ValueError(type)
 
 
-def fetch_actor_by_actor_id(cls, actor_id: int) -> Union[Team, RpcUser]:
+def fetch_actor_by_actor_id(cls, actor_id: int) -> Team | RpcUser:
     results = fetch_actors_by_actor_ids(cls, [actor_id])
     if len(results) == 0:
         raise cls.DoesNotExist()
@@ -148,7 +149,7 @@ class Actor(Model):
             self.outbox_for_update().save()
         return super().delete(**kwargs)
 
-    def resolve(self) -> Union[Team, RpcUser]:
+    def resolve(self) -> Team | RpcUser:
         # Returns User/Team model object
         return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
 
@@ -172,7 +173,7 @@ class Actor(Model):
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         if self.team is None:
             return super().write_relocation_import(scope, flags)
 
@@ -193,11 +194,11 @@ class Actor(Model):
         return (self.pk, ImportKind.Inserted)
 
 
-def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:
+def get_actor_id_for_user(user: User | RpcUser) -> int:
     return get_actor_for_user(user).id
 
 
-def get_actor_for_user(user: Union[int, User, RpcUser]) -> Actor:
+def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     if isinstance(user, int):
         user_id = user
     else:
@@ -274,7 +275,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 
-    def resolve(self) -> Union[Team, RpcUser]:
+    def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
@@ -287,7 +288,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
-    def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Union[Team, RpcUser]]:
+    def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Team | RpcUser]:
         """
         Resolve multiple actors at the same time. Returns the result in the same order
         as the input, minus any actors we couldn't resolve.

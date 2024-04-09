@@ -2,6 +2,7 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.grouping import with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
@@ -129,6 +130,7 @@ error.type:DatabaseUnavailable                        -> DatabaseUnavailable
 stack.function:assertion_failed stack.module:foo      -> AssertionFailed, foo
 app:true                                        -> aha
 app:true                                        -> {{ default }}
+release:foo                                     -> release-foo
 """
     )
     assert rules._to_config_structure() == {
@@ -145,6 +147,7 @@ app:true                                        -> {{ default }}
             },
             {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
             {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
+            {"matchers": [["release", "foo"]], "fingerprint": ["release-foo"], "attributes": {}},
         ],
         "version": 1,
     }
@@ -158,6 +161,7 @@ app:true                                        -> {{ default }}
 
 
 @with_fingerprint_input("input")
+@django_db_all  # because of `options` usage
 def test_event_hash_variant(insta_snapshot, input):
     config, evt = input.create_event()
 

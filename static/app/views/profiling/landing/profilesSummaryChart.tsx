@@ -2,12 +2,13 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
@@ -107,13 +108,13 @@ export function ProfilesSummaryChart({
       series,
       grid: [
         {
-          top: '8px',
+          top: '16px',
           left: '16px',
           right: '8px',
           bottom: '16px',
         },
         {
-          top: '8px',
+          top: '16px',
           left: '8px',
           right: '16px',
           bottom: '8px',
@@ -121,7 +122,7 @@ export function ProfilesSummaryChart({
       ],
       legend: {
         right: 16,
-        top: 12,
+        top: 0,
         data: seriesOrder.slice(),
       },
       tooltip: {

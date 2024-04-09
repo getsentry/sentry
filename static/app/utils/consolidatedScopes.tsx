@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy';
 import invertBy from 'lodash/invertBy';
 import pick from 'lodash/pick';
 
-import {Permissions} from 'sentry/types';
+import type {Permissions} from 'sentry/types';
 
 const PERMISSION_LEVELS = {
   'no-access': 0,

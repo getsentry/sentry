@@ -6,9 +6,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory} from 'sentry/types';
-
-import UnhandledTag, {TagAndMessageWrapper} from '../issueDetails/unhandledTag';
+import type {Group} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 
 type Props = {
   group: Group;
@@ -35,11 +34,12 @@ function SharedGroupHeader({group}: Props) {
             )}
           </ShortIdWrapper>
         </TitleWrap>
-
-        <TagAndMessageWrapper>
-          {group.isUnhandled && <UnhandledTag />}
-          <EventMessage message={group.culprit} />
-        </TagAndMessageWrapper>
+        <EventMessage
+          showUnhandled={group.isUnhandled}
+          message={group.culprit}
+          level={group.level}
+          type={group.type}
+        />
       </Details>
     </Wrapper>
   );

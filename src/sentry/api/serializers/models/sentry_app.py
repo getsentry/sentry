@@ -1,7 +1,9 @@
-from typing import Any, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
@@ -15,7 +17,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: list[SentryApp], user: User, **kwargs: Any):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
@@ -60,6 +62,7 @@ class SentryAppSerializer(Serializer):
             "events": consolidate_events(obj.events),
             "featureData": [],
             "isAlertable": obj.is_alertable,
+            "metadata": obj.metadata,
             "name": obj.name,
             "overview": obj.overview,
             "popularity": obj.popularity,
@@ -83,7 +86,11 @@ class SentryAppSerializer(Serializer):
         user_org_ids = attrs["user_org_ids"]
 
         if owner:
-            if (env.request and is_active_superuser(env.request)) or owner.id in user_org_ids:
+            # TODO(schew2381): Check if superuser needs this for Sentry Apps in the UI.
+            elevated_user = env.request and (
+                is_active_superuser(env.request) or is_active_staff(env.request)
+            )
+            if elevated_user or owner.id in user_org_ids:
                 client_secret = (
                     obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
                 )

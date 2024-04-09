@@ -1,8 +1,8 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
-import {AccountEmails} from 'sentry-fixture/accountEmails';
-import {Authenticators} from 'sentry-fixture/authenticators';
-import {Organizations} from 'sentry-fixture/organizations';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
+import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,15 +21,15 @@ describe('TwoFactorRequired', function () {
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: false})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations(),
+      body: OrganizationsFixture(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: AccountEmails(),
+      body: AccountEmailsFixture(),
     });
   });
 
@@ -46,7 +46,7 @@ describe('TwoFactorRequired', function () {
     ...routerProps,
   };
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
@@ -59,10 +59,11 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is disabled and no pendingInvite cookie', function () {
+  it('does not render when 2FA is disabled and no pendingInvite cookie', async function () {
     render(
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
@@ -70,13 +71,14 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
+  it('does not render when 2FA is enrolled and no pendingInvite cookie', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: true})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
     });
 
     render(
@@ -86,10 +88,11 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and has pendingInvite cookie', function () {
+  it('does not render when 2FA is enrolled and has pendingInvite cookie', async function () {
     const cookieData = {
       memberId: 5,
       token: 'abcde',
@@ -98,11 +101,11 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: true})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations({require2FA: true}),
+      body: OrganizationsFixture({require2FA: true}),
     });
 
     render(
@@ -112,6 +115,7 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });
@@ -120,7 +124,7 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations({require2FA: true}),
+      body: OrganizationsFixture({require2FA: true}),
     });
 
     render(

@@ -4,12 +4,12 @@ import sentry_sdk
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
 
 from ..utils import logger
 
@@ -17,9 +17,9 @@ from ..utils import logger
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
-) -> None:
+) -> bool:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
@@ -39,7 +39,7 @@ def send_incident_alert_notification(
             "discord.metric_alert.no_channel",
             extra={"guild_id": incident.identifier},
         )
-        return
+        return False
 
     message = DiscordMetricAlertMessageBuilder(
         alert_rule=incident.alert_rule,
@@ -49,11 +49,14 @@ def send_incident_alert_notification(
         chart_url=chart_url,
     )
 
-    client = DiscordClient(integration_id=incident.identifier)
+    client = DiscordClient()
     try:
         client.send_message(channel, message)
-    except ApiError as error:
+    except Exception as error:
         logger.warning(
-            "discord.metric_alert.messsage_send_failure",
+            "discord.metric_alert.message_send_failure",
             extra={"error": error, "guild_id": incident.identifier, "channel_id": channel},
         )
+        return False
+    else:
+        return True

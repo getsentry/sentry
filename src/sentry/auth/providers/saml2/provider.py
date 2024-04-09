@@ -240,6 +240,7 @@ class SAML2Provider(Provider, abc.ABC):
     # SAML does nothing with refresh state -- don't waste resources calling it in check_auth job.
     requires_refresh = False
     required_feature = "organizations:sso-saml2"
+    is_saml = True
 
     def get_auth_pipeline(self):
         return [SAML2LoginView(), SAML2ACSView()]
@@ -255,7 +256,6 @@ class SAML2Provider(Provider, abc.ABC):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        pass
 
     def attribute_mapping(self):
         """

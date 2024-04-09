@@ -9,7 +9,7 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, Meta, PlatformKey} from 'sentry/types';
+import type {Frame, Meta, PlatformKey} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
 import {FunctionName} from '../functionName';

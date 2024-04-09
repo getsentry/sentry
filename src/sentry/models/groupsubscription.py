@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Sequence, Union
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -16,16 +17,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.notifications.helpers import (
-    should_use_notifications_v2,
-    transform_to_notification_settings_by_recipient,
-    where_should_be_participating,
-)
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -78,9 +73,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     def subscribe_actor(
         self,
         group: Group,
-        actor: Union[Team, User, RpcUser],
+        actor: Team | User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         from sentry import features
         from sentry.models.team import Team
         from sentry.models.user import User
@@ -119,7 +114,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
         for i in range(4, -1, -1):  # 4 3 2 1 0
-
             existing_subscriptions = set(
                 GroupSubscription.objects.filter(
                     user_id__in=user_ids, group=group, project=group.project
@@ -161,9 +155,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
-            except IntegrityError as e:
+            except IntegrityError:
                 if i == 0:
-                    raise e
+                    raise
         return False
 
     def get_participants(self, group: Group) -> ParticipantMap:
@@ -186,91 +180,63 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
             "organizations:team-workflow-notifications", group.project.organization
         )
 
-        if should_use_notifications_v2(group.project.organization) and has_team_workflow:
+        if has_team_workflow:
             possible_team_actors = self.get_possible_team_actors(group)
             all_possible_actors += possible_team_actors
             subscriptions_by_team_id = self.get_subscriptions_by_team_id(
                 group, possible_team_actors
             )
 
-        if should_use_notifications_v2(group.project.organization):
-            if not all_possible_actors:  # no actors, no notifications
-                return ParticipantMap()
+        if not all_possible_actors:  # no actors, no notifications
+            return ParticipantMap()
 
-            providers_by_recipient = notifications_service.get_participants(
-                recipients=all_possible_actors,
-                project_ids=[group.project_id],
-                organization_id=group.organization.id,
-                type=NotificationSettingEnum.WORKFLOW,
-            )
-            result = ParticipantMap()
-            for user in all_possible_actors:
-                if user.id not in providers_by_recipient:
-                    continue
-
-                subscription_option = subscriptions_by_user_id.get(user.id, {})
-                if not subscription_option and has_team_workflow:
-                    subscription_option = subscriptions_by_team_id.get(user.id, {})
-
-                for provider_str, val in providers_by_recipient[user.id].items():
-                    value = NotificationSettingsOptionEnum(val)
-                    is_subscribed = (
-                        subscription_option
-                        and subscription_option.is_active
-                        and value
-                        in [
-                            NotificationSettingsOptionEnum.ALWAYS,
-                            NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-                        ]
-                    )
-                    is_implicit = (
-                        not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS
-                    )
-                    if is_subscribed or is_implicit:
-                        reason = (
-                            subscription_option
-                            and subscription_option.reason
-                            or GroupSubscriptionReason.implicit
-                        )
-                        provider = ExternalProviders(provider_str)
-                        result.add(provider, user, reason)
-            return result
-
-        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=NotificationSettingTypes.WORKFLOW,
+        providers_by_recipient = notifications_service.get_participants(
             recipients=all_possible_actors,
-            parent_id=group.project_id,
+            project_ids=[group.project_id],
+            organization_id=group.organization.id,
+            type=NotificationSettingEnum.WORKFLOW,
         )
-        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, all_possible_actors
-        )
-
         result = ParticipantMap()
         for user in all_possible_actors:
-            subscription_option = subscriptions_by_user_id.get(user.id)
-            providers = where_should_be_participating(
-                user,
-                subscription_option,
-                notification_settings_by_recipient,
-            )
-            for provider in providers:
-                reason = (
-                    subscription_option
-                    and subscription_option.reason
-                    or GroupSubscriptionReason.implicit
-                )
-                result.add(provider, user, reason)
+            if user.id not in providers_by_recipient:
+                continue
 
+            subscription_option = subscriptions_by_user_id.get(user.id, {})
+            if not subscription_option and has_team_workflow:
+                subscription_option = subscriptions_by_team_id.get(user.id, {})
+
+            for provider_str, val in providers_by_recipient[user.id].items():
+                value = NotificationSettingsOptionEnum(val)
+                is_subscribed = (
+                    subscription_option
+                    and subscription_option.is_active
+                    and value
+                    in [
+                        NotificationSettingsOptionEnum.ALWAYS,
+                        NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ]
+                )
+                is_implicit = (
+                    not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS
+                )
+                if is_subscribed or is_implicit:
+                    reason = (
+                        subscription_option
+                        and subscription_option.reason
+                        or GroupSubscriptionReason.implicit
+                    )
+                    provider = ExternalProviders(provider_str)
+                    result.add(provider, user, reason)
         return result
 
-    def get_possible_team_actors(self, group: Group) -> List[RpcActor]:
+    def get_possible_team_actors(self, group: Group) -> list[RpcActor]:
         from sentry.models.team import Team
 
         possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
         return RpcActor.many_from_object(possible_teams_ids)
 
     def get_subscriptions_by_team_id(
-        self, group: Group, possible_team_actors: List[RpcActor]
+        self, group: Group, possible_team_actors: list[RpcActor]
     ) -> Mapping[int, int]:
         active_and_disabled_team_subscriptions = self.filter(
             group=group, team_id__in=[t.id for t in possible_team_actors]

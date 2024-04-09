@@ -9,7 +9,7 @@ from sentry_relay.auth import generate_key_pair
 from sentry.auth import system
 from sentry.models.relay import Relay
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, safe
 
 
@@ -26,7 +26,6 @@ def _get_all_keys(config):
                 yield key
 
 
-@region_silo_test(stable=True)
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -78,7 +77,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
         raw_json, signature = self.private_key.pack({"publicKeys": [str(self.public_key)]})
 
         static_auth = {self.relay_id: {"internal": internal, "public_key": str(self.public_key)}}
-        with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+        with override_options({"relay.static_auth": static_auth}):
             resp = self.client.post(
                 self.path,
                 data=raw_json,

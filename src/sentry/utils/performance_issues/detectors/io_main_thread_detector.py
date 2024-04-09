@@ -5,14 +5,14 @@ import os
 from collections import defaultdict
 
 import sentry_sdk
-from symbolic.proguard import ProguardMapper
 
-from sentry import features
+from sentry import features, options
 from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -112,9 +112,9 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
 
-    def init(self):
-        super().init()
-        self._prepare_deobfuscation()
+    @classmethod
+    def is_detector_enabled(cls) -> bool:
+        return not options.get("performance_issues.file_io_main_thread.disabled")
 
     def _prepare_deobfuscation(self):
         event = self._event
@@ -139,8 +139,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
                         if debug_file_path is None:
                             return
 
-                    with sentry_sdk.start_span(op="proguard.open"):
-                        mapper = ProguardMapper.open(debug_file_path)
+                    mapper = open_proguard_mapper(debug_file_path)
                     if not mapper.has_line_info:
                         return
                     self.mapper = mapper
@@ -164,6 +163,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     def _fingerprint(self, span_list) -> str:
         call_stack_strings = []
         overall_stack = []
+        # only prepare deobfuscation once we need to fingerprint cause its expensive
+        self._prepare_deobfuscation()
         for span in span_list:
             for item in span.get("data", {}).get("call_stack", []):
                 module = self._deobfuscate_module(item.get("module", ""))

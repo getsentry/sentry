@@ -12,11 +12,11 @@ import {
 import Count from 'sentry/components/count';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -65,7 +65,7 @@ function Chart(props: Props) {
   return (
     <Panel>
       <ChartContainer>
-        <Feature features={['performance-span-histogram-view']}>
+        <Feature features="performance-span-histogram-view">
           {({hasFeature}) => {
             if (hasFeature) {
               if (display === DisplayModes.TIMESERIES) {
@@ -77,7 +77,7 @@ function Chart(props: Props) {
           }}
         </Feature>
       </ChartContainer>
-      <Feature features={['performance-span-histogram-view']}>
+      <Feature features="performance-span-histogram-view">
         <ChartControls>
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>

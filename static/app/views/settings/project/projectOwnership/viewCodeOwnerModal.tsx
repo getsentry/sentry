@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CodeOwner} from 'sentry/types';
+import type {CodeOwner} from 'sentry/types';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';

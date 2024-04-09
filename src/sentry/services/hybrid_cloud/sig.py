@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from typing import Any, Callable, Iterable, Sequence, Tuple, Type
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import pydantic
+from django.utils.functional import LazyObject
 
 from sentry.services.hybrid_cloud import ArgumentDict
 
@@ -61,10 +63,10 @@ class SerializableFunctionSignature:
                 "(serializable functions must use concrete type tokens, not strings)",
             )
 
-    def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
+    def _create_parameter_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
-        def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
+        def create_field(param: inspect.Parameter) -> tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise SerializableFunctionSignatureSetupException(
                     self, "Type annotations are required to serialize"
@@ -83,7 +85,7 @@ class SerializableFunctionSignature:
 
     _RETURN_MODEL_ATTR = "value"
 
-    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
+    def _create_return_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the return value.
 
         The created model has a single attribute containing the return value. This
@@ -94,13 +96,33 @@ class SerializableFunctionSignature:
         model_name = self.generate_name("__", "ReturnModel")
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
-            return None
+            return_type = type(None)
         self._validate_type_token("return type", return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
 
+    @staticmethod
+    def _unwrap_lazy_django_object(arg: Any) -> Any:
+        """Unwrap any lazy objects before attempting to serialize.
+
+        It's possible to receive a SimpleLazyObject initialized by the Django
+        framework and pass it to an RPC (typically `request.user` as an RpcUser
+        argument). These objects are supposed to behave seamlessly like the
+        underlying type, but don't play nice with the reflection that Pydantic uses
+        to serialize. So, we manually check and force them to unwrap.
+        """
+
+        if isinstance(arg, LazyObject):
+            return getattr(arg, "_wrapped")
+        else:
+            return arg
+
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
+        raw_arguments = {
+            key: self._unwrap_lazy_django_object(arg) for (key, arg) in raw_arguments.items()
+        }
+
         try:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:
@@ -114,12 +136,5 @@ class SerializableFunctionSignature:
             raise SerializableFunctionValueException(self, "Could not deserialize arguments") from e
 
     def deserialize_return_value(self, value: Any) -> Any:
-        if self._return_model is None:
-            if value is not None:
-                raise SerializableFunctionValueException(
-                    self, f"Expected None but got {type(value)}"
-                )
-            return None
-
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)

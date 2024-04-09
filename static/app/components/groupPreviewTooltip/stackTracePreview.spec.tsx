@@ -1,18 +1,12 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventError} from 'sentry/types';
-import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import type {EventError} from 'sentry/types';
+import type {ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 import {StackTracePreview} from './stackTracePreview';
-
-const makeEvent = (event: Partial<Event> = {}): Event => {
-  const evt: Event = {
-    ...TestStubs.Event(),
-    ...event,
-  };
-
-  return evt;
-};
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
@@ -38,7 +32,7 @@ describe('StackTracePreview', () => {
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/123/events/recommended/`,
-      body: makeEvent({id: '456', entries: []}),
+      body: EventFixture({id: '456', entries: []}),
     });
 
     render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
@@ -61,7 +55,6 @@ describe('StackTracePreview', () => {
       lineNo: 0,
       absPath: null,
       context: [],
-      errors: null,
       inApp: false,
       instructionAddr: null,
       module: null,
@@ -106,7 +99,7 @@ describe('StackTracePreview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/123/events/recommended/`,
-      body: makeEvent(errorEvent),
+      body: EventFixture(errorEvent),
     });
 
     render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>, {

@@ -1,3 +1,5 @@
+import {DocIntegrationFixture} from 'sentry-fixture/docIntegration';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -5,7 +7,7 @@ import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegr
 
 describe('DocIntegrationDetailedView', function () {
   const {routerProps, organization} = initializeOrg();
-  const doc = TestStubs.DocIntegration();
+  const doc = DocIntegrationFixture();
 
   beforeEach(function () {});
 
@@ -32,13 +34,13 @@ describe('DocIntegrationDetailedView', function () {
     expect(screen.getByText(doc.author)).toBeInTheDocument();
     expect(screen.getByText(doc.description)).toBeInTheDocument();
 
-    for (const resource of doc.resources) {
+    for (const resource of doc.resources || []) {
       const link = screen.getByText(resource.title);
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', resource.url);
     }
 
-    for (const feature of doc.features) {
+    for (const feature of doc.features || []) {
       expect(screen.getByText(feature.description)).toBeInTheDocument();
     }
   });

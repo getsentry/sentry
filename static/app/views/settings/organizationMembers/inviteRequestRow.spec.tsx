@@ -1,5 +1,7 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -7,9 +9,10 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles: OrgRole[] = [
@@ -18,43 +21,42 @@ const roles: OrgRole[] = [
     name: 'Admin',
     desc: 'This is the admin role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
     minimumTeamRole: '',
-    allowed: false,
+    isAllowed: false,
   },
 ];
 
 describe('InviteRequestRow', function () {
-  const orgWithoutAdminAccess = Organization({
+  const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
-  const orgWithAdminAccess = Organization({
+  const orgWithAdminAccess = OrganizationFixture({
     access: ['member:admin'],
   });
   const inviteRequestBusy: Record<string, boolean> = {};
 
-  const inviteRequest = TestStubs.Member({
+  const inviteRequest = MemberFixture({
     user: null,
-    inviterName: TestStubs.User().name,
-    inviterId: TestStubs.User().id,
+    inviterName: UserFixture().name,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
     teams: ['myteam'],
   });
 
-  const joinRequest = TestStubs.Member({
+  const joinRequest = MemberFixture({
     user: null,
     inviteStatus: 'requested_to_join',
     role: 'member',
@@ -163,18 +165,17 @@ describe('InviteRequestRow', function () {
   });
 
   it('admin can change role and teams', async function () {
-    const adminInviteRequest = TestStubs.Member({
+    const adminInviteRequest = MemberFixture({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: UserFixture().name,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
       teams: ['myteam'],
     });
 
     void TeamStore.loadInitialData([
-      TestStubs.Team({id: '1', slug: 'one'}),
-      TestStubs.Team({id: '2', slug: 'two'}),
+      TeamFixture({id: '1', slug: 'one'}),
+      TeamFixture({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 
@@ -202,10 +203,9 @@ describe('InviteRequestRow', function () {
   });
 
   it('cannot be approved when invitee role is not allowed', function () {
-    const ownerInviteRequest = TestStubs.Member({
+    const ownerInviteRequest = MemberFixture({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: UserFixture().name,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
       teams: ['myteam'],

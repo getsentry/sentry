@@ -6,12 +6,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import Rule
@@ -88,7 +89,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             defaults={
                 "owner_id": request.user.id,
                 "until": data.get("until"),
-                "date_added": datetime.datetime.now(),
+                "date_added": datetime.datetime.now(datetime.UTC),
             },
             **kwargs,
         )
@@ -183,6 +184,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -193,6 +195,7 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
 
 @region_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

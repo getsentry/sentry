@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +20,7 @@ describe('FeatureTourModal', function () {
         closeModal={onCloseModal}
         CloseButton={() => <button>Close</button>}
         featureName="Default Feature"
-        features={['organization:test-feature']}
+        features="organization:test-feature"
         {...props}
       />
     );

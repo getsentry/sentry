@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
@@ -13,6 +13,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity, RpcIdentityProvider
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 
 class RpcIntegration(RpcModel):
@@ -20,7 +22,7 @@ class RpcIntegration(RpcModel):
     provider: str
     external_id: str
     name: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     status: int
 
     def __hash__(self) -> int:
@@ -50,12 +52,12 @@ class RpcIntegration(RpcModel):
 
 class RpcOrganizationIntegration(RpcModel):
     id: int
-    default_auth_id: Optional[int]
+    default_auth_id: int | None
     organization_id: int
     integration_id: int
-    config: Dict[str, Any]
+    config: dict[str, Any]
     status: int  # As ObjectStatus
-    grace_period_end: Optional[datetime]
+    grace_period_end: datetime | None
 
     def __hash__(self) -> int:
         return hash(self.id)
@@ -74,3 +76,10 @@ class RpcIntegrationExternalProject(RpcModel):
     external_id: str
     resolved_status: str
     unresolved_status: str
+
+
+class RpcIntegrationIdentityContext(RpcModel):
+    integration: RpcIntegration | None
+    identity_provider: RpcIdentityProvider | None
+    identity: RpcIdentity | None
+    user: RpcUser | None

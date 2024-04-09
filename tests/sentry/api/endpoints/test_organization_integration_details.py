@@ -1,8 +1,12 @@
-from sentry.models.identity import Identity, IdentityProvider
+from unittest.mock import patch
+
+from sentry.integrations.base import IntegrationInstallation
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -15,11 +19,11 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="gitlab", config={}, external_id="gitlab:1"),
+            idp=self.create_identity_provider(type="gitlab", config={}, external_id="gitlab:1"),
             user=self.user,
             external_id="base_id",
             data={},
@@ -37,14 +41,14 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -58,8 +62,24 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
 
         assert org_integration.config == config
 
+    @patch.object(IntegrationInstallation, "update_organization_config")
+    def test_update_config_error(self, mock_update_config):
+        config = {"setting": "new_value", "setting2": "baz"}
 
-@control_silo_test(stable=True)
+        mock_update_config.side_effect = IntegrationError("hello")
+        response = self.get_error_response(
+            self.organization.slug, self.integration.id, **config, status_code=400
+        )
+        assert response.data["detail"] == ["hello"]
+
+        mock_update_config.side_effect = ApiError("hi")
+        response = self.get_error_response(
+            self.organization.slug, self.integration.id, **config, status_code=400
+        )
+        assert response.data["detail"] == ["hi"]
+
+
+@control_silo_test
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 

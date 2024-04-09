@@ -131,7 +131,8 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         # we can't use fixtures with unittest.TestCase
         commit = Mock()
         message = kafka_message(headerless_kafka_payload(mixed_payload()))
-        processing_strategy = self.processing_factory().create_with_partitions(
+        factory = self.processing_factory()
+        processing_strategy = factory.create_with_partitions(
             commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(message)
@@ -145,12 +146,14 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         # without doing a bunch of mocking around time objects, stale_item.last_seen
         # should be approximately equal to timezone.now() but they won't be perfectly equal
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
+        factory.shutdown()
 
     def test_message_processes_after_bad_message(self):
         commit = Mock()
         ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
         bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
-        processing_strategy = self.processing_factory().create_with_partitions(
+        factory = self.processing_factory()
+        processing_strategy = factory.create_with_partitions(
             commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(bad_message)
@@ -160,6 +163,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
 
         stale_item = self.table.objects.get(id=self.stale_id)
         assert stale_item.last_seen > self.stale_last_seen
+        factory.shutdown()
 
 
 class TestFilterMethod:
@@ -170,7 +174,7 @@ class TestFilterMethod:
     def empty_message_with_headers(self, headers):
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
         return Message(
-            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=datetime.utcnow())
+            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
         )
 
     def test_message_filter_no_header(self, message_filter):

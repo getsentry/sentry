@@ -1,21 +1,12 @@
 import logging
 import time
+from collections.abc import Mapping, MutableSequence
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Deque,
-    List,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    NamedTuple,
-    Optional,
-    Union,
-)
+from typing import NamedTuple
 
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -23,7 +14,7 @@ from arroyo.types import Message, Value
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import kafka_config, metrics
+from sentry.utils import metrics
 
 
 class BrokerMeta(NamedTuple):
@@ -31,7 +22,7 @@ class BrokerMeta(NamedTuple):
     offset: int
 
 
-MessageBatch = List[Message[KafkaPayload]]
+MessageBatch = list[Message[KafkaPayload]]
 
 logger = logging.getLogger(__name__)
 
@@ -41,32 +32,8 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
-    data: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
-    invalid_msg_meta: Deque[BrokerMeta]
+    data: MutableSequence[Message[KafkaPayload | RoutingPayload | InvalidMessage]]
     cogs_data: Mapping[UseCaseID, int]
-
-
-def get_config(
-    topic: str,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    group_instance_id: Optional[str] = None,
-) -> MutableMapping[Any, Any]:
-    cluster_name: str = kafka_config.get_topic_definition(topic)["cluster"]
-    consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
-        kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
-        ),
-        group_id=group_id,
-        auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=strict_offset_reset,
-        queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
-        queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
-    )
-    if group_instance_id is not None:
-        consumer_config["group.instance.id"] = str(group_instance_id)
-    return consumer_config
 
 
 class MetricsBatchBuilder:
@@ -124,9 +91,9 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__max_batch_time = max_batch_time
 
         self.__next_step = next_step
-        self.__batch: Optional[MetricsBatchBuilder] = None
+        self.__batch: MetricsBatchBuilder | None = None
         self.__closed = False
-        self.__batch_start: Optional[float] = None
+        self.__batch_start: float | None = None
         # If we received MessageRejected from subsequent steps, this is set to true.
         # It is reset to false upon the next successful submit.
         self.__apply_backpressure = False
@@ -178,11 +145,13 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(
-                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.committable}"
+                "Abandoning batch of %s messages...latest offset: %s",
+                len(self.__batch),
+                last.committable,
             )
 
         self.__next_step.close()

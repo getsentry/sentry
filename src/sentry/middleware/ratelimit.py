@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 
+from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
@@ -57,6 +58,10 @@ class RatelimitMiddleware:
                 if not view_class:
                     return None
 
+                enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
+                if enforce_rate_limit is False:
+                    return None
+
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
                 )
@@ -91,26 +96,27 @@ class RatelimitMiddleware:
                 )
                 if rate_limit_cond:
                     request.will_be_rate_limited = True
-                    enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
-                    if enforce_rate_limit:
-                        logger.info(
-                            "sentry.api.rate-limit.exceeded",
-                            extra={
-                                "key": request.rate_limit_key,
-                                "url": request.build_absolute_uri(),
-                                "limit": request.rate_limit_metadata.limit,
-                                "window": request.rate_limit_metadata.window,
-                            },
-                        )
-                        return HttpResponse(
-                            json.dumps(
-                                DEFAULT_ERROR_MESSAGE.format(
-                                    limit=request.rate_limit_metadata.limit,
-                                    window=request.rate_limit_metadata.window,
-                                )
-                            ),
-                            status=429,
-                        )
+                    logger.info(
+                        "sentry.api.rate-limit.exceeded",
+                        extra={
+                            "key": request.rate_limit_key,
+                            "url": request.build_absolute_uri(),
+                            "limit": request.rate_limit_metadata.limit,
+                            "window": request.rate_limit_metadata.window,
+                        },
+                    )
+                    response = HttpResponse(
+                        json.dumps(
+                            DEFAULT_ERROR_MESSAGE.format(
+                                limit=request.rate_limit_metadata.limit,
+                                window=request.rate_limit_metadata.window,
+                            )
+                        ),
+                        status=429,
+                    )
+                    return apply_cors_headers(
+                        request=request, response=response, allowed_methods=[request.method]
+                    )
             except Exception:
                 logging.exception(
                     "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"

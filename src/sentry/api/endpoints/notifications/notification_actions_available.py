@@ -13,18 +13,17 @@ from sentry.services.hybrid_cloud.integration import integration_service
 
 @region_silo_endpoint
 class NotificationActionsAvailableEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Responds with a payload serialized directly from running the 'serialize_available' methods
         on the ActionRegistration objects within the NotificationAction registry.
         """
-        payload = {"actions": []}
+        payload: dict[str, list[dict[str, object]]] = {"actions": []}
         integrations = integration_service.get_integrations(
             organization_id=organization.id,
             status=ObjectStatus.ACTIVE,

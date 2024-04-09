@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
@@ -19,13 +20,15 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -208,7 +211,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        context = organization_service.get_organization_by_id(id=self.organization_id)
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -289,6 +294,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_metadata(self):
         client = self.get_client()
 
+        server_info = {}
+        projects = []
         try:
             server_info = client.get_server_info()
             projects = client.get_projects_list()
@@ -301,7 +308,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
-            avatar = (projects[0]["avatarUrls"]["48x48"],)
+            avatar = projects[0]["avatarUrls"]["48x48"]
             self.model.metadata.update({"icon": avatar})
 
         self.model.save()
@@ -328,6 +335,24 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
+    def get_feedback_issue_body(self, event):
+        messages = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+        ]
+        others = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+        ]
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
+            body += f"| *{evidence.name}* | {evidence.value} |\n"
+
+        return body.rstrip("\n")  # remove the last new line
+
     def get_generic_issue_body(self, event):
         body = ""
         important = event.occurrence.important_evidence_display
@@ -339,15 +364,28 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return body[:-2]  # chop off final newline
 
     def get_group_description(self, group, event, **kwargs):
-        output = [
-            "Sentry Issue: [{}|{}]".format(
-                group.qualified_short_id,
-                group.get_absolute_url(params={"referrer": "jira_integration"}),
-            )
-        ]
+        output = []
+        if group.issue_category == GroupCategory.FEEDBACK:
+            output = [
+                "Sentry Feedback: [{}|{}]\n".format(
+                    group.qualified_short_id,
+                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                )
+            ]
+        else:
+            output = [
+                "Sentry Issue: [{}|{}]".format(
+                    group.qualified_short_id,
+                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                )
+            ]
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = self.get_generic_issue_body(event)
+            body = ""
+            if group.issue_category == GroupCategory.FEEDBACK:
+                body = self.get_feedback_issue_body(event)
+            else:
+                body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -364,7 +402,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return JiraCloudClient(
             integration=self.model,
-            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -389,7 +426,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id=user_id)
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -480,7 +517,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 group.organization
                 if group
                 else organization_service.get_organization_by_id(
-                    id=self.organization_id
+                    id=self.organization_id, include_projects=False, include_teams=False
                 ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)
@@ -596,7 +633,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    @all_silo_function
+    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -865,7 +903,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -924,15 +962,18 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_issue = client.get_issue(external_issue.key)
         jira_project = jira_issue["fields"]["project"]
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=jira_project["id"],
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=jira_project["id"],
+        )
+        log_context = {
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+        }
+        if not external_project:
+            logger.info("jira.external-project-not-found", extra=log_context)
             return
 
         jira_status = (
@@ -941,6 +982,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
+            logger.info("jira.sync_status_outbound.unchanged", extra=log_context)
             return
         try:
             transitions = client.get_transitions(external_issue.key)
@@ -951,14 +993,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
-            logger.warning(
-                "jira.status-sync-fail",
-                extra={
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": external_issue.integration_id,
-                    "issue_key": external_issue.key,
-                },
-            )
+            logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
         client.transition_issue(external_issue.key, transition["id"])

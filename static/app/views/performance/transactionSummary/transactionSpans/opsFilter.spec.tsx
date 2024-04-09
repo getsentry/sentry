@@ -1,5 +1,6 @@
-import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import type {Location} from 'history';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,9 +10,9 @@ import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSp
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -65,7 +66,7 @@ describe('Performance > Transaction Spans', function () {
 
     expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
 
-    (await screen.findByRole('button', {name: 'Filter'})).click();
+    await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
     expect(await screen.findByText('op1')).toBeInTheDocument();
     expect(await screen.findByText('op2')).toBeInTheDocument();
   });
@@ -92,7 +93,7 @@ describe('Performance > Transaction Spans', function () {
     );
 
     expect(handleOpChange).not.toHaveBeenCalled();
-    (await screen.findByRole('button', {name: 'Filter'})).click();
+    await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
     const item = await screen.findByText('op1');
     expect(item).toBeInTheDocument();
     await userEvent.click(item!);

@@ -1,4 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -8,8 +9,7 @@ import {EntryType} from 'sentry/types/event';
 
 describe('Csp report entry', function () {
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       entries: [{type: EntryType.CSP, data: {effective_directive: ''}}],
       _meta: {
         entries: {
@@ -20,10 +20,10 @@ describe('Csp report entry', function () {
           },
         },
       },
-    };
+    });
     render(<Csp data={event.entries[0].data} event={event} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

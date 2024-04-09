@@ -3,7 +3,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import platforms from 'sentry/data/platforms';
 import {tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
-import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
+import type {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 
 /**
  * The documentation will include the following string should it be missing the

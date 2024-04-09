@@ -9,6 +9,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -20,12 +21,14 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -286,12 +289,14 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  className,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
-  referrer_table: ReferrerTableType;
+  className?: string;
   isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -368,7 +373,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell>
+    <Item isWidget={isWidget} isReplayCell className={className}>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -610,6 +615,30 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
+export function PlayPauseCell({
+  isSelected,
+  handleClick,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+}) {
+  const inner = isSelected ? (
+    <ReplayPlayPauseButton size="sm" iconSize="sm" priority="default" borderless />
+  ) : (
+    <Button
+      title={t('Play')}
+      aria-label={t('Play')}
+      icon={<IconPlay size="sm" />}
+      onClick={handleClick}
+      data-test-id="replay-table-play-button"
+      borderless
+      size="sm"
+      priority="default"
+    />
+  );
+  return <Item>{inner}</Item>;
+}
+
 const Item = styled('div')<{
   isArchived?: boolean;
   isReplayCell?: boolean;
@@ -679,7 +708,7 @@ const ActionMenuTrigger = styled(Button)`
   align-items: center;
   opacity: 0;
   transition: opacity 0.1s;
-  &.focus-visible,
+  &:focus-visible,
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;

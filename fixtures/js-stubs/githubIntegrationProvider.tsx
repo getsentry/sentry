@@ -1,6 +1,6 @@
 import {IntegrationProvider} from 'sentry/types';
 
-export function GitHubIntegrationProvider(
+export function GitHubIntegrationProviderFixture(
   params: Partial<IntegrationProvider> = {}
 ): IntegrationProvider {
   return {

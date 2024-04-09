@@ -10,7 +10,7 @@ import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth, User} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -23,7 +23,8 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -63,14 +64,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by you and 1 other', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by you and [authorsCount] others', {
-            authorsCount,
-          })
-        : t('1 commit by you and 1 other');
+          ? tct('[commitCount] commits by you and 1 other', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by you and [authorsCount] others', {
+                authorsCount,
+              })
+            : t('1 commit by you and 1 other');
     }
 
     return (
@@ -81,14 +82,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by 1 author', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by [authorsCount] authors', {
-            authorsCount,
-          })
-        : t('1 commit by 1 author'))
+          ? tct('[commitCount] commits by 1 author', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by [authorsCount] authors', {
+                authorsCount,
+              })
+            : t('1 commit by 1 author'))
     );
   };
 
@@ -112,8 +113,7 @@ function ReleaseContext(props: BaseContextProps) {
   };
 
   const renderLastCommit = () =>
-    data &&
-    data.lastCommit && (
+    data?.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
         <ContextHeader>
           <ContextTitle>{t('Last Commit')}</ContextTitle>

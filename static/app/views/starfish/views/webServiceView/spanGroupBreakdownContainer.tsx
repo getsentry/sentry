@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventsStats, PageFilters} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {EventsStats, PageFilters} from 'sentry/types';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -94,7 +94,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const {
     isLoading: isTopDataLoading,
     data: topData,
-    isError,
+    error: topDataError,
   } = useEventsStatsQuery({
     eventView: getEventView(
       selection,
@@ -168,7 +168,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
-        errored={isError}
+        error={topDataError}
         options={options}
         dataDisplayType={dataDisplayType}
         onDisplayTypeChange={setDataDisplayType}
@@ -193,8 +193,8 @@ const getEventView = (
     dataDisplayType === DataDisplayType.DURATION_P95
       ? `p95(${SPAN_SELF_TIME})`
       : dataDisplayType === DataDisplayType.DURATION_AVG
-      ? `avg(${SPAN_SELF_TIME})`
-      : `sum(${SPAN_SELF_TIME})`;
+        ? `avg(${SPAN_SELF_TIME})`
+        : `sum(${SPAN_SELF_TIME})`;
 
   return EventView.fromNewQueryWithPageFilters(
     {

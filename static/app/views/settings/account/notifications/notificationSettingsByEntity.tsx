@@ -19,7 +19,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {NotificationOptionsObject} from './constants';
-import {NOTIFICATION_SETTING_FIELDS_V2} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS} from './fields2';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
@@ -72,7 +72,7 @@ function NotificationSettingsByEntity({
       {
         query: {
           all_projects: '1',
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       },
     ],
@@ -107,7 +107,7 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS_V2[notificationType].choices;
+  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType].choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -253,7 +253,6 @@ function NotificationSettingsByEntity({
           />
           <Button
             disabled={!selectedEntityId || !selectedValue}
-            size="md"
             priority="primary"
             onClick={handleAdd}
             icon={<IconAdd />}

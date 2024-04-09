@@ -5,12 +5,15 @@ import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
-import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
+import type {DropdownMenuListProps} from './list';
+import DropdownMenuList, {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 
@@ -59,6 +62,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
     > {
@@ -142,6 +146,7 @@ function DropdownMenu({
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
   flipOptions,
   ...props
@@ -166,6 +171,7 @@ function DropdownMenu({
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -173,6 +179,9 @@ function DropdownMenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
+  // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
+  // Avoids the menu from focusing before popper has placed it in the correct position
+  menuProps.autoFocus = false;
 
   const {buttonProps} = useButton(
     {
@@ -190,9 +199,9 @@ function DropdownMenu({
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>

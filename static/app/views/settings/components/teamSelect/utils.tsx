@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item, ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 export type TeamSelectProps = {
@@ -66,13 +66,12 @@ export function DropdownAddTeam({
   onCreateTeam?: (team: Team) => void;
   project?: Project;
 }) {
-  const dropdownItems = teams
+  const dropdownItems: ItemsBeforeFilter = teams
     .filter(team => !selectedTeams.some(slug => slug === team.slug))
     .map((team, index) =>
-      renderDropdownOption({
+      getDropdownOption({
         isAddingTeamToMember,
         isAddingTeamToProject,
-        organization,
         team,
         index,
         disabled,
@@ -108,41 +107,33 @@ export function DropdownAddTeam({
   );
 }
 
-function renderDropdownOption({
+function getDropdownOption({
   disabled,
   index,
   isAddingTeamToMember,
-  organization,
   team,
 }: {
   disabled: boolean;
   index: number;
   isAddingTeamToMember: boolean;
   isAddingTeamToProject: boolean;
-  organization: Organization;
   team: Team;
-}) {
-  const hasOrgAdmin = organization.access.includes('org:admin');
+}): ItemsBeforeFilter[number] {
   const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const isPermissionGroup = isAddingTeamToMember && !!team.orgRole && !hasOrgAdmin;
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+  const label = isIdpProvisioned ? (
+    <Tooltip title={getButtonHelpText(isIdpProvisioned)}>
+      <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+    </Tooltip>
+  ) : (
+    <DropdownTeamBadge avatarSize={18} team={team} />
+  );
 
   return {
     index,
     value: team.slug,
     searchKey: team.slug,
-    label: () => {
-      if (isIdpProvisioned || isPermissionGroup) {
-        return (
-          <Tooltip title={buttonHelpText}>
-            <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-          </Tooltip>
-        );
-      }
-
-      return <DropdownTeamBadge avatarSize={18} team={team} />;
-    },
-    disabled: disabled || isIdpProvisioned || isPermissionGroup,
+    label,
+    disabled: disabled || isIdpProvisioned,
   };
 }
 

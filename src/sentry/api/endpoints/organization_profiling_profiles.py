@@ -1,5 +1,6 @@
-from typing import Any, Dict
+from typing import Any
 
+import sentry_sdk
 from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -24,10 +25,13 @@ from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.PROFILING
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
-    def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
+    def get_profiling_params(self, request: Request, organization: Organization) -> dict[str, Any]:
         try:
-            params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
+            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
         except InvalidSearchQuery as err:
             raise ParseError(detail=str(err))
 
@@ -38,10 +42,6 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -58,10 +58,6 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -73,21 +69,28 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 
         span_group = request.query_params.get("spans.group", None)
         if span_group is not None:
+            sentry_sdk.set_tag("dataset", "spans")
             profile_ids = get_profile_ids_with_spans(
                 organization.id,
                 project_ids[0],
                 params,
                 span_group,
             )
-        elif "fingerprint" in request.query_params:
+        elif request.query_params.get("fingerprint"):
+            sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
             profile_ids = get_profiles_with_function(
-                organization.id, project_ids[0], function_fingerprint, params
+                organization.id,
+                project_ids[0],
+                function_fingerprint,
+                params,
+                request.GET.get("query", ""),
             )
         else:
+            sentry_sdk.set_tag("dataset", "profiles")
             profile_ids = get_profile_ids(params, request.query_params.get("query", None))
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "method": "POST",
             "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
             "json_data": profile_ids,

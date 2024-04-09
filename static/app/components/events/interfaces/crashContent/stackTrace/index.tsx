@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType, StackView} from 'sentry/types/stacktrace';
+import type {PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
@@ -64,6 +65,7 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
+          hideIcon={inlined}
           maxDepth={maxDepth}
         />
       </ErrorBoundary>

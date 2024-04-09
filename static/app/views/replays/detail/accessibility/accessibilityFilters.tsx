@@ -1,7 +1,8 @@
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
+import type useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {

@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -12,7 +11,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     def make_trend(
         self,
@@ -59,7 +58,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
         values = range(1, 100, 5)
 
         self.make_trend("improvement", [v for v in reversed(values)])

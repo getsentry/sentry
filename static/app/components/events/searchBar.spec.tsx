@@ -1,11 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
@@ -34,7 +35,7 @@ describe('Events > SearchBar', function () {
   let props: React.ComponentProps<typeof SearchBar>;
 
   beforeEach(function () {
-    organization = Organization();
+    organization = OrganizationFixture();
     props = {
       organization,
       projectIds: [1, 2],
@@ -46,7 +47,7 @@ describe('Events > SearchBar', function () {
       {totalValues: 0, key: 'browser', name: 'Browser'},
     ]);
 
-    options = TestStubs.routerContext();
+    options = RouterContextFixture();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -297,5 +298,61 @@ describe('Events > SearchBar', function () {
     await userEvent.type(screen.getByRole('textbox'), 'custom');
     expect(await screen.findByText('measurements')).toBeInTheDocument();
     expect(screen.getByText(/\.ratio/)).toBeInTheDocument();
+  });
+
+  it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
+    render(
+      <SearchBar
+        {...props}
+        customMeasurements={{
+          'measurements.custom.kibibyte': {
+            key: 'measurements.custom.kibibyte',
+            name: 'measurements.custom.kibibyte',
+            functions: [],
+            fieldType: 'size',
+            unit: '',
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
+    await userEvent.keyboard('{arrowleft}');
+
+    expect(
+      screen.getByText(
+        'Invalid file size. Expected number followed by file size unit suffix'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
+    render(
+      <SearchBar
+        {...props}
+        customMeasurements={{
+          'measurements.custom.minute': {
+            key: 'measurements.custom.minute',
+            name: 'measurements.custom.minute',
+            functions: [],
+            fieldType: 'duration',
+            unit: '',
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
+    await userEvent.keyboard('{arrowleft}');
+
+    expect(
+      screen.getByText(
+        'Invalid duration. Expected number followed by duration unit suffix'
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 
 export const TOP_N = 5;
 
@@ -14,6 +14,7 @@ export enum DisplayModes {
 
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
+  ERRORS = 'errors',
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',

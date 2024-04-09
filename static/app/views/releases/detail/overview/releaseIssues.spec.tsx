@@ -1,4 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,10 +18,10 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: Organization(),
+    organization: OrganizationFixture(),
     version: '1.0.0',
-    location: TestStubs.location({query: {}}),
-    releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
+    location: LocationFixture({query: {}}),
+    releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),
   };
 
   beforeEach(function () {
@@ -75,7 +78,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+        location={LocationFixture({query: {issuesType: 'resolved'}})}
       />
     );
     expect(
@@ -86,7 +89,7 @@ describe('ReleaseIssues', function () {
   it('shows an empty sttate with stats period', async function () {
     const query = {pageStatsPeriod: '24h'};
     const {rerender} = render(
-      <ReleaseIssues {...props} location={TestStubs.location({query})} />
+      <ReleaseIssues {...props} location={LocationFixture({query})} />
     );
 
     expect(
@@ -100,7 +103,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {...query, issuesType: 'unhandled'}})}
+        location={LocationFixture({query: {...query, issuesType: 'unhandled'}})}
       />
     );
     expect(
@@ -129,7 +132,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+        location={LocationFixture({query: {issuesType: 'resolved'}})}
       />
     );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
@@ -143,7 +146,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'unhandled'}})}
+        location={LocationFixture({query: {issuesType: 'unhandled'}})}
       />
     );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
@@ -157,10 +160,10 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'all'}})}
+        location={LocationFixture({query: {issuesType: 'all'}})}
       />
     );
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
@@ -170,7 +173,7 @@ describe('ReleaseIssues', function () {
   it('includes release context when linking to issue', async function () {
     newIssuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
-      body: [TestStubs.Group({id: '123'})],
+      body: [GroupFixture({id: '123'})],
     });
 
     const {routerContext} = initializeOrg();

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.models.user import User
@@ -15,9 +15,9 @@ from sentry.search.utils import tokenize_query
 @control_silo_endpoint
 class UserIndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
         queryset = User.objects.distinct()
@@ -27,12 +27,12 @@ class UserIndexEndpoint(Endpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    joined = " ".join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value)
-                        | Q(username__icontains=value)
-                        | Q(email__icontains=value)
-                        | Q(emails__email__icontains=value)
+                        Q(name__icontains=joined)
+                        | Q(username__icontains=joined)
+                        | Q(email__icontains=joined)
+                        | Q(emails__email__icontains=joined)
                     )
                 elif key == "id":
                     queryset = queryset.filter(

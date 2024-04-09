@@ -1,12 +1,12 @@
 import {Component, createRef} from 'react';
 import {findDOMNode} from 'react-dom';
-import {MultiValueProps} from 'react-select';
+import type {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -18,7 +18,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
+import type {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -40,7 +40,7 @@ function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
 }
 
 const getSearchKeyForUser = (user: User) =>
-  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+  `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
 type Props = {
   api: Client;

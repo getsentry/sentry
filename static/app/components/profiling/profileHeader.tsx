@@ -2,14 +2,13 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {
-  ProfilingBreadcrumbs,
-  ProfilingBreadcrumbsProps,
-} from 'sentry/components/profiling/profilingBreadcrumbs';
+import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
+import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
@@ -85,16 +84,23 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <Layout.HeaderActions>
+      <StyledHeaderActions>
+        <FeedbackWidgetButton />
         {transactionTarget && (
           <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Transaction')}
           </Button>
         )}
-      </Layout.HeaderActions>
+      </StyledHeaderActions>
     </SmallerLayoutHeader>
   );
 }
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: ${space(1.5)};

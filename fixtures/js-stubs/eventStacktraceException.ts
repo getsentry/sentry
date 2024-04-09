@@ -1,9 +1,9 @@
-import {Event} from 'sentry-fixture/event';
-import {EventEntry} from 'sentry-fixture/eventEntry';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 
 import {EntryType} from 'sentry/types';
 
-const exception = EventEntry({
+const exception = EventEntryFixture({
   type: EntryType.EXCEPTION,
   data: {
     values: [
@@ -41,10 +41,10 @@ const message = {
   },
 };
 
-export function EventStacktraceException(params = {}) {
-  return Event({entries: [{...exception}], ...params});
+export function EventStacktraceExceptionFixture(params = {}) {
+  return EventFixture({entries: [{...exception}], ...params});
 }
 
-export function EventStacktraceMessage(params = {}) {
-  return Event({entries: [{...message}], ...params});
+export function EventStacktraceMessageFixture(params = {}) {
+  return EventFixture({entries: [{...message}], ...params});
 }

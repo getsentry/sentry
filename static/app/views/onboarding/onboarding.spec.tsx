@@ -1,4 +1,5 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,8 +11,8 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import type {PlatformKey} from 'sentry/types';
-import {OnboardingProjectStatus, Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
@@ -71,7 +72,7 @@ describe('Onboarding', function () {
   });
 
   it('renders the setup docs step', async function () {
-    const nextJsProject: Project = TestStubs.Project({
+    const nextJsProject: Project = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs-slug',
@@ -110,7 +111,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     jest
@@ -157,12 +158,12 @@ describe('Onboarding', function () {
   });
 
   it('renders SDK data removal modal when going back', async function () {
-    const reactProject: Project = TestStubs.Project({
+    const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
       firstTransactionEvent: false,
-      firstEvent: false,
+      firstEvent: null,
       hasReplays: false,
       hasSessions: false,
     });
@@ -190,7 +191,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -256,7 +257,7 @@ describe('Onboarding', function () {
   });
 
   it('does not render SDK data removal modal when going back', async function () {
-    const reactProject: Project = TestStubs.Project({
+    const reactProject: Project = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
@@ -285,7 +286,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({

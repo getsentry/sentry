@@ -1,27 +1,31 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import type {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, Organization, Outcome, Project} from 'sentry/types';
+import type {DataCategoryInfo, Organization, Project} from 'sentry/types';
+import {Outcome} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
 
-import {UsageSeries} from './types';
-import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
+import type {UsageSeries} from './types';
+import type {TableStat} from './usageTable';
+import UsageTable, {CellProject, CellStat} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategoryInfo;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
@@ -115,7 +119,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category: dataCategory.slice(0, -1), // backend is singular
+      category: dataCategory.apiName,
     };
   }
 
@@ -276,7 +280,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     const {performance, projectDetail, settings} = getNextLocations(project);
 
     if (
-      dataCategory === DATA_CATEGORY_INFO.transaction.plural &&
+      dataCategory === DATA_CATEGORY_INFO.transaction &&
       organization.features.includes('performance-view')
     ) {
       return {
@@ -435,6 +439,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
               defaultQuery=""
               query={tableQuery}
               placeholder={t('Filter your projects')}
+              aria-label={t('Filter projects')}
               onSearch={this.handleSearch}
             />
           </Container>

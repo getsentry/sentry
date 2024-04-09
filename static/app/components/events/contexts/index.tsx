@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
 import {Chunk} from './chunk';
@@ -23,7 +23,7 @@ export function EventContexts({event, group}: Props) {
   );
 
   useEffect(() => {
-    const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    const transaction = Sentry.getActiveTransaction();
     if (transaction && usingOtel()) {
       transaction.tags.otel_event = true;
       transaction.tags.otel_sdk = sdk?.name;

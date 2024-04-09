@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -9,14 +10,14 @@ import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {GroupListColumn} from 'sentry/components/issues/groupList';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -26,15 +27,16 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupReprocessing,
   InboxDetails,
-  IssueCategory,
   NewQuery,
   Organization,
+  PriorityLevel,
   User,
 } from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -42,7 +44,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -61,9 +64,9 @@ type Props = {
   index?: number;
   memberList?: User[];
   narrowGroups?: boolean;
+  onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
-  showInboxTime?: boolean;
   showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
@@ -83,20 +86,20 @@ function BaseGroupRow({
   memberList,
   query,
   queryFilterDescription,
-  showInboxTime,
   source,
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
-  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
+  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
   useFilteredStats = false,
   useTintRow = true,
   narrowGroups = false,
   showLastTriggered = false,
+  onPriorityChange,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   const selectedGroups = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroups[id];
@@ -303,6 +306,7 @@ function BaseGroupRow({
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
     [IssueCategory.PROFILE]: t('Profile Events'),
     [IssueCategory.CRON]: t('Cron Events'),
+    [IssueCategory.REPLAY]: t('Replay Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -427,10 +431,9 @@ function BaseGroupRow({
           organization={organization}
           data={group}
           query={query}
-          size="normal"
           source={referrer}
         />
-        <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
+        <EventOrGroupExtraDetails data={group} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
@@ -454,6 +457,14 @@ function BaseGroupRow({
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
+          {organization.features.includes('issue-priority-ui') &&
+          withColumns.includes('priority') ? (
+            <PriorityWrapper narrowGroups={narrowGroups}>
+              {group.priority ? (
+                <GroupPriority group={group} onChange={onPriorityChange} />
+              ) : null}
+            </PriorityWrapper>
+          ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
               <AssigneeSelector
@@ -585,8 +596,9 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -603,13 +615,28 @@ const EventCountsWrapper = styled('div')`
   }
 `;
 
+const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
+  width: 70px;
+  margin: 0 ${space(2)};
+  align-self: center;
+  display: flex;
+  justify-content: flex-end;
+
+  /* prettier-ignore */
+  @media (max-width: ${p =>
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
 const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
-  width: 80px;
+  width: 60px;
   margin: 0 ${space(2)};
   align-self: center;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

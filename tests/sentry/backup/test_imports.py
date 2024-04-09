@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import io
+import os
 import tarfile
 import tempfile
-from datetime import date, datetime
-from os import environ
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import patch
 
 import pytest
@@ -15,9 +14,12 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from django.db import connections, router
+from django.db.models import Model
 from django.utils import timezone
 
-from sentry.backup.dependencies import NormalizedModelName
+from sentry.backup.crypto import LocalFileDecryptor
+from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
     ImportingError,
@@ -27,9 +29,16 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.importchunk import (
+    ControlImportChunk,
+    ControlImportChunkReplica,
+    RegionImportChunk,
+)
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
@@ -45,15 +54,20 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.savedsearch import SavedSearch, Visibility
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
+from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
@@ -65,9 +79,13 @@ from sentry.testutils.helpers.backups import (
     is_control_model,
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
-from tests.sentry.backup import get_matching_exportable_models, mark, targets
+from tests.sentry.backup import (
+    expect_models,
+    get_matching_exportable_models,
+    verify_models_in_output,
+)
 
 
 class ImportTestCase(BackupTestCase):
@@ -78,13 +96,12 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@region_silo_test
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
 
-    def test_user_sanitized_in_user_scope(self):
+    def test_users_sanitized_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -105,7 +122,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -123,7 +142,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_user_sanitized_in_organization_scope(self):
+    def test_users_sanitized_in_organization_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -144,7 +163,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -193,7 +214,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -206,7 +229,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_users_unsanitized_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -239,7 +262,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 4
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 4
             )
             assert (
@@ -252,7 +277,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_generate_suffix_for_already_taken_organization(self):
         owner = self.create_user(email="testing@example.com")
@@ -270,8 +295,17 @@ class SanitizationTests(ImportTestCase):
         assert Organization.objects.count() == 2
         assert Organization.objects.filter(slug__icontains="some-org").count() == 2
         assert Organization.objects.filter(slug__iexact="some-org").count() == 1
+
         imported_organization = Organization.objects.get(slug__icontains="some-org-")
         assert imported_organization.id != existing_org.id
+
+        org_chunk = RegionImportChunk.objects.get(
+            model="sentry.organization", min_ordinal=1, max_ordinal=1
+        )
+        assert len(org_chunk.inserted_map) == 1
+        assert len(org_chunk.inserted_identifiers) == 1
+        for slug in org_chunk.inserted_identifiers.values():
+            assert slug.startswith("some-org-")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
@@ -307,23 +341,32 @@ class SanitizationTests(ImportTestCase):
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            self.create_user("testing@example.com")
+            self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w+") as tmp_file:
-                same_username_user = self.json_of_exhaustive_user_with_minimum_privileges()
-                copy_of_same_username_user = self.copy_user(
-                    same_username_user, "testing@example.com"
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+                json.dump(
+                    self.sort_in_memory_json(models),
+                    tmp_file,
                 )
-                json.dump(same_username_user + copy_of_same_username_user, tmp_file)
 
+            # Import twice, to check that new suffixes are assigned both times.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 3
-                assert User.objects.filter(username__icontains="testing@example.com").count() == 3
-                assert User.objects.filter(username__iexact="testing@example.com").count() == 1
-                assert User.objects.filter(username__icontains="testing@example.com-").count() == 2
+                assert (
+                    User.objects.filter(username__icontains="min_user")
+                    .values("username")
+                    .distinct()
+                    .count()
+                    == 3
+                )
+                assert User.objects.filter(username__iexact="min_user").count() == 1
+                assert User.objects.filter(username__icontains="min_user-").count() == 2
 
     def test_bad_invalid_user(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -343,38 +386,6 @@ class SanitizationTests(ImportTestCase):
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.user"
-
-    @patch("sentry.models.userip.geo_by_addr")
-    def test_good_regional_user_ip_in_user_scope(self, mock_geo_by_addr):
-        mock_geo_by_addr.return_value = {
-            "country_code": "US",
-            "region": "CA",
-            "subdivision": "San Francisco",
-        }
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
-                models = self.json_of_exhaustive_user_with_minimum_privileges()
-
-                # Modify the UserIP to be in California, USA.
-                for model in models:
-                    if model["model"] == "sentry.userip":
-                        model["fields"]["ip_address"] = "8.8.8.8"
-                json.dump(models, tmp_file)
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserIP.objects.count() == 1
-            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
-
-            # Unlike global scope, this time must be reset.
-            assert UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
 
     @patch("sentry.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
@@ -403,10 +414,92 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
             assert UserIP.objects.filter(country_code="US").exists()
             assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
 
             # Unlike org/user scope, this must NOT be reset.
-            assert not UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+            assert not UserIP.objects.filter(
+                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+            assert not UserIP.objects.filter(
+                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+
+    # Regression test for getsentry/self-hosted#2468.
+    @patch("sentry.models.userip.geo_by_addr")
+    def test_good_multiple_user_ips_per_user_in_global_scope(self, mock_geo_by_addr):
+        mock_geo_by_addr.return_value = {
+            "country_code": "US",
+            "region": "CA",
+            "subdivision": "San Francisco",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Modify the UserIP to be in California, USA.
+                for model in models:
+                    if model["model"] == "sentry.userip":
+                        model["fields"]["ip_address"] = "8.8.8.8"
+
+                # Add a two copies of the same IP - so the user now has 2 `UserIP` models for the IP
+                # `8.8.8.9`, 1 for `8.8.8.8`, and 1 for `8.8.8.7`. After import, we would expect to
+                # only see one model for each IP.
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 3,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.9",
+                            "country_code": "US",
+                            "region_code": "CA",
+                            "first_seen": "2013-04-05T03:29:45.000Z",
+                            "last_seen": "2013-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.9",
+                            "country_code": "CA",  # Incorrect value - importing should fix this.
+                            "region_code": "BC",  # Incorrect value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.7",
+                            "country_code": None,  # Unknown value - importing should fix this.
+                            "region_code": None,  # Unknown value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserIP.objects.count() == 3
+            assert UserIP.objects.filter(ip_address="8.8.8.9").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.8").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.7").count() == 1
+            assert UserIP.objects.filter(country_code="US").count() == 3
+            assert UserIP.objects.filter(region_code="CA").count() == 3
 
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -422,10 +515,114 @@ class SanitizationTests(ImportTestCase):
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
-                    import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+                    import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.userip"
+
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_user_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validations are scrubbed and regenerated in non-global scopes.
+            assert UserEmail.objects.filter(validation_hash="").count() == 0
+            assert UserEmail.objects.filter(is_verified=True).count() == 0
+
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_global_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validation hashes are not touched in the global scope.
+            assert UserEmail.objects.filter(validation_hash="").count() == 1
+            assert UserEmail.objects.filter(is_verified=True).count() == 2
 
     def test_bad_invalid_user_option(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -447,7 +644,6 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.useroption"
 
 
-@region_silo_test(stable=True)
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -524,7 +720,6 @@ class SignalingTests(ImportTestCase):
             self.test_import_signaling_organization()
 
 
-@region_silo_test(stable=True)
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -534,6 +729,8 @@ class ScopingTests(ImportTestCase):
     def verify_model_inclusion(scope: ImportScope):
         """
         Ensure all in-scope models are included, and that no out-of-scope models are included.
+        Additionally, we verify that each such model had an appropriate `*ImportChunk` written out
+        atomically alongside it.
         """
         included_models = get_matching_exportable_models(
             lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
@@ -544,11 +741,29 @@ class ScopingTests(ImportTestCase):
         )
 
         for model in included_models:
+            model_name_str = str(get_model_name(model))
             if is_control_model(model):
+                replica = ControlImportChunkReplica.objects.filter(model=model_name_str).first()
+                assert replica is not None
+
                 with assume_test_silo_mode(SiloMode.CONTROL):
                     assert model.objects.count() > 0
+
+                    control = ControlImportChunk.objects.filter(model=model_name_str).first()
+                    assert control is not None
+
+                    # Ensure that the region-silo replica and the control-silo original are
+                    # identical.
+                    common_fields = {f.name for f in ControlImportChunk._meta.get_fields()} - {
+                        "id",
+                        "date_added",
+                        "date_updated",
+                    }
+                    for field in common_fields:
+                        assert getattr(replica, field, None) == getattr(control, field, None)
             else:
                 assert model.objects.count() > 0
+                assert RegionImportChunk.objects.filter(model=model_name_str).count() == 1
 
         for model in excluded_models:
             if is_control_model(model):
@@ -566,6 +781,12 @@ class ScopingTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.User)
 
+        # Test that the import UUID is auto-assigned properly.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ControlImportChunk.objects.values("import_uuid").distinct().count() == 1
+
+        assert ControlImportChunkReplica.objects.values("import_uuid").distinct().count() == 1
+
     def test_organization_import_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
 
@@ -574,6 +795,17 @@ class ScopingTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Organization)
+
+        # Test that the import UUID is auto-assigned properly.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ControlImportChunk.objects.values("import_uuid").distinct().count() == 1
+
+        assert ControlImportChunkReplica.objects.values("import_uuid").distinct().count() == 1
+        assert RegionImportChunk.objects.values("import_uuid").distinct().count() == 1
+        assert (
+            ControlImportChunkReplica.objects.values("import_uuid").first()
+            == RegionImportChunk.objects.values("import_uuid").first()
+        )
 
     def test_config_import_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
@@ -584,6 +816,17 @@ class ScopingTests(ImportTestCase):
                 import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Config)
 
+        # Test that the import UUID is auto-assigned properly.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ControlImportChunk.objects.values("import_uuid").distinct().count() == 1
+
+        assert ControlImportChunkReplica.objects.values("import_uuid").distinct().count() == 1
+        assert RegionImportChunk.objects.values("import_uuid").distinct().count() == 1
+        assert (
+            ControlImportChunkReplica.objects.values("import_uuid").first()
+            == RegionImportChunk.objects.values("import_uuid").first()
+        )
+
     def test_global_import_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
 
@@ -593,10 +836,103 @@ class ScopingTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Global)
 
+        # Test that the import UUID is auto-assigned properly.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ControlImportChunk.objects.values("import_uuid").distinct().count() == 1
+
+        assert ControlImportChunkReplica.objects.values("import_uuid").distinct().count() == 1
+        assert RegionImportChunk.objects.values("import_uuid").distinct().count() == 1
+        assert (
+            ControlImportChunkReplica.objects.values("import_uuid").first()
+            == RegionImportChunk.objects.values("import_uuid").first()
+        )
+
+
+class DatabaseResetTests(ImportTestCase):
+    """
+    Ensure that database resets work as intended in different import scopes.
+    """
+
+    def import_empty_backup_file(self, import_fn):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_empty_file_path = tmp_dir + "empty_backup.json"
+            with open(tmp_empty_file_path, "w") as tmp_file:
+                json.dump([], tmp_file)
+            with open(tmp_empty_file_path, "rb") as empty_backup_json:
+                import_fn(empty_backup_json, printer=NOOP_PRINTER)
+
+    @pytest.mark.skipif(
+        os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
+        reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
+    )
+    def test_clears_existing_models_in_global_scope(self):
+        create_default_projects()
+        self.import_empty_backup_file(import_in_global_scope)
+
+        for dependency in dependencies():
+            model = get_model(dependency)
+            assert model is not None
+            assert model.objects.count() == 0
+            with connections[router.db_for_read(model)].cursor() as cursor:
+                cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")
+                sequence_number = cursor.fetchone()[0]
+                assert sequence_number == 1 or sequence_number is None
+
+        # During the setup of a fresh Sentry instance, there are a couple of models that are
+        # automatically created: the Sentry org, a Sentry team, and an internal project. During a
+        # global import, we want to avoid persisting these default models and start from scratch.
+        # These explicit assertions are here just to double check that these models have been wiped.
+        assert Project.objects.count() == 0
+        assert ProjectKey.objects.count() == 0
+        assert Organization.objects.count() == 0
+        assert OrganizationMember.objects.count() == 0
+        assert Team.objects.count() == 0
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            export_to_file(path, ExportScope.Global)
+            with open(path) as tmp_file:
+                assert tmp_file.read() == "[]"
+
+    def test_persist_existing_models_in_user_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_user_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_persist_existing_models_in_config_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_config_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_persist_existing_models_in_organization_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_organization_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class DecryptionTests(ImportTestCase):
     """
     Ensures that decryption actually works. We only test one model for each scope, because it's
@@ -604,7 +940,7 @@ class DecryptionTests(ImportTestCase):
     """
 
     @staticmethod
-    def encrypt_json_fixture(tmp_dir) -> Tuple[Path, Path]:
+    def encrypt_json_fixture(tmp_dir) -> tuple[Path, Path]:
         good_file_path = get_fixture_path("backup", "fresh-install.json")
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
 
@@ -630,7 +966,7 @@ class DecryptionTests(ImportTestCase):
             sha256 = hashes.SHA256()
             mgf = padding.MGF1(algorithm=sha256)
             oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
             tar_buffer = io.BytesIO()
             with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
@@ -654,11 +990,14 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_user_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -669,11 +1008,14 @@ class DecryptionTests(ImportTestCase):
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             assert Organization.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_organization_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -684,11 +1026,14 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_config_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -703,11 +1048,14 @@ class DecryptionTests(ImportTestCase):
                 assert User.objects.count() == 0
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_global_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -719,7 +1067,6 @@ class DecryptionTests(ImportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -736,13 +1083,31 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserIP`. Because `Email` and `UserEmail` have some automagic going on that
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
             # causes them to be created when a `User` is, we explicitly check to ensure that they
             # are behaving correctly as well.
             assert User.objects.count() == 1
-            assert UserIP.objects.count() == 1
             assert UserEmail.objects.count() == 1
             assert Email.objects.count() == 1
+
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                ).count()
+                == 1
+            )
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.useremail", min_ordinal=1, max_ordinal=1
+                ).count()
+                == 1
+            )
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.email", min_ordinal=1, max_ordinal=1
+                ).count()
+                == 1
+            )
 
             assert not User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
@@ -762,9 +1127,27 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 3
-            assert UserIP.objects.count() == 3
             assert UserEmail.objects.count() == 3
             assert Email.objects.count() == 2  # Lower due to shared emails
+
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.user", min_ordinal=1, max_ordinal=3
+                ).count()
+                == 1
+            )
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.useremail", min_ordinal=1, max_ordinal=3
+                ).count()
+                == 1
+            )
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.email", min_ordinal=1, max_ordinal=2
+                ).count()
+                == 1
+            )
 
             assert User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
@@ -782,7 +1165,6 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 0
-            assert UserIP.objects.count() == 0
             assert UserEmail.objects.count() == 0
             assert Email.objects.count() == 0
 
@@ -803,6 +1185,12 @@ class FilterTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, org_filter={"org-b"}, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 1
+        assert (
+            RegionImportChunk.objects.filter(
+                model="sentry.organization", min_ordinal=1, max_ordinal=1
+            ).count()
+            == 1
+        )
 
         assert not Organization.objects.filter(slug="org-a").exists()
         assert Organization.objects.filter(slug="org-b").exists()
@@ -812,7 +1200,6 @@ class FilterTests(ImportTestCase):
             assert OrgAuthToken.objects.count() == 1
 
             assert User.objects.count() == 4
-            assert UserIP.objects.count() == 4
             assert UserEmail.objects.count() == 4
             assert Email.objects.count() == 3  # Lower due to `shared@example.com`
 
@@ -842,6 +1229,12 @@ class FilterTests(ImportTestCase):
                 )
 
         assert Organization.objects.count() == 2
+        assert (
+            RegionImportChunk.objects.filter(
+                model="sentry.organization", min_ordinal=1, max_ordinal=2
+            ).count()
+            == 1
+        )
 
         assert Organization.objects.filter(slug="org-a").exists()
         assert not Organization.objects.filter(slug="org-b").exists()
@@ -849,9 +1242,14 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrgAuthToken.objects.count() == 2
+            assert (
+                ControlImportChunk.objects.filter(
+                    model="sentry.orgauthtoken", min_ordinal=1, max_ordinal=2
+                ).count()
+                == 1
+            )
 
             assert User.objects.count() == 5
-            assert UserIP.objects.count() == 5
             assert UserEmail.objects.count() == 5
             assert Email.objects.count() == 3  # Lower due to `shared@example.com`
 
@@ -884,7 +1282,6 @@ class FilterTests(ImportTestCase):
             assert OrgAuthToken.objects.count() == 0
 
             assert User.objects.count() == 0
-            assert UserIP.objects.count() == 0
             assert UserEmail.objects.count() == 0
             assert Email.objects.count() == 0
 
@@ -892,23 +1289,24 @@ class FilterTests(ImportTestCase):
 COLLISION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
     """
 
-    @targets(mark(COLLISION_TESTED, ApiToken))
-    def test_colliding_api_token(self):
+    @expect_models(COLLISION_TESTED, ApiToken)
+    def test_colliding_api_token(self, expected_models: list[type[Model]]):
         owner = self.create_exhaustive_user("owner")
         expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_no_refresh_set = ApiToken.objects.create(
-                user=owner, token=generate_token(), expires_at=expires_at
-            )
+            colliding_no_refresh_set = ApiToken.objects.create(user=owner, token=generate_token())
+            colliding_no_refresh_set.refresh_token = None
+            colliding_no_refresh_set.expires_at = None
+            colliding_no_refresh_set.save()
+
             colliding_same_refresh_only = ApiToken.objects.create(
                 user=owner,
                 token=generate_token(),
@@ -948,7 +1346,14 @@ class CollisionTests(ImportTestCase):
                 colliding_same_both.user_id = owner.id
                 colliding_same_both.save()
                 assert ApiToken.objects.count() == 4
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -965,12 +1370,19 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
 
             # Ensure that old tokens have not been mutated.
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert ApiToken.objects.count() == 8
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -986,11 +1398,21 @@ class CollisionTests(ImportTestCase):
                     == 1
                 )
 
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                # Ensure newly added entries with nulled `refresh_token` and/or `expires_at` have
+                # kept those fields nulled.
+                assert (
+                    ApiToken.objects.filter(
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 2
+                )
 
-    @targets(mark(COLLISION_TESTED, Monitor))
-    def test_colliding_monitor(self):
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, Monitor)
+    def test_colliding_monitor(self, expected_models: list[type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         self.create_exhaustive_organization("some-org", owner, invited)
@@ -1018,10 +1440,10 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, OrgAuthToken))
-    def test_colliding_org_auth_token(self):
+    @expect_models(COLLISION_TESTED, OrgAuthToken)
+    def test_colliding_org_auth_token(self, expected_models: list[type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1067,10 +1489,10 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ProjectKey))
-    def test_colliding_project_key(self):
+    @expect_models(COLLISION_TESTED, ProjectKey)
+    def test_colliding_project_key(self, expected_models: list[type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1100,7 +1522,7 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
     @pytest.mark.xfail(
         not use_split_dbs(),
@@ -1108,8 +1530,8 @@ class CollisionTests(ImportTestCase):
         raises=urllib3.exceptions.MaxRetryError,
         strict=True,
     )
-    @targets(mark(COLLISION_TESTED, QuerySubscription))
-    def test_colliding_query_subscription(self):
+    @expect_models(COLLISION_TESTED, QuerySubscription)
+    def test_colliding_query_subscription(self, expected_models: list[type[Model]]):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
         with self.tasks():
@@ -1157,10 +1579,42 @@ class CollisionTests(ImportTestCase):
                 )
 
                 with open(tmp_path, "rb") as tmp_file:
-                    return json.load(tmp_file)
+                    verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, SavedSearch)
+    def test_colliding_saved_search(self, expected_models: list[type[Model]]):
+        self.create_organization("some-org", owner=self.user)
+        SavedSearch.objects.create(
+            name="Global Search",
+            query="saved query",
+            is_global=True,
+            visibility=Visibility.ORGANIZATION,
+        )
+        assert SavedSearch.objects.count() == 1
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            assert SavedSearch.objects.count() == 0
+
+            # Allow `is_global` searches for `ImportScope.Global` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            # Disallow `is_global` searches for `ImportScope.Organization` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
+        self, expected_models: list[type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1208,16 +1662,40 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
                 )
 
+            option_chunk = RegionImportChunk.objects.get(
+                model="sentry.option", min_ordinal=1, max_ordinal=1
+            )
+            assert len(option_chunk.inserted_map) == 0
+            assert len(option_chunk.existing_map) == 0
+            assert len(option_chunk.overwrite_map) == 1
             assert Option.objects.count() == 1
             assert Option.objects.filter(value__exact="a").exists()
 
+            relay_chunk = RegionImportChunk.objects.get(
+                model="sentry.relay", min_ordinal=1, max_ordinal=1
+            )
+            assert len(relay_chunk.inserted_map) == 0
+            assert len(relay_chunk.existing_map) == 0
+            assert len(relay_chunk.overwrite_map) == 1
             assert Relay.objects.count() == 1
             assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
 
+            relay_usage_chunk = RegionImportChunk.objects.get(
+                model="sentry.relayusage", min_ordinal=1, max_ordinal=1
+            )
+            assert len(relay_usage_chunk.inserted_map) == 0
+            assert len(relay_usage_chunk.existing_map) == 0
+            assert len(relay_usage_chunk.overwrite_map) == 1
             assert RelayUsage.objects.count() == 1
             assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                control_option_chunk = ControlImportChunk.objects.get(
+                    model="sentry.controloption", min_ordinal=1, max_ordinal=1
+                )
+                assert len(control_option_chunk.inserted_map) == 0
+                assert len(control_option_chunk.existing_map) == 0
+                assert len(control_option_chunk.overwrite_map) == 1
                 assert ControlOption.objects.count() == 1
                 assert ControlOption.objects.filter(value__exact="b").exists()
 
@@ -1227,10 +1705,12 @@ class CollisionTests(ImportTestCase):
                     assert actual_permission == old_user_role_permissions[i]
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
+        self, expected_models: list[type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1274,16 +1754,40 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
 
+            option_chunk = RegionImportChunk.objects.get(
+                model="sentry.option", min_ordinal=1, max_ordinal=1
+            )
+            assert len(option_chunk.inserted_map) == 0
+            assert len(option_chunk.existing_map) == 1
+            assert len(option_chunk.overwrite_map) == 0
             assert Option.objects.count() == 1
             assert Option.objects.filter(value__exact="y").exists()
 
+            relay_chunk = RegionImportChunk.objects.get(
+                model="sentry.relay", min_ordinal=1, max_ordinal=1
+            )
+            assert len(relay_chunk.inserted_map) == 0
+            assert len(relay_chunk.existing_map) == 1
+            assert len(relay_chunk.overwrite_map) == 0
             assert Relay.objects.count() == 1
             assert Relay.objects.filter(public_key__exact="invalid").exists()
 
+            relay_usage_chunk = RegionImportChunk.objects.get(
+                model="sentry.relayusage", min_ordinal=1, max_ordinal=1
+            )
+            assert len(relay_usage_chunk.inserted_map) == 0
+            assert len(relay_usage_chunk.existing_map) == 1
+            assert len(relay_usage_chunk.overwrite_map) == 0
             assert RelayUsage.objects.count() == 1
             assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                control_option_chunk = ControlImportChunk.objects.get(
+                    model="sentry.controloption", min_ordinal=1, max_ordinal=1
+                )
+                assert len(control_option_chunk.inserted_map) == 0
+                assert len(control_option_chunk.existing_map) == 1
+                assert len(control_option_chunk.overwrite_map) == 0
                 assert ControlOption.objects.count() == 1
                 assert ControlOption.objects.filter(value__exact="z").exists()
 
@@ -1293,146 +1797,12 @@ class CollisionTests(ImportTestCase):
                 assert actual_user_role.permissions[0] == "other.admin"
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_enabled_in_global_scope(self):
-        owner = self.create_exhaustive_user("owner", is_admin=True)
-        self.create_exhaustive_global_configs(owner)
-
-        # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
-
-        old_relay_public_key = colliding_relay.public_key
-        old_relay_usage_public_key = colliding_relay_usage.public_key
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
-            old_user_role_permissions = colliding_user_role.permissions
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-
-            colliding_option.value = "y"
-            colliding_option.save()
-
-            colliding_relay.public_key = "invalid"
-            colliding_relay.save()
-
-            colliding_relay_usage.public_key = "invalid"
-            colliding_relay_usage.save()
-
-            assert Option.objects.count() == 1
-            assert Relay.objects.count() == 1
-            assert RelayUsage.objects.count() == 1
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                colliding_control_option.value = "z"
-                colliding_control_option.save()
-
-                colliding_user_role.permissions = ["other.admin"]
-                colliding_user_role.save()
-
-                assert ControlOption.objects.count() == 1
-                assert UserRole.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(
-                    tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
-                )
-
-            assert Option.objects.count() == 1
-            assert Option.objects.filter(value__exact="a").exists()
-
-            assert Relay.objects.count() == 1
-            assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
-
-            assert RelayUsage.objects.count() == 1
-            assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert ControlOption.objects.count() == 1
-                assert ControlOption.objects.filter(value__exact="b").exists()
-
-                actual_user_role = UserRole.objects.first()
-                assert len(actual_user_role.permissions) == len(old_user_role_permissions)
-                for i, actual_permission in enumerate(actual_user_role.permissions):
-                    assert actual_permission == old_user_role_permissions[i]
-
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
-
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_disabled_in_global_scope(self):
-        owner = self.create_exhaustive_user("owner", is_admin=True)
-        self.create_exhaustive_global_configs(owner)
-
-        # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-
-            colliding_option.value = "y"
-            colliding_option.save()
-
-            colliding_relay.public_key = "invalid"
-            colliding_relay.save()
-
-            colliding_relay_usage.public_key = "invalid"
-            colliding_relay_usage.save()
-
-            assert Option.objects.count() == 1
-            assert Relay.objects.count() == 1
-            assert RelayUsage.objects.count() == 1
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                colliding_control_option.value = "z"
-                colliding_control_option.save()
-
-                colliding_user_role.permissions = ["other.admin"]
-                colliding_user_role.save()
-
-                assert ControlOption.objects.count() == 1
-                assert UserRole.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(
-                    tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
-                )
-
-            assert Option.objects.count() == 1
-            assert Option.objects.filter(value__exact="y").exists()
-
-            assert Relay.objects.count() == 1
-            assert Relay.objects.filter(public_key__exact="invalid").exists()
-
-            assert RelayUsage.objects.count() == 1
-            assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert ControlOption.objects.count() == 1
-                assert ControlOption.objects.filter(value__exact="z").exists()
-
-                assert UserRole.objects.count() == 1
-                actual_user_role = UserRole.objects.first()
-                assert len(actual_user_role.permissions) == 1
-                assert actual_user_role.permissions[0] == "other.admin"
-
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
-
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_enabled_in_user_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail)
+    def test_colliding_user_with_merging_enabled_in_user_scope(
+        self, expected_models: list[type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1447,26 +1817,36 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 1
-                assert UserIP.objects.count() == 1
-                assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
+                assert UserEmail.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 0
+                assert len(user_chunk.existing_map) == 1
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
                 assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
-
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                # Incoming `UserEmail`s and `UserPermissions` for imported users are completely
+                # scrubbed when merging is enabled.
+                assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
+                assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_disabled_in_user_scope(self):
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail)
+    def test_colliding_user_with_merging_disabled_in_user_scope(
+        self, expected_models: list[type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1481,11 +1861,15 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 1
+                assert len(user_chunk.existing_map) == 0
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert User.objects.filter(username__icontains="owner-").exists()
 
@@ -1493,16 +1877,21 @@ class CollisionTests(ImportTestCase):
                 assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
+                useremail_chunk = ControlImportChunk.objects.get(
+                    model="sentry.useremail", min_ordinal=1, max_ordinal=1
+                )
+                assert len(useremail_chunk.inserted_map) == 1
+                assert len(useremail_chunk.existing_map) == 0
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
-    )
-    def test_colliding_user_with_merging_enabled_in_organization_scope(self):
+    @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
+    def test_colliding_user_with_merging_enabled_in_organization_scope(
+        self, expected_models: list[type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -1521,11 +1910,15 @@ class CollisionTests(ImportTestCase):
                 user = User.objects.get(username="owner")
 
                 assert User.objects.count() == 1
-                assert UserIP.objects.count() == 1
-                assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
+                assert UserEmail.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 0
+                assert len(user_chunk.existing_map) == 1
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert not User.objects.filter(username__icontains="owner-").exists()
 
@@ -1535,6 +1928,11 @@ class CollisionTests(ImportTestCase):
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
+
+                # Incoming `UserEmail`s, and `UserPermissions` for imported users are completely
+                # dropped when merging is enabled.
+                assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
+                assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             assert Organization.objects.count() == 2
             assert OrganizationMember.objects.count() == 2  # Same user in both orgs
@@ -1561,12 +1959,12 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
-    )
-    def test_colliding_user_with_merging_disabled_in_organization_scope(self):
+    @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
+    def test_colliding_user_with_merging_disabled_in_organization_scope(
+        self, expected_models: list[type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -1586,11 +1984,15 @@ class CollisionTests(ImportTestCase):
                 imported_user = User.objects.get(username__icontains="owner-")
 
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 1
+                assert len(user_chunk.existing_map) == 0
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert User.objects.filter(username__icontains="owner-").exists()
 
@@ -1598,6 +2000,11 @@ class CollisionTests(ImportTestCase):
                 assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
+                useremail_chunk = ControlImportChunk.objects.get(
+                    model="sentry.useremail", min_ordinal=1, max_ordinal=1
+                )
+                assert len(useremail_chunk.inserted_map) == 1
+                assert len(useremail_chunk.existing_map) == 0
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
@@ -1630,10 +2037,12 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
+    def test_colliding_user_with_merging_enabled_in_config_scope(
+        self, expected_models: list[type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1650,12 +2059,16 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 1
-                assert UserIP.objects.count() == 1
-                assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
-                assert UserPermission.objects.count() == 1
+                assert UserEmail.objects.count() == 1  # Keep only original when merging.
+                assert UserPermission.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 0
+                assert len(user_chunk.existing_map) == 1
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
@@ -1666,11 +2079,18 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                # Incoming `UserEmail`s, and `UserPermissions` for imported users are completely
+                # dropped when merging is enabled.
+                assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
+                assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_disabled_in_config_scope(self):
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
+    def test_colliding_user_with_merging_disabled_in_config_scope(
+        self, expected_models: list[type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1687,12 +2107,16 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert UserPermission.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
 
+                user_chunk = ControlImportChunk.objects.get(
+                    model="sentry.user", min_ordinal=1, max_ordinal=1
+                )
+                assert len(user_chunk.inserted_map) == 1
+                assert len(user_chunk.existing_map) == 0
                 assert User.objects.filter(username__iexact="owner").exists()
                 assert User.objects.filter(username__icontains="owner-").exists()
 
@@ -1700,14 +2124,260 @@ class CollisionTests(ImportTestCase):
                 assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
+                useremail_chunk = ControlImportChunk.objects.get(
+                    model="sentry.useremail", min_ordinal=1, max_ordinal=1
+                )
+                assert len(useremail_chunk.inserted_map) == 1
+                assert len(useremail_chunk.existing_map) == 0
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
 
-@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
+
+
+# There is no need to in both monolith and region mode for model-level unit tests - region mode
+# testing along should suffice.
+class CustomImportBehaviorTests(ImportTestCase):
+    """
+    Test bespoke, per-model behavior. Since these tests are relatively expensive to set up and tear
+    down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
+    as much as reasonably possible.
+    """
+
+    # TODO(hybrid-cloud): actor refactor. Remove this test case when done.
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule)
+    def test_alert_rule_with_owner_id(self, expected_models: list[type[Model]]):
+        user = self.create_user()
+        org = self.create_organization(name="test-org", owner=user)
+        team = self.create_team(name="test-team", organization=org)
+
+        def create_fake_snuba_query() -> SnubaQuery:
+            return create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="level:error",
+                aggregate="count()",
+                time_window=timedelta(minutes=10),
+                resolution=timedelta(minutes=1),
+                environment=None,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+
+        # Create four `AlertRule`. Both of them fell through the `owner_id` migration, and therefore
+        # DO have an `owner_id`, but have NEITHER a `team_id` nor `user_id`.
+        #
+        # For the first two `AlertRule` rules, we'll include an `Actor` model with the correct data,
+        # meaning we just have to do a DB lookup, but the model import should go ahead as if the
+        # migration had been successful. For the third `AlertRule`, the `Actor` will also have both
+        # `team` and `user` set to null. Finally, the last instance will have no `Actor` at all.
+        #
+        # The expected result is that the first two instances succeed, while the last two are
+        # ignored.]
+        common_alert_rule_args = {
+            "organization": org,
+            "threshold_type": AlertRuleThresholdType.ABOVE.value,
+            "resolve_threshold": 10,
+            "threshold_period": 1,
+            "include_all_projects": False,
+            "comparison_delta": None,
+        }
+
+        # Use `bulk_create` to avoid the `.save()` checks that catch some otherwise invalid data -
+        # the whole point of this test is to ensure we gracefully recover when importing such data!
+        AlertRule.objects.bulk_create(
+            [
+                AlertRule(
+                    name="user-alert-rule",
+                    owner=Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="team-alert-rule",
+                    owner=Actor.objects.get(team=team, type=ACTOR_TYPES["team"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="null-alert-rule",
+                    owner=Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="unowned-alert-rule",
+                    owner=None,
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            user_alert_rule: AlertRule = AlertRule.objects.get(name="user-alert-rule")
+            user_actor: Actor = Actor.objects.get(id=user_alert_rule.owner_id)
+            assert user_alert_rule.owner is not None
+            assert user_alert_rule.user_id == user_actor.user_id
+            assert user_alert_rule.team is None
+            assert user_actor.team is None
+
+            team_alert_rule: AlertRule = AlertRule.objects.get(name="team-alert-rule")
+            team_actor: Actor = Actor.objects.get(id=team_alert_rule.owner_id)
+            assert team_alert_rule.owner is not None
+            assert team_alert_rule.team == team_actor.team
+            assert team_alert_rule.user_id is None
+            assert team_actor.user_id is None
+
+            null_alert_rule: AlertRule = AlertRule.objects.get(name="null-alert-rule")
+            unowned_alert_rule: AlertRule = AlertRule.objects.get(name="unowned-alert-rule")
+            assert null_alert_rule.owner is None
+            assert unowned_alert_rule.owner is None
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):
+        admin = self.create_exhaustive_user("admin", email="admin@test.com", is_superuser=True)
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        org = self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+            invites={
+                admin: "invited-by-admin@test.com",
+                owner: "invited-by-owner@test.com",
+            },
+        )
+
+        # Give each member an inviter that is not in the organization itself (the "admin"), meaning
+        # they will not be imported if we only filter down to `test-org`. The desired outcome is
+        # that the inviter is nulled out.
+        for org_member in OrganizationMember.objects.filter(organization=org):
+            if not org_member.inviter_id:
+                org_member.inviter_id = admin.id
+                org_member.save()
+        assert (
+            OrganizationMember.objects.filter(organization=org.id, inviter_id__isnull=False).count()
+            == 4
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    printer=NOOP_PRINTER,
+                )
+
+            # `owner` and `member` should both have had their `inviter_id` scrubbed.
+            org_id = Organization.objects.get(slug="test-org").id
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="owner@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="member@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+
+            # The invitee invited by the not-imported `admin` should lose their `inviter_id`, but
+            # the one invited by `owner` should keep it.
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-admin@test.com",
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-owner@test.com",
+                inviter_id__isnull=False,
+            ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # Original IDs are retained, to preserve DSNs after a global import.
+            assert set(imported_proj_ids) == set(existing_proj_ids)
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # IDs are re-assigned in non-global import scopes.
+            assert set(imported_proj_ids).isdisjoint(set(existing_proj_ids))
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+
+@pytest.mark.skipif(reason="not legacy")
 class TestLegacyTestSuite:
     def test_deleteme(self):
         """

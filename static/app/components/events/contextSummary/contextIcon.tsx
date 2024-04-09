@@ -25,6 +25,7 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
+import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -42,12 +43,11 @@ import logoWindows from 'sentry-logos/logo-windows.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {IconSize} from 'sentry/utils/theme';
+import type {IconSize} from 'sentry/utils/theme';
 
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
   'android-tablet': logoAndroidTablet,
-  'chrome-mobile': logoChrome,
   'chrome-mobile-ios': logoChrome,
   'google-chrome': logoChrome,
   'internet-explorer': logoIe,
@@ -55,6 +55,7 @@ const LOGO_MAPPING = {
   'mac-os-x': logoApple,
   'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
+  'nintendo-switch': logoNintendoSwitch,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,

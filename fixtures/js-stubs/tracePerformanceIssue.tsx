@@ -1,6 +1,6 @@
 import {TracePerformanceIssue as PerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
-export function TracePerformanceIssue(
+export function TracePerformanceIssueFixture(
   params: Partial<PerformanceIssue> = {}
 ): PerformanceIssue {
   return {

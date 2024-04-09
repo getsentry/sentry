@@ -1,5 +1,5 @@
 import {Fragment, useCallback} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
@@ -8,15 +8,15 @@ import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
+import type {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -237,8 +237,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
           query
             ? t('No artifacts match your search query.')
             : tabDebugIdBundlesActive
-            ? t('There are no artifacts in this bundle.')
-            : t('There are no artifacts in this archive.')
+              ? t('There are no artifacts in this bundle.')
+              : t('There are no artifacts in this archive.')
         }
         isEmpty={
           (tabDebugIdBundlesActive

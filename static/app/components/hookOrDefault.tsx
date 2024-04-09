@@ -1,7 +1,8 @@
-import {ComponentProps, lazy, Suspense, useEffect, useState} from 'react';
+import type {ComponentProps} from 'react';
+import {lazy, Suspense, useEffect, useState} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Params<H extends HookName> {
   /**
@@ -11,7 +12,7 @@ interface Params<H extends HookName> {
   /**
    * Component that will be shown if no hook is available
    */
-  defaultComponent?: ReturnType<Hooks[H]>;
+  defaultComponent?: ReturnType<Hooks[H]> | (() => ReturnType<Hooks[H]>);
   /**
    * This is a function that returns a promise (more specifically a function
    * that returns the result of a dynamic import using `import()`. This will
@@ -83,7 +84,7 @@ function HookOrDefault<H extends HookName>({
       };
     }, []);
 
-    const hookExists = hooks && hooks.length;
+    const hookExists = hooks?.length;
     const componentFromHook = hooks[0]?.();
     // Defining the props here is unnecessary and slow for typescript
     const HookComponent: React.ComponentType<any> =

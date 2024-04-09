@@ -8,6 +8,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
@@ -28,10 +29,11 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
 
@@ -45,7 +47,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return serialize(items, request.user, serializer=serializer_cls())
 
     def _secondary_filtering(self, request: Request, organization_slug, queryset):
-        # used in the SASS product
+        # used in the SAAS product
         return list(queryset)
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):

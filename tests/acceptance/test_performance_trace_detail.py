@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -14,7 +14,7 @@ def make_span_id() -> str:
     return uuid4().hex[:16]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
     def create_error(self, platform, trace_id, span_id, project_id, timestamp):
         data = load_data(platform, timestamp=timestamp)
@@ -189,7 +189,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)

@@ -1,25 +1,22 @@
 import {useCallback} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/gridEditable';
+import {DateTime} from 'sentry/components/dateTime';
+import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -313,6 +310,7 @@ const FIELDS = [
   'os.name',
   'os.version',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -325,6 +323,7 @@ type FieldType = (typeof FIELDS)[number];
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',
   'profile.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -448,9 +447,14 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     name: t('Last Seen'),
     width: COL_WIDTH_UNDEFINED,
   },
+  'p50()': {
+    key: 'p50()',
+    name: t('P50()'),
+    width: COL_WIDTH_UNDEFINED,
+  },
   'p75()': {
     key: 'p75()',
-    name: t('P75'),
+    name: t('P75()'),
     width: COL_WIDTH_UNDEFINED,
   },
   'p95()': {

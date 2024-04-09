@@ -1,13 +1,13 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
-import {
+import type {
   TreeLike,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import type {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
+import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
-import {VirtualizedState} from './useVirtualizedTreeReducer';
+import type {VirtualizedState} from './useVirtualizedTreeReducer';
 
 export function updateGhostRow({
   element,

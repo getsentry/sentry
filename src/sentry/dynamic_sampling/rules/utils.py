@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
+from typing import Any, Literal, NotRequired, TypedDict, Union
 
 from django.conf import settings
-from typing_extensions import NotRequired
+from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.utils import json, redis
@@ -45,7 +45,7 @@ class RuleType(Enum):
     CUSTOM_RULE = "customRule"
 
 
-DEFAULT_BIASES: List[ActivatableBias] = [
+DEFAULT_BIASES: list[ActivatableBias] = [
     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
@@ -95,31 +95,67 @@ class EqConditionOptions(TypedDict):
 class EqCondition(TypedDict):
     op: Literal["eq"]
     name: str
-    value: Union[List[str], None]
+    value: list[str] | None
     options: EqConditionOptions
+
+
+class GteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class GtCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LtCondition(TypedDict):
+    name: str
+    value: list[str] | None
 
 
 class GlobCondition(TypedDict):
     op: Literal["glob"]
     name: str
-    value: List[str]
+    value: list[str]
 
 
 class Condition(TypedDict):
     op: Literal["and", "or", "not"]
-    inner: Union[Union[EqCondition, GlobCondition], List[Union[EqCondition, GlobCondition]]]
+    inner: (
+        EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | list[EqCondition | GlobCondition]
+    )
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Union[Condition, GlobCondition, EqCondition]
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+    )
     id: int
 
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: NotRequired[Optional[str]]
+    decayedValue: NotRequired[str | None]
 
 
 class DecayingRule(Rule):
@@ -131,7 +167,7 @@ class DecayingRule(Rule):
 PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: Rule) -> Optional[RuleType]:
+def get_rule_type(rule: Rule) -> RuleType | None:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -167,7 +203,7 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
     ).__hash__()
 
 
-def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
+def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
     sampling = rule["samplingValue"]
     if sampling["type"] == "reservoir":
         return sampling["type"], float(sampling["limit"])
@@ -177,14 +213,14 @@ def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
         return None
 
 
-def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+def _deep_sorted(value: Any | dict[Any, Any]) -> Any | dict[Any, Any]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
 
 
-def get_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> List[ActivatableBias]:
+def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
 
@@ -199,12 +235,12 @@ def get_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> List[Ac
     return returned_biases
 
 
-def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> Set[str]:
+def get_enabled_user_biases(user_set_biases: list[ActivatableBias] | None) -> set[str]:
     users_biases = get_user_biases(user_set_biases)
     return {bias["id"] for bias in users_biases if bias["active"]}
 
 
-def get_supported_biases_ids() -> List[str]:
+def get_supported_biases_ids() -> list[str]:
     return sorted({bias["id"] for bias in DEFAULT_BIASES})
 
 
@@ -227,6 +263,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> Any:
+def get_redis_client_for_ds() -> RedisCluster:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Mapping, MutableMapping, TypeVar
+from collections.abc import Mapping, MutableMapping
+from typing import TypeVar
 
 from django.conf import settings
 
@@ -19,6 +20,7 @@ LEGACY_KEY_MAPPING = {
     "request": ("sentry.interfaces.Http",),
     "user": ("sentry.interfaces.User",),
     "csp": ("sentry.interfaces.Csp",),
+    "nel": ("sentry.interfaces.Nel",),
     "breadcrumbs": ("sentry.interfaces.Breadcrumbs",),
     "contexts": ("sentry.interfaces.Contexts",),
     "threads": ("sentry.interfaces.Threads",),
@@ -35,6 +37,7 @@ CANONICAL_KEY_MAPPING = {
     "sentry.interfaces.Http": ("request",),
     "sentry.interfaces.User": ("user",),
     "sentry.interfaces.Csp": ("csp",),
+    "sentry.interfaces.Nel": ("nel",),
     "sentry.interfaces.Breadcrumbs": ("breadcrumbs",),
     "sentry.interfaces.Contexts": ("contexts",),
     "sentry.interfaces.Threads": ("threads",),

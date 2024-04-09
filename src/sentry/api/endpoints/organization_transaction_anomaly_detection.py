@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.net.http import connection_from_url
 from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.utils import json
@@ -66,7 +66,7 @@ def get_time_params(start: datetime, end: datetime) -> MappedParams:
         granularity = 600
 
     additional_time_needed = snuba_range - anomaly_detection_range
-    now = datetime.utcnow().astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
     start_limit = now - timedelta(days=90)
     end_limit = now
     start = max(start, start_limit)
@@ -129,7 +129,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         query_params["start"] = time_params.query_start
         query_params["end"] = time_params.query_end
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             snuba_response = timeseries_query(
                 selected_columns=["count()"],
                 query=query,

@@ -86,7 +86,7 @@ describe('EventIdField', function () {
     ).toBeInTheDocument();
   });
 
-  it('INVALID status', function () {
+  it('INVALID status', async function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -94,12 +94,12 @@ describe('EventIdField', function () {
       />
     );
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
 
     expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
   });
 
-  it('NOTFOUND status', function () {
+  it('NOTFOUND status', async function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -107,7 +107,7 @@ describe('EventIdField', function () {
       />
     );
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
 
     expect(
       screen.getByText('The chosen event ID was not found in projects you have access to')

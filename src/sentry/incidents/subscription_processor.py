@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import logging
 import operator
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -20,10 +22,14 @@ from sentry.incidents.logic import (
     deduplicate_trigger_actions,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    invoke_alert_subscription_callback,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -33,7 +39,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -45,8 +51,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import RetryingRedisCluster
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -60,7 +65,7 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 # check is applied
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
-CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 T = TypeVar("T")
 
@@ -110,7 +115,7 @@ class SubscriptionProcessor:
         self._active_incident = active_incident
 
     @property
-    def incident_triggers(self) -> Dict[int, IncidentTrigger]:
+    def incident_triggers(self) -> dict[int, IncidentTrigger]:
         if not hasattr(self, "_incident_triggers"):
             incident = self.active_incident
             incident_triggers = {}
@@ -177,8 +182,8 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: SubscriptionUpdate, aggregation_value: float
-    ) -> Optional[float]:
+        self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
+    ) -> float | None:
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
@@ -227,8 +232,8 @@ class SubscriptionProcessor:
         return result
 
     def get_crash_rate_alert_aggregation_value(
-        self, subscription_update: SubscriptionUpdate
-    ) -> Optional[float]:
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -279,10 +284,12 @@ class SubscriptionProcessor:
         return aggregation_value_result
 
     def get_crash_rate_alert_metrics_aggregation_value(
-        self, subscription_update: SubscriptionUpdate
-    ) -> Optional[float]:
-        """Handle both update formats. Once all subscriptions have been updated
-        to v2, we can remove v1 and replace this function with current v2.
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> float | None:
+        """
+        Handle both update formats.
+        Once all subscriptions have been updated to v2,
+        we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
         if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
@@ -300,8 +307,8 @@ class SubscriptionProcessor:
         return result
 
     def _get_crash_rate_alert_metrics_aggregation_value_v1(
-        self, subscription_update: SubscriptionUpdate
-    ) -> Optional[float]:
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -349,8 +356,8 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def _get_crash_rate_alert_metrics_aggregation_value_v2(
-        self, subscription_update: SubscriptionUpdate
-    ) -> Optional[float]:
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -386,7 +393,7 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: SubscriptionUpdate) -> Optional[float]:
+    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
         elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
@@ -408,7 +415,10 @@ class SubscriptionProcessor:
                 )
         return aggregation_value
 
-    def process_update(self, subscription_update: SubscriptionUpdate) -> None:
+    def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
+        """
+        This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
+        """
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -477,10 +487,20 @@ class SubscriptionProcessor:
             except Exception:
                 logger.exception("Failed to log subscription results for session subscription")
 
+        # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        # TODO: register over/under triggers as alert rule callbacks as well
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type),
+            subscription=self.subscription,
+            alert_rule=self.alert_rule,
+            value=aggregation_value,
+        )
+
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
 
+        # OVER/UNDER value trigger
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
@@ -552,38 +572,35 @@ class SubscriptionProcessor:
         """
         self.trigger_alert_counts[trigger.id] += 1
 
-        if features.has(
-            "organizations:metric-alert-rate-limiting", self.subscription.project.organization
+        # If an incident was created for this rule, trigger type, and subscription
+        # within the last 10 minutes, don't make another one
+        last_it = (
+            IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
+            .order_by("-incident_id")
+            .select_related("incident")
+            .first()
+        )
+        last_incident: Incident | None = last_it.incident if last_it else None
+        last_incident_projects = (
+            [project.id for project in last_incident.projects.all()] if last_incident else []
+        )
+        minutes_since_last_incident = (
+            (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
+        )
+        if (
+            last_incident
+            and self.subscription.project.id in last_incident_projects
+            and minutes_since_last_incident <= 10
         ):
-            # If an incident was created for this rule, trigger type, and subscription
-            # within the last 10 minutes, don't make another one
-            last_it = (
-                IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
-                .order_by("-incident_id")
-                .select_related("incident")
-                .first()
+            metrics.incr(
+                "incidents.alert_rules.hit_rate_limit",
+                tags={
+                    "last_incident_id": last_incident.id,
+                    "project_id": self.subscription.project.id,
+                    "trigger_id": trigger.id,
+                },
             )
-            last_incident: Incident | None = last_it.incident if last_it else None
-            last_incident_projects = (
-                [project.id for project in last_incident.projects.all()] if last_incident else []
-            )
-            minutes_since_last_incident = (
-                (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
-            )
-            if (
-                last_incident
-                and self.subscription.project.id in last_incident_projects
-                and minutes_since_last_incident <= 10
-            ):
-                metrics.incr(
-                    "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": last_incident.id,
-                        "project_id": self.subscription.project.id,
-                        "trigger_id": trigger.id,
-                    },
-                )
-                return None
+            return None
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
 
@@ -671,7 +688,7 @@ class SubscriptionProcessor:
             return None
 
     def handle_trigger_actions(
-        self, incident_triggers: List[IncidentTrigger], metric_value: float
+        self, incident_triggers: list[IncidentTrigger], metric_value: float
     ) -> None:
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
@@ -786,7 +803,7 @@ class SubscriptionProcessor:
         )
 
 
-def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> List[str]:
+def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> list[str]:
     """
     Builds keys for fetching stats about alert rules
     :return: A list containing the alert rule stat keys
@@ -796,8 +813,8 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
 
 
 def build_trigger_stat_keys(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> List[str]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> list[str]:
     """
     Builds keys for fetching stats about triggers
     :return: A list containing the alert rule trigger stat keys
@@ -830,8 +847,8 @@ def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
 
 
 def get_alert_rule_stats(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> Tuple[datetime, Dict[str, int], Dict[str, int]]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> tuple[datetime, dict[str, int], dict[str, int]]:
     """
     Fetches stats about the alert rule, specific to the current subscription
     :return: A tuple containing the stats about the alert rule and subscription.
@@ -865,8 +882,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[int, int],
-    resolve_counts: Dict[int, int],
+    alert_counts: dict[int, int],
+    resolve_counts: dict[int, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.
@@ -885,10 +902,10 @@ def update_alert_rule_stats(
             )
 
     last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
+    pipeline.set(last_update_key, int(last_update.timestamp()), ex=REDIS_TTL)
     pipeline.execute()
 
 
 def get_redis_client() -> RetryingRedisCluster:
     cluster_key = settings.SENTRY_INCIDENT_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

@@ -15,12 +15,13 @@ import {
   TaskSidebar,
   TaskSidebarList,
 } from 'sentry/components/sidebar/taskSidebar';
-import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import type {Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -48,11 +49,6 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    // If we already picked a project, don't do anything
-    if (currentProject) {
-      return;
-    }
-
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
@@ -214,9 +210,13 @@ function OnboardingContent({
   }, [currentProject, previousProject]);
 
   const docKeysMap = useMemo(() => makeDocKeyMap(currentPlatform?.id), [currentPlatform]);
+  const docKeys = useMemo(
+    () => (docKeysMap ? Object.values(docKeysMap) : []),
+    [docKeysMap]
+  );
 
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
-    docKeys: docKeysMap ? Object.values(docKeysMap) : [],
+    docKeys,
     project: currentProject,
     isPlatformSupported: isSupported,
   });

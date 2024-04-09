@@ -18,8 +18,8 @@ from sentry.utils.snuba import raw_query
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:
@@ -57,7 +57,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def delete(self, request: Request, group) -> Response:
         id_list = request.GET.getlist("id")
-        if id_list is None:
+        if not id_list:
             return Response()
 
         hash_list = list(
@@ -73,7 +73,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             "grouping.unmerge_issues",
             sample_rate=1.0,
             # We assume that if someone's merged groups, they were all from the same platform
-            tags={"platform": group.platform or "unknown"},
+            tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
         unmerge.delay(

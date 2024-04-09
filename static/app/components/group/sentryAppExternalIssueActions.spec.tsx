@@ -1,6 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {
   render,
@@ -12,9 +16,9 @@ import {
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
-  const group = TestStubs.Group();
-  const sentryApp = SentryApp();
-  const component = TestStubs.SentryAppComponent({
+  const group = GroupFixture();
+  const sentryApp = SentryAppFixture();
+  const component = SentryAppComponentFixture({
     sentryApp: {
       uuid: sentryApp.uuid,
       slug: sentryApp.slug,
@@ -23,10 +27,10 @@ describe('SentryAppExternalIssueActions', () => {
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
-  const install = SentryAppInstallation({});
+  const install = SentryAppInstallationFixture({});
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
-  const externalIssue = TestStubs.PlatformExternalIssue({
-    groupId: group.id,
+  const externalIssue = PlatformExternalIssueFixture({
+    issueId: group.id,
     serviceType: component.sentryApp.slug,
   });
 
@@ -45,8 +49,8 @@ describe('SentryAppExternalIssueActions', () => {
   it('renders without an external issue linked', async () => {
     render(
       <SentryAppExternalIssueActions
-        event={TestStubs.Event()}
-        organization={Organization()}
+        event={EventFixture()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -89,8 +93,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
-        event={TestStubs.Event()}
-        organization={Organization()}
+        event={EventFixture()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -131,8 +135,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
-        event={TestStubs.Event()}
-        organization={Organization()}
+        event={EventFixture()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -171,8 +175,8 @@ describe('SentryAppExternalIssueActions', () => {
   it('renders with an external issue linked', () => {
     render(
       <SentryAppExternalIssueActions
-        event={TestStubs.Event()}
-        organization={Organization()}
+        event={EventFixture()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
@@ -196,8 +200,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
-        event={TestStubs.Event()}
-        organization={Organization()}
+        event={EventFixture()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}

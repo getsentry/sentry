@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ jest.mock('sentry/actionCreators/events', () => ({
 }));
 
 describe('OnDemandMetricRequest', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const mock = jest.fn(() => null);
 
   const DEFAULTS = {
@@ -67,7 +67,7 @@ describe('OnDemandMetricRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
-    it('makes a new request if projects prop changes', function () {
+    it('makes a new request if projects prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
@@ -79,7 +79,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -88,7 +88,7 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if environments prop changes', function () {
+    it('makes a new request if environments prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
@@ -100,7 +100,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -109,7 +109,7 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if period prop changes', function () {
+    it('makes a new request if period prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
@@ -121,7 +121,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

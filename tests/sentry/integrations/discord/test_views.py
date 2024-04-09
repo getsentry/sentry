@@ -24,10 +24,10 @@ class DiscordIntegrationLinkIdentityTestBase(TestCase):
         self.provider = self.create_identity_provider(integration=self.discord_integration)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
     def test_basic_flow(self):
-        url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore
+        url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
@@ -46,19 +46,19 @@ class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase)
     @mock.patch("sentry.integrations.discord.views.link_identity.unsign")
     def test_expired_signature(self, mock_sign):
         mock_sign.side_effect = SignatureExpired
-        url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore
+        url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         self.assertTemplateUsed(response, "sentry/integrations/discord/expired-link.html")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
     def setUp(self):
         super().setUp()
         self.identity = self.create_identity(self.user, self.provider, self.discord_user_id)
 
     def test_basic_flow(self):
-        url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore
+        url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/auth-unlink-identity.html")
@@ -75,6 +75,6 @@ class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBas
     @mock.patch("sentry.integrations.discord.views.unlink_identity.unsign")
     def test_expired_signature(self, mock_sign):
         mock_sign.side_effect = SignatureExpired
-        url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore
+        url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
         response = self.client.get(url)
         self.assertTemplateUsed(response, "sentry/integrations/discord/expired-link.html")

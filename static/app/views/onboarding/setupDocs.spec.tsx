@@ -1,4 +1,4 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -6,10 +6,10 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import type {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeysFixture()[0];
 
 function renderMockRequests({
   project,
@@ -84,7 +84,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project}
+          recentCreatedProject={project as OnboardingRecentCreatedProject}
         />
       </OnboardingContextProvider>,
       {
@@ -132,7 +132,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project}
+          recentCreatedProject={project as OnboardingRecentCreatedProject}
         />
       </OnboardingContextProvider>,
       {
@@ -188,7 +188,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -201,8 +201,9 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.getByText('// Session Replay')).toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {
@@ -241,7 +242,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -250,8 +251,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
 
     it('only session replay checked', async function () {
@@ -290,7 +292,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -299,8 +301,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Session Replay')).toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
     });
 
     it('only error monitoring checked', async function () {
@@ -339,7 +342,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -350,8 +353,9 @@ describe('Onboarding Setup Docs', function () {
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
   });
 
@@ -403,7 +407,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -449,7 +453,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>
       );
@@ -502,7 +506,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {

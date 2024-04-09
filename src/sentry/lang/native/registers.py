@@ -1,4 +1,4 @@
-from typing import Mapping
+from collections.abc import Mapping
 
 # Architecture "x86" (alias "i386", "i686")
 # Special case: Breakpad uses "efl" in place of "eflags

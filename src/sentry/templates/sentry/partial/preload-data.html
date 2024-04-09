@@ -1,10 +1,13 @@
 {% load sentry_assets %}
+{% load sentry_trace %}
+
+<meta name="sentry-trace" content="{% get_sentry_trace %}">
+<meta name="baggage" content="{% get_sentry_baggage %}">
 
 {% script %}
 <script type="text/javascript">
   function __preloadData() {
-    if (!window.__initialData.user) {
-      // Don't send requests if there is no logged in user.
+    if (!window.__initialData.shouldPreloadData) {
       return;
     }
     var slug = window.__initialData.lastOrganization;
@@ -20,6 +23,8 @@
       return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url);
+        xhr.setRequestHeader("sentry-trace", window.__initialData.initialTrace.sentry_trace);
+        xhr.setRequestHeader("baggage", window.__initialData.initialTrace.baggage);
         xhr.withCredentials = true;
         xhr.onload = function () {
           try {
@@ -44,9 +49,13 @@
     var preloadPromises = {orgSlug: slug};
     window.__sentry_preload = preloadPromises;
 
+    if (!slug) {
+      return;
+    }
+
     preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
     preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   }

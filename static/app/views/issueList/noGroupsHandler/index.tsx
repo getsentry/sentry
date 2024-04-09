@@ -1,12 +1,13 @@
 import {Component, lazy, Suspense} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
+import NoIssuesMatched from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
@@ -88,7 +89,7 @@ class NoGroupsHandler extends Component<Props, State> {
       api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
         query: firstEventQuery,
       }),
-      // retrieves a single project to feed to the ErrorRobot from renderStreamBody
+      // retrieves a single project to feed to WaitingForEvents from renderStreamBody
       api.requestPromise(`/organizations/${organization.slug}/projects/`, {
         query: projectsQuery,
       }),
@@ -117,22 +118,29 @@ class NoGroupsHandler extends Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = lazy(() => import('sentry/components/errorRobot'));
+    const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        <ErrorRobot org={organization} project={project} sampleIssueId={sampleIssueId} />
+        <WaitingForEvents
+          org={organization}
+          project={project}
+          sampleIssueId={sampleIssueId}
+        />
       </Suspense>
     );
   }
 
   renderEmpty() {
     const {emptyMessage} = this.props;
-    return (
-      <EmptyStateWarning>
-        <p>{emptyMessage ?? t('Sorry, no issues match your filters.')}</p>
-      </EmptyStateWarning>
-    );
+    if (emptyMessage) {
+      return (
+        <EmptyStateWarning>
+          <p>{emptyMessage}</p>
+        </EmptyStateWarning>
+      );
+    }
+    return <NoIssuesMatched />;
   }
 
   render() {
@@ -145,7 +153,7 @@ class NoGroupsHandler extends Component<Props, State> {
     if (!sentFirstEvent) {
       return this.renderAwaitingEvents(firstEventProjects);
     }
-    if (query === DEFAULT_QUERY) {
+    if (query === DEFAULT_QUERY || query === NEW_DEFAULT_QUERY) {
       return (
         <NoUnresolvedIssues
           title={t("We couldn't find any issues that matched your filters.")}

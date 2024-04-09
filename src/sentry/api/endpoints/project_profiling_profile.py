@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from django.http import HttpResponse, HttpResponseRedirect
 from rest_framework import serializers
@@ -28,10 +28,13 @@ from sentry.utils import json
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
     owner = ApiOwner.PROFILING
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
-    def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
+    def get_profiling_params(self, request: Request, project: Project) -> dict[str, Any]:
         try:
-            params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
+            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
         except InvalidSearchQuery as err:
             raise ParseError(detail=str(err))
 
@@ -45,7 +48,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
     MAX_PER_PAGE = 500
 
     @abstractmethod
-    def get_data_fn(self, request: Request, project: Project, kwargs: Dict[str, Any]) -> Any:
+    def get_data_fn(self, request: Request, project: Project, kwargs: dict[str, Any]) -> Any:
         raise NotImplementedError
 
     def get_on_result(self) -> Any:
@@ -70,14 +73,10 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
 
 @region_silo_endpoint
 class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, project: Project, transaction_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "method": "GET",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/transactions/{transaction_id}",
         }
@@ -86,10 +85,6 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
 
 @region_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
@@ -137,14 +132,10 @@ def get_release(project: Project, version: str) -> Any:
 
 @region_silo_endpoint
 class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "method": "GET",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_profiles/{profile_id}",
         }
@@ -153,15 +144,11 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "method": "GET",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
             "params": self.get_profiling_params(request, project),
@@ -171,13 +158,10 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
     DEFAULT_PER_PAGE = 5
     MAX_PER_PAGE = 50
 
-    def get_data_fn(self, request: Request, project: Project, kwargs: Dict[str, Any]) -> Any:
+    def get_data_fn(self, request: Request, project: Project, kwargs: dict[str, Any]) -> Any:
         def data_fn(offset: int, limit: int) -> Any:
             is_application = request.query_params.get("is_application", None)
             if is_application is not None:
@@ -228,10 +212,6 @@ class ProjectProfileEventSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectProfilingEventEndpoint(ProjectProfilingBaseEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-
     def convert_args(self, request: Request, *args, **kwargs):
         # disables the auto conversion of project slug inherited from the
         # project endpoint since this takes the project id instead of the slug

@@ -2,20 +2,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
 from random import randrange
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-)
+from typing import Any
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -25,9 +15,10 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
@@ -64,6 +55,7 @@ class RuleProcessor:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        has_escalated: bool = False,
     ) -> None:
         self.event = event
         self.group = event.group
@@ -73,9 +65,10 @@ class RuleProcessor:
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated
 
         self.grouped_futures: MutableMapping[
-            str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
+            str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ] = {}
 
     def get_rules(self) -> Sequence[Rule]:
@@ -89,7 +82,7 @@ class RuleProcessor:
     def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
         keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
         cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
-        missing_rule_ids: Set[int] = set()
+        missing_rule_ids: set[int] = set()
         rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
         for key, rule in zip(keys, rules):
             rule_status = cache_results.get(key)
@@ -103,7 +96,7 @@ class RuleProcessor:
             statuses = GroupRuleStatus.objects.filter(
                 group=self.group, rule_id__in=missing_rule_ids
             )
-            to_cache: List[GroupRuleStatus] = list()
+            to_cache: list[GroupRuleStatus] = list()
             for status in statuses:
                 rule_statuses[status.rule_id] = status
                 missing_rule_ids.remove(status.rule_id)
@@ -179,6 +172,7 @@ class RuleProcessor:
             is_regression=self.is_regression,
             is_new_group_environment=self.is_new_group_environment,
             has_reappeared=self.has_reappeared,
+            has_escalated=self.has_escalated,
         )
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
@@ -196,6 +190,7 @@ class RuleProcessor:
             "is_new": self.is_new,
             "is_regression": self.is_regression,
             "has_reappeared": self.has_reappeared,
+            "has_escalated": self.has_escalated,
             "new_group_environment": self.is_new_group_environment,
         }
 
@@ -268,22 +263,19 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
-        history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid)
+        rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
 
     def activate_downstream_actions(
-        self, rule: Rule, notification_uuid: Optional[str] = None
+        self,
+        rule: Rule,
+        notification_uuid: str | None = None,
+        rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
-            action_cls = rules.get(action["id"])
-            if action_cls is None:
-                self.logger.warning("Unregistered action %r", action["id"])
-                continue
-
-            action_inst = action_cls(self.project, data=action, rule=rule)
-            if not isinstance(action_inst, EventAction):
-                self.logger.warning("Unregistered action %r", action["id"])
+            action_inst = instantiate_action(rule, action, rule_fire_history)
+            if not action_inst:
                 continue
 
             results = safe_execute(
@@ -308,7 +300,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()

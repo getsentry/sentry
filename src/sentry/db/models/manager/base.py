@@ -3,22 +3,10 @@ from __future__ import annotations
 import logging
 import threading
 import weakref
+from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-)
+from typing import Any, Generic
 
 from django.conf import settings
 from django.db import models, router
@@ -52,10 +40,10 @@ class ModelManagerTriggerCondition(IntEnum):
     DELETE = auto()
 
 
-ModelManagerTriggerAction = Callable[[Type[Model]], None]
+ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
-class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
+class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore[misc]
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
@@ -70,11 +58,11 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
+        self._cache_version: str | None = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
-        self._triggers: Dict[
-            object, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
+        self._triggers: dict[
+            object, tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
         ] = {}
         super().__init__(*args, **kwargs)
 
@@ -92,7 +80,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache_enabled = False
             _local_cache_generation += 1
 
-    def _get_local_cache(self) -> Optional[MutableMapping[str, M]]:
+    def _get_local_cache(self) -> MutableMapping[str, M] | None:
         if not _local_cache_enabled:
             return None
 
@@ -134,7 +122,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
     def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
         # TODO(typing): Basically everywhere else we set this to `threading.local()`.
-        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore
+        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore[assignment]
 
     def __class_prepared(self, sender: Any, **kwargs: Any) -> None:
         """
@@ -197,7 +185,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 version=self.cache_version,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
@@ -281,7 +269,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
             if settings.DEBUG:
                 raise ValueError("Unexpected value type returned from cache")
-            logger.error("Cache response returned invalid value", extra={"instance": inst})
+            logger.error(
+                "Cache response returned invalid value",
+                extra={"instance": inst, "key": key, "model": str(self.model)},
+            )
             if local_cache is not None and cache_key in local_cache:
                 del local_cache[cache_key]
             cache.delete(cache_key, version=self.cache_version)
@@ -450,7 +441,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return final_results
 
-    def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
+    def create_or_update(self, **kwargs: Any) -> tuple[Any, bool]:
         return create_or_update(self.model, **kwargs)
 
     def uncache_object(self, instance_id: int) -> None:
@@ -507,7 +498,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             del self._triggers[key]
 
     def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
-        for (next_condition, next_action) in self._triggers.values():
+        for next_condition, next_action in self._triggers.values():
             if condition == next_condition:
                 next_action(self.model)
 

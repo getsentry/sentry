@@ -1,11 +1,11 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {Config as ConfigType} from 'sentry/types';
+import type {Config} from 'sentry/types';
 
-export function Config(params: Partial<ConfigType> = {}): ConfigType {
+export function ConfigFixture(params: Partial<Config> = {}): Config {
   return {
     theme: 'light',
-    user: User(),
+    user: UserFixture(),
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
@@ -13,6 +13,7 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
     superUserCookieDomain: '.sentry.io',
     validateSUForm: true,
     features: new Set(),
+    shouldPreloadData: true,
     singleOrganization: false,
     enableAnalytics: true,
     urlPrefix: 'https://sentry-jest-tests.example.com/',
@@ -26,6 +27,10 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
     isSelfHosted: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
+    initialTrace: {
+      baggage: 'baggage',
+      sentry_trace: 'sentry_trace',
+    },
     dsn: 'test-dsn',
     userIdentity: {
       ip_address: '127.0.0.1',
@@ -60,6 +65,7 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
       organizationUrl: 'https://foobar.sentry.io',
       regionUrl: 'https://us.sentry.io',
     },
+    memberRegions: [{name: 'us', url: 'https://sentry.io'}],
     regions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };

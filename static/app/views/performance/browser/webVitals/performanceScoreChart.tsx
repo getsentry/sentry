@@ -2,13 +2,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -20,6 +24,8 @@ type Props = {
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
+export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb', 'fid'];
+export const ORDER_WITH_INP_WITHOUT_FID = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -29,6 +35,7 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
+  const order = ORDER_WITH_INP;
 
   const score = projectScore
     ? webVital
@@ -40,7 +47,7 @@ export function PerformanceScoreChart({
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
-    const index = ORDER.indexOf(webVital);
+    const index = order.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
       return i === index ? color : theme.gray200;
     });
@@ -52,19 +59,47 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
+  // Gets weights to dynamically size the performance score ring segments
+  const weights = projectScore
+    ? {
+        lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: 0,
+        inp: projectScore.inpWeight,
+        cls: projectScore.clsWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
+
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
-        <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
+        <PerformanceScoreLabel>
+          {t('Performance Score')}
+          <StyledQuestionTooltip
+            isHoverable
+            size="sm"
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          />
+        </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         {!isProjectScoreLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
             text={score}
             width={220}
-            height={180}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
+            weights={weights}
           />
         )}
         {!isProjectScoreLoading && !projectScore && (
@@ -85,6 +120,7 @@ const Flex = styled('div')`
   width: 100%;
   gap: ${space(1)};
   margin-top: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -95,6 +131,9 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-grow: 1;
+  }
 `;
 
 const PerformanceScoreLabel = styled('div')`
@@ -109,4 +148,10 @@ const PerformanceScoreSubtext = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: relative;
+  margin-left: ${space(0.5)};
+  top: ${space(0.25)};
 `;

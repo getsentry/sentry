@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
-import {GPUData, GPUKnownDataType} from './types';
+import type {GPUData} from './types';
+import {GPUKnownDataType} from './types';
 
 type Props = {
   data: GPUData;
   event: Event;
+  meta?: Record<string, any>;
 };
 
 export const gpuKnownDataValues = [
@@ -25,10 +27,9 @@ export const gpuKnownDataValues = [
 
 const gpuIgnoredDataValues = [];
 
-export function GPUEventContext({event, data}: Props) {
-  const meta = event._meta?.contexts?.gpu ?? {};
-
+export function GPUEventContext({data, event, meta: propsMeta}: Props) {
   const gpuValues = [...gpuKnownDataValues];
+  const meta = propsMeta ?? getContextMeta(event, 'gpu');
 
   if (data.vendor_id > 0) {
     gpuValues.unshift(GPUKnownDataType.VENDOR_ID);

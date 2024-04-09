@@ -1,5 +1,6 @@
-import {ReactNode} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -7,8 +8,8 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 
-const MOCK_ORG = Organization();
-const MOCK_PROJECT = TestStubs.Project();
+const MOCK_ORG = OrganizationFixture();
+const MOCK_PROJECT = ProjectFixture();
 
 function wrapper({children}: {children?: ReactNode}) {
   return (

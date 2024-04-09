@@ -2,9 +2,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
+from sentry.api.endpoints.integrations.sentry_apps.details import (
+    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
+)
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apitoken import ApiToken
@@ -15,10 +20,12 @@ from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 
 @control_silo_endpoint
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -29,7 +36,8 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         attrs = {"application": None}
 
         token_list = [
-            ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens
+            ApiTokenSerializer().serialize(token, attrs, request.user, include_token=False)
+            for token in tokens
         ]
 
         if not sentry_app.show_auth_info(request.access):
@@ -46,6 +54,11 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
+                status=403,
+            )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
         try:
             api_token = SentryAppInstallationTokenCreator(

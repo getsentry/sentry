@@ -1,8 +1,9 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -27,12 +28,12 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
@@ -298,14 +299,8 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const isReplayEnabled = organization.features.includes('session-replay');
-    const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
-      fields: isReplayEnabled
-        ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
-        : DEFAULT_EVENT_VIEW.fields,
-    });
 
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -560,6 +555,15 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  setTips = (tips: string[]) => {
+    // If there are currently no tips set and the new tips are empty, do nothing
+    // and bail out of an expensive entire table rerender
+    if (!tips.length && !this.state.tips.length) {
+      return;
+    }
+    this.setState({tips});
+  };
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -575,6 +579,7 @@ export class Results extends Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -621,7 +626,7 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                {!query.includes('event.type:error') && <SampleDataAlert />}
+                <SampleDataAlert query={query} />
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -654,7 +659,7 @@ export class Results extends Component<Props, State> {
                   confirmedQuery={confirmedQuery}
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
-                  setTips={(tips: string[]) => this.setState({tips})}
+                  setTips={this.setTips}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
@@ -691,7 +696,7 @@ export class Results extends Component<Props, State> {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

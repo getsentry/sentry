@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.tasks.weekly_escalating_forecast import GroupCount
 
 START_TIME = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
 
-SEVEN_DAY_INPUT_INTERVALS: List[Any] = [
+SEVEN_DAY_INPUT_INTERVALS: list[Any] = [
     "2022-07-20T00:00:00+00:00",
     "2022-07-20T01:00:00+00:00",
     "2022-07-20T02:00:00+00:00",
@@ -177,7 +177,7 @@ SEVEN_DAY_INPUT_INTERVALS: List[Any] = [
     "2022-07-26T23:00:00+00:00",
 ]
 
-SIX_DAY_INPUT_INTERVALS: List[Any] = [
+SIX_DAY_INPUT_INTERVALS: list[Any] = [
     "2022-07-21T00:00:00+00:00",
     "2022-07-21T01:00:00+00:00",
     "2022-07-21T02:00:00+00:00",
@@ -324,7 +324,7 @@ SIX_DAY_INPUT_INTERVALS: List[Any] = [
     "2022-07-26T23:00:00+00:00",
 ]
 
-SEVEN_DAY_ERROR_EVENTS: List[Any] = [
+SEVEN_DAY_ERROR_EVENTS: list[Any] = [
     74,
     532,
     670,
@@ -592,7 +592,7 @@ def test_bursty_case() -> None:
 
 
 def test_empty_input() -> None:
-    error_events: List[int] = []
+    error_events: list[int] = []
 
     data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 

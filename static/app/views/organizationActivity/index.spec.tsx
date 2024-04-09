@@ -1,4 +1,4 @@
-import {ActivityFeed} from 'sentry-fixture/activityFeed';
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,8 +14,8 @@ describe('OrganizationActivity', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [
-        ActivityFeed(),
-        ActivityFeed({
+        ActivityFeedFixture(),
+        ActivityFeedFixture({
           id: '49',
           data: {},
           type: GroupActivityType.SET_PUBLIC,
@@ -30,13 +30,13 @@ describe('OrganizationActivity', function () {
     };
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
-    expect(screen.getAllByTestId('activity-feed-item')).toHaveLength(2);
+    expect(await screen.findAllByTestId('activity-feed-item')).toHaveLength(2);
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],
@@ -44,10 +44,10 @@ describe('OrganizationActivity', function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('renders not found', function () {
+  it('renders not found', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],
@@ -56,6 +56,6 @@ describe('OrganizationActivity', function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 });

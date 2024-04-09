@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
@@ -13,14 +13,13 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import {DateString} from 'sentry/types';
-import {
+import type {DateString} from 'sentry/types';
+import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
@@ -246,7 +245,7 @@ class ChartZoom extends Component<Props> {
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -256,7 +255,9 @@ class ChartZoom extends Component<Props> {
       });
     }
 
-    callIfFunction(this.props.onFinished);
+    if (typeof this.props.onFinished === 'function') {
+      this.props.onFinished(_props, chart);
+    }
   };
 
   render() {

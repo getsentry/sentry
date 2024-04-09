@@ -1,6 +1,9 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {Organization} from 'sentry-fixture/organization';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -15,9 +18,9 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = Organization({
+const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
-  projects: [TestStubs.Project()],
+  projects: [ProjectFixture()],
 });
 
 const {
@@ -204,7 +207,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: MetricsField('p75(sentry.transactions.measurements.lcp)'),
+      body: MetricsFieldFixture('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],
@@ -277,7 +280,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -331,7 +334,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -386,7 +389,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -434,16 +437,17 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', function () {
+  it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Largest Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', function () {
+  it('correctly renders which browsers support CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -459,10 +463,11 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Cumulative Layout Shift/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', function () {
+  it('correctly renders which browsers support FCP', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -483,10 +488,11 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', function () {
+  it('correctly renders which browsers support FID', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -507,6 +513,7 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Input Delay/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FID);
   });
 });

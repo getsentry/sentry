@@ -1,16 +1,15 @@
 from enum import Enum
-from typing import Dict, Type
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, projectoptions
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
-from sentry.api.permissions import SuperuserPermission
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -21,6 +20,7 @@ from sentry.issues.grouptype import (
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
@@ -48,6 +48,7 @@ class InternalProjectOptions(Enum):
     RENDER_BLOCKING_ASSET = "large_render_blocking_asset_detection_enabled"
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
+    TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -65,7 +66,7 @@ class ConfigurableThresholds(Enum):
     HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
 
 
-internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
+internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.UNCOMPRESSED_ASSET.value: PerformanceUncompressedAssetsGroupType,
     InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value: PerformanceConsecutiveHTTPQueriesGroupType,
     InternalProjectOptions.LARGE_HTTP_PAYLOAD.value: PerformanceLargeHTTPPayloadGroupType,
@@ -77,9 +78,10 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.RENDER_BLOCKING_ASSET.value: PerformanceRenderBlockingAssetSpanGroupType,
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
+    InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
 }
 
-configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
+configurable_thresholds_to_internal_settings_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_ONE_DB_DURATION.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_DURATION.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_SIZE.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
@@ -93,13 +95,6 @@ configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
     ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value,
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: InternalProjectOptions.HTTP_OVERHEAD.value,
 }
-
-
-class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
-    def has_object_permission(self, request: Request, view, project):
-        return super().has_object_permission(
-            request, view, project
-        ) or SuperuserPermission().has_permission(request, view)
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
@@ -150,6 +145,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     large_render_blocking_asset_detection_enabled = serializers.BooleanField(required=False)
     slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
+    transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):
@@ -168,12 +164,13 @@ def get_disabled_threshold_options(payload, current_settings):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
+    permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:
         return features.has(
@@ -218,7 +215,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
-        if body_has_admin_options and not is_active_superuser(request):
+        if body_has_admin_options and not superuser_has_permission(request):
             return Response(
                 {
                     "detail": {

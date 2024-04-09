@@ -24,7 +24,7 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 @region_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

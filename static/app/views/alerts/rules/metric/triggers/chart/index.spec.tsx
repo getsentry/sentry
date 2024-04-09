@@ -1,4 +1,4 @@
-import {EventsStats} from 'sentry-fixture/events';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +16,7 @@ describe('Incident Rules Create', () => {
   beforeEach(() => {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: EventsStats(),
+      body: EventsStatsFixture(),
     });
 
     eventCountsMock = MockApiClient.addMockResponse({
@@ -51,10 +51,12 @@ describe('Incident Rules Create', () => {
         newAlertOrQuery
         onDataLoaded={() => {}}
         isQueryValid
+        showTotalCount
       />
     );
 
     expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -63,7 +65,7 @@ describe('Incident Rules Create', () => {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '10000m',
+          statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
@@ -76,7 +78,61 @@ describe('Incident Rules Create', () => {
         query: {
           project: ['2'],
           query: 'event.type:error',
-          statsPeriod: '10000m',
+          statsPeriod: '9998m',
+          environment: [],
+        },
+      })
+    );
+  });
+
+  it('does not show & query total count if showTotalCount === false', async () => {
+    const {organization, project, router} = initializeOrg();
+
+    render(
+      <TriggersChart
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query="event.type:error"
+        timeWindow={1}
+        aggregate="count()"
+        dataset={Dataset.ERRORS}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(screen.queryByTestId('alert-total-events')).not.toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: 'event.type:error',
+          statsPeriod: '9998m',
+          yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
+        },
+      })
+    );
+
+    expect(eventCountsMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          query: 'event.type:error',
+          statsPeriod: '9998m',
           environment: [],
         },
       })

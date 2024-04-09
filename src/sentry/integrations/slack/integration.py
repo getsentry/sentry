@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -16,12 +17,7 @@ from sentry.integrations import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline import NestedPipelineView
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganizationSummary,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
@@ -75,9 +71,7 @@ metadata = IntegrationMetadata(
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient:
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration does not exist")
-        return SlackClient(org_integration_id=self.org_integration.id, integration_id=self.model.id)
+        return SlackClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
@@ -86,21 +80,6 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
             "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
-
-    def uninstall(self) -> None:
-        """
-        Delete all parent-specific notification settings. For each user and team,
-        if this is their ONLY Slack integration, set their parent-independent
-        Slack notification setting to NEVER.
-        """
-        org_context: RpcUserOrganizationContext | None = (
-            organization_service.get_organization_by_id(id=self.organization_id, user_id=None)
-        )
-        if org_context:
-            notifications_service.uninstall_slack_settings(
-                organization_id=self.organization_id,
-                project_ids=[p.id for p in org_context.organization.projects],
-            )
 
 
 class SlackIntegrationProvider(IntegrationProvider):

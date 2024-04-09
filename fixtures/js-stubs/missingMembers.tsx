@@ -1,6 +1,6 @@
 import {MissingMember} from 'sentry/types';
 
-export function MissingMembers(params = []): MissingMember[] {
+export function MissingMembersFixture(params = []): MissingMember[] {
   return [
     {
       commitCount: 6,

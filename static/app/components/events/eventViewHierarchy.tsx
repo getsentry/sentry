@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import isEmpty from 'lodash/isEmpty';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -8,13 +7,14 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Event, IssueAttachment, Project} from 'sentry/types';
+import type {Event, IssueAttachment, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
-import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
+import type {ViewHierarchyData} from './viewHierarchy';
+import {ViewHierarchy} from './viewHierarchy';
 
 type Props = {
   event: Event;
@@ -37,7 +37,7 @@ function EventViewHierarchyContent({event, project}: Props) {
   const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
-  const {isLoading, data} = useApiQuery<string>(
+  const {isLoading, data} = useApiQuery<string | ViewHierarchyData>(
     [
       defined(hierarchyMeta)
         ? getAttachmentUrl({
@@ -63,6 +63,10 @@ function EventViewHierarchyContent({event, project}: Props) {
       return null;
     }
 
+    if (data && typeof data !== 'string') {
+      return data;
+    }
+
     try {
       return JSON.parse(data);
     } catch (err) {
@@ -71,11 +75,10 @@ function EventViewHierarchyContent({event, project}: Props) {
     }
   }, [data]);
 
-  if (isEmpty(viewHierarchies)) {
+  if (viewHierarchies.length === 0) {
     return null;
   }
 
-  // TODO(nar): This loading behaviour is subject to change
   if (isLoading || !data) {
     return <LoadingIndicator />;
   }

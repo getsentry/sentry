@@ -1,56 +1,42 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
-import uniq from 'lodash/uniq';
+import type {Location} from 'history';
 
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconArrow, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {
-  hasMigrationFeatureFlag,
-  ruleNeedsMigration,
-  useOrgNeedsMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
-import {
-  DatasetOption,
-  datasetToQueryParam,
-  getQueryDataset,
-  getTeamParams,
-  isIssueAlert,
-} from '../../utils';
+import type {CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType} from '../../types';
+import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
 import RuleListRow from './row';
@@ -62,7 +48,6 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   const queryParams = {...query};
   queryParams.expand = ['latestIncident', 'lastTriggered'];
   queryParams.team = getTeamParams(queryParams.team!);
-  queryParams.dataset = datasetToQueryParam[getQueryDataset(queryParams.dataset!)];
 
   if (!queryParams.sort) {
     queryParams.sort = defaultSort;
@@ -70,6 +55,11 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
 
   return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
 }
+
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 
 function AlertRulesList() {
   const location = useLocation();
@@ -97,8 +87,6 @@ function AlertRulesList() {
       staleTime: 0,
     }
   );
-  const hasMigrationUIFeatureFlag = hasMigrationFeatureFlag(organization);
-  const showMigrationUI = useOrgNeedsMigration();
 
   const handleChangeFilter = (activeFilters: string[]) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
@@ -118,17 +106,6 @@ function AlertRulesList() {
       query: {
         ...currentQuery,
         name,
-      },
-    });
-  };
-
-  const handleChangeDataset = (value: DatasetOption): void => {
-    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
-      pathname: location.pathname,
-      query: {
-        ...currentQuery,
-        dataset: value === DatasetOption.ALL ? undefined : value,
       },
     });
   };
@@ -203,18 +180,9 @@ function AlertRulesList() {
         <AlertHeader router={router} activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            {showMigrationUI ? (
-              <Alert showIcon type="warning">
-                {tct(
-                  'Our performance alerts just got a lot more accurate, which is why we recommend you review the thresholds of all rules marked with a “[warningIcon]“',
-                  {warningIcon: <StyledIconWarning />}
-                )}
-              </Alert>
-            ) : null}
+            <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
-              showMigrationWarning={showMigrationUI}
-              onChangeDataset={handleChangeDataset}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
             />
@@ -269,27 +237,39 @@ function AlertRulesList() {
                   onRetry={refetch}
                 />
               ) : null}
-              <VisuallyCompleteWithData id="AlertRules-Body" hasData={!isEmpty(ruleList)}>
+              <VisuallyCompleteWithData
+                id="AlertRules-Body"
+                hasData={ruleList.length > 0}
+              >
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${
-                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                        }-${rule.id}`}
-                        showMigrationWarning={
-                          hasMigrationUIFeatureFlag && ruleNeedsMigration(rule)
-                        }
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={organization.slug}
-                        onOwnerChange={handleOwnerChange}
-                        onDelete={handleDeleteRule}
-                        hasEditAccess={hasEditAccess}
-                      />
-                    ))
+                    ruleList.map(rule => {
+                      const isIssueAlertInstance = isIssueAlert(rule);
+                      const keyPrefix = isIssueAlertInstance
+                        ? AlertRuleType.ISSUE
+                        : AlertRuleType.METRIC;
+
+                      if (
+                        !isIssueAlertInstance &&
+                        rule.monitorType === MonitorType.ACTIVATED
+                      ) {
+                        return null;
+                      }
+
+                      return (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${keyPrefix}-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={organization.slug}
+                          onOwnerChange={handleOwnerChange}
+                          onDelete={handleDeleteRule}
+                          hasEditAccess={hasEditAccess}
+                        />
+                      );
+                    })
                   }
                 </Projects>
               </VisuallyCompleteWithData>
@@ -344,9 +324,4 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  vertical-align: middle;
-  color: ${p => p.theme.yellow400};
 `;

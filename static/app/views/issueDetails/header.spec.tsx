@@ -1,38 +1,41 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory, PriorityLevel} from 'sentry/types';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-describe('groupDetails', () => {
+describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = Organization();
-  const project = TestStubs.Project({
-    teams: [TestStubs.Team()],
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({
+    teams: [TeamFixture()],
   });
 
   describe('issue category: error, js project', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const jsProjectWithSimilarityView = TestStubs.Project({
+      const jsProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'javascript',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -86,21 +89,21 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const mobileProjectWithSimilarityView = TestStubs.Project({
+      const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'apple-ios',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -130,21 +133,21 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE}),
+      group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
-      const projectWithSimilarityView = TestStubs.Project({
+      const projectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
       });
 
-      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -182,6 +185,47 @@ describe('groupDetails', () => {
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('priority', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+    });
+
+    it('can change priority', async () => {
+      const mockModifyIssue = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          group={GroupFixture({priority: PriorityLevel.MEDIUM})}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+      expect(mockModifyIssue).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {priority: PriorityLevel.HIGH},
+        })
+      );
     });
   });
 });

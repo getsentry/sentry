@@ -1,4 +1,5 @@
-from typing import Any, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
@@ -10,7 +11,7 @@ from sentry.utils.json import JSONData
 
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
-    def get_attrs(self, item_list: List[DocIntegration], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: list[DocIntegration], user: User, **kwargs: Any):
         # Get associated IntegrationFeatures
         doc_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.DOC_INTEGRATION

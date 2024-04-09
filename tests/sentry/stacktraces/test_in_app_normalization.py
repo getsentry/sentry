@@ -290,6 +290,20 @@ class iOSInAppDetectionTest(TestCase):
             function="-[SentryHttpTransport sendEvent:attachments:]", is_in_app=False
         )
 
+    def test_swizzling_in_app_detection(self):
+        self.assert_correct_in_app_value(
+            function="__42-[SentryCoreDataSwizzling swizzleCoreData]_block_invoke_2.24",
+            is_in_app=False,
+        )
+        self.assert_correct_in_app_value(
+            function="__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+            is_in_app=False,
+        )
+        self.assert_correct_in_app_value(
+            function="__49+[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+            is_in_app=False,
+        )
+
     def test_ios_package_in_app_detection(self):
         data: dict[str, Any] = {
             "platform": "native",

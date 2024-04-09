@@ -1,10 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -18,9 +18,9 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['discover-basic', 'performance-view'],
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -64,7 +64,7 @@ describe('Performance Transaction Events Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -175,7 +175,7 @@ describe('Performance Transaction Events Content', function () {
     jest.clearAllMocks();
   });
 
-  it('basic rendering', function () {
+  it('basic rendering', async function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
@@ -195,27 +195,27 @@ describe('Performance Transaction Events Content', function () {
       {context: initialData.routerContext}
     );
 
-    expect(screen.getByTestId('events-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('events-table')).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher('Percentilep100'))).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')
-      .map(elem => elem.textContent);
+      .map(elem => elem.textContent?.trim());
     expect(columnTitles).toEqual([
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
+      'event id',
+      'user',
+      'operation duration',
+      'total duration',
+      'trace id',
+      'timestamp',
     ]);
   });
 
-  it('rendering with webvital selected', function () {
+  it('rendering with webvital selected', async function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
@@ -236,20 +236,20 @@ describe('Performance Transaction Events Content', function () {
       {context: initialData.routerContext}
     );
 
-    expect(screen.getByTestId('events-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('events-table')).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher('Percentilep100'))).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')
-      .map(elem => elem.textContent);
-    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
+      .map(elem => elem.textContent?.trim());
+    expect(columnTitles).toStrictEqual(expect.arrayContaining(['measurements.lcp']));
   });
 
-  it('rendering with http.method', function () {
+  it('rendering with http.method', async function () {
     const _eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -276,15 +276,16 @@ describe('Performance Transaction Events Content', function () {
           webVital={WebVital.LCP}
           setError={() => {}}
           projectId="1"
-          projects={[TestStubs.Project({id: 1, platform: 'python'})]}
+          projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
       </OrganizationContext.Provider>,
       {context: initialData.routerContext}
     );
 
+    expect(await screen.findByTestId('events-table')).toBeInTheDocument();
     const columnTitles = screen
       .getAllByRole('columnheader')
       .map(elem => elem.textContent);
-    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('http.method')]));
+    expect(columnTitles).toStrictEqual(expect.arrayContaining(['http.method']));
   });
 });

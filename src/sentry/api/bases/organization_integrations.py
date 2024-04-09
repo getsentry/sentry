@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from django.http import Http404
 from rest_framework.request import Request
@@ -75,11 +75,11 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | None = None,
+        organization_slug: str | int | None = None,
         integration_id: str | None = None,
         *args: Any,
         **kwargs: Any,
-    ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         kwargs["integration_id"] = self.validate_integration_id(integration_id or "")

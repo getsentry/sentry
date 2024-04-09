@@ -1,28 +1,35 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import Tag from 'sentry/components/tag';
-import {IconEllipsis, IconExpand} from 'sentry/icons';
+import {Tag} from 'sentry/components/tag';
+import {IconEdit, IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboards/utils';
+import {
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+  getWidgetMetricsUrl,
+} from 'sentry/views/dashboards/utils';
 
-import {Widget, WidgetType} from '../types';
+import type {Widget} from '../types';
+import {WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -85,6 +92,14 @@ function WidgetCardContextMenu({
     }
   };
 
+  const openWidgetViewerIcon =
+    hasMetricsExperimentalFeature(organization) &&
+    widget.widgetType === WidgetType.METRICS ? (
+      <IconEdit />
+    ) : (
+      <IconExpand />
+    );
+
   if (isPreview) {
     return (
       <WidgetViewerContext.Consumer>
@@ -126,7 +141,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={<IconExpand size="xs" />}
+                  icon={openWidgetViewerIcon}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -190,6 +205,16 @@ function WidgetCardContextMenu({
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
+    });
+  }
+
+  if (widget.widgetType === WidgetType.METRICS) {
+    const ddmLocation = getWidgetMetricsUrl(widget, selection, organization);
+
+    menuOptions.push({
+      key: 'open-in-metrics',
+      label: t('Open in Metrics'),
+      to: ddmLocation,
     });
   }
 
@@ -258,7 +283,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={<IconExpand size="xs" />}
+                icon={openWidgetViewerIcon}
                 onClick={() => {
                   setData({
                     seriesData,

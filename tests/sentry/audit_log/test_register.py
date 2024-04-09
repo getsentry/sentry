@@ -1,9 +1,7 @@
 from sentry import audit_log
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class AuditLogEventRegisterTest(TestCase):
     def test_get_api_names(self):
         audit_log_api_name_list = [
@@ -15,6 +13,10 @@ class AuditLogEventRegisterTest(TestCase):
             "member.join-team",
             "member.leave-team",
             "member.pending",
+            "metric.block",
+            "metric.tags.block",
+            "metric.tags.unblock",
+            "metric.unblock",
             "org.create",
             "org.edit",
             "org.remove",
@@ -65,6 +67,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sampling_priority.disabled",
             "monitor.add",
             "monitor.edit",
+            "monitor.environment.edit",
             "monitor.environment.remove",
             "monitor.remove",
             "internal-integration.create",
@@ -83,6 +86,9 @@ class AuditLogEventRegisterTest(TestCase):
             "team-and-project.created",
             "org-auth-token.create",
             "org-auth-token.remove",
+            "project-team.remove",
+            "project-team.add",
+            "issue.delete",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)

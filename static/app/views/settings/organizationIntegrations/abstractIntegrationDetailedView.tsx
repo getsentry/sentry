@@ -1,27 +1,28 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import {Alert, AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
 } from 'sentry/types';
-import {
+import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
@@ -51,7 +52,7 @@ type Props = {
 } & RouteComponentProps<{integrationSlug: string}, {}> &
   DeprecatedAsyncComponent['props'];
 
-class AbstractIntegrationDetailedView<
+abstract class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
@@ -183,10 +184,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns the list of configurations for the integration
-  renderConfigurations() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
-  }
+  abstract renderConfigurations(): React.ReactNode;
 
   /**
    * Actually implemented methods below
@@ -433,7 +431,7 @@ const IconCloseCircle = styled(IconClose)`
   margin-right: ${space(1)};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
+export const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div
     style={{
       display: 'flex',

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -67,6 +67,7 @@ export enum FieldKey {
   IS = 'is',
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
+  ISSUE_PRIORITY = 'issue.priority',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -120,6 +121,7 @@ export enum FieldKey {
   USER_USERNAME = 'user.username',
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
+  FUNCTION_DURATION = 'function.duration',
 }
 
 export enum FieldValueType {
@@ -143,6 +145,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
@@ -208,6 +211,7 @@ export enum AggregationKey {
   ANY = 'any',
   P50 = 'p50',
   P75 = 'p75',
+  P90 = 'p90',
   P95 = 'p95',
   P99 = 'p99',
   P100 = 'p100',
@@ -313,6 +317,11 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P90]: {
+    desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
@@ -460,6 +469,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   },
   [MobileVital.TIME_TO_INITIAL_DISPLAY]: {
     desc: t('The time it takes for an application to produce its first frame'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.INP]: {
+    desc: t('Web Vital Interaction to Next Paint'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
@@ -736,6 +750,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
+  },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['high', 'medium', 'low'],
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
@@ -1017,6 +1037,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
+  [FieldKey.FUNCTION_DURATION]: {
+    desc: t('Duration of the function'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const ISSUE_FIELDS = [
@@ -1057,6 +1082,7 @@ export const ISSUE_FIELDS = [
   FieldKey.IS,
   FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_PRIORITY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
@@ -1227,6 +1253,7 @@ export enum ReplayClickFieldKey {
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
+  CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
 /**
@@ -1350,6 +1377,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
+  ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -1420,11 +1448,114 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+    desc: t('the name of the frontend component that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+export enum FeedbackFieldKey {
+  BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
+  EMAIL = 'contact_email',
+  LOCALE_LANG = 'locale.lang',
+  LOCALE_TIMEZONE = 'locale.timezone',
+  MESSAGE = 'message',
+  NAME = 'name',
+  OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
+  URL = 'url',
+}
+
+export const FEEDBACK_FIELDS = [
+  FieldKey.ASSIGNED,
+  FeedbackFieldKey.BROWSER_NAME,
+  FeedbackFieldKey.BROWSER_VERSION,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DIST,
+  FeedbackFieldKey.EMAIL,
+  FieldKey.ENVIRONMENT,
+  FieldKey.ID,
+  FieldKey.IS,
+  FieldKey.LEVEL,
+  FeedbackFieldKey.LOCALE_LANG,
+  FeedbackFieldKey.LOCALE_TIMEZONE,
+  FeedbackFieldKey.MESSAGE,
+  FeedbackFieldKey.NAME,
+  FeedbackFieldKey.OS_NAME,
+  FeedbackFieldKey.OS_VERSION,
+  FieldKey.PLATFORM,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.TIMESTAMP,
+  FieldKey.TRANSACTION,
+  FeedbackFieldKey.URL,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
+];
+
+const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.BROWSER_NAME]: {
+    desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.BROWSER_VERSION]: {
+    desc: t('Version number of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.EMAIL]: {
+    desc: t('Contact email of the user writing the feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_LANG]: {
+    desc: t('Language preference of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_TIMEZONE]: {
+    desc: t('Timezone the feedback was submitted from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.MESSAGE]: {
+    desc: t('Message written by the user providing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.NAME]: {
+    desc: t('Name of the user writing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_NAME]: {
+    desc: t('Name of the operating system'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_VERSION]: {
+    desc: t('Version number of the operating system'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.URL]: {
+    desc: t('URL of the page that the feedback is triggered on'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -1435,6 +1566,14 @@ export const getFieldDefinition = (
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
+    case 'feedback':
+      if (key in FEEDBACK_FIELD_DEFINITIONS) {
+        return FEEDBACK_FIELD_DEFINITIONS[key];
+      }
+      if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;

@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Organization, Project, Scope, Team} from 'sentry/types';
+import type {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import {useUser} from 'sentry/utils/useUser';
 import withOrganization from 'sentry/utils/withOrganization';
 
 // Props that function children will get.
@@ -12,7 +11,8 @@ type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => JSX.Element;
+// TODO(TS): This should be ReactNode but conflicts between react 17 & 18
+type ChildFunction = (props: ChildRenderProps) => any;
 
 type Props = {
   organization: Organization;
@@ -59,12 +59,12 @@ function Access({
   project,
   organization,
 }: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   team = team ?? undefined;
   project = project ?? undefined;
 
   const hasAccess = hasEveryAccess(access, {organization, team, project});
-  const hasSuperuser = !!(config.user && config.user.isSuperuser);
+  const hasSuperuser = Boolean(user?.isSuperuser);
 
   const renderProps: ChildRenderProps = {
     hasAccess,

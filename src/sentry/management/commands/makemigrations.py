@@ -17,7 +17,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 
 # We check that the latest migration is the one stored in the lockfile
-def validate(migrations_filepath, latest_migration_by_app):
+def validate(migrations_filepath: str, latest_migration_by_app: dict[str, str]) -> None:
     infile = {}
     with open(migrations_filepath, encoding="utf-8") as file:
         for line in file:
@@ -52,7 +52,7 @@ class Command(makemigrations.Command):
         super().handle(*app_labels, **options)
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
-        latest_migration_by_app = {}
+        latest_migration_by_app: dict[str, str] = {}
         for migration in loader.disk_migrations.values():
             name = migration.name
             app_label = migration.app_label

@@ -5,35 +5,29 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import Truncate from 'sentry/components/truncate';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
 } from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {
-  SpanTransactionMetrics,
-  useSpanTransactionMetrics,
-} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {
-  MetricsResponse,
-  SpanIndexedField,
-  SpanIndexedFieldTypes,
-  SpanMetricsField,
-} from 'sentry/views/starfish/types';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import type {SpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import type {MetricsResponse, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -68,6 +62,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
   const {
     data: spanTransactionMetrics = [],
     meta,
+    error,
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
@@ -96,9 +91,11 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           ? `${row.transactionMethod} ${row.transaction}`
           : row.transaction;
 
-      const pathname = `${routingContext.baseURL}/${
-        extractRoute(location) ?? 'spans'
-      }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+      const pathname = normalizeUrl(
+        `/organizations/${organization.slug}${routingContext.baseURL}/${
+          extractRoute(location) ?? 'spans'
+        }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
+      );
       const query: {[key: string]: string | undefined} = {
         ...location.query,
         endpoint,
@@ -111,17 +108,19 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       }
 
       return (
-        <Link
-          to={`${pathname}?${qs.stringify(query)}`}
-          onClick={() => {
-            router.replace({
-              pathname,
-              query,
-            });
-          }}
-        >
-          <Truncate value={label} maxLength={75} />
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={`${pathname}?${qs.stringify(query)}`}
+            onClick={() => {
+              router.replace({
+                pathname,
+                query,
+              });
+            }}
+          >
+            {label}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
@@ -157,6 +156,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       >
         <GridEditable
           isLoading={isLoading}
+          error={error}
           data={spanTransactionsWithMetrics}
           columnOrder={getColumnOrder(span)}
           columnSortBy={[]}

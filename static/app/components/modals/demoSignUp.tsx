@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
@@ -28,7 +28,7 @@ function DemoSignUpModal({closeModal}: Props) {
   return (
     <HighlightCornerContainer>
       <CloseButton
-        icon={<IconClose size="xs" />}
+        icon={<IconClose />}
         size="xs"
         aria-label={t('Close')}
         onClick={() => {

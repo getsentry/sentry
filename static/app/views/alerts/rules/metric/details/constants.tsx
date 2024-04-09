@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
 
 export const SELECTOR_RELATIVE_PERIODS = {

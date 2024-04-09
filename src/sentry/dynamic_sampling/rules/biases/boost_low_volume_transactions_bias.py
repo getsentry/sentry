@@ -1,5 +1,3 @@
-from typing import List
-
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, Rule, RuleType
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
@@ -9,7 +7,7 @@ from sentry.models.project import Project
 
 
 class BoostLowVolumeTransactionsBias(Bias):
-    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         proj_id = project.id
         org_id = project.organization.id
 
@@ -17,7 +15,7 @@ class BoostLowVolumeTransactionsBias(Bias):
             org_id=org_id, proj_id=proj_id, default_rate=base_sample_rate
         )
 
-        ret_val: List[Rule] = []
+        ret_val: list[Rule] = []
 
         if len(transaction_map) == 0:
             return ret_val  # no point returning any rules the project rule should take over

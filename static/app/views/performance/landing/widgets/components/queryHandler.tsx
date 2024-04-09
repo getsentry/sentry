@@ -6,8 +6,12 @@ import {
   useMEPDataContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
-import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import type {
+  QueryDefinitionWithKey,
+  QueryHandlerProps,
+  WidgetDataConstraint,
+} from '../types';
+import type {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 /**
  * Component to handle switching component-style queries over to state. This
@@ -56,6 +60,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       // Destroy previous data on unmount, in case enabled value changes and unmounts the query component.
       props.removeWidgetDataForKey(query.queryKey);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -106,6 +111,7 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
     );
     mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);
   return <Fragment />;
 }

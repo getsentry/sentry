@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 
 import pytest
 from snuba_sdk import (
-    AliasedExpression,
+    ArithmeticOperator,
     Column,
     Condition,
+    Formula,
     Metric,
     MetricsQuery,
     MetricsScope,
@@ -19,8 +20,12 @@ from snuba_sdk import (
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.snuba.metrics_layer.query import _resolve_granularity, _resolve_metrics_query
+from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics_layer.query import (
+    _lookup_indexer_resolve,
+    _resolve_granularity,
+    _resolve_query_metadata,
+)
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -30,10 +35,10 @@ pytestmark = pytest.mark.sentry_metrics
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
-    def test_resolve_metrics_query(self):
+    def test_resolve_metrics_query(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -49,8 +54,8 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             ),
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
-        assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        _, reverse_mappings = _lookup_indexer_resolve(metrics_query, "generic_metrics")
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
@@ -58,8 +63,45 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         assert resolved_metrics_query.query.metric.id == expected_metric_id
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert reverse_mappings.tag_keys == set()
 
-    def test_resolve_metrics_query_with_groupby(self):
+    def test_resolve_formula_metrics_query(self) -> None:
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            project_id=self.project.id,
+            tags={},
+            value=1,
+        )
+        metrics_query = MetricsQuery(
+            query=Formula(
+                ArithmeticOperator.PLUS,
+                [
+                    Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+                    Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+                ],
+            ),
+            scope=MetricsScope(
+                org_ids=[self.project.organization_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mappings = _lookup_indexer_resolve(
+            metrics_query, "generic_metrics"
+        )
+        mappings.update(indexer_mappings)
+        expected_metric_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            TransactionMRI.DURATION.value,
+        )
+        assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert reverse_mappings.tag_keys == set()
+
+    def test_resolve_metrics_query_with_groupby(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -68,7 +110,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         metrics_query = MetricsQuery(
             query=Timeseries(
-                Metric(mri=TransactionMRI.DURATION.value),
+                Metric(public_name="transaction.duration"),
                 aggregate="count",
                 groupby=[Column("transaction")],
             ),
@@ -89,16 +131,82 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "transaction",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mapping = _lookup_indexer_resolve(
+            metrics_query, "generic_metrics"
+        )
+        mappings.update(indexer_mappings)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
+        assert resolved_metrics_query.query.metric.mri == TransactionMRI.DURATION.value
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert resolved_metrics_query.query.groupby == [
-            AliasedExpression(Column(f"tags_raw[{expected_transaction_id}]"), "transaction")
-        ]
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
+        assert reverse_mapping.tag_keys == {"transaction"}
 
-    def test_resolve_metrics_query_with_filters(self):
+    def test_resolve_formula_metrics_query_with_groupby(self) -> None:
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            project_id=self.project.id,
+            tags={"transaction": "/checkout", "status_code": "200"},
+            value=1,
+        )
+        metrics_query = MetricsQuery(
+            query=Formula(
+                ArithmeticOperator.PLUS,
+                [
+                    Timeseries(
+                        Metric(public_name="transaction.duration"),
+                        aggregate="count",
+                        groupby=[Column("transaction")],
+                    ),
+                    Timeseries(
+                        Metric(mri=TransactionMRI.DURATION.value),
+                        aggregate="count",
+                        groupby=[Column("transaction")],
+                    ),
+                ],
+                groupby=[Column("status_code")],
+            ),
+            scope=MetricsScope(
+                org_ids=[self.project.organization_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+        expected_metric_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            TransactionMRI.DURATION.value,
+        )
+        expected_transaction_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            "transaction",
+        )
+        expected_status_code_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            "status_code",
+        )
+
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mapping = _lookup_indexer_resolve(
+            metrics_query, "generic_metrics"
+        )
+        mappings.update(indexer_mappings)
+        assert (
+            resolved_metrics_query.query.parameters[0].metric.public_name == "transaction.duration"
+        )
+        assert (
+            resolved_metrics_query.query.parameters[0].metric.mri == TransactionMRI.DURATION.value
+        )
+        assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["transaction"] == expected_transaction_id
+        assert mappings["status_code"] == expected_status_code_id
+        assert reverse_mapping.tag_keys == {"transaction", "status_code"}
+
+    def test_resolve_metrics_query_with_filters(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -142,21 +250,164 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "device",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
-        assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mapping = _lookup_indexer_resolve(
+            metrics_query, "generic_metrics"
+        )
+        mappings.update(indexer_mappings)
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert resolved_metrics_query.query.filters == [
-            Condition(Column(f"tags_raw[{expected_transaction_id}]"), Op.EQ, "/checkout"),
-            Or(
-                [
-                    Condition(Column(f"tags_raw[{expected_device_id}]"), Op.EQ, "BlackBerry"),
-                    Condition(Column(f"tags_raw[{expected_device_id}]"), Op.EQ, "Nokia"),
-                ]
-            ),
-        ]
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert mappings["device"] == expected_device_id
+        assert reverse_mapping.tag_keys == {"transaction"}
+
+    def test_resolve_formula_metrics_query_with_filters(self) -> None:
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            project_id=self.project.id,
+            tags={"transaction": "/checkout", "device": "BlackBerry", "status_code": "200"},
+            value=1,
+        )
+        metrics_query = MetricsQuery(
+            query=Formula(
+                ArithmeticOperator.PLUS,
+                [
+                    Timeseries(
+                        Metric(mri=TransactionMRI.DURATION.value),
+                        aggregate="count",
+                        filters=[
+                            Condition(Column("transaction"), Op.EQ, "/checkout"),
+                            Or(
+                                [
+                                    Condition(Column("device"), Op.EQ, "BlackBerry"),
+                                    Condition(Column("device"), Op.EQ, "Nokia"),
+                                ]
+                            ),
+                        ],
+                        groupby=[Column("transaction")],
+                    ),
+                    Timeseries(
+                        Metric(mri=TransactionMRI.DURATION.value),
+                        aggregate="count",
+                        filters=[
+                            Condition(Column("transaction"), Op.EQ, "/cart"),
+                            Or(
+                                [
+                                    Condition(Column("device"), Op.EQ, "Android"),
+                                    Condition(Column("device"), Op.EQ, "Palm"),
+                                ]
+                            ),
+                        ],
+                        groupby=[Column("transaction")],
+                    ),
+                ],
+                filters=[Condition(Column("status_code"), Op.EQ, "200")],
+            ),
+            scope=MetricsScope(
+                org_ids=[self.project.organization_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+        expected_metric_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            TransactionMRI.DURATION.value,
+        )
+        expected_transaction_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            "transaction",
+        )
+        expected_device_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            "device",
+        )
+        expected_status_code_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.project.organization_id,
+            "status_code",
+        )
+
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mapping = _lookup_indexer_resolve(
+            metrics_query, "generic_metrics"
+        )
+        mappings.update(indexer_mappings)
+        assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["transaction"] == expected_transaction_id
+        assert mappings["device"] == expected_device_id
+        assert mappings["status_code"] == expected_status_code_id
+        assert reverse_mapping.tag_keys == {"transaction"}
+
+    def test_resolve_metrics_query_with_filters_release_health(self) -> None:
+        self.store_release_health_metric(
+            name=SessionMRI.RAW_DURATION.value,
+            project_id=self.project.id,
+            tags={"transaction": "/checkout", "device": "BlackBerry"},
+            value=1,
+        )
+        metrics_query = MetricsQuery(
+            query=Timeseries(
+                Metric(mri=SessionMRI.RAW_DURATION.value),
+                aggregate="count",
+                filters=[
+                    Condition(Column("transaction"), Op.EQ, "/checkout"),
+                    Or(
+                        [
+                            Condition(Column("device"), Op.EQ, "BlackBerry"),
+                            Condition(Column("device"), Op.EQ, "Nokia"),
+                        ]
+                    ),
+                ],
+                groupby=[Column("transaction")],
+            ),
+            scope=MetricsScope(
+                org_ids=[self.project.organization_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+        expected_metric_id = indexer.resolve(
+            UseCaseID.SESSIONS,
+            self.project.organization_id,
+            SessionMRI.RAW_DURATION.value,
+        )
+        expected_transaction_id = indexer.resolve(
+            UseCaseID.SESSIONS,
+            self.project.organization_id,
+            "transaction",
+        )
+        expected_device_id = indexer.resolve(
+            UseCaseID.SESSIONS,
+            self.project.organization_id,
+            "device",
+        )
+        expected_checkout = indexer.resolve(
+            UseCaseID.SESSIONS,
+            self.project.organization_id,
+            "/checkout",
+        )
+        expected_blackberry = indexer.resolve(
+            UseCaseID.SESSIONS,
+            self.project.organization_id,
+            "BlackBerry",
+        )
+
+        resolved_metrics_query, mappings = _resolve_query_metadata(metrics_query)
+        indexer_mappings, reverse_mapping = _lookup_indexer_resolve(metrics_query, "metrics")
+        mappings.update(indexer_mappings)
+        assert resolved_metrics_query.query.metric.id == expected_metric_id
+        assert mappings[SessionMRI.RAW_DURATION.value] == expected_metric_id
+        assert mappings["transaction"] == expected_transaction_id
+        assert mappings["device"] == expected_device_id
+        assert reverse_mapping.tag_keys == {"transaction", "device"}
+        assert set(reverse_mapping.reverse_mappings.keys()) == {
+            expected_checkout,
+            expected_blackberry,
+        }
 
 
 @pytest.mark.parametrize(
@@ -181,6 +432,9 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
 )
 def test_resolve_granularity(day_range: int, sec_offset: int, interval: int, expected: int) -> None:
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
+    end = now - timedelta(seconds=sec_offset)
+    assert _resolve_granularity(start, end, interval) == expected
     start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
     end = now - timedelta(seconds=sec_offset)
     assert _resolve_granularity(start, end, interval) == expected

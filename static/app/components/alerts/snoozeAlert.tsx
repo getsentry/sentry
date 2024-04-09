@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RuleActionsCategories} from 'sentry/types/alerts';
@@ -181,7 +182,7 @@ function SnoozeAlert({
               {...triggerProps}
               size="sm"
               aria-label={t('Mute alert options')}
-              icon={<IconChevron direction="down" size="xs" />}
+              icon={<IconChevron direction="down" />}
             />
           )}
           items={dropdownItems}

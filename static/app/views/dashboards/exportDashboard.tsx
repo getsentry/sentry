@@ -2,7 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
-import {DashboardDetails} from './types';
+import type {DashboardDetails} from './types';
 
 const deleteProperties = [
   'createdBy',

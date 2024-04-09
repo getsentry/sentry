@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from datetime import timezone
-from typing import Any, Mapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import http
@@ -74,6 +72,12 @@ FEATURES = [
         Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -187,54 +191,6 @@ class GitHubEnterpriseIntegration(
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
         return f"{repo.url}/blob/{branch}/{filepath}"
-
-    def get_commit_context(
-        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
-        lineno = event_frame.get("lineno", 0)
-        if not lineno:
-            return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
-
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
-
-        try:
-            commit: Mapping[str, Any] = max(
-                (
-                    blame
-                    for blame in blame_range
-                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
-                    and blame.get("commit", {}).get("committedDate")
-                ),
-                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
-                default={},
-            )
-            if not commit:
-                return None
-        except (ValueError, IndexError):
-            return None
-
-        commitInfo = commit.get("commit")
-        if not commitInfo:
-            return None
-        else:
-            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
-                timezone.utc
-            )
-
-            return {
-                "commitId": commitInfo.get("oid"),
-                "committedDate": committed_date,
-                "commitMessage": commitInfo.get("message"),
-                "commitAuthorName": commitInfo.get("author", {}).get("name"),
-                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
-            }
 
 
 class InstallationForm(forms.Form):
@@ -469,9 +425,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "idp_config": state["oauth_config_information"],
         }
 
-        if state.get("reinstall_id"):
-            integration["reinstall_id"] = state["reinstall_id"]
-
         return integration
 
     def setup(self):
@@ -492,8 +445,6 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
 
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         installation_data = pipeline.fetch_state(key="installation_data")
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
             pipeline.bind_state("installation_id", request.GET["installation_id"])

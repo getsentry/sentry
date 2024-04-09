@@ -1,27 +1,26 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {fields} from 'sentry/data/forms/accountNotificationSettings';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, UserEmail} from 'sentry/types';
+import type {Organization, Project, UserEmail} from 'sentry/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
-import {
-  ACCOUNT_NOTIFICATION_FIELDS,
-  FineTuneField,
-} from 'sentry/views/settings/account/notifications/fields';
+import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
+import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {
@@ -46,6 +45,7 @@ const accountNotifications = [
   'approval',
   'quota',
   'spikeProtection',
+  'reports',
 ];
 
 type ANBPProps = {
@@ -67,7 +67,15 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
       // `name` key refers to field name
       // we use project.id because slugs are not unique across orgs
       name: project.id,
-      label: project.slug,
+      label: (
+        <ProjectBadge
+          project={project}
+          avatarSize={20}
+          displayName={project.slug}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+        />
+      ),
     })),
   }));
 
@@ -93,10 +101,11 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
 
 type ANBOProps = {
   field: FineTuneField;
-  organizations: Organization[];
 };
 
-function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
+function AccountNotificationsByOrganization({field}: ANBOProps) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {title, description, ...fieldConfig} = field;
 
@@ -125,10 +134,6 @@ function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
   );
 }
 
-const AccountNotificationsByOrganizationContainer = withOrganizations(
-  AccountNotificationsByOrganization
-);
-
 type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{fineTuneType: string}, {}> & {
     organizations: Organization[];
@@ -136,7 +141,7 @@ type Props = DeprecatedAsyncView['props'] &
 
 type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
-  fineTuneData: Record<string, any> | null;
+  emailsByProject: Record<string, any> | null;
   notifications: Record<string, any> | null;
   projects: Project[] | null;
 };
@@ -147,7 +152,6 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       ['notifications', '/users/me/notifications/'],
-      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
     ];
 
     if (isGroupedByProject(fineTuneType)) {
@@ -155,9 +159,10 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       endpoints.push(['projects', `/projects/`, {query: {organizationId}}]);
     }
 
-    endpoints.push(['emails', '/users/me/emails/']);
+    // special logic for email
     if (fineTuneType === 'email') {
       endpoints.push(['emails', '/users/me/emails/']);
+      endpoints.push(['emailsByProject', `/users/me/notifications/email/`]);
     }
 
     return endpoints;
@@ -207,7 +212,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 
-    const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
+    const {notifications, projects, emailsByProject, projectsPageLinks} = this.state;
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
@@ -221,7 +226,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
     }
 
-    if (!notifications || !fineTuneData) {
+    if (!notifications || (!emailsByProject && fineTuneType === 'email')) {
       return null;
     }
 
@@ -230,27 +235,24 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const hasMore = paginationObject?.next?.results;
     const hasPrevious = paginationObject?.previous?.results;
 
+    const mainContent = (
+      <Fragment>
+        {isProject && hasProjects && (
+          <AccountNotificationsByProject projects={projects!} field={field} />
+        )}
+
+        {isProject && !hasProjects && (
+          <EmptyMessage>{t('No projects found')}</EmptyMessage>
+        )}
+
+        {!isProject && <AccountNotificationsByOrganization field={field} />}
+      </Fragment>
+    );
+
     return (
       <div>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
-
-        {field &&
-          field.defaultFieldName &&
-          // not implemented yet
-          field.defaultFieldName !== 'weeklyReports' && (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/"
-              initialData={notifications}
-            >
-              <JsonForm
-                title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
-              />
-            </Form>
-          )}
         <Panel>
           <StyledPanelHeader hasButtons={isProject}>
             {isProject ? (
@@ -271,24 +273,19 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             )}
           </StyledPanelHeader>
           <PanelBody>
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
-              initialData={fineTuneData}
-            >
-              {isProject && hasProjects && (
-                <AccountNotificationsByProject projects={projects!} field={field} />
-              )}
-
-              {isProject && !hasProjects && (
-                <EmptyMessage>{t('No projects found')}</EmptyMessage>
-              )}
-
-              {!isProject && (
-                <AccountNotificationsByOrganizationContainer field={field} />
-              )}
-            </Form>
+            {/* Only email needs the form to change the emmail */}
+            {fineTuneType === 'email' && emailsByProject ? (
+              <Form
+                saveOnBlur
+                apiMethod="PUT"
+                apiEndpoint="/users/me/notifications/email/"
+                initialData={emailsByProject}
+              >
+                {mainContent}
+              </Form>
+            ) : (
+              mainContent
+            )}
           </PanelBody>
         </Panel>
 

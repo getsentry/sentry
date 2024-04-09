@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';

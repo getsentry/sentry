@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional, Sequence, Set
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -11,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
@@ -20,10 +22,11 @@ from sentry.snuba import (
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import SnubaError, SnubaTSResult
 
-METRICS_ENHANCED_REFERRERS: Set[str] = {
+METRICS_ENHANCED_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_DURATION_HISTOGRAM.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM.value,
@@ -62,10 +65,11 @@ METRICS_ENHANCED_REFERRERS: Set[str] = {
     Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
     Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
     Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_METRICS_SERIES.value,
 }
 
 
-ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
+ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     Referrer.API_ALERTS_CHARTCUTERIE.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
@@ -105,6 +109,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-widgets",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -121,6 +126,28 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 for feature_name in feature_names
             }
         )
+
+    def flatten_results(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+        if isinstance(results, SnubaTSResult):
+            return results.data["data"]
+        else:
+            return sum(
+                [timeseries_result.data["data"] for timeseries_result in results.values()],
+                [],
+            )
+
+    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+        flattened_data = self.flatten_results(results)
+        has_data = any(
+            any(
+                column_name != "time"
+                and isinstance(column_value, (int, float))
+                and column_value != 0
+                for (column_name, column_value) in row.items()
+            )
+            for row in flattened_data
+        )
+        return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
@@ -200,18 +227,26 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        try:
+            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+        except ValueError:
+            metric_type_values = [e.value for e in MetricSpecType]
+            metric_types = ",".join(metric_type_values)
+            return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
-        def get_event_stats(
+        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+
+        def _get_event_stats(
+            scoped_dataset: Any,
             query_columns: Sequence[str],
             query: str,
-            params: Dict[str, str],
+            params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: Optional[datetime],
+            comparison_delta: datetime | None,
         ) -> SnubaTSResult:
             if top_events > 0:
-                return dataset.top_events_timeseries(
+                return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -224,9 +259,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    on_demand_metrics_enabled=use_on_demand_metrics,
+                    on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                 )
-            return dataset.timeseries_query(
+
+            return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
@@ -236,10 +274,171 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
+                # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
+                # their queries since right now the metrics layer has not full feature parity with the query builder.
+                use_metrics_layer=force_metrics_layer
+                or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
-                and batch_features.get("organizations:on-demand-metrics-extraction", False),
+                and (
+                    batch_features.get("organizations:on-demand-metrics-extraction", False)
+                    or batch_features.get(
+                        "organizations:on-demand-metrics-extraction-widgets", False
+                    )
+                ),
+                on_demand_metrics_type=on_demand_metrics_type,
             )
+
+        def get_event_stats_factory(scoped_dataset):
+            """
+            This factory closes over dataset in order to make an additional request to the errors dataset
+            in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
+
+            This should be removed once the discover dataset is completely split in dashboards.
+            """
+            dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
+
+            def fn(
+                query_columns: Sequence[str],
+                query: str,
+                params: dict[str, str],
+                rollup: int,
+                zerofill_results: bool,
+                comparison_delta: datetime | None,
+            ) -> SnubaTSResult:
+
+                if not (metrics_enhanced and dashboard_widget_id):
+                    return _get_event_stats(
+                        scoped_dataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+
+                try:
+                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
+
+                    if does_widget_have_split and not has_override_feature:
+                        # This is essentially cached behaviour and we skip the check
+                        split_query = query
+                        if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
+                            split_dataset = discover
+                            split_query = f"({query}) AND !event.type:transaction"
+                        elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            # We can't add event.type:transaction for now because of on-demand.
+                            split_dataset = scoped_dataset
+                        else:
+                            # This is a fallback for the ambiguous case.
+                            split_dataset = discover
+
+                        return _get_event_stats(
+                            split_dataset,
+                            query_columns,
+                            split_query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+
+                    # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                    errors_only_query = f"({query}) AND !event.type:transaction"
+                    error_results = None
+                    try:
+                        error_results = _get_event_stats(
+                            discover,
+                            query_columns,
+                            errors_only_query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                        has_errors = self.check_if_results_have_data(error_results)
+                    except SnubaError:
+                        has_errors = False
+
+                    original_results = _get_event_stats(
+                        scoped_dataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+                    has_other_data = self.check_if_results_have_data(original_results)
+                    if isinstance(original_results, SnubaTSResult):
+                        dataset_meta = original_results.data.get("meta", {})
+                    else:
+                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+
+                    using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
+                        "isMetricsExtractedData", False
+                    )
+
+                    has_transactions = has_other_data
+                    transaction_results = None
+                    if has_errors and has_other_data and not using_metrics:
+                        # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
+                        sentry_sdk.set_tag("third_split_query", True)
+                        transactions_only_query = f"({query}) AND event.type:transaction"
+                        transaction_results = _get_event_stats(
+                            discover,
+                            query_columns,
+                            transactions_only_query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                        has_transactions = self.check_if_results_have_data(transaction_results)
+
+                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+
+                    if decision == DashboardWidgetTypes.DISCOVER:
+                        # The user needs to be warned to split in this case.
+                        return _get_event_stats(
+                            discover,
+                            query_columns,
+                            query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                    elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        return original_results
+                    elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        return error_results
+                    else:
+                        return original_results
+
+                except Exception as e:
+                    # Swallow the exception if it was due to discover split, and try again one more time.
+                    sentry_sdk.capture_exception(e)
+                    return _get_event_stats(
+                        scoped_dataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+
+            return fn
+
+        get_event_stats = get_event_stats_factory(dataset)
 
         try:
             return Response(

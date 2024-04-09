@@ -1,22 +1,16 @@
 from __future__ import annotations
 
 import resource
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Iterable
+from typing import Any
 
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-import celery
-
-from sentry.silo.base import SiloLimit, SiloMode
-
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
+from celery import current_task
 
 from sentry.celery import app
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception, configure_scope
 
@@ -68,7 +62,7 @@ def track_memory_usage(metric, **kwargs):
     try:
         yield
     finally:
-        metrics.timing(metric, get_rss_usage() - before, **kwargs)
+        metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
 def load_model_from_db(cls, instance_or_id, allow_cache=True):
@@ -95,7 +89,6 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
@@ -110,10 +103,8 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
             if start_time and record_timing:
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
-                metrics.timing(
-                    "jobs.queue_time",
-                    duration,
-                    instance=instance,
+                metrics.distribution(
+                    "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
             with configure_scope() as scope:

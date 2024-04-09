@@ -123,7 +123,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
       if (
         !itemProps.menuRef ||
         itemProps.menuRef.contains(event.target as Node) ||
-        (subMenuRef.current && subMenuRef.current?.contains(event.target as Node))
+        subMenuRef.current?.contains(event.target as Node)
       ) {
         return;
       }

@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -49,56 +51,54 @@ const CONTEXT_BROWSER = {
 describe('ContextSummary', function () {
   describe('render()', function () {
     it('renders nothing without contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         contexts: {},
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders nothing with a single user context', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {},
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should bail out with empty contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
           device: {},
           os: {},
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
-    it('renders at least three contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+    it('renders at least three contexts', async function () {
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
+      expect((await screen.findAllByTestId('context-item'))[0]).toHaveTextContent(
+        'Mmail@example.orgID:1'
+      );
     });
 
     it('renders up to four contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -107,14 +107,13 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE, // must be omitted
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should prefer client_os over os', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -123,14 +122,13 @@ describe('ContextSummary', function () {
           browser: CONTEXT_BROWSER,
           runtime: CONTEXT_RUNTIME,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders client_os too', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -138,14 +136,13 @@ describe('ContextSummary', function () {
           browser: CONTEXT_BROWSER,
           runtime: CONTEXT_RUNTIME,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should skip non-default named contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -154,14 +151,13 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should skip a missing user context', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         contexts: {
           os: CONTEXT_OS,
@@ -169,7 +165,7 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
@@ -178,7 +174,7 @@ describe('ContextSummary', function () {
 
 describe('OsSummary', function () {
   describe('render()', function () {
-    it('renders the version string', function () {
+    it('renders the version string', async function () {
       render(
         <ContextSummaryOS
           data={{
@@ -188,6 +184,9 @@ describe('OsSummary', function () {
           }}
           meta={{}}
         />
+      );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Mac OS XVersion:10.13.4'
       );
     });
 
@@ -272,7 +271,7 @@ describe('OsSummary', function () {
 
 describe('GpuSummary', function () {
   describe('render()', function () {
-    it('renders name and vendor', function () {
+    it('renders name and vendor', async function () {
       render(
         <ContextSummaryGPU
           data={{
@@ -282,9 +281,12 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Mali-T880Vendor:ARM'
+      );
     });
 
-    it('renders unknown when no vendor', function () {
+    it('renders unknown when no vendor', async function () {
       render(
         <ContextSummaryGPU
           data={{
@@ -292,6 +294,9 @@ describe('GpuSummary', function () {
           }}
           meta={{}}
         />
+      );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Apple A8 GPUVendor:Unknown'
       );
     });
 

@@ -1,0 +1,15 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [["sdk", "sentry.javascript.nextjs"]],
+      "fingerprint": ["sdk-nextjs"],
+      "__test_description": "Shows that the custom fingerprinting rule is applied when SDK is nextjs"
+    }
+  ],
+  "logentry": {
+    "formatted": "Es Dee Kay"
+  },
+  "sdk": {
+    "name": "sentry.javascript.nextjs"
+  }
+}

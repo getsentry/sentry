@@ -5,12 +5,19 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models.featureadoption import FeatureAdoption
+from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
+from sentry.receivers.rules import (
+    DEFAULT_RULE_DATA,
+    DEFAULT_RULE_DATA_NEW,
+    DEFAULT_RULE_LABEL,
+    DEFAULT_RULE_LABEL_NEW,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
@@ -34,6 +41,7 @@ from sentry.signals import (
     issue_resolved,
     issue_unignored,
     issue_unresolved,
+    issue_update_priority,
     member_joined,
     monitor_environment_failed,
     ownership_rule_created,
@@ -117,7 +125,7 @@ def record_event_processed(project, event, **kwargs):
     # Check to make sure more the ip address is being sent.
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    if user_context and list(user_context.keys()) != ["ip_address"]:
+    if user_context and len(user_context.keys() - {"ip_address", "sentry_user"}) > 0:
         feature_slugs.append("user_tracking")
 
     # Custom Tags
@@ -306,7 +314,11 @@ def record_alert_rule_created(
     wizard_v3=None,
     **kwargs,
 ):
-    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+    if (
+        rule_type == "issue"
+        and rule.label in [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]
+        and rule.data in [DEFAULT_RULE_DATA, DEFAULT_RULE_DATA_NEW]
+    ):
         return
 
     FeatureAdoption.objects.record(
@@ -504,6 +516,30 @@ def record_issue_escalating(project, group, event, was_until_escalating, **kwarg
         group_id=group.id,
         event_id=event.event_id if event else None,
         was_until_escalating=was_until_escalating,
+    )
+
+
+@issue_update_priority.connect(weak=False)
+def record_update_priority(
+    project: Project,
+    group: Group,
+    new_priority: str,
+    previous_priority: str | None,
+    user_id: int | None,
+    reason: str | None,
+    **kwargs,
+):
+    analytics.record(
+        "issue.priority_updated",
+        group_id=group.id,
+        new_priority=new_priority,
+        organization_id=project.organization_id,
+        project_id=project.id if project else None,
+        user_id=user_id,
+        previous_priority=previous_priority,
+        issue_category=group.issue_category.name.lower(),
+        issue_type=group.issue_type.slug,
+        reason=reason,
     )
 
 

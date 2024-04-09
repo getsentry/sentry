@@ -164,3 +164,9 @@ def test_get_item(a_dict, key, expected):
     prefix = '{% load sentry_helpers %} {{ something|get_item:"' + key + '" }}'
     result = engines["django"].from_string(prefix).render(context={"something": a_dict}).strip()
     assert result == expected
+
+
+def test_sanitize_periods():
+    input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
+    result = engines["django"].from_string(input).render().strip()
+    assert result == "example\u2060.com"

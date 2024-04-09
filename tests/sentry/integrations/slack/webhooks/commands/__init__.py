@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlencode
 
 from django.http.response import HttpResponse
@@ -9,7 +10,7 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -34,7 +35,7 @@ class SlackCommandsTest(APITestCase, TestCase):
 
         self.integration = install_slack(self.organization, self.external_id)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
+            self.idp = self.create_identity_provider(
                 type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
                 external_id=self.external_id,
                 config={},

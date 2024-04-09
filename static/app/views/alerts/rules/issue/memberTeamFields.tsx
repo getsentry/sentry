@@ -6,8 +6,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import type {Organization, Project} from 'sentry/types';
+import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 interface OptionRecord {
   label: string;
@@ -106,7 +106,6 @@ class MemberTeamFields extends Component<Props> {
               <SelectMembers
                 disabled={disabled}
                 key={teamSelected ? teamValue : memberValue}
-                project={project}
                 organization={organization}
                 // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
                 value={`${ruleData.targetIdentifier}`}

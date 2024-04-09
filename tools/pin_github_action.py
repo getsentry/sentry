@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Sequence
 
 ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>[^#\s]+)")
 

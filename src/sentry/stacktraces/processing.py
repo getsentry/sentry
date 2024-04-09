@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 
@@ -15,6 +16,9 @@ from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
+
+if TYPE_CHECKING:
+    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class StacktraceInfo(NamedTuple):
@@ -262,18 +266,6 @@ def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: st
     return {frame.get("platform", fallback_platform) for frame in frames}
 
 
-def _has_system_frames(frames):
-    """
-    Determines whether there are any frames in the stacktrace with in_app=false.
-    """
-
-    system_frames = 0
-    for frame in frames:
-        if not frame.get("in_app"):
-            system_frames += 1
-    return bool(system_frames) and len(frames) != system_frames
-
-
 def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
     Ensures consistent values of in_app across a stacktrace. Returns a classification of the
@@ -302,7 +294,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
 
 
 def normalize_stacktraces_for_grouping(
-    data: MutableMapping[str, Any], grouping_config=None
+    data: MutableMapping[str, Any], grouping_config: StrategyConfiguration | None = None
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
@@ -318,13 +310,13 @@ def normalize_stacktraces_for_grouping(
             if frames:
                 stacktrace_frames.append(frames)
                 stacktrace_containers.append(
-                    stacktrace_info.container if stacktrace_info.is_exception else None
+                    stacktrace_info.container if stacktrace_info.is_exception else {}
                 )
 
     if not stacktrace_frames:
         return
 
-    platform = data.get("platform")
+    platform = data.get("platform", "")
     sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
@@ -342,7 +334,7 @@ def normalize_stacktraces_for_grouping(
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
+                    frames, platform, stacktrace_container
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
@@ -365,7 +357,7 @@ def normalize_stacktraces_for_grouping(
         data["metadata"] = event_metadata
 
 
-def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
+def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
     """Restore the original in_app value before the first grouping
     enhancers have been run. This allows to re-apply grouping
     enhancers on the original frame data.
@@ -586,6 +578,7 @@ def dedup_errors(errors):
     return rv
 
 
+@sentry_sdk.tracing.trace
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
@@ -603,7 +596,6 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     # Build a new processing task
     processing_task = get_stacktrace_processing_task(infos, processors)
     try:
-
         # Preprocess step
         for processor in processing_task.iter_processors():
             with sentry_sdk.start_span(

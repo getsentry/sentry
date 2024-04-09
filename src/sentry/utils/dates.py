@@ -1,6 +1,8 @@
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Tuple, Union, overload
+import zoneinfo
+from collections.abc import Mapping
+from datetime import UTC, date, datetime, timedelta
+from typing import Any, overload
 
 from dateutil.parser import parse
 from django.http.request import HttpRequest
@@ -9,7 +11,10 @@ from django.utils.timezone import is_aware, make_aware
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
 
-epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+epoch = datetime(1970, 1, 1, tzinfo=UTC)
+
+# Factory is an obscure GMT alias
+AVAILABLE_TIMEZONES = frozenset(zoneinfo.available_timezones() - {"Factory"})
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -21,33 +26,17 @@ def ensure_aware(value: datetime) -> datetime:
     return make_aware(value)
 
 
-def to_timestamp(value: datetime) -> float:
-    """
-    Convert a time zone aware datetime to a POSIX timestamp (with fractional
-    component.)
-    """
-    return (value - epoch).total_seconds()
-
-
-def to_timestamp_from_iso_format(value: str) -> float:
-    """
-    Convert a str representation of datetime in iso format to
-    a POSIX timestamp
-    """
-    return datetime.fromisoformat(value).timestamp()
-
-
 @overload
 def to_datetime(value: None) -> None:
     ...
 
 
 @overload
-def to_datetime(value: Union[float, int]) -> datetime:
+def to_datetime(value: float | int) -> datetime:
     ...
 
 
-def to_datetime(value: Optional[Union[float, int]]) -> Optional[datetime]:
+def to_datetime(value: float | int | None) -> datetime | None:
     """
     Convert a POSIX timestamp to a time zone aware datetime.
 
@@ -60,14 +49,17 @@ def to_datetime(value: Optional[Union[float, int]]) -> Optional[datetime]:
     return epoch + timedelta(seconds=value)
 
 
+def date_to_utc_datetime(d: date) -> datetime:
+    """Convert a `date` to an aware `datetime`."""
+    return datetime(d.year, d.month, d.day, tzinfo=UTC)
+
+
 def floor_to_utc_day(value: datetime) -> datetime:
-    """
-    Floors a given datetime to UTC midnight.
-    """
-    return value.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    """Floors a given datetime to UTC midnight."""
+    return value.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
+def parse_date(datestr: str, timestr: str) -> datetime | None:
     # format is Y-m-d
     if not (datestr or timestr):
         return None
@@ -84,12 +76,12 @@ def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
             return None
 
 
-def parse_timestamp(value: Any) -> Optional[datetime]:
+def parse_timestamp(value: Any) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(value, UTC)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -102,10 +94,10 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
             return None
-    return rv.replace(tzinfo=timezone.utc)
+    return rv.replace(tzinfo=UTC)
 
 
-def parse_stats_period(period: str) -> Optional[timedelta]:
+def parse_stats_period(period: str) -> timedelta | None:
     """Convert a value such as 1h into a proper timedelta."""
     m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
@@ -147,7 +139,7 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
 def get_rollup_from_request(
     request: HttpRequest,
     params: Mapping[str, Any],
-    default_interval: Union[None, str],
+    default_interval: None | str,
     error: Exception,
     top_events: int = 0,
 ) -> int:
@@ -179,7 +171,7 @@ def validate_interval(
 
 def outside_retention_with_modified_start(
     start: datetime, end: datetime, organization: Any
-) -> Tuple[bool, datetime]:
+) -> tuple[bool, datetime]:
     """
     Check if a start-end datetime range is outside an
     organizations retention period. Returns an updated
@@ -191,7 +183,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.utcnow().astimezone(timezone.utc) if start.tzinfo else datetime.utcnow()
+    now = datetime.now(UTC) if start.tzinfo else datetime.utcnow()
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

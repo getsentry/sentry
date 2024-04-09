@@ -17,7 +17,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestCodecovIntegration(APITestCase):
     def setUp(self):
         self.create_integration(

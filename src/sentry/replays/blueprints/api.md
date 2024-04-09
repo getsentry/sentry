@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -53,20 +53,21 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field             | Type          | Description                                                    |
-    | ----------------- | ------------- | -------------------------------------------------------------- |
-    | click.alt         | string        | The alt attribute of the HTML element.                         |
-    | click.class       | array[string] | An array of HTML element classes.                              |
-    | click.id          | string        | The ID of an HTML element.                                     |
-    | click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | click.role        | string        | The role of an HTML element.                                   |
-    | click.tag         | string        | Valid HTML5 tag name.                                          |
-    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | click.textContent | string        | The text-content of an HTML element.                           |
-    | click.title       | string        | The title attribute of an HTML element.                        |
-    | click.selector    | string        | A valid CSS selector.                                          |
-    | dead.selector     | string        | A valid CSS selector.                                          |
-    | rage.selector     | string        | A valid CSS selector.                                          |
+    | Field                | Type          | Description                                                    |
+    | -------------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt            | string        | The alt attribute of the HTML element.                         |
+    | click.class          | array[string] | An array of HTML element classes.                              |
+    | click.id             | string        | The ID of an HTML element.                                     |
+    | click.label          | string        | The aria-label attribute of an HTML element.                   |
+    | click.component_name | string        | The value of the data-sentry-component attribute.              |
+    | click.role           | string        | The role of an HTML element.                                   |
+    | click.tag            | string        | Valid HTML5 tag name.                                          |
+    | click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent    | string        | The text-content of an HTML element.                           |
+    | click.title          | string        | The title attribute of an HTML element.                        |
+    | click.selector       | string        | A valid CSS selector.                                          |
+    | dead.selector        | string        | A valid CSS selector.                                          |
+    | rage.selector        | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -93,6 +94,7 @@ Retrieve a collection of replays.
 | environment       | optional[string]              | -                                                      |
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
+| has_viewed        | bool                          | True if the authorized user has viewed the replay.     |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
@@ -139,6 +141,7 @@ Retrieve a collection of replays.
         "environment": "production",
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
+        "has_viewed": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
         "os": {
@@ -205,6 +208,7 @@ Retrieve a single replay instance.
       "environment": "production",
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
+      "has_viewed": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
       "os": {
         "name": "iOS",
@@ -245,6 +249,10 @@ Deletes a replay instance.
 This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
 
 ### Fetch Replay Accessibility Issues [GET]
+
+- Parameters
+
+  - timestamp (optional, number) - A UNIX timestamp (seconds since epoch) marking the last moment to render a replay for accessibility analysis.
 
 Retrieve a collection of accessibility issues.
 
@@ -483,6 +491,18 @@ With download query argument.
 
   Content-Type application/octet-stream
 
+## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
+
+### Fetch Replay Video [GET]
+
+Returns the bytes of a replay-segment video.
+
+- Response 200
+
+  ```
+  \x00\x00\x00
+  ```
+
 ## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
@@ -549,18 +569,19 @@ Parameters:
 
 Queryable fields:
 
-| Field             | Type          | Description                                                    |
-| ----------------- | ------------- | -------------------------------------------------------------- |
-| click.alt         | string        | The alt attribute of the HTML element.                         |
-| click.class       | array[string] | An array of HTML element classes.                              |
-| click.id          | string        | The ID of an HTML element.                                     |
-| click.label       | string        | The aria-label attribute of an HTML element.                   |
-| click.role        | string        | The role of an HTML element.                                   |
-| click.selector    | string        | A valid CSS selector.                                          |
-| click.tag         | string        | Valid HTML5 tag name.                                          |
-| click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-| click.textContent | string        | The text-content of an HTML element.                           |
-| click.title       | string        | The title attribute of an HTML element.                        |
+| Field                | Type          | Description                                                    |
+| -------------------- | ------------- | -------------------------------------------------------------- |
+| click.alt            | string        | The alt attribute of the HTML element.                         |
+| click.class          | array[string] | An array of HTML element classes.                              |
+| click.id             | string        | The ID of an HTML element.                                     |
+| click.label          | string        | The aria-label attribute of an HTML element.                   |
+| click.component_name | string        | The value of the data-sentry-component attribute.              |
+| click.role           | string        | The role of an HTML element.                                   |
+| click.selector       | string        | A valid CSS selector.                                          |
+| click.tag            | string        | Valid HTML5 tag name.                                          |
+| click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+| click.textContent    | string        | The text-content of an HTML element.                           |
+| click.title          | string        | The title attribute of an HTML element.                        |
 
 Queryable fields for rage and dead clicks:
 
@@ -590,3 +611,66 @@ Retrieve a collection of click events associated with a replay.
     ]
   }
   ```
+
+## Replay Viewed By [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/viewed-by/]
+
+### Fetch Replay Viewed By [GET]
+
+| Column    | Type        | Description                                        |
+| --------- | ----------- | -------------------------------------------------- |
+| id        | string      | A replay-id.                                       |
+| viewed_by | array[User] | An array of user types who have viewed the replay. |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "id": "81220fbf68494b30a5129ceb4cc5937d",
+      "viewed_by": [
+        {
+          "id": "884411",
+          "name": "some.body@sentry.io",
+          "username": "d93522a35cb64c13991104bd73d44519",
+          "email": "some.body@sentry.io",
+          "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+          "isActive": true,
+          "hasPasswordAuth": false,
+          "isManaged": false,
+          "dateJoined": "2022-07-25T23:36:29.593212Z",
+          "lastLogin": "2024-03-14T18:11:28.740309Z",
+          "has2fa": true,
+          "lastActive": "2024-03-15T22:22:06.925934Z",
+          "isSuperuser": true,
+          "isStaff": false,
+          "experiments": {},
+          "emails": [
+            {
+              "id": "2231333",
+              "email": "some.body@sentry.io",
+              "is_verified": true
+            }
+          ],
+          "avatar": {
+            "avatarType": "upload",
+            "avatarUuid": "499dcd0764da42a589654a2224086e67",
+            "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/"
+          },
+          "type": "user"
+        }
+      ]
+    }
+  }
+  ```
+
+### Create Replay Viewed [POST]
+
+A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 204

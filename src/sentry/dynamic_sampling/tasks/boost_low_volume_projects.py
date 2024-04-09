@@ -1,8 +1,9 @@
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence, Tuple
 
+import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -22,7 +23,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -48,11 +48,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -106,7 +107,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[
-        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+        tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
@@ -114,10 +115,10 @@ def boost_low_volume_projects_of_org(
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
-    org_ids: List[int],
-    granularity: Optional[Granularity] = None,
-    query_interval: Optional[timedelta] = None,
-) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
+    org_ids: list[int],
+    granularity: Granularity | None = None,
+    query_interval: timedelta | None = None,
+) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
@@ -194,7 +195,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -235,7 +236,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 def adjust_sample_rates_of_projects(
     org_id: int,
-    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    projects_with_tx_count: Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
@@ -248,20 +249,31 @@ def adjust_sample_rates_of_projects(
         # the query triggering this job and the actual execution of the job.
         organization = None
 
-    # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_sliding_window_org_sample_rate(org_id)
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        log_skipped_job(org_id, "boost_low_volume_projects")
+        return
+
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+    sample_rate, success = get_sliding_window_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
     else:
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
+        sentry_sdk.capture_message(
+            "Sample rate of org not found when trying to adjust the sample rates of its projects"
+        )
         return
 
     projects_with_counts = {
@@ -309,10 +321,11 @@ def adjust_sample_rates_of_projects(
             )
 
             if rebalanced_project.id in PROJECTS_WITH_METRICS:
-                metrics.timing(
+                metrics.gauge(
                     "dynamic_sampling.project_sample_rate",
-                    rebalanced_project.new_sample_rate,
+                    rebalanced_project.new_sample_rate * 100,
                     tags={"project_id": rebalanced_project.id},
+                    unit="percent",
                 )
 
             # We want to store the new sample rate as a string.

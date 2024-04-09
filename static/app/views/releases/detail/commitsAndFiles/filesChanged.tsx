@@ -1,18 +1,22 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tn} from 'sentry/locale';
-import {CommitFile, Organization, Project, Repository} from 'sentry/types';
+import type {CommitFile, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -21,144 +25,106 @@ import FileChange from './fileChange';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
-type Props = RouteComponentProps<{release: string}, {}> & {
-  location: Location;
+// TODO(scttcper): Some props are no longer used, but required because of the HoC
+interface FilesChangedProps extends RouteComponentProps<{release: string}, {}> {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
-} & DeprecatedAsyncView['props'];
+}
 
-type State = {
-  fileList: CommitFile[];
-} & DeprecatedAsyncView['state'];
+function FilesChanged({activeReleaseRepo, releaseRepos, projectSlug}: FilesChangedProps) {
+  const location = useLocation();
+  const params = useParams<{release: string}>();
+  const organization = useOrganization();
 
-class FilesChanged extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {params, orgSlug, projectSlug} = this.props;
-
-    return routeTitleGen(
-      t('Files Changed - Release %s', formatVersion(params.release)),
-      orgSlug,
-      false,
-      projectSlug
-    );
-  }
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      fileList: [],
-    };
-  }
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
-      this.remountComponent();
-      return;
+  const query = getQuery({location, activeRepository: activeReleaseRepo});
+  const {
+    data: fileList = [],
+    isLoading: isLoadingFileList,
+    error: fileListError,
+    refetch,
+    getResponseHeader,
+  } = useApiQuery<CommitFile[]>(
+    [
+      `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        params.release
+      )}/commitfiles/`,
+      {query},
+    ],
+    {
+      staleTime: Infinity,
     }
-    super.componentDidUpdate(prevProps, prevState);
-  }
+  );
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {activeReleaseRepo: activeRepository, location, release, orgSlug} = this.props;
+  const filesByRepository = getFilesByRepository(fileList);
+  const reposToRender = getReposToRender(Object.keys(filesByRepository));
+  const fileListPageLinks = getResponseHeader?.('Link');
 
-    const query = getQuery({location, activeRepository});
-
-    return [
-      [
-        'fileList',
-        `/organizations/${orgSlug}/releases/${encodeURIComponent(release)}/commitfiles/`,
-        {query},
-      ],
-    ];
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderContent() {
-    const {fileList, fileListPageLinks, loading} = this.state;
-    const {activeReleaseRepo} = this.props;
-
-    if (loading) {
-      return <LoadingIndicator />;
-    }
-
-    if (!fileList.length) {
-      return (
-        <EmptyState>
-          {!activeReleaseRepo
-            ? t('There are no changed files associated with this release.')
-            : t(
-                'There are no changed files associated with this release in the %s repository.',
-                activeReleaseRepo.name
-              )}
-        </EmptyState>
-      );
-    }
-
-    const filesByRepository = getFilesByRepository(fileList);
-    const reposToRender = getReposToRender(Object.keys(filesByRepository));
-
-    return (
-      <Fragment>
-        {reposToRender.map(repoName => {
-          const repoData = filesByRepository[repoName];
-          const files = Object.keys(repoData);
-          const fileCount = files.length;
-          return (
-            <Panel key={repoName}>
-              <PanelHeader>
-                <span>{repoName}</span>
-                <span>{tn('%s file changed', '%s files changed', fileCount)}</span>
-              </PanelHeader>
-              <PanelBody>
-                {files.map(filename => {
-                  const {authors} = repoData[filename];
-                  return (
-                    <FileChange
-                      key={filename}
-                      filename={filename}
-                      authors={Object.values(authors)}
-                    />
-                  );
-                })}
-              </PanelBody>
-            </Panel>
-          );
-        })}
-        <Pagination pageLinks={fileListPageLinks} />
-      </Fragment>
-    );
-  }
-
-  renderBody() {
-    const {activeReleaseRepo, releaseRepos, router, location} = this.props;
-    return (
-      <Fragment>
-        {releaseRepos.length > 1 && (
-          <RepositorySwitcher
-            repositories={releaseRepos}
-            activeRepository={activeReleaseRepo}
-            location={location}
-            router={router}
-          />
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={routeTitleGen(
+          t('Files Changed - Release %s', formatVersion(params.release)),
+          organization.slug,
+          false,
+          projectSlug
         )}
-        {this.renderContent()}
-      </Fragment>
-    );
-  }
-
-  renderComponent() {
-    return (
+      />
       <Layout.Body>
-        <Layout.Main fullWidth>{super.renderComponent()}</Layout.Main>
+        <Layout.Main fullWidth>
+          {releaseRepos.length > 1 && (
+            <RepositorySwitcher
+              repositories={releaseRepos}
+              activeRepository={activeReleaseRepo}
+            />
+          )}
+          {fileListError && <LoadingError onRetry={refetch} />}
+          {isLoadingFileList ? (
+            <LoadingIndicator />
+          ) : fileList.length ? (
+            <Fragment>
+              {reposToRender.map(repoName => {
+                const repoData = filesByRepository[repoName];
+                const files = Object.keys(repoData);
+                const fileCount = files.length;
+                return (
+                  <Panel key={repoName}>
+                    <PanelHeader>
+                      <span>{repoName}</span>
+                      <span>{tn('%s file changed', '%s files changed', fileCount)}</span>
+                    </PanelHeader>
+                    <PanelBody>
+                      {files.map(filename => {
+                        const {authors} = repoData[filename];
+                        return (
+                          <FileChange
+                            key={filename}
+                            filename={filename}
+                            authors={Object.values(authors)}
+                          />
+                        );
+                      })}
+                    </PanelBody>
+                  </Panel>
+                );
+              })}
+              <Pagination pageLinks={fileListPageLinks} />
+            </Fragment>
+          ) : (
+            <EmptyState>
+              {activeReleaseRepo
+                ? t(
+                    'There are no changed files associated with this release in the %s repository.',
+                    activeReleaseRepo.name
+                  )
+                : t('There are no changed files associated with this release.')}
+            </EmptyState>
+          )}
+        </Layout.Main>
       </Layout.Body>
-    );
-  }
+    </Fragment>
+  );
 }
 
 export default withReleaseRepos(FilesChanged);

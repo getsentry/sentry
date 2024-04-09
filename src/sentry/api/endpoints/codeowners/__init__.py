@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -68,20 +69,12 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         )
 
         # Convert IssueOwner syntax into schema syntax
-        has_targeting_context = features.has(
-            "organizations:streamline-targeting-context", self.context["project"].organization
-        )
         try:
-            if has_targeting_context:
-                validated_data = create_schema_from_issue_owners(
-                    issue_owners=issue_owner_rules,
-                    project_id=self.context["project"].id,
-                    add_owner_ids=True,
-                )
-            else:
-                validated_data = create_schema_from_issue_owners(
-                    issue_owners=issue_owner_rules, project_id=self.context["project"].id
-                )
+            validated_data = create_schema_from_issue_owners(
+                issue_owners=issue_owner_rules,
+                project_id=self.context["project"].id,
+                add_owner_ids=True,
+            )
             return {
                 **attrs,
                 "schema": validated_data,

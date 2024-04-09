@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,7 +7,7 @@ import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunc
 
 describe('SlowestFunctionsWidget', function () {
   beforeEach(function () {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
     });

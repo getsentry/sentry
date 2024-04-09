@@ -1,15 +1,12 @@
 import uuid
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
@@ -100,15 +97,12 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_issue_platform_issue(self):
         event_id = uuid.uuid4().hex
-        occurrence_data = self.build_occurrence_data(
-            event_id=event_id, project_id=self.project.id, type=ProfileFileIOGroupType.type_id
-        )
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
-            {
-                "event_id": event_id,
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            type=ProfileFileIOGroupType.type_id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
         )
@@ -137,15 +131,12 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_issue_platform_mixed_issue_not_title(self):
         event_id = uuid.uuid4().hex
-        occurrence_data = self.build_occurrence_data(
-            event_id=event_id, project_id=self.project.id, type=ProfileFileIOGroupType.type_id
-        )
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
-            {
-                "event_id": event_id,
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            type=ProfileFileIOGroupType.type_id,
+            event_data={
                 "fingerprint": ["group-a"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
         )

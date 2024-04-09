@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,8 +12,8 @@ jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
-  const org = Organization();
-  const project = TestStubs.Project();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
   const groupID = '123';
   const createSampleText = 'Create a sample event';
 

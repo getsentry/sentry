@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlencode, urlparse
 
 import brotli
@@ -77,11 +77,11 @@ _profiling_pool = connection_from_url(
 def get_from_profiling_service(
     method: str,
     path: str,
-    params: Optional[Dict[Any, Any]] = None,
-    headers: Optional[Dict[Any, Any]] = None,
+    params: dict[Any, Any] | None = None,
+    headers: dict[Any, Any] | None = None,
     json_data: Any = None,
 ) -> VroomResponse:
-    kwargs: Dict[str, Any] = {"headers": {}}
+    kwargs: dict[str, Any] = {"headers": {}}
     if params:
         params = {
             key: value.isoformat() if isinstance(value, datetime) else value
@@ -114,8 +114,8 @@ def get_from_profiling_service(
 def proxy_profiling_service(
     method: str,
     path: str,
-    params: Optional[Dict[str, Any]] = None,
-    headers: Optional[Dict[str, str]] = None,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
     json_data: Any = None,
 ) -> SentryResponse:
     profiling_response = get_from_profiling_service(
@@ -143,13 +143,13 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, str]:
+def parse_profile_filters(query: str) -> dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:
         raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
-    profile_filters: Dict[str, str] = {}
+    profile_filters: dict[str, str] = {}
 
     for term in parsed_terms:
         if not isinstance(term, SearchFilter):

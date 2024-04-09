@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
@@ -20,7 +21,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.web.decorators import set_referrer_policy
 
@@ -32,6 +33,7 @@ class IntegrationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -116,7 +118,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
         try:
             installation.update_organization_config(request.data)
-        except IntegrationError as e:
-            return self.respond({"detail": str(e)}, status=400)
+        except (IntegrationError, ApiError) as e:
+            return self.respond({"detail": [str(e)]}, status=400)
 
         return self.respond(status=200)

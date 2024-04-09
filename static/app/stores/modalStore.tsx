@@ -1,8 +1,8 @@
 import {createStore} from 'reflux';
 
-import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 

@@ -1,4 +1,5 @@
-import InputField, {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
+import InputField from './inputField';
 
 export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {}
 

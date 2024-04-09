@@ -30,7 +30,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth", on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default="{}")
+    extra_data: models.Field[dict[str, Any] | None, dict[str, Any]] = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
@@ -52,11 +52,6 @@ class UserSocialAuth(models.Model):
         from .utils import tokens
 
         return tokens(instance=self)
-
-    def expiration_datetime(self):
-        from .utils import expiration_datetime
-
-        return expiration_datetime(instance=self)
 
     def revoke_token(self, drop_token=True):
         """Attempts to revoke permissions for provider."""
@@ -156,7 +151,6 @@ class UserSocialAuth(models.Model):
     def get_social_auth(cls, provider, uid, user):
         try:
             instance = cls.objects.get(provider=provider, uid=uid, user_id=user.id)
-            instance.user = user
             return instance
         except UserSocialAuth.DoesNotExist:
             return None

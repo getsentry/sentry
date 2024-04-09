@@ -1,30 +1,36 @@
 import {browserHistory} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, LocationDescriptorObject} from 'history';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Organization} from 'sentry/types';
-import {
+import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
+import type {Organization} from 'sentry/types';
+import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
   EntrySpans,
-  EntryType,
+  Event,
   EventTransaction,
 } from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import SpanTreeModel from './spanTreeModel';
-import {
+import type SpanTreeModel from './spanTreeModel';
+import type {
   AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
@@ -39,7 +45,7 @@ import {
 } from './types';
 
 export const isValidSpanID = (maybeSpanID: any) =>
-  isString(maybeSpanID) && maybeSpanID.length > 0;
+  typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -112,7 +118,8 @@ const HTTP_DATA_KEYS = [
   'http.request.response_start',
   'http.request.response_end',
 ];
-const HIDDEN_DATA_KEYS = HTTP_DATA_KEYS;
+const INTERNAL_DATA_KEYS = ['sentry_tags'];
+const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
 const TIMING_DATA_KEYS = [
   SpanSubTimingMark.HTTP_REQUEST_START,
@@ -458,6 +465,38 @@ export function getTraceContext(
   return event?.contexts?.trace;
 }
 
+export function handleTraceDetailsRouting(
+  metaResults: TraceMetaQueryChildrenProps | undefined,
+  event: Event,
+  organization: Organization,
+  location: Location
+) {
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+
+  if (
+    organization.features.includes('performance-trace-details') &&
+    metaResults?.meta &&
+    metaResults?.meta.transactions <= 200
+  ) {
+    const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+      organization,
+      traceId,
+      event.title,
+      location.query,
+      getEventTimestamp(event),
+      event.eventID
+    );
+
+    browserHistory.replace({
+      pathname: traceDetailsLocation.pathname,
+      query: {
+        transaction: traceDetailsLocation.query?.transaction,
+      },
+      hash: transactionTargetHash(event.eventID) + location.hash,
+    });
+  }
+}
+
 export function parseTrace(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): ParsedTraceType {
@@ -470,17 +509,17 @@ export function parseTrace(
   const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
-  const traceID = (traceContext && traceContext.trace_id) || '';
-  const rootSpanID = (traceContext && traceContext.span_id) || '';
-  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
-  const description = traceContext && traceContext.description;
-  const parentSpanID = traceContext && traceContext.parent_span_id;
-  const rootSpanStatus = traceContext && traceContext.status;
-  const hash = traceContext && traceContext.hash;
-  const exclusiveTime = traceContext && traceContext.exclusive_time;
-  const count = traceContext && traceContext.count;
-  const frequency = traceContext && traceContext.frequency;
-  const total = traceContext && traceContext.total;
+  const traceID = traceContext?.trace_id || '';
+  const rootSpanID = traceContext?.span_id || '';
+  const rootSpanOpName = traceContext?.op || 'transaction';
+  const description = traceContext?.description;
+  const parentSpanID = traceContext?.parent_span_id;
+  const rootSpanStatus = traceContext?.status;
+  const hash = traceContext?.hash;
+  const exclusiveTime = traceContext?.exclusive_time;
+  const count = traceContext?.count;
+  const frequency = traceContext?.frequency;
+  const total = traceContext?.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -886,6 +925,26 @@ export function scrollToSpan(
   };
 }
 
+type TraceDetailsHashIds = {
+  eventId: string | undefined;
+  spanId: string | undefined;
+};
+
+export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
+  if (!hash) {
+    return null;
+  }
+
+  const values = hash.split('#').slice(1);
+  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
+  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
+
+  return {
+    eventId,
+    spanId,
+  };
+}
+
 export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
@@ -978,8 +1037,10 @@ export function getSpanGroupBounds(
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
-    ?.level;
+  const highestErrorLevel = maxBy(
+    errors || [],
+    error => ERROR_LEVEL_WEIGHTS[error.level]
+  )?.level;
 
   if (errors?.some(isErrorPerformanceError)) {
     return 'error';

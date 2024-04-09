@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils import (
     get_deploy,
     get_environment_for_deploy,
@@ -29,7 +31,7 @@ from .base import ActivityNotification
 
 class ReleaseActivityNotification(ActivityNotification):
     metrics_key = "release_activity"
-    notification_setting_type = NotificationSettingTypes.DEPLOY
+    notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
@@ -158,6 +160,9 @@ class ReleaseActivityNotification(ActivityNotification):
                 return [
                     MessageAction(
                         name=project.slug,
+                        label=project.slug
+                        if features.has("organizations:slack-block-kit", self.project.organization)
+                        else None,
                         url=self.organization.absolute_url(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/",
                             query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",

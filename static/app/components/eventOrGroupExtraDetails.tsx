@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -15,7 +14,7 @@ import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -23,15 +22,9 @@ type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
-  showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({
-  data,
-  showAssignee,
-  showInboxTime,
-  organization,
-}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
   const {
     id,
     lastSeen,
@@ -45,7 +38,6 @@ function EventOrGroupExtraDetails({
     project,
     lifetime,
     isUnhandled,
-    inbox,
     status,
     substatus,
   } = data as Group;
@@ -54,16 +46,10 @@ function EventOrGroupExtraDetails({
 
   const showReplayCount =
     organization.features.includes('session-replay') && projectCanLinkToReplay(project);
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   return (
     <GroupExtra>
-      {!hasEscalatingIssuesUi && inbox && (
-        <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
-      )}
-      {hasEscalatingIssuesUi && (
-        <GroupStatusBadge status={status} substatus={substatus} />
-      )}
+      <GroupStatusBadge status={status} substatus={substatus} />
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -95,7 +81,7 @@ function EventOrGroupExtraDetails({
           <span>{numComments}</span>
         </CommentsLink>
       )}
-      {showReplayCount && <IssueReplayCount groupId={id} />}
+      {showReplayCount && <IssueReplayCount group={data as Group} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink

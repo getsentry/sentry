@@ -1,7 +1,6 @@
-from typing import Optional
-
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
 from sentry.models.integrations import SentryAppComponent
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -13,7 +12,7 @@ from sentry.services.hybrid_cloud.app import (
 )
 
 
-def serialize_api_application(api_app: Optional[ApiApplication]) -> Optional[RpcApiApplication]:
+def serialize_api_application(api_app: ApiApplication | None) -> RpcApiApplication | None:
     if not api_app:
         return None
     return RpcApiApplication(
@@ -42,15 +41,24 @@ def serialize_sentry_app(app: SentryApp) -> RpcSentryApp:
         is_internal=app.status == SentryAppStatus.INTERNAL,
         is_publish_request_inprogress=app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS,
         status=SentryAppStatus.as_str(app.status),
+        metadata=app.metadata,
     )
 
 
 def serialize_sentry_app_installation(
-    installation: SentryAppInstallation, app: Optional[SentryApp] = None
+    installation: SentryAppInstallation, app: SentryApp | None = None
 ) -> RpcSentryAppInstallation:
     if app is None:
         app = installation.sentry_app
         assert app is not None
+
+    api_token = None
+    if installation.api_token_id:
+        try:
+            if token := installation.api_token:
+                api_token = token.token
+        except ApiToken.DoesNotExist:
+            pass
 
     return RpcSentryAppInstallation(
         id=installation.id,
@@ -59,7 +67,7 @@ def serialize_sentry_app_installation(
         sentry_app=serialize_sentry_app(app),
         date_deleted=installation.date_deleted,
         uuid=installation.uuid,
-        api_token=installation.api_token.token if installation.api_token else None,
+        api_token=api_token,
     )
 
 

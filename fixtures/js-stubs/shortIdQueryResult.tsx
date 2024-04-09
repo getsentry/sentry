@@ -1,9 +1,9 @@
-import {Group} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {ShortIdResponse} from 'sentry/types';
 
-export function ShortIdQueryResult(params = {}): ShortIdResponse {
-  const group = Group({
+export function ShortIdQueryResultFixture(params = {}): ShortIdResponse {
+  const group = GroupFixture({
     metadata: {
       type: 'group type',
       value: 'group description',

@@ -11,7 +11,7 @@ import platforms from 'sentry/data/platforms';
 
 import {
   FrameworkSuggestionModal,
-  languageDetails,
+  languageDescriptions,
   topJavascriptFrameworks,
 } from './frameworkSuggestionModal';
 
@@ -43,7 +43,7 @@ describe('Framework suggestion modal', function () {
       screen.getByRole('heading', {name: 'Do you use a framework?'})
     ).toBeInTheDocument();
 
-    expect(screen.getByText(languageDetails.javascript.description)).toBeInTheDocument();
+    expect(screen.getByText(languageDescriptions.javascript)).toBeInTheDocument();
 
     const frameworks = platforms.filter(
       platform => platform.type === 'framework' && platform.language === 'javascript'

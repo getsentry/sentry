@@ -16,7 +16,15 @@ export interface UseResizableDrawerOptions {
   /**
    * Triggered while dragging
    */
-  onResize: (newSize: number, maybeOldSize?: number) => void;
+  onResize: (
+    newSize: number,
+    maybeOldSize: number | undefined,
+    userEvent: boolean
+  ) => void;
+  /**
+   * The local storage key used to persist the size of the container
+   */
+  sizeStorageKey?: string;
 }
 
 /**
@@ -40,6 +48,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   /**
+   * Call this function to manually set the size of the drawer.
+   */
+  setSize: (newSize: number, userEvent?: boolean) => void;
+  /**
    * The resulting size of the container axis. Updated while dragging.
    *
    * NOTE: Be careful using this as this as react state updates are not
@@ -49,14 +61,32 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  const [size, setSize] = useState<number>(options.initialSize ?? 0);
+  const [size, setSize] = useState<number>(() => {
+    const storedSize = options.sizeStorageKey
+      ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
+      : undefined;
+
+    return storedSize || options.initialSize;
+  });
   const [isHeld, setIsHeld] = useState(false);
+
+  const updateSize = useCallback(
+    (newSize: number, userEvent: boolean = false) => {
+      setSize(newSize);
+      options.onResize(newSize, undefined, userEvent);
+      if (options.sizeStorageKey) {
+        localStorage.setItem(options.sizeStorageKey, newSize.toString());
+      }
+    },
+    [options]
+  );
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
-    options.onResize(options.initialSize ?? 0, size);
+    options.onResize(options.initialSize ?? 0, size, false);
+    setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
@@ -65,6 +95,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
+      event.stopPropagation();
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
@@ -100,11 +131,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
           Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
         );
 
-        options.onResize(newSize);
-        setSize(newSize);
+        updateSize(newSize, true);
       });
     },
-    [options]
+    [options.direction, options.min, updateSize]
   );
 
   const onMouseUp = useCallback(() => {
@@ -128,9 +158,8 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const onDoubleClick = useCallback(() => {
-    setSize(options.initialSize);
-    options.onResize(options.initialSize);
-  }, [options]);
+    updateSize(options.initialSize, true);
+  }, [updateSize, options.initialSize]);
 
   useLayoutEffect(() => {
     return () => {
@@ -140,5 +169,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick};
+  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
 }

@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment-timezone';
+import type moment from 'moment-timezone';
 
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,11 +15,15 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
+import type {
+  SentryApp,
+  SentryAppSchemaIssueLink,
+  SentryAppWebhookRequest,
+} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
 const ALL_EVENTS = t('All Events');
@@ -272,13 +276,13 @@ export default class RequestLog extends DeprecatedAsyncComponent<Props, State> {
 
         <PaginationButtons>
           <Button
-            icon={<IconChevron direction="left" size="sm" />}
+            icon={<IconChevron direction="left" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
             aria-label={t('Previous page')}
           />
           <Button
-            icon={<IconChevron direction="right" size="sm" />}
+            icon={<IconChevron direction="right" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
             aria-label={t('Next page')}

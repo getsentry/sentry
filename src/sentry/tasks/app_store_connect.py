@@ -7,7 +7,7 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from typing import List, Mapping, Tuple
+from collections.abc import Mapping
 
 import requests
 import sentry_sdk
@@ -148,8 +148,8 @@ def get_or_create_persisted_build(
 def process_builds(
     project: Project,
     config: appconnect.AppStoreConnectConfig,
-    to_process: List[appconnect.BuildInfo],
-) -> List[Tuple[appconnect.BuildInfo, AppConnectBuild]]:
+    to_process: list[appconnect.BuildInfo],
+) -> list[tuple[appconnect.BuildInfo, AppConnectBuild]]:
     """Returns a list of builds whose dSYMs need to be updated or fetched.
 
     This will create a new "pending" :class:`AppConnectBuild` for any :class:`appconnect.BuildInfo`
@@ -213,7 +213,7 @@ def inner_refresh_all_builds() -> None:
                 # We are parsing JSON thus all types are Any, so give the type-checker some
                 # extra help.  We are maybe slightly lying about the type, but the
                 # attributes we do access are all string values.
-                all_sources: List[Mapping[str, str]] = json.loads(option.value)
+                all_sources: list[Mapping[str, str]] = json.loads(option.value)
                 for source in all_sources:
                     try:
                         source_id = source["id"]

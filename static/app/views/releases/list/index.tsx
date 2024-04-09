@@ -1,13 +1,15 @@
 import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,11 +19,11 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -29,26 +31,36 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
+  AvatarProject,
   Organization,
   PageFilters,
   Project,
   Release,
-  ReleaseStatus,
   Tag,
 } from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
+import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
+import {fetchThresholdStatuses} from '../utils/fetchThresholdStatus';
+import type {
+  Threshold,
+  ThresholdQuery,
+  ThresholdStatus,
+  ThresholdStatusesQuery,
+} from '../utils/types';
 
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
@@ -63,6 +75,7 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  api: Client;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
@@ -70,19 +83,24 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
+  thresholds: Threshold[];
+  thresholdStatuses?: {[key: string]: ThresholdStatus[]};
 } & DeprecatedAsyncView['state'];
 
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
-  hasV2ReleaseUIEnabled = this.props.organization.features.includes('release-ui-v2');
+  hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2-internal') ||
+    this.props.organization.features.includes('releases-v2') ||
+    this.props.organization.features.includes('releases-v2-st');
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, location} = this.props;
+    const {organization, location, selection} = this.props;
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
@@ -104,9 +122,29 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         'releases', // stateKey
         `/organizations/${organization.slug}/releases/`, // endpoint
         {query}, // params
-        {disableEntireQuery: true}, // options
+        {disableEntireQuery: true}, // options - prevent cursor from being passed into query
       ],
     ];
+
+    if (this.hasV2ReleaseUIEnabled) {
+      // prefetch all thresholds so we know whether to expect a threshold or not
+      const thresholdQuery: ThresholdQuery = {};
+      if (selection.projects.length) {
+        thresholdQuery.project = selection.projects;
+      } else {
+        thresholdQuery.project = [ALL_ACCESS_PROJECTS];
+      }
+      if (selection.environments.length) {
+        thresholdQuery.environment = selection.environments;
+      }
+
+      endpoints.push([
+        'thresholds',
+        `/organizations/${organization.slug}/release-thresholds/`,
+        {query: thresholdQuery},
+        {disableEntireQuery: true}, // options to prevent cursor from being passed
+      ]);
+    }
 
     return endpoints;
   }
@@ -125,7 +163,52 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
        * uses shouldReload=true and there is no reloading happening.
        */
       forceCheck();
+      if (this.hasV2ReleaseUIEnabled) {
+        // Refetch new threshold statuses if  new releases are fetched
+        this.fetchThresholdStatuses();
+      }
     }
+  }
+
+  fetchThresholdStatuses() {
+    const {selection, organization, api} = this.props;
+    const {releases} = this.state;
+    if (releases.length < 1) {
+      return;
+    }
+
+    // Grab earliest release and latest release - then fetch all statuses within
+    const fuzzSec = 30;
+    const initialRelease = releases[0];
+    let start = new Date(new Date(initialRelease.dateCreated).getTime() - fuzzSec * 1000);
+    let end = new Date(new Date(initialRelease.dateCreated).getTime() + fuzzSec * 1000);
+    const releaseVersions: string[] = [];
+    releases.forEach(release => {
+      const created = new Date(release.dateCreated);
+      if (created < start) {
+        start = created;
+      }
+      if (created > end) {
+        end = created;
+      }
+      releaseVersions.push(release.version);
+    });
+
+    const query: ThresholdStatusesQuery = {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      release: releaseVersions,
+    };
+    if (selection.projects.length) {
+      query.projectSlug = this.getSelectedProjectSlugs();
+    }
+    if (selection.environments.length) {
+      query.environment = selection.environments;
+    }
+
+    fetchThresholdStatuses(organization, api, query).then(thresholdStatuses => {
+      this.setState({thresholdStatuses});
+    });
   }
 
   getQuery() {
@@ -181,8 +264,35 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
+  getSelectedProjectSlugs(): string[] {
+    const {selection, projects} = this.props;
+    const projIdSet = new Set(selection.projects);
+
+    return projects.reduce((result: string[], proj) => {
+      if (projIdSet.has(Number(proj.id))) {
+        result.push(proj.slug);
+      }
+      return result;
+    }, []);
+  }
+
   get projectHasSessions() {
     return this.getSelectedProject()?.hasSessions ?? null;
+  }
+
+  getThresholdsForRelease(release: Release): Threshold[] {
+    if (!this.hasV2ReleaseUIEnabled) {
+      return [];
+    }
+    const {thresholds} = this.state;
+    const lastDeploy = release.lastDeploy;
+    const projectSlugs = release.projects.map(p => p.slug);
+
+    return thresholds.filter(
+      threshold =>
+        projectSlugs.includes(threshold.project.slug) &&
+        lastDeploy?.environment === threshold.environment?.name
+    );
   }
 
   handleSearch = (query: string) => {
@@ -309,7 +419,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         ? t('time range')
         : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
-    if (searchQuery && searchQuery.length) {
+    if (searchQuery?.length) {
       return (
         <Panel>
           <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
@@ -398,9 +508,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
         {({projects, initiallyLoaded, fetchError}) => {
-          const project = projects && projects.length === 1 && projects[0];
+          const project: AvatarProject | undefined =
+            projects?.length === 1 ? projects.at(0) : undefined;
           const projectCanHaveReleases =
-            project && project.platform && releaseHealth.includes(project.platform);
+            project?.platform && releaseHealth.includes(project.platform);
 
           if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
             return null;
@@ -433,7 +544,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     showReleaseAdoptionStages: boolean
   ) {
     const {location, selection, organization, router} = this.props;
-    const {releases, reloading, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks, thresholdStatuses} = this.state;
 
     const selectedProject = this.getSelectedProject();
     const hasReleasesSetup = selectedProject?.features.includes('releases');
@@ -464,6 +575,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
+
+          // TODO: project specific chart should live on the project details page.
           const isMobileProject =
             selectedProject?.platform && isMobileRelease(selectedProject.platform);
 
@@ -481,7 +594,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
-                  key={`${release.version}-${release.projects[0].slug}`}
+                  key={`${release.projects[0].slug}-${release.version}`}
                   activeDisplay={activeDisplay}
                   release={release}
                   organization={organization}
@@ -492,6 +605,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                   isTopRelease={index === 0}
                   getHealthData={getHealthData}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
+                  thresholds={this.getThresholdsForRelease(release)}
+                  thresholdStatuses={thresholdStatuses || {}}
                 />
               ))}
               <Pagination pageLinks={releasesPageLinks} />
@@ -516,15 +631,22 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
-    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Header router={router} hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled} />
+          <Header
+            router={router}
+            hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled}
+            organization={organization}
+          />
 
           <Layout.Body>
             <Layout.Main fullWidth>
+              {organization.features.includes('releases-v2-banner') && (
+                <ReleaseFeedbackBanner />
+              )}
+
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
@@ -542,29 +664,23 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  <GuideAnchor
-                    target="releases_search"
-                    position="bottom"
-                    disabled={!hasReleasesSetup}
-                  >
-                    <StyledSmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      hasRecentSearches={false}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                    />
-                  </GuideAnchor>
+                  <StyledSmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    hasRecentSearches={false}
+                    supportedTags={{
+                      ...SEMVER_TAGS,
+                      release: {
+                        key: 'release',
+                        name: 'release',
+                      },
+                    }}
+                    maxMenuHeight={500}
+                    supportedTagType={ItemType.PROPERTY}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}
@@ -589,6 +705,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+              <FloatingFeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
@@ -639,4 +756,4 @@ const StyledSmartSearchBar = styled(SmartSearchBar)`
   }
 `;
 
-export default withProjects(withOrganization(withPageFilters(ReleasesList)));
+export default withApi(withProjects(withOrganization(withPageFilters(ReleasesList))));

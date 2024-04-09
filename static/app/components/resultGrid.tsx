@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client, RequestOptions} from 'sentry/api';
+import type {Client, RequestOptions} from 'sentry/api';
 import DropdownLink from 'sentry/components/dropdownLink';
 import MenuItem from 'sentry/components/menuItem';
 import Pagination from 'sentry/components/pagination';
@@ -223,7 +223,7 @@ class ResultGrid extends Component<Props, State> {
   }
 
   get query() {
-    return ((this.props.location ?? {}).query ?? {}) as {[k: string]: string};
+    return (this.props.location?.query ?? {}) as {[k: string]: string};
   }
 
   remountComponent() {
@@ -368,10 +368,10 @@ class ResultGrid extends Component<Props, State> {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-              ? this.renderError()
-              : this.state.rows.length === 0
-              ? this.renderNoResults()
-              : this.renderResults()}
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
           </tbody>
         </table>
         {this.props.hasPagination && this.state.pageLinks && (

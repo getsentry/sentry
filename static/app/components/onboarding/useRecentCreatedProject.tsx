@@ -1,6 +1,11 @@
 import moment from 'moment';
 
-import {Group, OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
+import type {
+  Group,
+  OnboardingRecentCreatedProject,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // Refetch the data every second

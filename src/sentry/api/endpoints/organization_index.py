@@ -204,7 +204,7 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
         limit = options.get("api.rate-limit.org-create")
-        if limit and ratelimiter.is_limited(
+        if limit and ratelimiter.backend.is_limited(
             f"org-create:{request.user.id}", limit=limit, window=3600
         ):
             return Response(
@@ -232,7 +232,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
 
                 rpc_org = organization_provisioning_service.provision_organization_in_region(
-                    region_name=settings.SENTRY_MONOLITH_REGION,
+                    region_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
                     provisioning_options=provision_args,
                 )
                 org = Organization.objects.get(id=rpc_org.id)

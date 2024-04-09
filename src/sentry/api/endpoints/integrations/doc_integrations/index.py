@@ -4,13 +4,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.integrations.doc_integration import DocIntegration
 
 logger = logging.getLogger(__name__)
@@ -18,13 +19,15 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
     def get(self, request: Request):
-        if is_active_superuser(request):
+        # TODO(schew2381): Change to is_active_staff once the feature flag is rolled out.
+        if has_elevated_mode(request):
             queryset = DocIntegration.objects.all()
         else:
             queryset = DocIntegration.objects.filter(is_draft=False)

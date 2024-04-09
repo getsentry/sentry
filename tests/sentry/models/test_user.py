@@ -18,7 +18,7 @@ _TEST_REGIONS = (
 )
 
 
-@control_silo_test(stable=True, regions=_TEST_REGIONS)
+@control_silo_test(regions=_TEST_REGIONS)
 class UserHybridCloudDeletionTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -88,7 +88,7 @@ class UserHybridCloudDeletionTest(TestCase):
         assert self.get_user_saved_search_count() == 0
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserDetailsTest(TestCase):
     def test_get_full_name(self):
         user = self.create_user(name="foo bar")
@@ -105,7 +105,7 @@ class UserDetailsTest(TestCase):
         assert user.get_salutation_name() == "Hello"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserMergeToTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")

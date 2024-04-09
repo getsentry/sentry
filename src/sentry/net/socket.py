@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -11,6 +12,9 @@ from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 
 from sentry.exceptions import RestrictedIPAddress
+
+if TYPE_CHECKING:
+    from sentry.net.http import IsIpAddressPermitted
 
 DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
@@ -100,8 +104,15 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 # Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
-    address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, socket_options=None
+    address,
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    source_address=None,
+    socket_options=None,
+    is_ipaddress_permitted: IsIpAddressPermitted = None,
 ):
+    if is_ipaddress_permitted is None:
+        is_ipaddress_permitted = is_ipaddress_allowed
+
     host, port = address
     if host.startswith("["):
         host = host.strip("[]")
@@ -126,7 +137,7 @@ def safe_create_connection(
 
         # Begin custom code.
         ip = sa[0]
-        if not is_ipaddress_allowed(ip):
+        if not is_ipaddress_permitted(ip):
             # I am explicitly choosing to be overly aggressive here. This means
             # the first IP that matches that hits our restricted set of IP networks,
             # we reject all records. In theory, there might be IP addresses that

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from django.db import models
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -120,7 +120,7 @@ class ProjectCodeOwners(Model):
         # Convert IssueOwner syntax into schema syntax
         try:
             schema = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules, project_id=self.project.id
+                project_id=self.project.id, issue_owners=issue_owner_rules
             )
             # Convert IssueOwner syntax into schema syntax
             if schema:
@@ -128,6 +128,12 @@ class ProjectCodeOwners(Model):
                 self.save()
         except ValidationError:
             return
+
+
+def modify_date_updated(instance, **kwargs):
+    if instance.id is None:
+        return
+    instance.date_updated = timezone.now()
 
 
 def process_resource_change(instance, change, **kwargs):
@@ -143,12 +149,15 @@ def process_resource_change(instance, change, **kwargs):
     if not ownership:
         ownership = ProjectOwnership(project_id=instance.project_id)
 
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-    if ownership.auto_assignment:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 
+pre_save.connect(
+    modify_date_updated,
+    sender=ProjectCodeOwners,
+    dispatch_uid="projectcodeowners_modify_date_updated",
+    weak=False,
+)
 # Signals update the cached reads used in post_processing
 post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, "updated", **kwargs),

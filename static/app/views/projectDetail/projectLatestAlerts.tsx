@@ -15,7 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -41,7 +42,7 @@ function AlertRow({alert, orgSlug}: AlertRowProps) {
       aria-label={title}
       to={`/organizations/${orgSlug}/alerts/${identifier}/`}
     >
-      <AlertBadgeWrapper {...statusProps} icon={Icon}>
+      <AlertBadgeWrapper icon={Icon}>
         <AlertBadge status={status} />
       </AlertBadgeWrapper>
       <AlertDetails>
@@ -207,7 +208,7 @@ type StatusColorProps = {
 const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
   isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
 
-const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
+const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,4 +1,6 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,21 +10,46 @@ import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DeepPartial} from 'sentry/types/utils';
+import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {Frame} from 'sentry/utils/profiling/frame';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
+const DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
+  preferences: {
+    sorting: 'alphabetical',
+    view: 'bottom up',
+  },
+};
+
+class EmptyFlamegraphException extends Error {}
+
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
+  const {selection} = usePageFilters();
   const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
     'profiling-flamegraph-collapsed-frames',
     true
   );
 
-  const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+    transaction,
+    environments: selection.environments,
+    projects: selection.projects,
+    datetime: selection.datetime,
+  });
   const isEmpty = data?.shared.frames.length === 0;
+
+  useEffect(() => {
+    if (isLoading || isError || data.shared.frames.length > 0) {
+      return;
+    }
+    Sentry.captureException(new EmptyFlamegraphException('Empty aggregate flamegraph'));
+  }, [data, isLoading, isError]);
 
   return (
     <Flex column gap={space(1)}>
@@ -50,14 +77,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
         traceID=""
         frameFilter={hideSystemFrames ? applicationFrameOnly : undefined}
       >
-        <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'bottom up',
-            },
-          }}
-        >
+        <FlamegraphStateProvider initialState={DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES}>
           <FlamegraphThemeProvider>
             <Panel>
               <Flex h={400} column justify="center">

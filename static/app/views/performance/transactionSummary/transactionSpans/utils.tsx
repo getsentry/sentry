@@ -1,4 +1,4 @@
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import pick from 'lodash/pick';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
@@ -6,11 +6,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {SpanSort, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
+import type {SpanSort, SpanSortOption} from './types';
+import {SpanSortOthers, SpanSortPercentiles} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;

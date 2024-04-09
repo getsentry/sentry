@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ListField
 
 from sentry import release_health
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -15,14 +16,14 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    ListField,
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
 from sentry.models.activity import Activity
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseCommitError, ReleaseStatus, UnsafeReleaseDeletion
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -328,7 +329,7 @@ class OrganizationReleaseDetailsEndpoint(
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
-                    **release_health.get_release_sessions_time_bounds(
+                    **release_health.backend.get_release_sessions_time_bounds(
                         project_id=int(project_id),
                         release=release.version,
                         org_id=organization.id,

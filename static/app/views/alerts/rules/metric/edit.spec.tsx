@@ -1,3 +1,7 @@
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,13 +11,13 @@ import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
     mark: jest.fn(),
     measure: jest.fn(),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
   },
 }));
 
@@ -52,7 +56,7 @@ describe('MetricRulesEdit', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [MemberFixture()],
     });
   });
 
@@ -63,7 +67,7 @@ describe('MetricRulesEdit', function () {
 
   it('renders and edits trigger', async function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRuleFixture();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
@@ -78,10 +82,10 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -108,7 +112,7 @@ describe('MetricRulesEdit', function () {
     // Save Trigger
     await userEvent.click(screen.getByLabelText('Save Rule'));
 
-    expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
@@ -152,7 +156,7 @@ describe('MetricRulesEdit', function () {
 
   it('removes warning trigger', async function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRuleFixture();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 13,
@@ -173,10 +177,10 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -232,7 +236,7 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         userTeamIds={[]}
         onChangeTitle={() => {}}
         params={{

@@ -6,19 +6,20 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 async function fetchOrg(
   api: Client,
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<Organization> {
   const [org] = await getPreloadedDataPromise(
     'organization',
@@ -30,7 +31,7 @@ async function fetchOrg(
         includeAllArgs: true,
         query: {detailed: 0},
       }),
-    isInitialFetch
+    usePreload
   );
 
   if (!org) {
@@ -40,12 +41,18 @@ async function fetchOrg(
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
 
+  const scope = Sentry.getCurrentScope();
+  // XXX(dcramer): this is duplicated in sdk.py on the backend
+  scope.setTag('organization', org.id);
+  scope.setTag('organization.slug', org.slug);
+  scope.setContext('organization', {id: org.id, slug: org.slug});
+
   return org;
 }
 
 async function fetchProjectsAndTeams(
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
@@ -65,10 +72,10 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
-    isInitialFetch
+    usePreload
   );
 
   const teamsPromise = getPreloadedDataPromise(
@@ -80,7 +87,7 @@ async function fetchProjectsAndTeams(
       uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
         includeAllArgs: true,
       }),
-    isInitialFetch
+    usePreload
   );
 
   try {
@@ -109,12 +116,13 @@ async function fetchProjectsAndTeams(
  * @param slug The organization slug
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
+ * @param usePreload Should the preloaded data be used if available?
  */
 export function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ) {
   if (!silent) {
     OrganizationStore.reset();
@@ -125,7 +133,7 @@ export function fetchOrganizationDetails(
 
   const loadOrganization = async () => {
     try {
-      await fetchOrg(api, slug, isInitialFetch);
+      await fetchOrg(api, slug, usePreload);
     } catch (err) {
       if (!err) {
         return;
@@ -138,8 +146,8 @@ export function fetchOrganizationDetails(
           typeof err.responseJSON?.detail === 'string'
             ? err.responseJSON?.detail
             : typeof err.responseJSON?.detail?.message === 'string'
-            ? err.responseJSON?.detail.message
-            : null;
+              ? err.responseJSON?.detail.message
+              : null;
 
         if (errMessage) {
           addErrorMessage(errMessage);
@@ -153,12 +161,9 @@ export function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
-      slug,
-      isInitialFetch
-    );
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(projects ?? []);
 
     const teamPageLinks = resp?.getResponseHeader('Link');
     if (teamPageLinks) {

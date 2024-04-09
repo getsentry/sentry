@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Any, List, Union
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -14,8 +15,8 @@ from sentry.eventstore.models import Event, GroupEvent
 
 def wrap_event_response(
     request_user: Any,
-    event: Union[Event, GroupEvent],
-    environments: List[str],
+    event: Event | GroupEvent,
+    environments: list[str],
     include_full_release_data: bool = False,
 ):
     event_data = serialize(
@@ -51,8 +52,9 @@ def wrap_event_response(
 
 @region_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project, event_id) -> Response:
@@ -98,8 +100,9 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project, event_id) -> Response:

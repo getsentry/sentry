@@ -22,7 +22,6 @@ MOCK_SNUBA_RESPONSE = {
                     1,
                     "parent_1",
                     "e238e6c2e2466b07",
-                    "e238e6c2e2466b07",
                     "api/0/foo",
                     "other",
                     "2023-09-13 17:12:19",
@@ -34,7 +33,6 @@ MOCK_SNUBA_RESPONSE = {
                     "B1",
                     0,
                     "root_1",
-                    "B",
                     "B",
                     "connect",
                     "db",
@@ -48,7 +46,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "root_1",
                     "C",
-                    "C",
                     "resolve_conditions",
                     "discover.endpoint",
                     "2023-09-13 17:12:19",
@@ -60,7 +57,6 @@ MOCK_SNUBA_RESPONSE = {
                     "D1",
                     0,
                     "C1",
-                    "D",
                     "D",
                     "resolve_orderby",
                     "discover.snql",
@@ -74,7 +70,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C1",
                     NULL_GROUP,
-                    "E",
                     "resolve_columns",
                     "discover.snql",
                     "2023-09-13 17:12:19",
@@ -93,7 +88,6 @@ MOCK_SNUBA_RESPONSE = {
                     1,
                     "parent_2",
                     "e238e6c2e2466b07",
-                    "e238e6c2e2466b07",
                     "bind_organization_context",
                     "other",
                     "2023-09-13 17:12:39",
@@ -105,7 +99,6 @@ MOCK_SNUBA_RESPONSE = {
                     "B2",
                     0,
                     "root_2",
-                    "B",
                     "B",
                     "connect",
                     "db",
@@ -119,7 +112,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "root_2",
                     "C",
-                    "C",
                     "resolve_conditions",
                     "discover.endpoint",
                     "2023-09-13 17:12:39",
@@ -131,7 +123,6 @@ MOCK_SNUBA_RESPONSE = {
                     "D2",
                     0,
                     "C2",
-                    "D",
                     "D",
                     "resolve_orderby",
                     "discover.snql",
@@ -145,7 +136,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C2",
                     "D",
-                    "D",
                     "resolve_orderby",
                     "discover.snql",
                     "2023-09-13 17:12:40",
@@ -158,7 +148,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C2",
                     NULL_GROUP,
-                    "E",
                     "resolve_columns",
                     "discover.snql",
                     "2023-09-13 17:12:39",
@@ -194,6 +183,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         span_id=None,
         measurements=None,
         trace_context=None,
+        environment=None,
         **kwargs,
     ):
         start, end = self.get_start_end(duration)
@@ -214,6 +204,8 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                 data["measurements"][key]["value"] = value
         if tags is not None:
             data["tags"] = tags
+        if environment is not None:
+            data["environment"] = environment
 
         with self.feature(self.FEATURES):
             return self.store_event(data, project_id=project_id, **kwargs)
@@ -309,6 +301,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             parent_span_id=None,
             project_id=self.project.id,
             duration=1000,
+            environment="production",
         )
 
         self.span_ids_event_2 = dict(
@@ -415,6 +408,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             parent_span_id=None,
             project_id=self.project.id,
             duration=700,
+            environment="development",
         )
 
         self.url = reverse(
@@ -550,7 +544,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         function="ifNull",
                         parameters=[
                             Column(
-                                name="tags[transaction.method]",
+                                name="sentry_tags[transaction.method]",
                             ),
                             "",
                         ],
@@ -561,3 +555,38 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                 )
                 in mock_query.mock_calls[0].args[0].query.where
             )
+
+    def test_environment_filter(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "transaction": "api/0/foo",
+                    "backend": "nodestore",
+                    "environment": "production",
+                },
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 1
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "transaction": "api/0/foo",
+                    "backend": "nodestore",
+                    "environment": ["production", "development"],
+                },
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 2

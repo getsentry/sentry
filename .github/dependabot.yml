@@ -17,7 +17,7 @@ updates:
       # The name of the group, it will be used in PR titles and branch
       babel-dependencies:
         patterns:
-          - "@babel/*"
+          - '@babel/*'
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'
@@ -28,20 +28,17 @@ updates:
       # - dependency-name: "@sentry/react"
       - dependency-name: '@sentry/node'
       - dependency-name: '@sentry/utils'
-      - dependency-name: '@sentry/tracing'
       - dependency-name: '@sentry/integrations'
       - dependency-name: '@sentry/rrweb'
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: '@types/marked'
       - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
       - dependency-name: 'babel-jest'
       - dependency-name: 'gettext-parser'
       - dependency-name: 'jest-junit'
-      - dependency-name: 'marked'
       - dependency-name: 'react-lazyload'
       - dependency-name: 'react-refresh'
       - dependency-name: 'react-router'

@@ -1,5 +1,5 @@
-import {Organization} from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types';
+import type {Hooks} from 'sentry/types/hooks';
 import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';

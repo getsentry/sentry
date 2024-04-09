@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
@@ -22,7 +22,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
@@ -241,6 +241,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
+                    "last",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "last",
+                        [
+                            self.resolve_mri(args["column"]),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                ),
+                fields.MetricsFunction(
                     "sum",
                     required_args=[
                         fields.MetricArg("column"),
@@ -301,7 +315,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: Function(
                         "count_unique",
                         [
-                            Column(TransactionMRI.USER.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -338,10 +352,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count",
+                    optional_args=[
+                        fields.with_default("transaction.duration", fields.MetricArg("column")),
+                    ],
                     snql_metric_layer=lambda args, alias: Function(
                         "count",
                         [
-                            Column(TransactionMRI.DURATION.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -358,6 +375,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                                 "measurements.lcp",
                                 "measurements.fid",
                                 "measurements.cls",
+                                "measurements.ttfb",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -465,7 +483,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         )
 
     # Query Filters
-    def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _event_type_converter(self, search_filter: SearchFilter) -> WhereType | None:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
         operator = search_filter.operator
@@ -474,13 +492,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
-    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
 
-    def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         operator = search_filter.operator
         value = search_filter.value.value
 
@@ -519,8 +537,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
     # Query Functions
     def _resolve_apdex_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         """Apdex is tag based in metrics, which means we can't base it on the satsifaction parameter"""
         if args["satisfaction"] is not None:
@@ -534,8 +552,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
 
     def _resolve_user_misery_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         if args["satisfaction"] is not None:
             raise IncompatibleMetricsQuery(
@@ -548,8 +566,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
 
     def _resolve_count_miserable_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         if args["satisfaction"] is not None:
             raise IncompatibleMetricsQuery(
@@ -560,12 +578,12 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             alias,
         )
 
-    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _resolve_web_vital_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -577,26 +595,28 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             "measurements.fp",
             "measurements.fid",
             "measurements.cls",
+            "measurements.ttfb",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
+        column = Column(constants.METRICS_MAP.get(column, column))
         if quality == "any":
             return Function(
                 "count",
-                [],
+                [column],
                 alias,
             )
 
         return Function(
             "count_web_vitals",
-            [Column(constants.METRICS_MAP.get(column, column)), quality],
+            [column, quality],
             alias,
         )
 
     def _resolve_histogram_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
         buckets"""

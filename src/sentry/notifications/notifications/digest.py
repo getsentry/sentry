@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 from sentry import analytics, features
@@ -32,7 +33,6 @@ from sentry.notifications.utils.digest import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -63,7 +63,10 @@ class DigestNotification(ProjectNotification):
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return UnsubscribeContext(
-            key="project", resource_id=self.project.id, referrer="alert_digest"
+            organization=self.project.organization,
+            key="project",
+            resource_id=self.project.id,
+            referrer="alert_digest",
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -82,7 +85,7 @@ class DigestNotification(ProjectNotification):
         organization = project.organization
 
         return "<!date^{:.0f}^{count} {noun} detected {date} in| Digest Report for> <{project_link}|{project_name}>".format(
-            to_timestamp(context["start"]),
+            context["start"].timestamp(),
             count=len(context["counts"]),
             noun="issue" if len(context["counts"]) == 1 else "issues",
             project_link=organization.absolute_url(
@@ -206,6 +209,7 @@ class DigestNotification(ProjectNotification):
                 "target_identifier": self.target_identifier,
                 "team_ids": team_ids,
                 "user_ids": user_ids,
+                "notification_uuid": self.notification_uuid,
             },
         )
 

@@ -1,12 +1,14 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {reactHooks, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 describe('UserFeedbackEmpty', function () {
-  const project = TestStubs.Project({id: '1'});
-  const projectWithReports = TestStubs.Project({id: '2', hasUserReports: true});
-  const projectWithoutReports = TestStubs.Project({id: '3'});
+  const project = ProjectFixture({id: '1'});
+  const projectWithReports = ProjectFixture({id: '2', hasUserReports: true});
+  const projectWithoutReports = ProjectFixture({id: '3'});
 
   it('renders empty', function () {
     render(<UserFeedbackEmpty />);

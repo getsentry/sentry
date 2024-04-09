@@ -2,7 +2,7 @@ import logging
 import posixpath
 import re
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 import jsonschema
 from django.db import IntegrityError, router
@@ -15,6 +15,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -177,6 +178,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -356,8 +358,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -369,8 +372,9 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -381,8 +385,9 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -502,9 +507,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -591,9 +597,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         if archive_name:
             with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, version=archive_name
-                )
+                try:
+                    release = Release.objects.get(
+                        organization_id=project.organization_id,
+                        projects=project,
+                        version=archive_name,
+                    )
+                except Release.DoesNotExist:
+                    raise ResourceDoesNotExist(detail="The provided release does not exist")
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()

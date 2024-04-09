@@ -1,6 +1,9 @@
-import {AccountEmails} from 'sentry-fixture/accountEmails';
-import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
-import {Organizations} from 'sentry-fixture/organizations';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {
+  AllAuthenticatorsFixture,
+  AuthenticatorsFixture,
+} from 'sentry-fixture/authenticators';
+import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,22 +28,22 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: AllAuthenticators(),
+        body: AllAuthenticatorsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: Organizations(),
+        body: OrganizationsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: Authenticators().Totp(),
+        body: AuthenticatorsFixture().Totp(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: AccountEmails(),
+        body: AccountEmailsFixture(),
       });
     });
 
@@ -110,7 +113,7 @@ describe('AccountSecurityDetails', function () {
     it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: Organizations({require2FA: true}),
+        body: OrganizationsFixture({require2FA: true}),
       });
 
       const deleteMock = MockApiClient.addMockResponse({
@@ -150,12 +153,12 @@ describe('AccountSecurityDetails', function () {
     it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: Organizations({require2FA: true}),
+        body: OrganizationsFixture({require2FA: true}),
       });
 
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: [Authenticators().Totp()],
+        body: [AuthenticatorsFixture().Totp()],
       });
 
       const params = {
@@ -187,26 +190,26 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: AllAuthenticators(),
+        body: AllAuthenticatorsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: Organizations(),
+        body: OrganizationsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: Authenticators().Recovery(),
+        body: AuthenticatorsFixture().Recovery(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: AccountEmails(),
+        body: AccountEmailsFixture(),
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '16',
       };
@@ -228,6 +231,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });

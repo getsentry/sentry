@@ -1,6 +1,7 @@
 import logging
 import pathlib
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.utils import json
 
@@ -147,7 +148,7 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "segment": {"type": ["string", "null"], "minLength": 1},
                 "username": {"type": ["string", "null"], "minLength": 1},
             },
-            "additionalProperties": False,
+            "additionalProperties": True,
         },
     },
     "required": [

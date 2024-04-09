@@ -4,7 +4,7 @@ import {IconGraphArea} from './iconGraphArea';
 import {IconGraphBar} from './iconGraphBar';
 import {IconGraphCircle} from './iconGraphCircle';
 import {IconGraphLine} from './iconGraphLine';
-import {SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
 
 interface Props extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area';

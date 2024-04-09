@@ -1,15 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationRateLimits, {
-  OrganizationRateLimitProps,
-} from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
+import type {OrganizationRateLimitProps} from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
+import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
 
 describe('Organization Rate Limits', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     quota: {
       projectLimit: 75,
       accountLimit: 70000,
@@ -21,7 +21,7 @@ describe('Organization Rate Limits', function () {
   const renderComponent = (props?: Partial<OrganizationRateLimitProps>) =>
     render(
       <OrganizationRateLimits
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         {...props}
       />
@@ -41,7 +41,7 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with maxRate and maxRateInterval set', function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       quota: {
         maxRate: 100,
@@ -68,7 +68,7 @@ describe('Organization Rate Limits', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Change Account Limit
-    screen.getByRole('slider', {name: 'Account Limit'}).focus();
+    act(() => screen.getByRole('slider', {name: 'Account Limit'}).focus());
     await userEvent.keyboard('{ArrowLeft>5}');
     await userEvent.tab();
 
@@ -95,7 +95,7 @@ describe('Organization Rate Limits', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Change Project Rate Limit
-    screen.getByRole('slider', {name: 'Per-Project Limit'}).focus();
+    act(() => screen.getByRole('slider', {name: 'Per-Project Limit'}).focus());
     await userEvent.keyboard('{ArrowRight>5}');
     await userEvent.tab();
 

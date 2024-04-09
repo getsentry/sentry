@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Event} from 'sentry/types/event';
-import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Event} from 'sentry/types/event';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
-import {
+import type {
   EventLite,
   QuickTraceQueryChildrenProps,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -158,11 +158,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current
               // event could not be found
-              type:
-                traceFullResults.traces?.transactions &&
-                traceFullResults.traces?.transactions.length
-                  ? 'missing'
-                  : 'empty',
+              type: traceFullResults.traces?.transactions?.length ? 'missing' : 'empty',
               currentEvent: null,
             });
           }}

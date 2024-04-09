@@ -7,8 +7,6 @@ from urllib.parse import quote
 
 from django.utils.crypto import constant_time_compare, get_random_string
 
-from sentry.utils.dates import to_timestamp
-
 
 def generate_secret_key(length=32):
     return get_random_string(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
@@ -26,7 +24,7 @@ def _get_ts(ts):
     if ts is None:
         return int(time.time())
     if isinstance(ts, datetime):
-        return int(to_timestamp(ts))
+        return int(ts.timestamp())
     return int(ts)
 
 

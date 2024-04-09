@@ -1,8 +1,10 @@
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 
 const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'flutter',
+  'dart-flutter',
   'go',
   'node',
   'python',
@@ -16,6 +18,8 @@ const supportedProfilingPlatformSDKs = [
   'javascript-sveltekit',
   'javascript',
   'javascript-react',
+  'javascript-vue',
+  'javascript-angular',
   'react-native',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatformSDKs)[number];
@@ -61,6 +65,19 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-react') {
     return 'javascript-react';
+  }
+  if (platform === 'javascript-vue') {
+    return 'javascript-vue';
+  }
+  if (platform === 'javascript-angular') {
+    return 'javascript-angular';
+  }
+
+  if (platform === 'dart-flutter') {
+    return 'dart-flutter';
+  }
+  if (platform === 'flutter') {
+    return 'flutter';
   }
 
   // Python

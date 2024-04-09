@@ -3,7 +3,8 @@ import {createPortal} from 'react-dom';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {createFocusTrap, FocusTrap} from 'focus-trap';
+import type {FocusTrap} from 'focus-trap';
+import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
@@ -75,6 +76,10 @@ type ModalRenderProps = {
    * Closes the modal
    */
   closeModal: () => void;
+  /**
+   * Reference to the modal's container.
+   */
+  modalContainerRef?: React.RefObject<HTMLDivElement>;
 };
 
 /**
@@ -175,14 +180,6 @@ function GlobalModal({onClose}: Props) {
   // Close the modal when the browser history changes
   useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
 
-  const renderedChild = renderer?.({
-    CloseButton: makeCloseButton(closeModal),
-    Header: makeClosableHeader(closeModal),
-    Body: ModalBody,
-    Footer: ModalFooter,
-    closeModal,
-  });
-
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
@@ -193,6 +190,15 @@ function GlobalModal({onClose}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target && allowBackdropClickClose && closeModal();
+
+  const renderedChild = renderer?.({
+    CloseButton: makeCloseButton(closeModal),
+    Header: makeClosableHeader(closeModal),
+    Body: ModalBody,
+    Footer: ModalFooter,
+    modalContainerRef: containerRef,
+    closeModal,
+  });
 
   return createPortal(
     <Fragment>

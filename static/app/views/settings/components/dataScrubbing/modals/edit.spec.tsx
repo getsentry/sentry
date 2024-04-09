@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -19,7 +19,7 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-const relayPiiConfig = DataScrubbingRelayPiiConfig();
+const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
 const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);

@@ -1,5 +1,6 @@
 from django import forms
 from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.auth.view import AuthView, ConfigureView
@@ -79,7 +80,7 @@ class ConfirmEmailForm(forms.Form):
 
 
 class ConfirmEmail(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         user = helper.fetch_state("user")
 
         # TODO(dcramer): this isn't ideal, but our current flow doesnt really
@@ -119,7 +120,7 @@ class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             org_list = client.get_org_list()
 

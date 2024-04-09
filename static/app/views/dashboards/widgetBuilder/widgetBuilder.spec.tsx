@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,19 +14,20 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -212,19 +213,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -256,7 +257,6 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -265,7 +265,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('widget not found', function () {
+  it('widget not found', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -302,11 +302,11 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
-  it('renders a widget not found message if the widget index url is not an integer', function () {
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -335,7 +335,7 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
@@ -1060,7 +1060,7 @@ describe('WidgetBuilder', function () {
   it('renders page filters in the filter step', async () => {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     renderTestComponent({
@@ -1080,7 +1080,7 @@ describe('WidgetBuilder', function () {
   it('appends dashboard filters to widget builder fetch data request', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -1108,7 +1108,7 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: ' release:abc@1.2.0 ',
+            query: ' release:"abc@1.2.0" ',
           }),
         })
       );
@@ -1116,7 +1116,6 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not error when query conditions field is blurred', async function () {
-    jest.useFakeTimers();
     const widget: Widget = {
       id: '0',
       title: 'sdk usage',
@@ -1149,12 +1148,10 @@ describe('WidgetBuilder', function () {
     await userEvent.keyboard('{Escape}', {delay: null});
 
     // Run all timers because the handleBlur contains a setTimeout
-    jest.runAllTimers();
+    await act(tick);
   });
 
   it('does not wipe column changes when filters are modified', async function () {
-    jest.useFakeTimers();
-
     // widgetIndex: undefined means creating a new widget
     renderTestComponent({params: {widgetIndex: undefined}});
 
@@ -1242,7 +1239,7 @@ describe('WidgetBuilder', function () {
 
   it('does not fetch tags when tag store is not empty', async function () {
     await act(async () => {
-      TagStore.loadTagsSuccess(Tags());
+      TagStore.loadTagsSuccess(TagsFixture());
       renderTestComponent();
       await tick();
     });
@@ -1625,7 +1622,7 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
     await userEvent.paste('This should persist');
 
-    // 1 for the table, 1 for the the column selector, 1 for the sort
+    // 1 for the table, 1 for the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
     await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 

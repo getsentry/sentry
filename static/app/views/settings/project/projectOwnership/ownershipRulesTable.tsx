@@ -8,16 +8,16 @@ import uniqBy from 'lodash/uniqBy';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
+import type {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
 
@@ -136,7 +136,7 @@ export function OwnershipRulesTable({
   };
 
   return (
-    <RulesTableWrapper>
+    <RulesTableWrapper data-test-id="ownership-rules-table">
       <SearchAndSelectorWrapper>
         <OwnershipOwnerFilter
           actors={allActors}

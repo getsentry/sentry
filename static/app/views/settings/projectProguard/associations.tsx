@@ -11,7 +11,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
+import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
 function ProguardAssociationsBody({
   associations,

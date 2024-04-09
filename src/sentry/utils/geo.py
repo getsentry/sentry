@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from sentry_relay.processing import GeoIpLookup
 
 logger = logging.getLogger(__name__)
 geoip_path_mmdb = getattr(settings, "GEOIP_PATH_MMDB", None)
@@ -14,7 +15,7 @@ def geo_by_addr(ip):
     pass
 
 
-rust_geoip = None
+rust_geoip: None | GeoIpLookup = None
 
 
 def _init_geoip() -> None:
@@ -31,7 +32,7 @@ def _init_geoip() -> None:
     try:
         geo_db = maxminddb.open_database(geoip_path_mmdb, maxminddb.MODE_AUTO)
     except Exception:
-        logger.warning("Error opening GeoIP database: %s" % geoip_path_mmdb)
+        logger.warning("Error opening GeoIP database: %s", geoip_path_mmdb)
         return
 
     def _geo_by_addr(ip: str) -> dict[str, Any] | None:
@@ -60,7 +61,7 @@ def _init_geoip_rust():
     try:
         rust_geoip = GeoIpLookup.from_path(geoip_path_mmdb)
     except Exception:
-        logger.warning("Error opening GeoIP database in Rust: %s" % geoip_path_mmdb)
+        logger.warning("Error opening GeoIP database in Rust: %s", geoip_path_mmdb)
 
 
 if geoip_path_mmdb:

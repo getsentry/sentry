@@ -2,12 +2,11 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import ClassVar, List
+from typing import ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.text import slugify
 from rest_framework.request import Request
 
 from sentry.backup.scopes import RelocationScope
@@ -27,6 +26,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
@@ -75,15 +75,6 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-def generate_slug(name: str, is_internal=False) -> str:
-    slug = slugify(name)
-    # for internal, add some uuid to make it unique
-    if is_internal:
-        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
-
-    return slug
-
-
 def track_response_code(status, integration_slug, webhook_event):
     metrics.incr(
         "integration-platform.http_response",
@@ -129,7 +120,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     owner_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
 
     name = models.TextField()
-    slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
+    slug = SentrySlugField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True, db_index=False)
     author = models.TextField(null=True)
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED, choices=SentryAppStatus.as_choices(), db_index=True
@@ -162,6 +153,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
+    metadata = JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 
@@ -216,7 +208,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,

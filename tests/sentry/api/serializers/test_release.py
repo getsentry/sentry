@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
@@ -15,13 +15,16 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):
@@ -90,7 +93,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
 
-        current_formatted_datetime = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        current_formatted_datetime = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S+00:00")
         current_project_meta = {
             "prev_release_version": "foobar@1.0.0",
             "next_release_version": "foobar@2.0.0",
@@ -199,10 +202,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert not result["lastEvent"]
 
     def test_get_user_from_email(self):
-        user = User.objects.create(
-            email="Stebe@sentry.io"
-        )  # upper case so we can test case sensitivity
-        UserEmail.objects.get_primary_email(user=user)
+        # upper case so we can test case sensitivity
+        user = self.create_user(email="Stebe@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
@@ -239,9 +240,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         Tests that the first useremail will be used to
         associate a user with a commit author email
         """
-        user = User.objects.create(email="stebe@sentry.io")
-        otheruser = User.objects.create(email="adifferentstebe@sentry.io")
-        UserEmail.objects.create(email="stebe@sentry.io", user=otheruser)
+        user = self.create_user(email="stebe@sentry.io")
+        otheruser = self.create_user(email="adifferentstebe@sentry.io")
+        self.create_useremail(email="stebe@sentry.io", user=otheruser)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=otheruser, organization=project.organization)
@@ -281,10 +282,11 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         Tests that a user not belonging to the organization
         is not returned as the author
         """
-        user = User.objects.create(email="stebe@sentry.io")
-        email = UserEmail.objects.get(user=user, email="stebe@sentry.io")
-        otheruser = User.objects.create(email="adifferentstebe@sentry.io")
-        otheremail = UserEmail.objects.create(email="stebe@sentry.io", user=otheruser)
+        user = self.create_user(email="stebe@sentry.io")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            email = UserEmail.objects.get(user=user, email="stebe@sentry.io")
+        otheruser = self.create_user(email="adifferentstebe@sentry.io")
+        otheremail = self.create_useremail(email="stebe@sentry.io", user=otheruser)
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
@@ -320,8 +322,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result_author["username"] == otheruser.username
 
     def test_no_commit_author(self):
-        user = User.objects.create(email="stebe@sentry.io")
-        otheruser = User.objects.create(email="adifferentstebe@sentry.io")
+        user = self.create_user(email="stebe@sentry.io")
+        otheruser = self.create_user(email="adifferentstebe@sentry.io")
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
@@ -348,9 +350,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         if there are commits associated with multiple of their
         emails
         """
-        user = User.objects.create(email="stebe@sentry.io")
-        email = UserEmail.objects.get(user=user, email="stebe@sentry.io")
-        otheremail = UserEmail.objects.create(email="alsostebe@sentry.io", user=user)
+        email = "stebe@sentry.io"
+        user = self.create_user(email=email)
+        new_useremail = self.create_useremail(email="alsostebe@sentry.io", user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
@@ -358,10 +360,10 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
         release.add_project(project)
         commit_author1 = CommitAuthor.objects.create(
-            name="stebe", email=email.email, organization_id=project.organization_id
+            name="stebe", email=email, organization_id=project.organization_id
         )
         commit_author2 = CommitAuthor.objects.create(
-            name="stebe", email=otheremail.email, organization_id=project.organization_id
+            name="stebe", email=new_useremail.email, organization_id=project.organization_id
         )
         commit1 = Commit.objects.create(
             organization_id=project.organization_id,
@@ -445,7 +447,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         serialize(release)
 
     def test_get_user_for_authors_simple(self):
-        user = User.objects.create(email="chrib@sentry.io")
+        user = self.create_user(email="chrib@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
@@ -462,8 +464,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
     @patch("sentry.api.serializers.models.release.serialize")
     def test_get_user_for_authors_caching(self, patched_serialize_base):
         # Ensure the fetched/miss caching logic works.
-        user = User.objects.create(email="chrib@sentry.io")
-        user2 = User.objects.create(email="alsochrib@sentry.io")
+        user = self.create_user(email="chrib@sentry.io")
+        user2 = self.create_user(email="alsochrib@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=user2, organization=project.organization)
@@ -532,7 +534,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release_id=release.id,
             environment_id=env2.id,
             new_issues_count=1,
-            adopted=datetime.utcnow(),
+            adopted=datetime.now(UTC),
         )
 
         result = serialize(release, user, with_adoption_stages=True)
@@ -556,13 +558,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release_id=release.id,
             environment_id=env.id,
             new_issues_count=1,
-            adopted=datetime.utcnow(),
+            adopted=datetime.now(UTC),
         )
         result = serialize(release, user, with_adoption_stages=True)
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
-        rpe.update(unadopted=datetime.utcnow())
+        rpe.update(unadopted=datetime.now(UTC))
         result = serialize(release, user, with_adoption_stages=True)
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED

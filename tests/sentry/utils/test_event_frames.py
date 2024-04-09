@@ -2,6 +2,7 @@ import unittest
 
 from sentry.testutils.cases import TestCase
 from sentry.utils.event_frames import (
+    EventFrame,
     cocoa_frame_munger,
     find_stack_frames,
     flutter_frame_munger,
@@ -279,34 +280,27 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             "symbol_addr": "0x102ce2b70",
         }
 
-        did_munge = cocoa_frame_munger("munged_filename", exception_frame)
-        assert did_munge
-        assert (
-            exception_frame["munged_filename"]
-            == "SampleProject/Classes/App Delegate/AppDelegate.swift"
-        )
+        munged_filename = cocoa_frame_munger(EventFrame.from_dict(exception_frame))
+        assert munged_filename == "SampleProject/Classes/App Delegate/AppDelegate.swift"
 
     def test_missing_required_no_munging(self):
         assert cocoa_frame_munger(
-            "munged_filename",
-            {
-                "package": "SampleProject",
-                "abs_path": "SampleProject/AppDelegate.swift",
-            },
+            EventFrame(
+                package="SampleProject",
+                abs_path="SampleProject/AppDelegate.swift",
+            )
         )
 
-        assert not cocoa_frame_munger("munged_filename", {})
+        assert not cocoa_frame_munger(EventFrame())
         assert not cocoa_frame_munger(
-            "munged_filename",
-            {
-                "package": "SampleProject",
-            },
+            EventFrame(
+                package="SampleProject",
+            )
         )
         assert not cocoa_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "SampleProject/AppDelegate.swift",
-            },
+            EventFrame(
+                abs_path="SampleProject/AppDelegate.swift",
+            )
         )
 
     def test_package_relative_repeats(self):
@@ -316,10 +310,9 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             "abs_path": "/Users/gszeto/code/SampleProject/more/dirs/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
         }
 
-        did_munge = cocoa_frame_munger("munged_filename", exception_frame)
-        assert did_munge
+        munged_filename = cocoa_frame_munger(EventFrame.from_dict(exception_frame))
         assert (
-            exception_frame["munged_filename"]
+            munged_filename
             == "SampleProject/more/dirs/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
         )
 
@@ -416,37 +409,31 @@ class FlutterFilenameMungingTestCase(TestCase):
 
     def test_dart_prefix_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "dart:ui/a/b/test.dart",
-            },
+            EventFrame(abs_path="dart:ui/a/b/test.dart"),
         )
 
     def test_abs_path_not_present_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "function": "tryCatchModule",
-                "package": "sentry_flutter_example",
-                "filename": "test.dart",
-            },
+            EventFrame(
+                function="tryCatchModule",
+                package="sentry_flutter_example",
+                filename="test.dart",
+            )
         )
 
     def test_different_package_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "package": "sentry_flutter_example",
-                "abs_path": "package:different_package/a/b/test.dart",
-            },
+            EventFrame(
+                package="sentry_flutter_example",
+                abs_path="package:different_package/a/b/test.dart",
+            )
         )
 
     def test_no_package_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "package:different_package/a/b/test.dart",
-            },
+            EventFrame(
+                abs_path="package:different_package/a/b/test.dart",
+            )
         )
 
 

@@ -1,4 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,8 +28,8 @@ const commonQueryConditions = {
   environment: [],
   topEvents: '',
   yAxis: '',
-  createdBy: TestStubs.User(),
-  team: TestStubs.Team(),
+  createdBy: UserFixture(),
+  team: [parseInt(TeamFixture().id, 10)],
   statsPeriod: '14d',
 };
 
@@ -35,7 +38,7 @@ describe('Tags', function () {
     return `/endpoint/${key}/${value}`;
   }
 
-  const org = Organization();
+  const org = OrganizationFixture();
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
@@ -83,7 +86,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -155,7 +158,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -255,7 +258,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />

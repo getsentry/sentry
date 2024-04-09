@@ -1,15 +1,18 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;
@@ -23,7 +26,7 @@ describe('groupEvents', () => {
     router: {} as any,
     routes: [],
     location: {},
-    group: TestStubs.Group() as Group,
+    group: GroupFixture() as Group,
   });
 
   let organization: Organization;
@@ -167,7 +170,7 @@ describe('groupEvents', () => {
     }
   });
 
-  it('handles environment filtering', () => {
+  it('handles environment filtering', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -175,6 +178,9 @@ describe('groupEvents', () => {
       />,
       {context: routerContext, organization}
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
@@ -183,9 +189,9 @@ describe('groupEvents', () => {
     );
   });
 
-  it('renders events table for performance issue', () => {
-    const group = TestStubs.Group();
-    group.issueCategory = 'performance';
+  it('renders events table for performance issue', async () => {
+    const group = GroupFixture();
+    group.issueCategory = IssueCategory.PERFORMANCE;
 
     render(
       <GroupEvents
@@ -203,13 +209,14 @@ describe('groupEvents', () => {
         }),
       })
     );
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(perfEventsColumn).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
   it('renders event and trace link correctly', async () => {
-    const group = TestStubs.Group();
-    group.issueCategory = 'performance';
+    const group = GroupFixture();
+    group.issueCategory = IssueCategory.PERFORMANCE;
 
     render(
       <GroupEvents
@@ -339,7 +346,7 @@ describe('groupEvents', () => {
     expect(requests.attachments).toHaveBeenCalled();
   });
 
-  it('renders events table for error', () => {
+  it('renders events table for error', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -357,11 +364,12 @@ describe('groupEvents', () => {
       })
     );
 
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(perfEventsColumn).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
-  it('removes sort if unsupported by the events table', () => {
+  it('removes sort if unsupported by the events table', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -373,10 +381,13 @@ describe('groupEvents', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
-  it('only request for a single projectId', () => {
-    const group = TestStubs.Group();
+  it('only request for a single projectId', async () => {
+    const group = GroupFixture();
 
     render(
       <GroupEvents
@@ -399,6 +410,9 @@ describe('groupEvents', () => {
         query: expect.objectContaining({project: [group.project.id]}),
       })
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
   it('shows discover query error message', async () => {
@@ -425,7 +439,7 @@ describe('groupEvents', () => {
   });
 
   it('requests for backend columns if backend project', async () => {
-    const group = TestStubs.Group();
+    const group = GroupFixture();
     group.project.platform = 'node-express';
     render(
       <GroupEvents

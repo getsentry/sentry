@@ -11,18 +11,20 @@ import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
+import type {
   SourceMapDebugError,
   SourceMapDebugResponse,
-  SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
+} from './useSourceMapDebug';
+import {
+  SourceMapProcessingIssueType,
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 import {sourceMapSdkDocsMap} from './utils';
@@ -215,17 +217,12 @@ function combineErrors(
   sdkName?: string
 ) {
   const combinedErrors = uniqBy(
-    response
-      .map(res => res?.errors)
-      .flat()
-      .filter(defined),
+    response.flatMap(res => res?.errors).filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors
-    .map(error =>
-      getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
-    )
-    .flat();
+  const errors = combinedErrors.flatMap(error =>
+    getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
+  );
 
   return errors;
 }

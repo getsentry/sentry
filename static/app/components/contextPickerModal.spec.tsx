@@ -1,7 +1,10 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {
@@ -22,14 +25,14 @@ describe('ContextPickerModal', function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
-    project = TestStubs.Project();
-    org = Organization({projects: [project]});
-    project2 = TestStubs.Project({slug: 'project2'});
-    org2 = Organization({
+    project = ProjectFixture();
+    org = OrganizationFixture({projects: [project]});
+    project2 = ProjectFixture({slug: 'project2'});
+    org2 = OrganizationFixture({
       slug: 'org2',
       id: '21',
     });
-    project4 = TestStubs.Project({slug: 'project4', isMember: false});
+    project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
     OrganizationStore.reset();
@@ -150,7 +153,7 @@ describe('ContextPickerModal', function () {
       },
       {
         ...org2,
-        projects: [project2, TestStubs.Project({slug: 'project3'})],
+        projects: [project2, ProjectFixture({slug: 'project3'})],
       },
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
@@ -191,11 +194,11 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = TestStubs.User({isSuperuser: true});
+    ConfigStore.config.user = UserFixture({isSuperuser: true});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = TestStubs.GitHubIntegration();
+    const integration = GitHubIntegrationFixture();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -219,6 +222,10 @@ describe('ContextPickerModal', function () {
       expect(fetchGithubConfigs).toHaveBeenCalled();
     });
 
+    if (integration.domainName === null) {
+      throw new Error('Integration domainName is null');
+    }
+
     await selectEvent.select(
       screen.getByText(/Select a configuration/i),
       integration.domainName
@@ -231,14 +238,14 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = TestStubs.User({isSuperuser: false});
+    ConfigStore.config.user = UserFixture({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
 
     MockApiClient.addMockResponse({
@@ -263,7 +270,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = TestStubs.User({isSuperuser: false});
+    ConfigStore.config.user = UserFixture({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;

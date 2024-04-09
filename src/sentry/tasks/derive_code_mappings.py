@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
@@ -15,13 +16,13 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +30,19 @@ if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
 
 
-def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
-    msg = error.text
     if error.json:
         json_data: JSONData = error.json
         msg = json_data.get("message")
+    else:
+        msg = error.text
     extra["error"] = msg
 
-    if msg == "Not Found":
+    if msg is None:
+        logger.warning("No message found in ApiError.", extra=extra)
+        return
+    elif msg == "Not Found":
         logger.warning("The org has uninstalled the Sentry App.", extra=extra)
         return
     elif msg == "This installation has been suspended":
@@ -59,7 +64,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
     # Logging the exception and returning is better than re-raising the error
     # Otherwise, API errors would not group them since the HTTPError in the stack
     # has unique URLs, thus, separating the errors
-    logger.exception(
+    logger.error(
         "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
         extra=extra,
     )
@@ -69,7 +74,6 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
-    autoretry_for=(UnableToAcquireLock,),
     max_retries=3,
 )
 def derive_code_mappings(
@@ -87,23 +91,30 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: Dict[str, Any] = {
+    extra: dict[str, Any] = {
         "organization.slug": org.slug,
     }
 
-    if (
-        not features.has("organizations:derive-code-mappings", org)
-        or not data["platform"] in SUPPORTED_LANGUAGES
+    if not (
+        features.has("organizations:derive-code-mappings", org)
+        and data.get("platform") in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
         return
 
-    stacktrace_paths: List[str] = identify_stacktrace_paths(data)
+    if data["platform"].startswith("go") and not features.has(
+        "organizations:derive-code-mappings-go", org
+    ):
+        return
+
+    stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
+        logger.info("No stacktrace paths found.", extra=extra)
         return
 
     installation, organization_integration = get_installation(org)
     if not installation or not organization_integration:
+        logger.info("No installation or organization integration found.", extra=extra)
         return
 
     trees = {}
@@ -113,21 +124,20 @@ def derive_code_mappings(
     try:
         with lock.acquire():
             # This method is specific to the GithubIntegration
-            trees = installation.get_trees_for_org()  # type: ignore
+            trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
     except ApiError as error:
         process_error(error, extra)
         return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
-        # This will cause the auto-retry logic to try again
-        raise error
+        return
     except Exception:
         logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
         return
 
     if not trees:
-        logger.warning("The trees are empty.")
+        logger.warning("The trees are empty.", extra=extra)
         return
 
     trees_helper = CodeMappingTreesHelper(trees)
@@ -135,7 +145,7 @@ def derive_code_mappings(
     set_project_codemappings(code_mappings, organization_integration, project)
 
 
-def identify_stacktrace_paths(data: NodeData) -> List[str]:
+def identify_stacktrace_paths(data: NodeData) -> list[str]:
     """
     Get the stacktrace_paths from the event data.
     """
@@ -155,7 +165,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     return list(stacktrace_paths)
 
 
-def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
+def get_stacktrace(data: NodeData) -> list[Mapping[str, Any]]:
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
@@ -169,7 +179,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
+) -> tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integrations = integration_service.get_integrations(
         organization_id=organization.id,
         providers=["github"],
@@ -192,7 +202,7 @@ def get_installation(
 
 
 def set_project_codemappings(
-    code_mappings: List[CodeMapping],
+    code_mappings: list[CodeMapping],
     organization_integration: RpcOrganizationIntegration,
     project: Project,
 ) -> None:

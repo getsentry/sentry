@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
 function useProjectFromSlug({

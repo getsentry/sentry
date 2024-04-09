@@ -7,7 +7,7 @@ Over time we want to fully phase out the culprit.  Until then this is the
 code that generates it.
 """
 
-from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, NEL_CULPRITS
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
@@ -33,6 +33,9 @@ def generate_culprit(data):
 
     if not culprit and stacktraces:
         culprit = get_stacktrace_culprit(get_path(stacktraces, -1), platform=platform)
+
+    if not culprit and data.get("type") and data.get("type") == "nel":
+        culprit = get_nel_culprit(data.get("contexts"))
 
     if not culprit and data.get("request"):
         culprit = get_path(data, "request", "url")
@@ -69,3 +72,10 @@ def get_frame_culprit(frame, platform):
         # to a unicode string if needed.
         return "{}({})".format(frame.get("function") or "?", fileloc)
     return "{} in {}".format(fileloc, frame.get("function") or "?")
+
+
+def get_nel_culprit(contexts):
+    ty = contexts.get("nel").get("error_type", "<missing>")
+    if ty == "http.error":
+        return NEL_CULPRITS[ty].format(contexts.get("response").get("status_code"))
+    return NEL_CULPRITS.get(ty, ty)

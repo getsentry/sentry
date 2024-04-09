@@ -1,9 +1,10 @@
+import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import {SpanBarProps} from './spanBar';
-import {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
-import {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
-import SpanTreeModel from './spanTreeModel';
+import type {SpanBarProps} from './spanBar';
+import type {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
+import type {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
+import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;
@@ -14,13 +15,41 @@ export type GapSpanType = {
   description?: string;
 };
 
+interface SpanSourceCodeAttributes {
+  'code.column'?: number;
+  'code.filepath'?: string;
+  'code.function'?: string;
+  'code.lineno'?: number;
+  'code.namespace'?: string;
+}
+
+interface SpanDatabaseAttributes {
+  'db.name'?: string;
+  'db.operation'?: string;
+  'db.system'?: string;
+  'db.user'?: string;
+}
+
+export interface MetricsSummaryItem {
+  count: number | null;
+  max: number | null;
+  min: number | null;
+  sum: number | null;
+  tags: Record<string, string> | null;
+}
+
+export interface MetricsSummary {
+  [mri: MRI]: MetricsSummaryItem[] | null;
+}
+
 export type RawSpanType = {
-  data: Record<string, any>;
+  data: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
+  _metrics_summary?: MetricsSummary;
   description?: string;
   exclusive_time?: number;
   hash?: string;
@@ -28,6 +57,8 @@ export type RawSpanType = {
   origin?: string;
   parent_span_id?: string;
   same_process_as_parent?: boolean;
+  sentry_tags?: Record<string, string>;
+  'span.average_time'?: number;
   status?: string;
   tags?: {[key: string]: string};
 };
@@ -62,6 +93,7 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'tags',
   'hash',
   'exclusive_time',
+  '_metrics_summary',
 ]);
 
 export type OrphanSpanType = RawSpanType & {

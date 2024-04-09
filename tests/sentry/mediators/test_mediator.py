@@ -29,7 +29,7 @@ class MockMediator(Mediator):
             pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestMediator(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()

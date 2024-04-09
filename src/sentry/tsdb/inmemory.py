@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 
 class InMemoryTSDB(BaseTSDB):
@@ -89,7 +89,7 @@ class InMemoryTSDB(BaseTSDB):
                         int(self.data[model][(key, environment_id)][norm_epoch])
                         for environment_id in environment_ids
                     )
-                results.append((to_timestamp(timestamp), key, value))
+                results.append((timestamp.timestamp(), key, value))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:

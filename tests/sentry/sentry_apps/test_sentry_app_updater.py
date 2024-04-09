@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestUpdater(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -38,9 +38,15 @@ class TestUpdater(TestCase):
         sentry_app = self.create_internal_integration(
             scopes=("project:read",), organization=self.org
         )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=sentry_app
+        )
+
         updater = SentryAppUpdater(sentry_app=sentry_app)
         updater.scopes = ["project:read", "project:write"]
         updater.run(user=self.user)
+        token.refresh_from_db()
+
         assert sentry_app.get_scopes() == ["project:read", "project:write"]
         assert ApiToken.objects.get(application=sentry_app.application).get_scopes() == [
             "project:read",

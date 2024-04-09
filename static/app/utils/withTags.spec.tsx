@@ -1,7 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 import withTags from 'sentry/utils/withTags';
 
 interface TestComponentProps {

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -5,18 +7,20 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt, metrics
 
 logger = logging.getLogger(__name__)
 
 
-def get_integration_from_token(token):
+def get_integration_from_token(token: str | None) -> RpcIntegration:
     """
     When we create a jira server integration we create a webhook that contains
     a JWT in the URL. We use that JWT to locate the matching sentry integration later
@@ -31,9 +35,9 @@ def get_integration_from_token(token):
         raise ValueError("Could not decode JWT token")
     if "id" not in unvalidated:
         raise ValueError("Token did not contain `id`")
-    try:
-        integration = Integration.objects.get(provider="jira_server", external_id=unvalidated["id"])
-    except Integration.DoesNotExist:
+
+    integration = integration_service.get_integration(external_id=unvalidated["id"])
+    if not integration:
         raise ValueError("Could not find integration for token")
     try:
         jwt.decode(token, integration.metadata["webhook_secret"])
@@ -43,8 +47,9 @@ def get_integration_from_token(token):
     return integration
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class JiraServerIssueUpdatedWebhook(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -69,6 +74,8 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
 
         data = request.data
 
+        # Note: If we ever process more webhooks from jira server
+        # we also need to update JiraServerRequestParser
         if not data.get("changelog"):
             logger.info("missing-changelog", extra=extra)
             return self.respond()

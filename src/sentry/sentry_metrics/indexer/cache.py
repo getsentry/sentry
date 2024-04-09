@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime
-from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
+from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.cache import caches
@@ -30,6 +30,10 @@ _INDEXER_CACHE_RESOLVE_METRIC = "sentry_metrics.indexer.memcache.resolve"
 _INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC = (
     "sentry_metrics.indexer.memcache.resolve.replenish"
 )
+_INDEXER_CACHE_DOUBLE_WRITE_METRIC = "sentry_metrics.indexer.memcache.double-write"
+_INDEXER_CACHE_DOUBLE_READ_METRIC = "sentry_metrics.indexer.memcache.new-schema-read"
+_INDEXER_CACHE_STALE_KEYS_METRIC = "sentry_metrics.indexer.memcache.stale-keys"
+
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
@@ -75,8 +79,8 @@ class StringIndexerCache:
         return f"{val}:{timestamp}"
 
     def _format_results(
-        self, keys: Iterable[str], results: Mapping[str, Optional[int]]
-    ) -> MutableMapping[str, Optional[int]]:
+        self, keys: Iterable[str], results: Mapping[str, int | None]
+    ) -> MutableMapping[str, int | None]:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
         internally used hashed key such as:
@@ -85,7 +89,7 @@ class StringIndexerCache:
         used key:
             {"transactions:3:a": 2}
         """
-        formatted: MutableMapping[str, Optional[int]] = {}
+        formatted: MutableMapping[str, int | None] = {}
         for key in keys:
             cache_key = self._make_cache_key(key)
             formatted[key] = results.get(cache_key)
@@ -95,8 +99,8 @@ class StringIndexerCache:
     # The new namespaced version of the above function, eventually this will replace
     # _format_results
     def _format_namespaced_results(
-        self, namespace: str, keys: Iterable[str], results: Mapping[str, Optional[int]]
-    ) -> MutableMapping[str, Optional[int]]:
+        self, namespace: str, keys: Iterable[str], results: Mapping[str, int | None]
+    ) -> MutableMapping[str, int | None]:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
         internally used hashed key such as:
@@ -105,21 +109,30 @@ class StringIndexerCache:
         used key:
             {"transactions:3:a": 2}
         """
-        formatted: MutableMapping[str, Optional[int]] = {}
+        formatted: MutableMapping[str, int | None] = {}
         for key in keys:
             cache_key = self._make_namespaced_cache_key(namespace, key)
             formatted[key] = results.get(cache_key)
 
         return formatted
 
-    def _validate_result(self, result: Optional[str]) -> Optional[int]:
+    def _is_valid_timestamp(self, timestamp: str) -> bool:
+        return int(timestamp) >= int((datetime.utcnow() - timedelta(hours=3)).timestamp())
+
+    def _validate_result(self, result: str | None) -> int | None:
         if result is None:
             return None
-        result, _ = result.split(":")
+        result, timestamp = result.split(":")
+
+        if not self._is_valid_timestamp(timestamp):
+            metrics.incr(_INDEXER_CACHE_STALE_KEYS_METRIC)
+            return None
+
         return int(result)
 
-    def get(self, namespace: str, key: str) -> Optional[int]:
+    def get(self, namespace: str, key: str) -> int | None:
         if options.get(NAMESPACED_READ_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_READ_METRIC)
             result = self.cache.get(
                 self._make_namespaced_cache_key(namespace, key), version=self.version
             )
@@ -134,6 +147,7 @@ class StringIndexerCache:
             version=self.version,
         )
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.set(
                 key=self._make_namespaced_cache_key(namespace, key),
                 value=self._make_cache_val(value, int(datetime.utcnow().timestamp())),
@@ -141,10 +155,11 @@ class StringIndexerCache:
                 version=self.version,
             )
 
-    def get_many(self, namespace: str, keys: Iterable[str]) -> MutableMapping[str, Optional[int]]:
+    def get_many(self, namespace: str, keys: Iterable[str]) -> MutableMapping[str, int | None]:
         if options.get(NAMESPACED_READ_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_READ_METRIC)
             cache_keys = {self._make_namespaced_cache_key(namespace, key): key for key in keys}
-            namespaced_results: MutableMapping[str, Optional[int]] = {
+            namespaced_results: MutableMapping[str, int | None] = {
                 k: self._validate_result(v)
                 for k, v in self.cache.get_many(cache_keys.keys(), version=self.version).items()
             }
@@ -155,7 +170,7 @@ class StringIndexerCache:
             )
         else:
             cache_keys = {self._make_cache_key(key): key for key in keys}
-            results: Mapping[str, Optional[int]] = self.cache.get_many(
+            results: Mapping[str, int | None] = self.cache.get_many(
                 cache_keys.keys(), version=self.version
             )
             return self._format_results(keys, results)
@@ -164,6 +179,7 @@ class StringIndexerCache:
         cache_key_values = {self._make_cache_key(k): v for k, v in key_values.items()}
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             timestamp = int(datetime.utcnow().timestamp())
             namespaced_cache_key_values = {
                 self._make_namespaced_cache_key(namespace, k): self._make_cache_val(v, timestamp)
@@ -176,11 +192,13 @@ class StringIndexerCache:
     def delete(self, namespace: str, key: str) -> None:
         self.cache.delete(self._make_cache_key(key), version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.delete(self._make_namespaced_cache_key(namespace, key), version=self.version)
 
     def delete_many(self, namespace: str, keys: Sequence[str]) -> None:
         self.cache.delete_many([self._make_cache_key(key) for key in keys], version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.delete_many(
                 [self._make_namespaced_cache_key(namespace, key) for key in keys],
                 version=self.version,
@@ -193,9 +211,8 @@ class CachingIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
-
         cache_keys = UseCaseKeyCollection(strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
@@ -245,12 +262,12 @@ class CachingIndexer(StringIndexer):
 
         return cache_key_results.merge(db_record_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         key = f"{use_case_id.value}:{org_id}:{string}"
         result = self.cache.get(RESOLVE_CACHE_NAMESPACE, key)
 
@@ -267,6 +284,7 @@ class CachingIndexer(StringIndexer):
                 _INDEXER_CACHE_RESOLVE_METRIC,
                 tags={"cache_hit": "false", "use_case": use_case_id.value},
             )
+            # TODO this random rollout is backwards
             if random.random() >= options.get(
                 "sentry-metrics.indexer.disable-memcache-replenish-rollout"
             ):
@@ -279,7 +297,7 @@ class CachingIndexer(StringIndexer):
         return id
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def bulk_reverse_resolve(
@@ -287,12 +305,12 @@ class CachingIndexer(StringIndexer):
     ) -> Mapping[int, str]:
         return self.indexer.bulk_reverse_resolve(use_case_id, org_id, ids)
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         raise NotImplementedError(
             "This class should not be used directly, use a wrapping class that derives from StaticStringIndexer"
         )
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         raise NotImplementedError(
             "This class should not be used directly, use a wrapping class that derives from StaticStringIndexer"
         )

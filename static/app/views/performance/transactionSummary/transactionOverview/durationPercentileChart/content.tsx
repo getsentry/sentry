@@ -1,5 +1,5 @@
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
@@ -7,11 +7,11 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IconWarning} from 'sentry/icons';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {QUERY_KEYS} from '../../../utils';
 import {filterToColor, SpanOperationBreakdownFilter} from '../../filter';
 

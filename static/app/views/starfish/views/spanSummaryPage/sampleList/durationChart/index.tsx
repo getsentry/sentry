@@ -1,62 +1,41 @@
-import {Theme, useTheme} from '@emotion/react';
-
 import {t} from 'sentry/locale';
-import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import type {
+  EChartClickHandler,
+  EChartHighlightHandler,
+  Series,
+} from 'sentry/types/echarts';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {
-  crossIconPath,
-  downwardPlayIconPath,
-  upwardPlayIconPath,
-} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/symbol';
+import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
+  additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  platform?: string;
+  query?: string[];
   release?: string;
   spanDescription?: string;
   transactionMethod?: string;
 };
-
-export function getSampleSymbol(
-  duration: number,
-  compareToDuration: number,
-  theme: Theme
-): {color: string; symbol: string} {
-  if (isNearAverage(duration, compareToDuration)) {
-    return {
-      symbol: crossIconPath,
-      color: theme.gray500,
-    };
-  }
-
-  return duration > compareToDuration
-    ? {
-        symbol: upwardPlayIconPath,
-        color: theme.red300,
-      }
-    : {
-        symbol: downwardPlayIconPath,
-        color: theme.green300,
-      };
-}
 
 function DurationChart({
   groupId,
@@ -66,14 +45,18 @@ function DurationChart({
   onMouseOverSample,
   highlightedSpanId,
   transactionMethod,
+  additionalFields,
   release,
+  query,
+  platform,
+  additionalFilters,
 }: Props) {
-  const theme = useTheme();
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
   const pageFilter = usePageFilters();
 
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -84,23 +67,31 @@ function DurationChart({
     filters.release = release;
   }
 
+  if (platform) {
+    filters['os.name'] = platform;
+  }
+
   const {
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries(
-    groupId,
-    filters,
-    [`avg(${SPAN_SELF_TIME})`],
-    'api.starfish.sidebar-span-metrics-chart'
-  );
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+    yAxis: [`avg(${SPAN_SELF_TIME})`],
+    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+      Boolean(value)
+    ),
+    referrer: 'api.starfish.sidebar-span-metrics-chart',
+  });
 
-  const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    groupId,
-    filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+  const {data, error: spanMetricsError} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    enabled: Object.values(filters).every(value => Boolean(value)),
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
+
+  const spanMetrics = data[0] ?? {};
 
   const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
@@ -113,50 +104,19 @@ function DurationChart({
     transactionName,
     transactionMethod,
     release,
+    query,
+    additionalFields,
   });
 
   const baselineAvgSeries: Series = {
     seriesName: 'Average',
     data: [],
-    markLine: {
-      data: [{valueDim: 'x', yAxis: avg}],
-      symbol: ['none', 'none'],
-      lineStyle: {
-        color: theme.gray400,
-      },
-      emphasis: {disabled: true},
-      label: {
-        position: 'insideEndBottom',
-        formatter: () => `Average`,
-        fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
-      },
-    },
+    markLine: AverageValueMarkLine({
+      value: avg,
+    }),
   };
 
-  const sampledSpanDataSeries: Series[] = spans.map(
-    ({
-      timestamp,
-      [SPAN_SELF_TIME]: duration,
-      'transaction.id': transaction_id,
-      span_id,
-    }) => {
-      const {symbol, color} = getSampleSymbol(duration, avg, theme);
-      return {
-        data: [
-          {
-            name: timestamp,
-            value: duration,
-          },
-        ],
-        symbol,
-        color,
-        symbolSize: span_id === highlightedSpanId ? 19 : 14,
-        seriesName: transaction_id.substring(0, 8),
-      };
-    }
-  );
+  const sampledSpanDataSeries = useSampleScatterPlotSeries(spans, avg, highlightedSpanId);
 
   const getSample = (timestamp: string, duration: number) => {
     return spans.find(s => s.timestamp === timestamp && s[SPAN_SELF_TIME] === duration);
@@ -196,7 +156,7 @@ function DurationChart({
   };
 
   if (spanMetricsSeriesError || spanMetricsError) {
-    setPageError(t('An error has occured while loading chart data'));
+    setPageError(t('An error has occurred while loading chart data'));
   }
 
   const subtitle = pageFilter.selection.datetime.period
@@ -218,9 +178,8 @@ function DurationChart({
               ? undefined
               : sampledSpanDataSeries
           }
-          utc={false}
           chartColors={[AVG_COLOR, 'black']}
-          isLineChart
+          type={ChartType.LINE}
           definedAxisTicks={4}
         />
       </div>

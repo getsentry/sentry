@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import io
-from typing import BinaryIO
+from typing import IO
 
-import click
-
+from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Filter, create_encrypted_export_tarball
+from sentry.backup.helpers import Filter, Printer
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,
@@ -41,18 +40,20 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest: BinaryIO,
+    dest: IO[bytes],
     scope: ExportScope,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Exports core data for the Sentry installation.
 
-    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `export_in_XXX_scope()`.
+    It is generally preferable to avoid calling this function directly, as there are certain
+    combinations of input parameters that should not be used together. Instead, use one of the other
+    wrapper functions in this file, named `export_in_XXX_scope()`.
     """
 
     # Import here to prevent circular module resolutions.
@@ -62,7 +63,7 @@ def _export(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Exports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     json_export = []
@@ -121,7 +122,7 @@ def _export(
         )
 
         if isinstance(result, RpcExportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             raise ExportingError(result)
 
         pk_map.extend(result.mapped_pks.from_rpc())
@@ -132,24 +133,24 @@ def _export(
         for json_model in json.loads(result.json_data):
             json_export.append(json_model)
 
-    # If no `encrypt_with` argument was passed in, this is an unencrypted export, so we can just
-    # dump the JSON into the `dest` file and exit early.
-    if encrypt_with is None:
+    # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump
+    # the JSON into the `dest` file and exit early.
+    if encryptor is None:
         dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
         json.dump(json_export, dest_wrapper)
         dest_wrapper.detach()
         return
 
-    dest.write(create_encrypted_export_tarball(json_export, encrypt_with).getvalue())
+    dest.write(create_encrypted_export_tarball(json_export, encryptor).getvalue())
 
 
 def export_in_user_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -162,7 +163,7 @@ def export_in_user_scope(
     return _export(
         dest,
         ExportScope.User,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
         printer=printer,
@@ -170,12 +171,12 @@ def export_in_user_scope(
 
 
 def export_in_organization_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Organization` scope, meaning that only models with
@@ -189,7 +190,7 @@ def export_in_organization_scope(
     return _export(
         dest,
         ExportScope.Organization,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         indent=indent,
         printer=printer,
@@ -197,11 +198,11 @@ def export_in_organization_scope(
 
 
 def export_in_config_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Config` scope, meaning that only models directly related to the global
@@ -214,7 +215,7 @@ def export_in_config_scope(
     return _export(
         dest,
         ExportScope.Config,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
         indent=indent,
         printer=printer,
@@ -222,11 +223,11 @@ def export_in_config_scope(
 
 
 def export_in_global_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the
@@ -235,7 +236,7 @@ def export_in_global_scope(
     return _export(
         dest,
         ExportScope.Global,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         indent=indent,
         printer=printer,
     )

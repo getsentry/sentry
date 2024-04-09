@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import DemoEndModal from 'sentry/components/modals/demoEndModal';
 
 describe('DemoEndModal', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('closes on close button click', async function () {
     const closeModal = jest.fn();

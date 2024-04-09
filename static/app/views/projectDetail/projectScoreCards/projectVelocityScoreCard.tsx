@@ -4,11 +4,11 @@ import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 

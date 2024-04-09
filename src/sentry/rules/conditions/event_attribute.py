@@ -1,4 +1,7 @@
-from typing import Any, Dict, Sequence
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 
@@ -74,7 +77,7 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _get_attribute_values(self, event: GroupEvent, attr: str) -> Sequence[str]:
+    def _get_attribute_values(self, event: GroupEvent, attr: str) -> Sequence[object | None]:
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split(".")
 
@@ -156,9 +159,9 @@ class EventAttributeCondition(EventCondition):
             return [event.data["sdk"].get(path[1])]
 
         elif path[0] == "stacktrace":
-            stacks = event.interfaces.get("stacktrace")
-            if stacks:
-                stacks = [stacks]
+            stacktrace = event.interfaces.get("stacktrace")
+            if stacktrace:
+                stacks = [stacktrace]
             else:
                 stacks = [
                     e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
@@ -218,7 +221,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def _passes(self, attribute_values: Sequence[Any]) -> bool:
+    def _passes(self, attribute_values: Sequence[object | None]) -> bool:
         match = self.get_option("match")
         value = self.get_option("value")
 
@@ -227,61 +230,61 @@ class EventAttributeCondition(EventCondition):
 
         value = value.lower()
 
-        attribute_values = [str(v).lower() for v in attribute_values if v is not None]
+        values = [str(v).lower() for v in attribute_values if v is not None]
 
         if match == MatchType.EQUAL:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value == value:
                     return True
             return False
 
         elif match == MatchType.NOT_EQUAL:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value == value:
                     return False
             return True
 
         elif match == MatchType.STARTS_WITH:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value.startswith(value):
                     return True
             return False
 
         elif match == MatchType.NOT_STARTS_WITH:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value.startswith(value):
                     return False
             return True
 
         elif match == MatchType.ENDS_WITH:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value.endswith(value):
                     return True
             return False
 
         elif match == MatchType.NOT_ENDS_WITH:
-            for a_value in attribute_values:
+            for a_value in values:
                 if a_value.endswith(value):
                     return False
             return True
 
         elif match == MatchType.CONTAINS:
-            for a_value in attribute_values:
+            for a_value in values:
                 if value in a_value:
                     return True
             return False
 
         elif match == MatchType.NOT_CONTAINS:
-            for a_value in attribute_values:
+            for a_value in values:
                 if value in a_value:
                     return False
             return True
 
         elif match == MatchType.IS_SET:
-            return bool(attribute_values)
+            return bool(values)
 
         elif match == MatchType.NOT_SET:
-            return not attribute_values
+            return not values
 
         raise RuntimeError("Invalid Match")
 
@@ -295,7 +298,7 @@ class EventAttributeCondition(EventCondition):
         return self._passes(attribute_values)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             attr = self.get_option("attribute").lower()
@@ -318,10 +321,10 @@ class EventAttributeCondition(EventCondition):
         except (TypeError, KeyError):
             return False
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
         attr = self.get_option("attribute")
         column = ATTR_CHOICES[attr]
         if column is None:
             raise NotImplementedError
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns([column])
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns

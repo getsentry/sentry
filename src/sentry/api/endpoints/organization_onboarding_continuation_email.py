@@ -1,5 +1,3 @@
-from typing import List
-
 from rest_framework import serializers
 from rest_framework.request import Request
 
@@ -21,7 +19,7 @@ class OnboardingContinuationSerializer(CamelSnakeSerializer):
     )
 
 
-def get_request_builder_args(user: User, organization: Organization, platforms: List[str]):
+def get_request_builder_args(user: User, organization: Organization, platforms: list[str]):
     num_platforms = len(platforms)
     context = {
         "recipient_name": user.get_display_name(),
@@ -44,9 +42,9 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 @region_silo_endpoint
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.GROWTH
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     # let anyone in the org use this endpoint
     permission_classes = ()
 

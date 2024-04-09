@@ -4,9 +4,7 @@
   "environment": "prod",
   "platform": "javascript",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {
@@ -498,9 +496,7 @@
             },
             {
               "abs_path": "https://s1.sentry-cdn.com/_static/7a033b44f91f10112b4d329aff9531b5/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "in_app": true,
               "lineno": 1,
               "colno": 36638,
@@ -648,9 +644,7 @@
             {
               "function": "value",
               "abs_path": "https://s1.sentry-cdn.com/_static/7a033b44f91f10112b4d329aff9531b5/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "in_app": true,
               "lineno": 1,
               "colno": 939965,
@@ -660,9 +654,7 @@
             {
               "function": "fetchData",
               "abs_path": "https://s1.sentry-cdn.com/_static/7a033b44f91f10112b4d329aff9531b5/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "in_app": true,
               "lineno": 1,
               "colno": 939500,
@@ -672,9 +664,7 @@
             {
               "function": "value",
               "abs_path": "https://s1.sentry-cdn.com/_static/7a033b44f91f10112b4d329aff9531b5/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "in_app": true,
               "lineno": 1,
               "colno": 53837,

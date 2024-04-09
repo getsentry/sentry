@@ -9,11 +9,12 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokenTest(TestCase):
     def test_is_expired(self):
         token = ApiToken(expires_at=None)
@@ -61,7 +62,20 @@ class ApiTokenTest(TestCase):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
         assert token.organization_id is None
 
+    @override_options({"apitoken.auto-add-last-chars": True})
+    def test_last_chars_are_set(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.token_last_characters == token.token[-4:]
 
+    @override_options({"apitoken.auto-add-last-chars": False})
+    def test_last_chars_are_not_set(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.token_last_characters is None
+
+
+@control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -74,9 +88,9 @@ class ApiTokenInternalIntegrationTest(TestCase):
         self.install = SentryAppInstallation.objects.get(sentry_app=self.internal_app)
 
     def test_multiple_tokens_have_correct_organization_id(self):
-        # First token is created automatically with the application
-        token_1 = self.internal_app.installations.first().api_token
-        # Second token is created manually and isn't directly linked from the SentryAppInstallation model
+        # First token is no longer created automatically with the application, so we must manually
+        # create multiple tokens that aren't directly linked from the SentryAppInstallation model.
+        token_1 = self.create_internal_integration_token(install=self.install, user=self.user)
         token_2 = self.create_internal_integration_token(install=self.install, user=self.user)
 
         assert token_1.organization_id == self.org.id

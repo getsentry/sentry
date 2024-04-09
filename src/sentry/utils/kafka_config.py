@@ -1,7 +1,9 @@
-from typing import Any, MutableMapping, Optional
+from collections.abc import MutableMapping
+from typing import Any
 
 from django.conf import settings
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.topic_definition import TopicDefinition
 
 SUPPORTED_KAFKA_CONFIGURATION = (
@@ -80,7 +82,7 @@ def get_kafka_producer_cluster_options(cluster_name):
 
 
 def get_kafka_consumer_cluster_options(
-    cluster_name: str, override_params: Optional[MutableMapping[str, Any]] = None
+    cluster_name: str, override_params: MutableMapping[str, Any] | None = None
 ) -> MutableMapping[Any, Any]:
     return _get_kafka_cluster_options(
         cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=override_params
@@ -88,28 +90,15 @@ def get_kafka_consumer_cluster_options(
 
 
 def get_kafka_admin_cluster_options(
-    cluster_name: str, override_params: Optional[MutableMapping[str, Any]] = None
+    cluster_name: str, override_params: MutableMapping[str, Any] | None = None
 ) -> MutableMapping[Any, Any]:
     return _get_kafka_cluster_options(
         cluster_name, ADMIN_SECTION, only_bootstrap=True, override_params=override_params
     )
 
 
-def _validate_topic_definitions() -> None:
-    for cluster, defn in settings.KAFKA_TOPICS.items():
-        # If this assertion fails on import, get_topic_definition needs to be
-        # updated with new logic.
-        assert cluster == settings.KAFKA_OUTCOMES_BILLING or defn is not None
-
-
-_validate_topic_definitions()
-
-
-def get_topic_definition(cluster: str) -> TopicDefinition:
-    defn = settings.KAFKA_TOPICS.get(cluster)
-    if defn is not None:
-        return defn
-    elif cluster == settings.KAFKA_OUTCOMES_BILLING:
-        return get_topic_definition(settings.KAFKA_OUTCOMES)
-    else:
-        raise ValueError(f"Unknown {cluster=}")
+def get_topic_definition(topic: Topic) -> TopicDefinition:
+    return {
+        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[topic.value],
+        "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value),
+    }

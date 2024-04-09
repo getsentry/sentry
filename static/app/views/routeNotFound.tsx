@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import NotFound from 'sentry/components/errors/notFound';
@@ -36,7 +36,7 @@ function RouteNotFound({router, location}: Props) {
   return (
     <SentryDocumentTitle title={t('Page Not Found')}>
       <div className="app">
-        <Sidebar location={location} />
+        <Sidebar />
         <Layout.Page withPadding>
           <NotFound />
         </Layout.Page>

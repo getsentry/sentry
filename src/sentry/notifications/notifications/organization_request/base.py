@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Type
+from collections.abc import Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
@@ -21,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
-    notification_setting_type = NotificationSettingTypes.APPROVAL
-    RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
+    notification_setting_type_enum = NotificationSettingEnum.APPROVAL
+    RoleBasedRecipientStrategyClass: type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)

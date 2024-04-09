@@ -7,14 +7,15 @@ import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {Actor, Organization, Project} from 'sentry/types';
+import type {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 type Props = {

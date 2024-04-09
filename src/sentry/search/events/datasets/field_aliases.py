@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Function
 
@@ -33,7 +31,7 @@ def resolve_team_key_transaction_alias(
 
 def get_team_transactions(
     builder: builder.QueryBuilder, resolve_metric_index: bool = False
-) -> List[Tuple[int, str]]:
+) -> list[tuple[int, str]]:
     org_id = builder.params.organization.id if builder.params.organization is not None else None
     project_ids = builder.params.project_ids
     team_ids = builder.params.team_ids
@@ -60,7 +58,7 @@ def get_team_transactions(
         # Its completely possible that a team_key_transaction never existed in the metrics dataset
         for project, transaction in team_key_transactions:
             try:
-                resolved_transaction = builder.resolve_tag_value(transaction)  # type: ignore
+                resolved_transaction = builder.resolve_tag_value(transaction)  # type: ignore[attr-defined]
             except IncompatibleMetricsQuery:
                 continue
             if resolved_transaction:
@@ -127,13 +125,24 @@ def resolve_span_module(builder, alias: str) -> SelectType:
 
 
 def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectType:
-    values: List[str] = []
-    keys: List[str] = []
+    values: list[str] = []
+    keys: list[str] = []
     for device_key, device_values in DEVICE_CLASS.items():
         values.extend(device_values)
         keys.extend([device_key] * len(device_values))
     return Function(
         "transform",
         [builder.column("device.class"), values, keys, "Unknown"],
+        alias,
+    )
+
+
+def resolve_precise_timestamp(timestamp_column, ms_column, alias: str) -> SelectType:
+    return Function(
+        "plus",
+        [
+            Function("toUnixTimestamp", [timestamp_column]),
+            Function("divide", [ms_column, 1000]),
+        ],
         alias,
     )

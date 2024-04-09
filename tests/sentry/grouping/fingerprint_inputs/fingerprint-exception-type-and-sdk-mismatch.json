@@ -1,0 +1,38 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["sdk", "sentry.java"],
+        ["type", "DatabaseUnavailable"]
+      ],
+      "fingerprint": ["database-unavailable"],
+      "__test_description": "Shows that the custom fingerprinting rule is not applied when type matches, but SDK does not"
+    }
+  ],
+  "fingerprint": ["my-route", "{{ default }}"],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "DatabaseUnavailable",
+        "value": "For some reason the database went away"
+      }
+    ]
+  },
+  "platform": "java",
+  "sdk": {
+    "name": "sentry.native.android",
+    "version": "1.2.3"
+  }
+}

@@ -6,7 +6,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Deploy} from 'sentry/types';
+import type {Deploy} from 'sentry/types';
 
 type Props = {
   deploys: Deploy[];

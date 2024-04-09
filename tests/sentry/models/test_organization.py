@@ -15,17 +15,13 @@ from sentry.api.endpoints.organization_details import (
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
@@ -35,11 +31,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test(stable=True)
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -79,13 +73,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org = self.create_organization()
         assert org.default_owner_id is None
 
-    def test_default_owner_id_only_owner_through_team(self):
-        user = self.create_user("foo@example.com")
-        org = self.create_organization()
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        assert org.default_owner_id == user.id
-
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
     )
@@ -100,13 +87,16 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_flags_have_changed(self):
         org = self.create_organization()
         update_tracked_data(org)
+        org.flags.allow_joinleave = True  # Only flag that defaults to True
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
+        org.flags.disable_member_project_creation = True
+        assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "early_adopter")
         assert flag_has_changed(org, "codecov_access")
-        assert flag_has_changed(org, "allow_joinleave") is False
-        assert flag_has_changed(org, "require_2fa") is True
+        assert flag_has_changed(org, "require_2fa")
+        assert flag_has_changed(org, "disable_member_project_creation")
 
     def test_has_changed(self):
         org = self.create_organization()
@@ -184,7 +174,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@region_silo_test(stable=True)
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -337,7 +326,8 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.is_organization_member(user.id, member.id)
 
         auth_log.warning.assert_called_with(
-            "Could not remove 2FA noncompliant user from org",
+            "Could not remove %s noncompliant user from org",
+            "2FA",
             extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
         )
 
@@ -429,23 +419,18 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
 
-@region_silo_test(stable=True)
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.create(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
-                target_id=user.id,
-                provider=ExternalProviders.EMAIL.value,
-                type=NotificationSettingTypes.DEPLOY.value,
-                scope_identifier=org.id,
-                user=user,
-                value=NotificationSettingOptionValues.NEVER.value,
-            )
-
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org.id
-            ).exists()
+            args = {
+                "scope_type": "organization",
+                "scope_identifier": org.id,
+                "type": "deploy",
+                "user_id": user.id,
+                "value": "never",
+            }
+            NotificationSettingOption.objects.create(**args)
+            NotificationSettingProvider.objects.create(**args, provider="slack")
 
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
@@ -480,11 +465,12 @@ class OrganizationDeletionTest(TestCase):
             # Ensure they are all now gone.
             assert not UserOption.objects.filter(organization_id=org_id).exists()
 
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
+            assert NotificationSettingOption.objects.filter(
+                scope_type="organization",
                 scope_identifier=unaffected_org.id,
             ).exists()
 
-            assert not NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org_id
+            assert not NotificationSettingOption.objects.filter(
+                scope_type="organization",
+                scope_identifier=org_id,
             ).exists()

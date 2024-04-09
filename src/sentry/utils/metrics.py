@@ -4,11 +4,12 @@ __all__ = ["timing", "incr"]
 import functools
 import logging
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread
-from typing import Any, Callable, Generator, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from django.conf import settings
 
@@ -37,7 +38,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    cls: Type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
+    cls: type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
     return MiddlewareWrapper(cls(**settings.SENTRY_METRICS_OPTIONS))
 
@@ -56,7 +57,7 @@ def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value: Union[int, float], sample_rate: float) -> Union[int, float]:
+def _sampled_value(value: int | float, sample_rate: float) -> int | float:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
@@ -67,7 +68,7 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[Tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
+        q: Queue[tuple[str, str | None, Tags | None, float | int, float]]
         self.q = q = Queue()
 
         def worker() -> None:
@@ -89,8 +90,7 @@ class InternalMetrics:
                 finally:
                     q.task_done()
 
-        t = Thread(target=worker)
-        t.setDaemon(True)
+        t = Thread(target=worker, daemon=True)
         t.start()
 
         self._started = True
@@ -98,8 +98,8 @@ class InternalMetrics:
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         amount: int = 1,
         sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     ) -> None:
@@ -114,11 +114,12 @@ internal = InternalMetrics()
 def incr(
     key: str,
     amount: int = 1,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: Optional[str] = None,
+    unit: str | None = None,
+    stacklevel: int = 0,
 ) -> None:
     should_send_internal = (
         not metrics_skip_all_internal
@@ -131,7 +132,7 @@ def incr(
         internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, tags, amount, sample_rate, unit)
+        backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -142,13 +143,14 @@ def incr(
 def gauge(
     key: str,
     value: float,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: Optional[str] = None,
+    unit: str | None = None,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.gauge(key, value, instance, tags, sample_rate, unit)
+        backend.gauge(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -156,13 +158,14 @@ def gauge(
 
 def timing(
     key: str,
-    value: Union[int, float],
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    value: int | float,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.timing(key, value, instance, tags, sample_rate)
+        backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -170,14 +173,15 @@ def timing(
 
 def distribution(
     key: str,
-    value: Union[int, float],
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    value: int | float,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: Optional[str] = None,
+    unit: str | None = None,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.distribution(key, value, instance, tags, sample_rate, unit)
+        backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -186,9 +190,10 @@ def distribution(
 @contextmanager
 def timer(
     key: str,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Generator[MutableTags, None, None]:
     start = time.monotonic()
     current_tags: MutableTags = dict(tags or ())
@@ -200,21 +205,29 @@ def timer(
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
+        # stacklevel must be increased by 2 because of the contextmanager indirection
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 2)
 
 
 def wraps(
     key: str,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            with timer(key, instance=instance, tags=tags, sample_rate=sample_rate):
+            with timer(
+                key,
+                instance=instance,
+                tags=tags,
+                sample_rate=sample_rate,
+                stacklevel=stacklevel + 1,
+            ):
                 return f(*args, **kwargs)
 
-        return inner  # type: ignore
+        return inner  # type: ignore[return-value]
 
     return wrapper

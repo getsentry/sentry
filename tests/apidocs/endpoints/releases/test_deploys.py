@@ -6,26 +6,44 @@ from django.urls import reverse
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")
         release = self.create_release(project=project, version="1")
-        Deploy.objects.create(
+        release.add_project(project)
+
+        prod_deploy = Deploy.objects.create(
             environment_id=Environment.objects.create(
                 organization_id=project.organization_id, name="production"
             ).id,
             organization_id=project.organization_id,
             release=release,
-            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+            date_finished=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1),
         )
-        Deploy.objects.create(
+
+        staging_deploy = Deploy.objects.create(
             environment_id=Environment.objects.create(
                 organization_id=project.organization_id, name="staging"
             ).id,
             organization_id=project.organization_id,
             release=release,
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release_id=release.id,
+            environment_id=prod_deploy.environment_id,
+            last_deploy_id=prod_deploy.id,
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release_id=release.id,
+            environment_id=staging_deploy.environment_id,
+            last_deploy_id=staging_deploy.id,
         )
 
         self.url = reverse(

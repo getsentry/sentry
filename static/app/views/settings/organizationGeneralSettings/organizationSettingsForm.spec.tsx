@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicatorActions from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
@@ -40,7 +40,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization()}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />
     );
@@ -78,14 +78,18 @@ describe('OrganizationSettingsForm', function () {
 
     // Test "undo" call undo directly
     expect(model.getValue('name')).toBe('New Name');
-    model.undo();
+    act(() => {
+      model.undo();
+    });
     expect(model.getValue('name')).toBe('Organization Name');
 
     // `saveOnBlurUndoMessage` saves the new field, so reimplement this
-    await model.saveField('name', 'Organization Name');
+    act(() => {
+      model.saveField('name', 'Organization Name');
+    });
 
     // Initial data should be updated to original name
-    expect(model.initialData.name).toBe('Organization Name');
+    await waitFor(() => expect(model.initialData.name).toBe('Organization Name'));
 
     putMock.mockReset();
 
@@ -106,7 +110,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization()}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />
     );
@@ -141,7 +145,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization({codecovAccess: false})}
+        initialData={OrganizationFixture({codecovAccess: false})}
         onSave={onSave}
       />,
       {

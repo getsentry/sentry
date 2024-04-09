@@ -9,7 +9,7 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
   onEditRepository: () => void;

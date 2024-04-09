@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -20,6 +22,9 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 describe('ReleasesList', () => {
   const {organization, routerContext, router, routerProps} = initializeOrg();
   const semverVersionInfo = {
+    buildHash: null,
+    description: '1.2.3',
+    package: 'package',
     version: {
       raw: '1.2.3',
       major: 1,
@@ -63,16 +68,22 @@ describe('ReleasesList', () => {
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.Release({
+        ReleaseFixture({
           version: '1.0.0',
-          versionInfo: {...semverVersionInfo, raw: '1.0.0'},
+          versionInfo: {
+            ...semverVersionInfo,
+            version: {...semverVersionInfo.version, raw: '1.0.0'},
+          },
         }),
-        TestStubs.Release({
+        ReleaseFixture({
           version: '1.0.1',
-          versionInfo: {...semverVersionInfo, raw: '1.0.1'},
+          versionInfo: {
+            ...semverVersionInfo,
+            version: {...semverVersionInfo.version, raw: '1.0.1'},
+          },
         }),
         {
-          ...TestStubs.Release({version: 'af4f231ec9a8'}),
+          ...ReleaseFixture({version: 'af4f231ec9a8'}),
           projects: [
             {
               id: 4383604,
@@ -121,19 +132,19 @@ describe('ReleasesList', () => {
   it('displays the right empty state', async () => {
     let location;
 
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       id: '3',
       slug: 'test-slug',
       name: 'test-name',
       features: ['releases'],
     });
-    const projectWithouReleases = TestStubs.Project({
+    const projectWithouReleases = ProjectFixture({
       id: '4',
       slug: 'test-slug-2',
       name: 'test-name-2',
       features: [],
     });
-    const org = Organization({projects: [project, projectWithouReleases]});
+    const org = OrganizationFixture({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -171,7 +182,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText("There are no releases that match: 'abc'.")
+      await screen.findByText("There are no releases that match: 'abc'.")
     ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
@@ -184,7 +195,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText('There are no releases with data in the last 7 days.')
+      await screen.findByText('There are no releases with data in the last 7 days.')
     ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
@@ -197,7 +208,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText(
+      await screen.findByText(
         'There are no releases with active user data (users in the last 24 hours).'
       )
     ).toBeInTheDocument();
@@ -212,7 +223,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText(
+      await screen.findByText(
         'There are no releases with active session data (sessions in the last 24 hours).'
       )
     ).toBeInTheDocument();
@@ -227,7 +238,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText('There are no releases with semantic versioning.')
+      await screen.findByText('There are no releases with semantic versioning.')
     ).toBeInTheDocument();
   });
 
@@ -432,20 +443,22 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('calls api with only explicitly permitted query params', () => {
+  it('calls api with only explicitly permitted query params', async () => {
     render(<ReleasesList {...props} />, {
       context: routerContext,
       organization,
     });
 
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
-      expect.objectContaining({
-        query: expect.not.objectContaining({
-          somethingBad: 'XXX',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(endpointMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({
+            somethingBad: 'XXX',
+          }),
+        })
+      );
+    });
   });
 
   it('calls session api for health data', async () => {
@@ -501,7 +514,7 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/releases/',
       body: [
         {
-          ...TestStubs.Release({version: '2.0.0'}),
+          ...ReleaseFixture({version: '2.0.0'}),
           projects: [
             {
               id: 1,
@@ -537,7 +550,7 @@ describe('ReleasesList', () => {
   it('does not hide health rows when "All Projects" are selected in global header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release({version: '2.0.0'})],
+      body: [ReleaseFixture({version: '2.0.0'})],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
       context: routerContext,

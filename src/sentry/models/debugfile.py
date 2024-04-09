@@ -6,26 +6,14 @@ import hashlib
 import logging
 import os
 import os.path
+import random
 import re
 import shutil
 import tempfile
 import uuid
 import zipfile
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    BinaryIO,
-    ClassVar,
-    Container,
-    Dict,
-    FrozenSet,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-)
+from collections.abc import Container, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import Q
@@ -70,7 +58,7 @@ class BadDif(Exception):
 
 
 class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
-    def find_missing(self, checksums: Iterable[str], project: Project) -> List[str]:
+    def find_missing(self, checksums: Iterable[str], project: Project) -> list[str]:
         if not checksums:
             return []
 
@@ -88,7 +76,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 
     def find_by_debug_ids(
         self, project: Project, debug_ids: Container[str], features: Iterable[str] | None = None
-    ) -> Dict[str, ProjectDebugFile]:
+    ) -> dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 
         If a set of features is specified, only files that satisfy all features
@@ -107,7 +95,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 
         maybe_renew_debug_files(query, difs)
 
-        difs_by_id: Dict[str, List[ProjectDebugFile]] = {}
+        difs_by_id: dict[str, list[ProjectDebugFile]] = {}
         for dif in difs:
             difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
@@ -152,7 +140,10 @@ class ProjectDebugFile(Model):
     difcache: ClassVar[DIFCache]
 
     class Meta:
-        index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
+        indexes = (
+            models.Index(fields=("project_id", "debug_id")),
+            models.Index(fields=("project_id", "code_id")),
+        )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
 
@@ -164,9 +155,9 @@ class ProjectDebugFile(Model):
         return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
-    def file_type(self) -> Optional[str]:
+    def file_type(self) -> str | None:
         if self.data:
-            val: Optional[Any] = self.data.get("type")
+            val: Any | None = self.data.get("type")
             if isinstance(val, str) or val is None:
                 return val
             else:
@@ -203,7 +194,7 @@ class ProjectDebugFile(Model):
         return ""
 
     @property
-    def features(self) -> FrozenSet[str]:
+    def features(self) -> frozenset[str]:
         return frozenset((self.data or {}).get("features", []))
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
@@ -223,7 +214,7 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
         .order_by("-id")
     )
 
-    all_features: Set[str] = set()
+    all_features: set[str] = set()
     bcsymbolmap_seen = False
     uuidmap_seen = False
     il2cpp_seen = False
@@ -257,9 +248,9 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: Optional[BinaryIO] = None,
-    file: Optional[File] = None,
-) -> Tuple[ProjectDebugFile, bool]:
+    fileobj: BinaryIO | None = None,
+    file: File | None = None,
+) -> tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
 
     This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
@@ -352,7 +343,7 @@ def create_dif_from_id(
     return dif, True
 
 
-def _analyze_progard_filename(filename: str) -> Optional[str]:
+def _analyze_progard_filename(filename: str) -> str | None:
     match = _proguard_file_re.search(filename)
     if match is None:
         return None
@@ -390,9 +381,9 @@ class DifMeta:
         arch: str,
         debug_id: str,
         path: str,
-        code_id: Optional[str] = None,
-        name: Optional[str] = None,
-        data: Optional[Any] = None,
+        code_id: str | None = None,
+        name: str | None = None,
+        data: Any | None = None,
     ):
         self.file_format = file_format
         self.arch = arch
@@ -411,8 +402,8 @@ class DifMeta:
         cls,
         obj: Object,
         path: str,
-        name: Optional[str] = None,
-        debug_id: Optional[str] = None,
+        name: str | None = None,
+        debug_id: str | None = None,
     ) -> DifMeta:
         if debug_id is not None:
             try:
@@ -473,10 +464,10 @@ def determine_dif_kind(path: str) -> DifKind:
 
 def detect_dif_from_path(
     path: str,
-    name: Optional[str] = None,
-    debug_id: Optional[str] = None,
+    name: str | None = None,
+    debug_id: str | None = None,
     accept_unknown: bool = False,
-) -> List[DifMeta]:
+) -> list[DifMeta]:
     """Detects which kind of Debug Information File (DIF) the file at `path` is.
 
     :param accept_unknown: If this is ``False`` an exception will be logged with the error
@@ -581,7 +572,7 @@ def detect_dif_from_path(
 
 def create_debug_file_from_dif(
     to_create: Iterable[DifMeta], project: Project
-) -> List[ProjectDebugFile]:
+) -> list[ProjectDebugFile]:
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
@@ -596,7 +587,7 @@ def create_debug_file_from_dif(
 
 def create_files_from_dif_zip(
     fileobj: BinaryIO | zipfile.ZipFile, project: Project, accept_unknown: bool = False
-) -> List[ProjectDebugFile]:
+) -> list[ProjectDebugFile]:
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
@@ -604,8 +595,8 @@ def create_files_from_dif_zip(
 
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
-        to_create: List[DifMeta] = []
+        safe_extract_zip(fileobj, scratchpad)
+        to_create: list[DifMeta] = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
@@ -641,6 +632,16 @@ class DIFCache:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
+
+        # If this call is for proguard purposes, we probabilistically cut this function short
+        # right here so we don't overload filestore.
+        # Note: this random rollout is reversed because it is an early return
+        if features is not None:
+            if "mapping" in features and random.random() >= options.get(
+                "filestore.proguard-throttle"
+            ):
+                return {}
+
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 

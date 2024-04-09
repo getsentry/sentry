@@ -5,6 +5,7 @@ from sentry_sdk import start_span
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -23,7 +24,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({})
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             metric_meta = get_custom_measurements(
                 project_ids=params["project_id"],
                 organization_id=organization.id,

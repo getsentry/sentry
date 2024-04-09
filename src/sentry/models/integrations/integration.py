@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -26,6 +26,9 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +95,8 @@ class Integration(DefaultFieldsModel):
             return super().delete(*args, **kwds)
 
     @staticmethod
-    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
-        org_ids: List[int] = OrganizationIntegration.objects.filter(
+    def outboxes_for_update(identifier: int) -> list[ControlOutbox]:
+        org_ids: list[int] = OrganizationIntegration.objects.filter(
             integration_id=identifier
         ).values_list("organization_id", flat=True)
         return [
@@ -108,12 +111,15 @@ class Integration(DefaultFieldsModel):
         ]
 
     def add_organization(
-        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
-    ):
+        self,
+        organization_id: int | Organization | RpcOrganization,
+        user: User | RpcUser | None = None,
+        default_auth_id: int | None = None,
+    ) -> OrganizationIntegration | None:
         """
         Add an organization to this integration.
 
-        Returns False if the OrganizationIntegration was not created
+        Returns None if the OrganizationIntegration was not created
         """
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 
@@ -147,7 +153,7 @@ class Integration(DefaultFieldsModel):
                     "default_auth_id": default_auth_id,
                 },
             )
-            return False
+            return None
 
     def disable(self):
         """

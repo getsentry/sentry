@@ -1,6 +1,3 @@
-from .pickle import patch_pickle_loaders
-
-
 def register_scheme(name):
     from urllib import parse as urlparse
 
@@ -25,21 +22,4 @@ def patch_celery_imgcat():
     term.imgcat = lambda *a, **kw: b""
 
 
-def patch_memcached():
-    # Fixes a bug in Django 3.2
-    try:
-        from django.core.cache.backends.memcached import MemcachedCache
-    except ImportError:
-        return
-
-    def fixed_delete(self, key, version=None):
-        key = self.make_key(key, version=version)
-        self.validate_key(key)
-        return bool(self._cache.delete(key))
-
-    MemcachedCache.delete = fixed_delete  # type: ignore[method-assign]
-
-
 patch_celery_imgcat()
-patch_pickle_loaders()
-patch_memcached()

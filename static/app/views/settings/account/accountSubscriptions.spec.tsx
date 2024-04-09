@@ -1,4 +1,5 @@
-import {Subscriptions} from 'sentry-fixture/subscriptions';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {SubscriptionsFixture} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,14 +18,14 @@ describe('AccountSubscriptions', function () {
       body: [],
     });
     render(<AccountSubscriptions />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
   });
 
   it('renders list and can toggle', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: Subscriptions(),
+      body: SubscriptionsFixture(),
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -54,8 +55,8 @@ describe('AccountSubscriptions', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        ...Subscriptions().map(x => ({...x, email: 'a@1.com'})),
-        ...Subscriptions().map(x => ({...x, email: 'b@2.com'})),
+        ...SubscriptionsFixture().map(x => ({...x, email: 'a@1.com'})),
+        ...SubscriptionsFixture().map(x => ({...x, email: 'b@2.com'})),
       ],
     });
     const mock = MockApiClient.addMockResponse({

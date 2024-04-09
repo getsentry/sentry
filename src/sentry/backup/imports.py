@@ -1,21 +1,30 @@
 from __future__ import annotations
 
-from typing import BinaryIO, Iterator, Optional, Tuple, Type
+from collections.abc import Iterator
+from dataclasses import dataclass
+from typing import IO
+from uuid import uuid4
 
-import click
 from django.core import serializers
-from django.db import transaction
+from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
+from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
+    ImportKind,
+    ModelRelations,
     NormalizedModelName,
     PrimaryKeyMap,
     dependencies,
     get_model_name,
+    reversed_dependencies,
 )
-from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
+from sentry.db.models.paranoia import ParanoidModel
+from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -38,20 +47,55 @@ __all__ = (
     "import_in_global_scope",
 )
 
+# We have to be careful when removing fields from our model schemas, since exports created using
+# the old-but-still-in-the-support-window versions could have those fields set in the data they
+# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
+# valid in at least one of the versions we support. For example, since our current version
+# support window is two minor versions back, if we delete a field at version 24.5.N, we must
+# include an entry in this map for that field until that version is out of the support window
+# (in this case, we can remove shim once version 24.7.0 is released).
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
+# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_FIELDS: dict[
+    str, set[str]
+] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+    "sentry.team": {"org_role"}
+}
+
 
 class ImportingError(Exception):
     def __init__(self, context: RpcImportError) -> None:
         self.context = context
 
 
+def _clear_model_tables_before_import():
+    reversed = reversed_dependencies()
+
+    for model in reversed:
+        using = router.db_for_write(model)
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()  # type: ignore[attr-defined]
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if model is not Node:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
+
+
 def _import(
-    src: BinaryIO,
+    src: IO[bytes],
     scope: ImportScope,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Imports core data for a Sentry installation.
@@ -69,10 +113,16 @@ def _import(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Imports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
+    if flags.import_uuid is None:
+        # TODO(getsentry/team-ospo#190): Previous efforts to use a dataclass here ran afoul of
+        # pydantic playing poorly with them. May be worth investigating this again.
+        flags = flags._replace(import_uuid=uuid4().hex)
+
+    deps = dependencies()
     user_model_name = get_model_name(User)
     org_auth_token_model_name = get_model_name(OrgAuthToken)
     org_member_model_name = get_model_name(OrganizationMember)
@@ -99,16 +149,31 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content = (
-        decrypt_encrypted_tarball(src, flags.decrypt_using_gcp_kms, decrypt_with)
-        if decrypt_with is not None
+        decrypt_encrypted_tarball(src, decryptor)
+        if decryptor is not None
         else src.read().decode("utf-8")
     )
+
+    if len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove and fields that we have marked for deletion in the
+        # function.
+        shimmed_models = set(DELETED_FIELDS.keys())
+        content_as_json = json.loads(content)  # type: ignore[arg-type]
+        for json_model in content_as_json:
+            if json_model["model"] in shimmed_models:
+                fields_to_remove = DELETED_FIELDS[json_model["model"]]
+                for field in fields_to_remove:
+                    json_model["fields"].pop(field, None)
+
+        # Return the content to byte form, as that is what the Django deserializer expects.
+        content = json.dumps(content_as_json)
+
     filters = []
     if filter_by is not None:
         filters.append(filter_by)
 
-        # `sentry.Email` models don't have any explicit dependencies on `User`, so we need to find
-        # and record them manually.
+        # `sentry.Email` models don't have any explicit dependencies on `sentry.User`, so we need to
+        # find and record them manually.
         user_to_email = dict()
 
         if filter_by.model == Organization:
@@ -176,11 +241,11 @@ def _import(
 
     # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
     # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(content) -> Iterator[Tuple[NormalizedModelName, str]]:
+    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.loads(content)
-        last_seen_model_name: Optional[NormalizedModelName] = None
-        batch: list[Type[Model]] = []
+        last_seen_model_name: NormalizedModelName | None = None
+        batch: list[type[Model]] = []
         for model in models:
             model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:
@@ -195,44 +260,103 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (last_seen_model_name, json.dumps(batch))
 
+    # A wrapper for some immutable state we need when performing a single `do_write().
+    @dataclass(frozen=True)
+    class ImportWriteContext:
+        scope: RpcImportScope
+        flags: RpcImportFlags
+        filter_by: list[RpcFilter]
+        dependencies: dict[NormalizedModelName, ModelRelations]
+
     # Perform the write of a single model.
     def do_write(
-        pk_map: PrimaryKeyMap, model_name: NormalizedModelName, json_data: json.JSONData
+        import_write_context: ImportWriteContext,
+        pk_map: PrimaryKeyMap,
+        model_name: NormalizedModelName,
+        json_data: json.JSONData,
     ) -> None:
-        model_relations = dependencies().get(model_name)
+        model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
             return
 
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
+        model_name_str = str(model_name)
         result = import_by_model(
-            model_name=str(model_name),
-            scope=RpcImportScope.into_rpc(scope),
-            flags=RpcImportFlags.into_rpc(flags),
-            filter_by=[RpcFilter.into_rpc(f) for f in filters],
+            model_name=model_name_str,
+            scope=import_write_context.scope,
+            flags=import_write_context.flags,
+            filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
         )
 
         if isinstance(result, RpcImportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             if result.get_kind() == RpcImportErrorKind.IntegrityError:
                 warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-                printer(warningText, err=True)
+                printer.echo(warningText, err=True)
             raise ImportingError(result)
-        pk_map.extend(result.mapped_pks)
+
+        out_pk_map: PrimaryKeyMap = result.mapped_pks.from_rpc()
+        pk_map.extend(out_pk_map)
+
+        # If the model we just imported lives in the control silo, that means the import took place
+        # over RPC. To ensure that we have an accurate view of the import result in both sides of
+        # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
+        # would have generated in the calling region as well.
+        if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
+            # If `min_ordinal` is not null, these values must not be either.
+            assert result.max_ordinal is not None
+            assert result.min_source_pk is not None
+            assert result.max_source_pk is not None
+
+            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                model_name_str
+            ]
+            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                model_name_str
+            ]
+            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                model_name_str
+            ]
+            control_import_chunk_replica = ControlImportChunkReplica(
+                import_uuid=flags.import_uuid,
+                model=model_name_str,
+                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
+                # being imported in a single call; we may change this in the future.
+                min_ordinal=result.min_ordinal,
+                max_ordinal=result.max_ordinal,
+                min_source_pk=result.min_source_pk,
+                max_source_pk=result.max_source_pk,
+                min_inserted_pk=result.min_inserted_pk,
+                max_inserted_pk=result.max_inserted_pk,
+                inserted_map={k: v[0] for k, v in inserted.items()},
+                existing_map={k: v[0] for k, v in existing.items()},
+                overwrite_map={k: v[0] for k, v in overwrite.items()},
+                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+            )
+            control_import_chunk_replica.save()
+
+    import_write_context = ImportWriteContext(
+        scope=RpcImportScope.into_rpc(scope),
+        flags=RpcImportFlags.into_rpc(flags),
+        filter_by=[RpcFilter.into_rpc(f) for f in filters],
+        dependencies=deps,
+    )
 
     # Extract some write logic into its own internal function, so that we may call it irrespective
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_writes(pk_map: PrimaryKeyMap) -> None:
+        nonlocal deferred_org_auth_tokens, import_write_context
+
         for model_name, json_data in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                nonlocal deferred_org_auth_tokens
                 deferred_org_auth_tokens = json_data
                 continue
 
-            do_write(pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -256,6 +380,20 @@ def _import(
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
+            if scope == ImportScope.Global:
+                confirmed = printer.confirm(
+                    """Proceeding with this operation will irrecoverably delete all existing
+                    low-volume data - are you sure want to continue?"""
+                )
+                if not confirmed:
+                    printer.echo("Import cancelled.")
+                    return
+
+                try:
+                    _clear_model_tables_before_import()
+                except DatabaseError:
+                    printer.echo("Database could not be reset before importing")
+                    raise
             do_writes(pk_map)
     else:
         do_writes(pk_map)
@@ -263,16 +401,16 @@ def _import(
     resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
 
 
 def import_in_user_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -288,7 +426,7 @@ def import_in_user_scope(
     return _import(
         src,
         ImportScope.User,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -296,12 +434,12 @@ def import_in_user_scope(
 
 
 def import_in_organization_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Organization` scope, meaning that only models with
@@ -319,7 +457,7 @@ def import_in_organization_scope(
     return _import(
         src,
         ImportScope.Organization,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
@@ -327,12 +465,12 @@ def import_in_organization_scope(
 
 
 def import_in_config_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Config` scope, meaning that we will import all models required to
@@ -351,7 +489,7 @@ def import_in_config_scope(
     return _import(
         src,
         ImportScope.Config,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -359,11 +497,11 @@ def import_in_config_scope(
 
 
 def import_in_global_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
@@ -376,7 +514,7 @@ def import_in_global_scope(
     return _import(
         src,
         ImportScope.Global,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         printer=printer,
     )

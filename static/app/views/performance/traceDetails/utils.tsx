@@ -1,8 +1,8 @@
-import {LocationDescriptor, Query} from 'history';
+import type {LocationDescriptorObject, Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {
   EventLite,
   TraceError,
   TraceFull,
@@ -10,16 +10,20 @@ import {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
-import {TraceInfo} from './types';
+import type {TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
   organization: OrganizationSummary,
   traceSlug: string,
   dateSelection,
-  query: Query
-): LocationDescriptor {
+  query: Query,
+  timestamp?: string | number,
+  eventId?: string,
+  spanId?: string
+): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {
@@ -29,12 +33,30 @@ export function getTraceDetailsUrl(
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
 
+  if (organization.features.includes('trace-view-v1')) {
+    if (spanId) {
+      queryParams.node = [`span-${spanId}`, `txn-${eventId}`];
+    }
+    return {
+      pathname: normalizeUrl(
+        `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
+      ),
+      query: {
+        ...queryParams,
+        timestamp,
+        eventId,
+      },
+    };
+  }
+
   if (organization.features.includes('trace-view-load-more')) {
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
   return {
-    pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
+    pathname: normalizeUrl(
+      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
+    ),
     query: queryParams,
   };
 }

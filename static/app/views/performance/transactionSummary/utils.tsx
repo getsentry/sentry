@@ -1,10 +1,10 @@
-import {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptor, Query} from 'history';
+import type {LocationDescriptor, Query} from 'history';
 
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {Organization} from 'sentry/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -132,7 +132,14 @@ export function generateTraceLink(dateSelection) {
       return {};
     }
 
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl(
+      organization,
+      traceId,
+      dateSelection,
+      {},
+      tableRow.timestamp,
+      tableRow.id
+    );
   };
 }
 

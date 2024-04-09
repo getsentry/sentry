@@ -1,5 +1,6 @@
 import {Fragment, useContext} from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -13,17 +14,17 @@ import ProgressRing, {
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import type {CommonSidebarProps} from './types';
+import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
-  projects: Project[];
 };
 
 const progressTextCss = () => css`
@@ -31,10 +32,9 @@ const progressTextCss = () => css`
   font-weight: bold;
 `;
 
-function OnboardingStatus({
+export default function OnboardingStatus({
   collapsed,
   org,
-  projects,
   currentPanel,
   orientation,
   hidePanel,
@@ -45,6 +45,7 @@ function OnboardingStatus({
     onShowPanel();
   };
   const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
 
   if (!org.features?.includes('onboarding')) {
     return null;
@@ -178,5 +179,3 @@ const Container = styled('div')<{isActive: boolean}>`
     ${hoverCss};
   }
 `;
-
-export default withProjects(OnboardingStatus);

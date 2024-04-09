@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.utils.math import ExponentialMovingAverage, SimpleMovingAverage, nice_int
+from sentry.utils.math import ExponentialMovingAverage, nice_int
 
 
 def linspace(start, stop, n):
@@ -60,27 +60,12 @@ def test_nice_int(start, stop, expected):
         ([], 0),
         ([1], 1),
         ([1 for _ in range(10)], 1),
-        ([i for i in range(10)], 4.5),
-    ],
-)
-def test_simple_moving_average(sequence, expected):
-    avg = SimpleMovingAverage()
-    for x in sequence:
-        avg.update(x)
-    assert avg.value == pytest.approx(expected)
-
-
-@pytest.mark.parametrize(
-    "sequence,expected",
-    [
-        ([], 0),
-        ([1], 1),
-        ([1 for _ in range(10)], 1),
         ([i for i in range(10)], 5.239),
     ],
 )
 def test_exponential_moving_average(sequence, expected):
     avg = ExponentialMovingAverage(2 / 11)
-    for x in sequence:
-        avg.update(x)
-    assert avg.value == pytest.approx(expected, abs=1e-3)
+    t = 0.0
+    for i, x in enumerate(sequence):
+        t = avg.update(i, t, x)
+    assert t == pytest.approx(expected, abs=1e-3)

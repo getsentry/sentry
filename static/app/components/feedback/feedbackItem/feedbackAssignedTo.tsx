@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -6,84 +6,59 @@ import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdo
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import {
-  EventOwners,
-  getAssignedToDisplayName,
-  getOwnerList,
-} from 'sentry/components/group/assignedTo';
+import type {EventOwners} from 'sentry/components/group/assignedTo';
+import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/assignedTo';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackEvent: FeedbackEvent | undefined;
   feedbackIssue: FeedbackIssue;
+  showActorName: boolean;
 }
 
-export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
+export default function FeedbackAssignedTo({
+  feedbackIssue,
+  feedbackEvent,
+  showActorName,
+}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;
-  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
-    {
-      eventId: feedbackEvent?.id ?? '',
-      projectSlug: project.slug,
-    },
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: defined(feedbackEvent?.id),
-    }
-  );
 
   useEffect(() => {
-    // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [project.id]);
   }, [api, organization, project]);
 
-  useEffect(() => {
-    if (!feedbackEvent) {
-      return () => {};
+  const {data: eventOwners} = useApiQuery<EventOwners>(
+    [
+      `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent?.id}/owners/`,
+    ],
+    {
+      staleTime: 0,
+      enabled: Boolean(feedbackEvent),
     }
-
-    let unmounted = false;
-
-    api
-      .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent.id}/owners/`
-      )
-      .then(response => {
-        if (unmounted) {
-          return;
-        }
-
-        setEventOwners(response);
-      });
-
-    return () => {
-      unmounted = true;
-      api.clear();
-    };
-  }, [api, feedbackEvent, organization, project.slug]);
+  );
 
   const {assign} = useMutateFeedback({
     feedbackIds: [feedbackIssue.id],
     organization,
+    projectIds: [feedbackIssue.project.id],
   });
 
-  const owners = getOwnerList(
-    data?.committers ?? [],
-    eventOwners,
-    feedbackIssue.assignedTo
-  );
+  const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
-  const dropdown = (
+  // A new `key` will make the component re-render when showActorName changes
+  const key = showActorName ? 'showActor' : 'hideActor';
+
+  return (
     <AssigneeSelectorDropdown
+      key={key}
       organization={organization}
       disabled={false}
       id={feedbackIssue.id}
@@ -95,6 +70,8 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
         assign(null);
       }}
       owners={owners}
+      group={feedbackIssue}
+      alignMenu="left"
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
@@ -108,17 +85,17 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
                 size={16}
               />
             )}
-            <ActorName>
-              {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
-            </ActorName>
+            {showActorName ? (
+              <ActorName>
+                {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
+              </ActorName>
+            ) : null}
             <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
           </ActorWrapper>
         </Button>
       )}
     </AssigneeSelectorDropdown>
   );
-
-  return dropdown;
 }
 
 const ActorWrapper = styled('div')`

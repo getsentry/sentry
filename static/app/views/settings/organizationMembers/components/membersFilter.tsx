@@ -1,8 +1,8 @@
-import {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
@@ -23,7 +23,7 @@ const getBooleanValue = (list: string[]) => {
     return 'all';
   }
 
-  return list && list.map(v => v.toLowerCase()).includes('true') ? 'true' : 'false';
+  return list?.map(v => v.toLowerCase()).includes('true') ? 'true' : 'false';
 };
 
 const booleanOptions = [

@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 
-import {DashboardDetails, DisplayType, WidgetType} from './types';
+import type {DashboardDetails} from './types';
+import {DisplayType, WidgetType} from './types';
 
 type DashboardTemplate = DashboardDetails & {
   description: string;
@@ -327,7 +328,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             aggregates: [],
             columns: ['assignee', 'issue', 'title'],
             conditions: 'assigned_or_suggested:me is:unresolved',
-            orderby: 'priority',
+            orderby: 'trends',
           },
         ],
       },
@@ -586,7 +587,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             aggregates: ['p75(measurements.lcp)'],
             columns: ['geo.country_code', 'geo.region'],
             conditions: 'has:geo.country_code',
-            orderby: '',
+            orderby: '-p75(measurements.lcp)',
           },
         ],
       },
@@ -1368,7 +1369,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             aggregates: ['p75(measurements.app_start_warm)'],
             columns: ['transaction'],
             conditions: 'has:measurements.app_start_warm',
-            orderby: '',
+            orderby: '-p75(measurements.app_start_warm)',
           },
         ],
       },
@@ -1392,7 +1393,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             aggregates: ['p75(measurements.app_start_cold)'],
             columns: ['transaction'],
             conditions: 'has:measurements.app_start_cold',
-            orderby: '',
+            orderby: '-p75(measurements.app_start_cold)',
           },
         ],
       },

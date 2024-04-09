@@ -17,12 +17,8 @@ export enum TabKey {
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
-  const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
-  if (tab === TabKey.A11Y) {
-    return hasA11yTab;
-  }
   if (tab === TabKey.PERF) {
     return hasPerfTab;
   }
@@ -30,8 +26,8 @@ function isReplayTab(tab: string, organization: Organization): tab is TabKey {
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab() {
-  const defaultTab = TabKey.BREADCRUMBS;
+function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
+  const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
   const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 

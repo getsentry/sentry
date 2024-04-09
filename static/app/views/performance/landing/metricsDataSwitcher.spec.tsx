@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -64,7 +66,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -124,7 +126,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   it('renders basic UI elements', function () {
     addMetricsDataMock();
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -137,7 +139,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   it('renders with feature flag and all metric data', async function () {
     addMetricsDataMock();
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -155,7 +157,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 0,
       unparamCount: 0,
     });
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -173,7 +175,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 1,
       unparamCount: 0,
     });
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -194,8 +196,8 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       unparamCount: 0,
       compatibleProjects: [1],
     });
-    const project = TestStubs.Project({id: 1});
-    const project2 = TestStubs.Project({id: 2});
+    const project = ProjectFixture({id: '1'});
+    const project2 = ProjectFixture({id: '2'});
     const data = initializeData({
       project: '-1',
       projects: [project, project2],
@@ -216,8 +218,8 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       unparamCount: 0,
       compatibleProjects: [],
     });
-    const project = TestStubs.Project({id: 1});
-    const project2 = TestStubs.Project({id: 2});
+    const project = ProjectFixture({id: '1'});
+    const project2 = ProjectFixture({id: '2'});
     const data = initializeData({
       project: '-1',
       projects: [project, project2],
@@ -237,7 +239,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 0,
       unparamCount: 100,
     });
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -257,8 +259,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 0,
       unparamCount: 1,
     });
-    const platformWithDocs = 'javascript.react';
-    const project = TestStubs.Project({platform: platformWithDocs});
+    const project = ProjectFixture({platform: 'javascript-react'});
     const data = initializeData({
       project: project.id,
       projects: [project],
@@ -278,7 +279,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 0,
       unparamCount: 1,
     });
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const data = initializeData({
       project: project.id,
       projects: [project],

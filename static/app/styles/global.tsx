@@ -1,4 +1,5 @@
-import {css, Global, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
 import {prismStyles} from 'sentry/styles/prism';
 
@@ -98,6 +99,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
+        }
+
+        .pattern-bg {
+          opacity: 1;
+          filter: invert(1) brightness(0.6);
         }
 
         .nav-tabs {

@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
 import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -13,12 +13,12 @@ import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -189,7 +189,7 @@ class EventMetas extends Component<Props, State> {
                 ))}
               {hasReplay && (
                 <ReplayButtonContainer>
-                  <Button href="#replay" size="sm" icon={<IconPlay size="xs" />}>
+                  <Button href="#replay" size="sm" icon={<IconPlay />}>
                     {t('Replay')}
                   </Button>
                 </ReplayButtonContainer>
@@ -230,7 +230,13 @@ const IconContainer = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-function BrowserDisplay({event}: {event: Event}) {
+export function BrowserDisplay({
+  event,
+  showVersion = false,
+}: {
+  event: Event;
+  showVersion?: boolean;
+}) {
   const icon = generateIconName(
     event.contexts.browser?.name,
     event.contexts.browser?.version
@@ -240,7 +246,9 @@ function BrowserDisplay({event}: {event: Event}) {
       <IconContainer>
         <ContextIcon name={icon} />
       </IconContainer>
-      <span>{event.contexts.browser?.name}</span>
+      <span>
+        {event.contexts.browser?.name} {showVersion && event.contexts.browser?.version}
+      </span>
     </BrowserCenter>
   );
 }

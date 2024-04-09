@@ -1,0 +1,151 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "master"
+  },
+  "organizeImports": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "a11y": {
+        "noBlankTarget": "error"
+      },
+      "correctness": {
+        "noGlobalObjectCalls": "error",
+        "noUnreachable": "error",
+        "useHookAtTopLevel": "error",
+        "useIsNan": "error",
+        "noUnusedPrivateClassMembers": "error"
+      },
+      "complexity": {
+        "useFlatMap": "error",
+        "useOptionalChain": "error",
+        "noEmptyTypeParameters": "error",
+        "noUselessLoneBlockStatements": "error"
+      },
+      "nursery": {
+        "noDuplicateJsonKeys": "error",
+        "noNodejsModules": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error"
+      },
+      "suspicious": {
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateJsxProps": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
+        "noRedeclare": "error",
+        "noSparseArray": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnsafeNegation": "error",
+        "useIsArray": "error",
+        "noApproximativeNumericConstant": "error",
+        "noMisrefactoredShorthandAssign": "error"
+      },
+      "style": {
+        "noCommaOperator": "error",
+        "noShoutyConstants": "error",
+        "noParameterProperties": "error",
+        "noVar": "error",
+        "useConst": "error",
+        "useShorthandFunctionType": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "useNodejsImportProtocol": "error"
+      }
+    }
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "ignore": [
+      "**/*/trace.json",
+      "static/app/data/world.json",
+      "**/*.sourcemap.js",
+      "**/*.min.js",
+      "fixtures"
+    ]
+  },
+  "formatter": {
+    "enabled": false,
+    "formatWithErrors": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "ignore": ["tests/**/*.json"]
+  },
+  "javascript": {
+    "formatter": {
+      "enabled": false,
+      "lineWidth": 90,
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingComma": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded",
+      "bracketSpacing": false,
+      "bracketSameLine": false
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "overrides": [
+    {
+      "include": [
+        "biome.json",
+        "config/tsconfig.*",
+        "tsconfig.json",
+        ".vscode/*"
+      ],
+      "json": {
+        "parser": {
+          "allowComments": true,
+          "allowTrailingCommas": true
+        }
+      }
+    },
+    {
+      "include": [
+        "api-docs/*.ts",
+        "build-utils/*.ts",
+        "config/*.ts",
+        "scripts",
+        "tests/js/sentry-test/loadFixtures.ts",
+        "tests/js/jest-pegjs-transform.js",
+        "tests/js/setup.ts",
+        "tests/js/test-balancer/index.js",
+        "*.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/sentry/templates/sentry/error-page-embed.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noVar": "off"
+          }
+        }
+      }
+    }
+  ]
+}

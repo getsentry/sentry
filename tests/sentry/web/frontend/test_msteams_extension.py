@@ -10,7 +10,7 @@ from sentry.utils.signing import sign
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsExtensionConfigurationTest(TestCase):
     def hit_configure(self, params):
         self.login_as(self.user)

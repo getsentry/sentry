@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 from urllib import parse
 
 from django.db.models import Max
@@ -8,14 +7,14 @@ from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRule,
-    AlertRuleThresholdType,
     Incident,
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,7 +65,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+    if is_mri_field(agg_display_key):
+        metric_value = format_mri_field_value(agg_display_key, metric_value)
+        agg_text = format_mri_field(agg_display_key)
+    else:
+        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
     if agg_text.startswith("%"):
         if metric_value is not None:
@@ -147,9 +150,9 @@ def incident_attachment_info(
 
 def metric_alert_attachment_info(
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident] = None,
-    new_status: Optional[IncidentStatus] = None,
-    metric_value: Optional[int] = None,
+    selected_incident: Incident | None = None,
+    new_status: IncidentStatus | None = None,
+    metric_value: float | None = None,
 ):
     latest_incident = None
     if selected_incident is None:

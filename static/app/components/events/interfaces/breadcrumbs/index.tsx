@@ -3,22 +3,19 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import {
-  CompactSelect,
-  SelectOption,
-  SelectSection,
-} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -37,6 +34,7 @@ type Props = {
   };
   event: Event;
   organization: Organization;
+  hideTitle?: boolean;
 };
 
 enum BreadcrumbSort {
@@ -51,7 +49,7 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({data, event, organization}: Props) {
+function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -310,23 +308,23 @@ function BreadcrumbsContainer({data, event, organization}: Props) {
 
   return (
     <EventDataSection
+      showPermalink={!hideTitle}
       type={EntryType.BREADCRUMBS}
-      title={t('Breadcrumbs')}
+      title={hideTitle ? '' : t('Breadcrumbs')}
+      guideTarget="breadcrumbs"
       actions={actions}
     >
       <ErrorBoundary>
-        <GuideAnchor target="breadcrumbs" position="bottom">
-          <Breadcrumbs
-            emptyMessage={getEmptyMessage()}
-            breadcrumbs={displayedBreadcrumbs}
-            event={event}
-            organization={organization}
-            onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
-            displayRelativeTime={displayRelativeTime}
-            searchTerm={searchTerm}
-            relativeTime={relativeTime}
-          />
-        </GuideAnchor>
+        <Breadcrumbs
+          emptyMessage={getEmptyMessage()}
+          breadcrumbs={displayedBreadcrumbs}
+          event={event}
+          organization={organization}
+          onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
+          displayRelativeTime={displayRelativeTime}
+          searchTerm={searchTerm}
+          relativeTime={relativeTime}
+        />
       </ErrorBoundary>
     </EventDataSection>
   );

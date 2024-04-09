@@ -5,26 +5,24 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
-from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
+from sentry.models.identity import Identity
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import IntegrationRepositoryTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="Example GitLab",
                 external_id="example.gitlab.com:getsentry",
@@ -37,7 +35,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
                 },
             )
             identity = Identity.objects.create(
-                idp=IdentityProvider.objects.create(
+                idp=self.create_identity_provider(
                     type="gitlab", config={}, external_id="1234567890"
                 ),
                 user=self.user,

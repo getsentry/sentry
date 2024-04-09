@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Dict
 
 from croniter import croniter
 from dateutil import rrule
 
 from sentry.monitors.types import IntervalUnit, ScheduleConfig
 
-SCHEDULE_INTERVAL_MAP: Dict[IntervalUnit, int] = {
+SCHEDULE_INTERVAL_MAP: dict[IntervalUnit, int] = {
     "year": rrule.YEARLY,
     "month": rrule.MONTHLY,
     "week": rrule.WEEKLY,

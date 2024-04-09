@@ -6,9 +6,11 @@ import type {SeverityLevel} from '@sentry/types';
 
 import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
 

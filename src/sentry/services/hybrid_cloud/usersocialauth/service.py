@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional
 
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -29,37 +28,33 @@ class UserSocialAuthService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_many(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+    def get_many(self, *, filter: UserSocialAuthFilterArgs) -> list[RpcUserSocialAuth]:
         """
         Returns a list of RpcUserSocialAuth based on the given filters.
         """
-        pass
 
     @rpc_method
     @abstractmethod
-    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> Optional[RpcUserSocialAuth]:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
         """
         Returns the first RpcUserSocialAuth based on the given filters.
         """
-        pass
 
     @rpc_method
     @abstractmethod
     def revoke_token(
         self, *, filter: UserSocialAuthFilterArgs, drop_token: bool = True
-    ) -> List[RpcUserSocialAuth]:
+    ) -> list[RpcUserSocialAuth]:
         """
         Calls UserSocialAuth.revoke_token() on all matching results, returning the modified RpcUserSocialAuths.
         """
-        pass
 
     @rpc_method
     @abstractmethod
-    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> list[RpcUserSocialAuth]:
         """
         Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -68,7 +63,6 @@ class UserSocialAuthService(RpcService):
         Uses a UserSocialAuth to create/link an integration to an organization.
         Returns True if successful.
         """
-        pass
 
 
 usersocialauth_service = UserSocialAuthService.create_delegation()

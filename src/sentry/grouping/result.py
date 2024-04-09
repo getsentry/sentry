@@ -1,10 +1,11 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
+from typing import Any, Optional, TypedDict
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path, safe_execute, set_path
 
-EventMetadata = Dict[str, Any]
+EventMetadata = dict[str, Any]
 
 
 class TreeLabelPart(TypedDict):
@@ -12,7 +13,7 @@ class TreeLabelPart(TypedDict):
     package: str
     is_sentinel: bool
     is_prefix: bool
-    datapath: Sequence[Union[str, int]]
+    datapath: Sequence[str | int]
 
 
 class StrippedTreeLabelPart(TypedDict):
@@ -53,10 +54,10 @@ MAX_ISSUE_TREE_LABELS = 2
 def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
-        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
+        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore[assignment]
         # TODO(markus): Remove more stuff here if we never use it in group
         # title
-        stripped_part.pop("datapath", None)  # type: ignore
+        stripped_part.pop("datapath", None)  # type: ignore[typeddict-item]
         rv.append(stripped_part)
 
         if truncate and len(rv) == MAX_ISSUE_TREE_LABELS:
@@ -65,8 +66,8 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: NodeData) -> None:
-    event_labels: List[Optional[StrippedTreeLabel]] = []
+def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: NodeData) -> None:
+    event_labels: list[StrippedTreeLabel | None] = []
     event_data["hierarchical_tree_labels"] = event_labels
 
     for level, tree_label in enumerate(tree_labels):
@@ -97,7 +98,7 @@ def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: N
 class CalculatedHashes:
     hashes: Sequence[str]
     hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[Optional[TreeLabel]]
+    tree_labels: Sequence[TreeLabel | None]
 
     def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
@@ -120,7 +121,7 @@ class CalculatedHashes:
         return None
 
     @property
-    def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
+    def finest_tree_label(self) -> StrippedTreeLabel | None:
         try:
             tree_label = self.tree_labels[-1]
             # Also do this for event title in discover because people may

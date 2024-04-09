@@ -6,10 +6,9 @@ from sentry.constants import ObjectStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test(stable=True)
 class OrganizationMissingMembersTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-missing-members"
     method = "get"
@@ -56,6 +55,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )
+        self.integration2 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github2",
+            external_id="github:3",
+        )
         self.repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
         )
@@ -72,6 +77,19 @@ class OrganizationMissingMembersTestCase(APITestCase):
         not_shared_domain_author.external_id = "github:not"
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
+
+        self.invited_member = self.create_member(
+            email="invited@example.com",
+            organization=self.organization,
+        )
+        self.invited_member.user_email = "invited@example.com"
+        self.invited_member.save()
+        self.invited_member_commit_author = self.create_commit_author(
+            project=self.project, email="invited@example.com"
+        )
+        self.invited_member_commit_author.external_id = "github:invited"
+        self.invited_member_commit_author.save()
+        self.create_commit(repo=self.repo, author=self.invited_member_commit_author)
 
         self.login_as(self.user)
 
@@ -175,6 +193,28 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
+    def test_case_insensitive(self):
+        # excludes author that has matching (case insensitive) email
+
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        member.user_email = "helloworld@example.com"
+        member.save()
+
+        commit_author = self.create_commit_author(
+            project=self.project, email="HelloWorld@example.com"
+        )
+        commit_author.external_id = "github:helloworld"
+        commit_author.save()
+
+        self.create_commit(repo=self.repo, author=commit_author)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+        ]
+
     def test_owners_invalid_domain_no_filter(self):
         OrganizationMember.objects.filter(role="owner", organization=self.organization).update(
             user_email="example"
@@ -208,6 +248,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_no_github_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -216,6 +257,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.status = ObjectStatus.DISABLED
             self.integration.save()
+            self.integration2.status = ObjectStatus.DISABLED
+            self.integration2.save()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -223,6 +266,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_nongithub_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         integration = self.create_integration(
             organization=self.organization,

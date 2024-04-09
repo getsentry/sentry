@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -74,7 +75,7 @@ describe('Performance > Landing > Index', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -154,26 +155,6 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', function () {
-    const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
-    });
-
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
-
-    const titles = screen.getAllByTestId('performance-widget-title');
-    expect(titles).toHaveLength(5);
-
-    expect(titles[0]).toHaveTextContent('Worst LCP Web Vitals');
-    expect(titles[1]).toHaveTextContent('Worst FCP Web Vitals');
-    expect(titles[2]).toHaveTextContent('p75 LCP');
-    expect(titles[3]).toHaveTextContent('LCP Distribution');
-    expect(titles[4]).toHaveTextContent('FCP Distribution');
-  });
-
   it('renders frontend other view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
@@ -202,7 +183,7 @@ describe('Performance > Landing > Index', function () {
   });
 
   it('renders react-native table headers in mobile view', async function () {
-    const project = TestStubs.Project({platform: 'react-native'});
+    const project = ProjectFixture({platform: 'react-native'});
     const projects = [project];
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
@@ -264,11 +245,11 @@ describe('Performance > Landing > Index', function () {
 
   it('Can switch between landing displays', async function () {
     const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
@@ -282,15 +263,15 @@ describe('Performance > Landing > Index', function () {
 
   it('Updating projects switches performance view', function () {
     const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
-      projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
+      projects: [ProjectFixture({id: '123', platform: undefined})],
       selectedProject: 123,
     });
 
@@ -301,12 +282,12 @@ describe('Performance > Landing > Index', function () {
 
   it('View correctly defaults based on project without url param', function () {
     const data = initializeData({
-      projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
+      projects: [ProjectFixture({id: '99', platform: 'javascript-react'})],
       selectedProject: 99,
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
   });
 
   describe('With transaction search feature', function () {

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import enum
 import re
 import secrets
-from typing import Any, ClassVar, Optional, Tuple
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -51,6 +52,27 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
+    def for_request(self, request):
+        """Return objects that the given request user is allowed to access"""
+        from sentry.auth.superuser import is_active_superuser
+
+        qs = self.get_queryset()
+        if not is_active_superuser(request):
+            qs = qs.filter(use_case=UseCase.USER.value)
+
+        return qs
+
+
+class UseCase(enum.Enum):
+    """What the DSN is used for (user vs. internal submissions)"""
+
+    """A user-visible project key"""
+    USER = "user"
+    """An internal project key for submitting aggregate function metrics."""
+    PROFILING = "profiling"
+    """ An internal project key for submitting escalating issues metrics."""
+    ESCALATING_ISSUES = "escalating_issues"
+
 
 @region_silo_only_model
 class ProjectKey(Model):
@@ -62,6 +84,11 @@ class ProjectKey(Model):
     secret_key = models.CharField(max_length=32, unique=True, null=True)
 
     class roles(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # access to post events to the store endpoint
         store: bool
         # read/write access to rest API
@@ -90,6 +117,12 @@ class ProjectKey(Model):
     )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+
+    use_case = models.CharField(
+        max_length=32,
+        choices=[(v.value, v.value) for v in UseCase],
+        default=UseCase.USER.value,
+    )
 
     # support legacy project keys in API
     scopes = (
@@ -210,6 +243,12 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
+    def nel_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
+
+    @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
@@ -218,6 +257,10 @@ class ProjectKey(Model):
     @property
     def unreal_endpoint(self):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
+
+    @property
+    def crons_endpoint(self):
+        return f"{self.get_endpoint()}/api/{self.project_id}/crons/___MONITOR_SLUG___/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:
@@ -287,7 +330,7 @@ class ProjectKey(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # If there is a key collision, generate new keys.
         matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
         if not self.public_key or matching_public_key:

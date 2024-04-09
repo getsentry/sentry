@@ -1,6 +1,6 @@
 import type {EventGroupingConfig} from 'sentry/types';
 
-export function GroupingConfigs(): EventGroupingConfig[] {
+export function GroupingConfigsFixture(): EventGroupingConfig[] {
   return [
     {
       id: 'default:XXXX',

@@ -5,12 +5,10 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-details"
 
@@ -108,6 +106,15 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp,
+                self.project.id,
+                "error",
+                replay1_id,
+                "a3a62ef6ac86415b83c2416fc2f76db1",
+            )
+        )
+        self.store_replays(
             mock_replay(
                 seq2_timestamp,
                 self.project.id,
@@ -153,5 +160,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=3,
                 activity=4,
+                count_errors=1,
             )
             assert_expected_response(response_data["data"], expected_response)

@@ -1,10 +1,16 @@
 import Fuse from 'fuse.js';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Search, SearchProps} from 'sentry/components/search';
-import {ChildProps, Result, ResultItem} from 'sentry/components/search/sources/types';
+import type {SearchProps} from 'sentry/components/search';
+import {Search} from 'sentry/components/search';
+import type {
+  ChildProps,
+  Result,
+  ResultItem,
+} from 'sentry/components/search/sources/types';
 
 function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
   return function SearchResultsMock({
@@ -73,7 +79,7 @@ describe('Search', () => {
   it('renders search results from source', async () => {
     jest.useFakeTimers();
     render(<Search {...makeSearchProps()} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
@@ -108,7 +114,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -147,7 +153,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -184,7 +190,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -207,7 +213,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 

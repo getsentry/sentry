@@ -1,18 +1,21 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
+import type {
   GroupedOptionsType,
-  mergeStyles,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  createFilter,
+  mergeStyles,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {CSSObject, useTheme} from '@emotion/react';
+import type {CSSObject} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -116,6 +119,10 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    */
   inFieldLabel?: string;
   /**
+   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+   */
+  isInsideModal?: boolean;
+  /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
    */
@@ -167,7 +174,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -216,27 +223,17 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...provided,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
         borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
+        boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
       }),
 
-      menuPortal: () => ({
+      menuPortal: provided => ({
+        ...provided,
         maxWidth: maxMenuWidth ?? '24rem',
-        zIndex: theme.zIndex.dropdown,
-        width: '90%',
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
-        borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
-        overflow: 'hidden',
+        zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
       }),
 
       option: provided => ({
@@ -349,6 +346,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme, size, maxMenuWidth, indicatorStyles]
   );
 

@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';

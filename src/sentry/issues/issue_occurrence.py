@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Type, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
@@ -32,8 +33,9 @@ class IssueOccurrenceData(TypedDict):
     evidence_display: Sequence[IssueEvidenceData]
     type: int
     detection_time: float
-    level: Optional[str]
-    culprit: Optional[str]
+    level: str | None
+    culprit: str | None
+    initial_issue_priority: NotRequired[int | None]
 
 
 @dataclass(frozen=True)
@@ -81,10 +83,11 @@ class IssueOccurrence:
     # This should be human-readable. One of these entries should be marked as `important` for use
     # in more space restricted integrations.
     evidence_display: Sequence[IssueEvidence]
-    type: Type[GroupType]
+    type: type[GroupType]
     detection_time: datetime
     level: str
     culprit: str
+    initial_issue_priority: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -107,6 +110,7 @@ class IssueOccurrence:
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
             "culprit": self.culprit,
+            "initial_issue_priority": self.initial_issue_priority,
         }
 
     @classmethod
@@ -136,10 +140,11 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
+            data.get("initial_issue_priority"),
         )
 
     @property
-    def important_evidence_display(self) -> Optional[IssueEvidence]:
+    def important_evidence_display(self) -> IssueEvidence | None:
         """
         Returns the most important piece of evidence for display in space constrained integrations.
         If multiple pieces of evidence are marked as important, returns the first one seen.
@@ -163,21 +168,21 @@ class IssueOccurrence:
         return f"i-o:{identifier}"
 
     def save(self) -> None:
-        nodestore.set(self.build_storage_identifier(self.id, self.project_id), self.to_dict())
+        nodestore.backend.set(
+            self.build_storage_identifier(self.id, self.project_id), self.to_dict()
+        )
 
     @classmethod
-    def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:
-        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
+    def fetch(cls, id_: str, project_id: int) -> IssueOccurrence | None:
+        results = nodestore.backend.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
 
     @classmethod
-    def fetch_multi(
-        cls, ids: Sequence[str], project_id: int
-    ) -> Sequence[Optional[IssueOccurrence]]:
+    def fetch_multi(cls, ids: Sequence[str], project_id: int) -> Sequence[IssueOccurrence | None]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
         ]

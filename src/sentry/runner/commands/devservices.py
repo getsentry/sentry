@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import http
+import json  # noqa
 import os
-import platform
 import shutil
 import signal
 import subprocess
@@ -11,28 +11,42 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
+from typing import TYPE_CHECKING, Any, ContextManager, Literal, NamedTuple, overload
 
 import click
-import requests
 
 if TYPE_CHECKING:
     import docker
+
+CI = os.environ.get("CI") is not None
 
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_ORBSTACK = (
+    os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+)
 
-USE_COLIMA = bool(shutil.which("colima"))
+if USE_ORBSTACK:
+    USE_COLIMA = False
 
 if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    USE_ORBSTACK = False
+
+USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
+
+if DARWIN:
+    if USE_COLIMA:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    elif USE_ORBSTACK:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
+    elif USE_DOCKER_DESKTOP:
+        # /var/run/docker.sock is now gated behind a docker desktop advanced setting
+        RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
@@ -41,10 +55,13 @@ else:
 def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    with contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}")) as client:
+    def _client() -> ContextManager[docker.DockerClient]:
+        return contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}"))
+
+    with contextlib.ExitStack() as ctx:
         try:
-            client.ping()
-        except (requests.exceptions.ConnectionError, docker.errors.APIError):
+            client = ctx.enter_context(_client())
+        except docker.errors.DockerException:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
@@ -55,23 +72,28 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
-                else:
+                elif USE_DOCKER_DESKTOP:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
                     )
+                elif USE_ORBSTACK:
+                    click.echo("Attempting to start orbstack...")
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/OrbStack.app", "--args", "--unattended")
+                    )
             else:
                 raise click.ClickException("Make sure docker is running.")
 
-            max_wait = 60
+            max_wait = 90
             timeout = time.monotonic() + max_wait
 
             click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
             while time.monotonic() < timeout:
                 time.sleep(1)
                 try:
-                    client.ping()
-                except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                    client = ctx.enter_context(_client())
+                except docker.errors.DockerException:
                     continue
                 else:
                     break
@@ -107,7 +129,9 @@ def get_or_create(
         return getattr(client, thing + "s").create(name)
 
 
-def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
+def retryable_pull(
+    client: docker.DockerClient, image: str, max_attempts: int = 5, platform: str | None = None
+) -> None:
     from docker.errors import APIError
 
     current_attempt = 0
@@ -118,7 +142,10 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     # See https://github.com/docker/docker-py/issues/2101 for more information
     while True:
         try:
-            client.images.pull(image)
+            if platform:
+                client.images.pull(image, platform=platform)
+            else:
+                client.images.pull(image)
         except APIError:
             if current_attempt + 1 >= max_attempts:
                 raise
@@ -139,6 +166,22 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
     return rv
 
 
+def ensure_docker_cli_context(context: str) -> None:
+    # this is faster than running docker context use ...
+    config_file = os.path.expanduser("~/.docker/config.json")
+    config = {}
+
+    if os.path.exists(config_file):
+        with open(config_file, "rb") as f:
+            config = json.loads(f.read())
+
+    config["currentContext"] = context
+
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
+    with open(config_file, "w") as f:
+        f.write(json.dumps(config))
+
+
 @click.group()
 def devservices() -> None:
     """
@@ -149,6 +192,20 @@ def devservices() -> None:
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    if CI:
+        click.echo("Assuming docker (CI).")
+        return
+
+    if USE_DOCKER_DESKTOP:
+        click.echo("Using docker desktop.")
+        ensure_docker_cli_context("desktop-linux")
+    if USE_COLIMA:
+        click.echo("Using colima.")
+        ensure_docker_cli_context("colima")
+    if USE_ORBSTACK:
+        click.echo("Using orbstack.")
+        ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()
@@ -417,7 +474,7 @@ def _start_service(
         options["environment"][key] = value.format(containers=containers)
 
     click.secho(f"> Pulling image '{options['image']}'", fg="green")
-    retryable_pull(client, options["image"])
+    retryable_pull(client, options["image"], platform=options.get("platform"))
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:

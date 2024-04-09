@@ -8,26 +8,27 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
 
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            user=None,
+            provider="example",
+            external_id="example12345",
+            name="Example 12345",
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="example", external_id="example12345", name="Example 12345"
-            )
-            org_integration = self.integration.add_organization(self.organization)
             org_integration.config = {"sync_comments": True}
             org_integration.save()
 
@@ -58,7 +59,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
 
-    def test_delete_with_participants_flag(self):
+    def test_delete_comment_and_subscription(self):
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -79,9 +80,8 @@ class GroupNotesDetailsTest(APITestCase):
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
         )
 
-        with self.feature("organizations:participants-purge"):
-            url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
-            response = self.client.delete(url, format="json")
+        url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 204, response.status_code
         assert not GroupSubscription.objects.filter(
@@ -91,7 +91,7 @@ class GroupNotesDetailsTest(APITestCase):
             reason=GroupSubscriptionReason.comment,
         ).exists()
 
-    def test_delete_with_participants_flag_multiple_comments(self):
+    def test_delete_multiple_comments(self):
         """Test that if a user has commented multiple times on an issue and deletes one, we don't remove the subscription"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -117,9 +117,8 @@ class GroupNotesDetailsTest(APITestCase):
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
         ).first()
 
-        with self.feature("organizations:participants-purge"):
-            url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
-            response = self.client.delete(url, format="json")
+        url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 204, response.status_code
         assert GroupSubscription.objects.filter(

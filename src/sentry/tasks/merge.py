@@ -192,28 +192,6 @@ def merge_groups(
         eventstream.backend.end_merge(eventstream_state)
 
 
-def _get_event_environment(event, project, cache):
-    from sentry.models.environment import Environment
-
-    environment_name = event.get_tag("environment")
-
-    if environment_name not in cache:
-        try:
-            environment = Environment.get_for_organization_id(
-                project.organization_id, environment_name
-            )
-        except Environment.DoesNotExist:
-            logger.warning(
-                "event.environment.does_not_exist",
-                extra={"project_id": project.id, "environment_name": environment_name},
-            )
-            environment = Environment.get_or_create(project, environment_name)
-
-        cache[environment_name] = environment
-
-    return cache[environment_name]
-
-
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
     has_more = False
     for model in models:

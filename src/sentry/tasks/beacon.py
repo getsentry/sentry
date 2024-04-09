@@ -4,6 +4,7 @@ from datetime import timedelta
 from hashlib import sha1
 from uuid import uuid4
 
+import psutil
 from django.conf import settings
 from django.utils import timezone
 
@@ -13,6 +14,12 @@ from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
 from sentry.silo.base import SiloMode
+from sentry.snuba.outcomes import (
+    QueryDefinition,
+    massage_outcomes_result,
+    run_outcomes_query_timeseries,
+    run_outcomes_query_totals,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
@@ -49,6 +56,49 @@ def should_skip_beacon(install_id):
     return False
 
 
+def get_events_24h() -> int:
+    from sentry.models.organization import Organization
+
+    organization_ids = list(Organization.objects.all().values_list("id", flat=True))
+    end = timezone.now()
+    sum_events = 0
+    for organization_id in organization_ids:
+        events_per_org_24h = tsdb.backend.get_sums(
+            model=TSDBModel.organization_total_received,
+            keys=[organization_id],
+            start=end - timedelta(hours=24),
+            end=end,
+            tenant_ids={"organization_id": organization_id},
+        )
+        sum_events += sum(p for _, p in events_per_org_24h.items())
+
+    return sum_events
+
+
+def get_category_event_count_24h() -> dict[str, int]:
+    from sentry.models.organization import Organization
+
+    organization_ids = list(Organization.objects.all().values_list("id", flat=True))
+    event_categories_count = {"error": 0, "replay": 0, "transaction": 0, "profile": 0, "monitor": 0}
+    for organization_id in organization_ids:
+        # Utilize the outcomes dataset to send snql queries for event stats
+        query = QueryDefinition(
+            fields=["sum(quantity)"],
+            organization_id=organization_id,
+            stats_period="24h",
+            group_by=["category"],
+            outcome=["accepted"],
+        )
+        tenant_ids = {"organization_id": organization_id}
+        result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
+        result_timeseries = run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
+        result = massage_outcomes_result(query, result_totals, result_timeseries)
+        for group in result["groups"]:
+            if group["by"]["category"] in event_categories_count.keys():
+                event_categories_count[group["by"]["category"]] += group["totals"]["sum(quantity)"]
+    return event_categories_count
+
+
 @instrumented_task(name="sentry.tasks.send_beacon", queue="update")
 def send_beacon():
     """
@@ -68,14 +118,17 @@ def send_beacon():
     if should_skip_beacon(install_id):
         return
 
-    end = timezone.now()
-    events_24h = tsdb.backend.get_sums(
-        model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
-    )["events.total"]
-
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
+    # getting an option sets it to the default value, so let's avoid doing that if for some reason consent prompt is somehow skipped because of this
+    send_cpu_ram_usage = (
+        options.get("beacon.record_cpu_ram_usage")
+        if options.isset("beacon.record_cpu_ram_usage")
+        else False
+    )
+    event_categories_count = get_category_event_count_24h()
+    byte_in_gibibyte = 1024**3
 
     payload = {
         "install_id": install_id,
@@ -87,7 +140,20 @@ def send_beacon():
             "projects": Project.objects.count(),
             "teams": Team.objects.count(),
             "organizations": Organization.objects.count(),
-            "events.24h": events_24h,
+            "events.24h": get_events_24h(),
+            "errors.24h": event_categories_count["error"],
+            "transactions.24h": event_categories_count["transaction"],
+            "replays.24h": event_categories_count["replay"],
+            "profiles.24h": event_categories_count["profile"],
+            "monitors.24h": event_categories_count["monitor"],
+            "cpu_cores_available": psutil.cpu_count() if send_cpu_ram_usage else None,
+            "cpu_percentage_utilized": psutil.cpu_percent() if send_cpu_ram_usage else None,
+            "ram_available_gb": (
+                psutil.virtual_memory().total / byte_in_gibibyte if send_cpu_ram_usage else None
+            ),
+            "ram_percentage_utilized": (
+                psutil.virtual_memory().percent if send_cpu_ram_usage else None
+            ),
         },
         "packages": get_all_package_versions(),
         "anonymous": anonymous,

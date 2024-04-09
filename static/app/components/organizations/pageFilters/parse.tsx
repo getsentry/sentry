@@ -1,21 +1,21 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import {IntervalPeriod, PageFilters} from 'sentry/types';
+import type {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import toArray from 'sentry/utils/toArray';
 
-import {PageFiltersState} from './types';
+import type {PageFiltersState} from './types';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 type SingleParamValue = string | undefined | null;
 type ParamValue = string[] | SingleParamValue;
 
-const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
+const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?(-\\w+)?$';
 
 /**
  * Parses a stats period into `period` and `periodLength`
@@ -30,7 +30,7 @@ export function parseStatsPeriod(input: string | IntervalPeriod) {
   const period = result[1];
 
   // default to seconds. this behaviour is based on src/sentry/utils/dates.py
-  const periodLength = result[2] || 's';
+  const periodLength = (result[2] || 's') as StatsPeriodType;
 
   return {period, periodLength};
 }

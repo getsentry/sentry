@@ -236,6 +236,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         metrics.incr("sourcemaps.symbolicator.events.skipped")
         return
 
+    metrics.incr("process.javascript.symbolicate.request")
     response = symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,
@@ -278,7 +279,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             merged_context_frame = _merge_frame_context(sinfo_frame, raw_frame)
             new_raw_frames.append(merged_context_frame)
 
-            merged_frame = _merge_frame(merged_context_frame, complete_frame)
+            merged_frame = _merge_frame(sinfo_frame, complete_frame)
             new_frames.append(merged_frame)
 
         sinfo.stacktrace["frames"] = new_frames

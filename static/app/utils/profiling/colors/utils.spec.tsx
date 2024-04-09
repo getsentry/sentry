@@ -9,7 +9,7 @@ import {
   LCH_LIGHT,
   LightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
 import {makeColorBucketTheme} from '../speedscope';
@@ -65,7 +65,6 @@ describe('makeStackToColor', () => {
     const fallback = [1, 0, 0, 1] as [number, number, number, number];
 
     const makeFn = makeStackToColor(fallback);
-
     const frames = [f(0, 'a')];
 
     const {colorBuffer} = makeFn(

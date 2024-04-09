@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +16,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -107,11 +107,7 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                   ) : (
                     <ClientSecret>
                       <HiddenSecret>{t('hidden')}</HiddenSecret>
-                      <Button
-                        size="md"
-                        onClick={this.rotateClientSecret}
-                        priority="danger"
-                      >
+                      <Button onClick={this.rotateClientSecret} priority="danger">
                         Rotate client secret
                       </Button>
                     </ClientSecret>

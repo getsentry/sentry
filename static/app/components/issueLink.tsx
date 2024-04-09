@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
 type Props = {
@@ -67,6 +67,7 @@ function IssueLink({children, orgId, issue, to, card = true}: Props) {
               ))}
             </Fragment>
           }
+          type={issue.type}
         />
       </Section>
 

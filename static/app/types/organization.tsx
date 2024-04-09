@@ -1,6 +1,6 @@
-import {Project} from 'sentry/types/project';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -41,6 +41,7 @@ export interface OrganizationSummary {
  */
 export interface Organization extends OrganizationSummary {
   access: Scope[];
+  aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
@@ -53,6 +54,7 @@ export interface Organization extends OrganizationSummary {
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
+  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -76,6 +78,7 @@ export interface Organization extends OrganizationSummary {
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   orgRole?: string;
+  planSampleRate?: number | null;
 }
 
 export interface DetailedOrganization extends Organization {
@@ -98,24 +101,26 @@ export interface Team {
   name: string;
   slug: string;
   teamRole: string | null;
-  orgRole?: string | null;
 }
 
-// TODO: Rename to BaseRole
-export interface MemberRole {
+export interface DetailedTeam extends Team {
+  projects: Project[];
+}
+
+export interface BaseRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean; // Deprecated: use isAllowed
   isAllowed?: boolean;
   isRetired?: boolean;
+  isTeamRolesAllowed?: boolean;
 }
-export interface OrgRole extends MemberRole {
+export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
-export interface TeamRole extends MemberRole {
+export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
 }
 
@@ -130,9 +135,9 @@ export interface Member {
     'idp:provisioned': boolean;
     'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
+    'partnership:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
-    'partnership:restricted'?: boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
@@ -169,8 +174,6 @@ export interface Member {
    * User may be null when the member represents an invited member
    */
   user: User | null;
-  // TODO: Move to global store
-  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
@@ -273,11 +276,13 @@ export type EventsStats = {
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    isMetricsExtractedData?: boolean;
   };
   order?: number;
   start?: number;
@@ -326,6 +331,8 @@ export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',
+  CRASH_FREE_RATE_USERS = 'crash_free_rate(user)',
+  CRASH_FREE_RATE_SESSIONS = 'crash_free_rate(session)',
 }
 
 export enum SessionStatus {

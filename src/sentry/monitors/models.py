@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
+import uuid
+import zoneinfo
+from collections.abc import Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 import jsonschema
-import pytz
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -29,11 +31,12 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
-from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -60,8 +63,6 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
-MAX_SLUG_LENGTH = 50
-
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -75,28 +76,6 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-class MonitorObjectStatus:
-    ACTIVE = 0
-    DISABLED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
-
-    WAITING = 4
-    """
-    Active but does not have a seat assigned yet
-    """
-
-    @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
-        return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.WAITING, "waiting"),
-        )
-
-
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -104,7 +83,7 @@ class MonitorStatus:
     represented.
 
     [!!]: This is NOT used for the status of the Monitor model itself. That is
-          a MonitorObjectStatus.
+          a ObjectStatus.
     """
 
     ACTIVE = 0
@@ -113,12 +92,19 @@ class MonitorStatus:
     DELETION_IN_PROGRESS = 3
 
     OK = 4
+    """
+    The monitor environment has received check-ins and is OK.
+    """
+
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
+    """
+    The monitor environment is currently in an active incident state. This is a
+    denormalization of thee fact that a MonitorIncident exists for the
+    environment without a resolving check-in.
+    """
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -131,8 +117,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -155,8 +139,22 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
+    USER_TERMINAL_VALUES = (OK, ERROR)
+    """
+    Values indicating the monitor is in a terminal status where the terminal
+    status was reported by the monitor itself (was not synthetic)
+    """
+
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    """
+    Values indicating the montior is in a terminal "synthetic" status. These
+    status are not sent by the monitor themselve but are a side effect result.
+    """
+
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
-    """Terminal values used to indicate a monitor is finished running"""
+    """
+    All terminal values indicating the monitor has reached it's final status
+    """
 
     @classmethod
     def as_choices(cls):
@@ -210,29 +208,37 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
+    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
+    # become object status again
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     guid = UUIDField(unique=True, auto_add=True)
     """
     Globally unique identifier for the monitor. Mostly legacy, used in legacy
     API endpoints.
     """
 
-    slug = models.SlugField()
+    slug = SentrySlugField()
     """
     Organization unique slug of the monitor. Used to identify the monitor in
     check-in payloads. The slug can be changed.
     """
 
-    name = models.CharField(max_length=128)
+    is_muted = models.BooleanField(default=False)
     """
-    Human readible name of the monitor. Used for display purposes.
+    Monitor is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
-    status = BoundedPositiveIntegerField(
-        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
-    )
+    name = models.CharField(max_length=128)
     """
-    Active status of the monitor. This is similar to most other ObjectStatus's
-    within the app. Used to mark monitors as disabled and pending deletions
+    Human readable name of the monitor. Used for display purposes.
     """
 
     type = BoundedPositiveIntegerField(
@@ -251,7 +257,10 @@ class Monitor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        unique_together = (("organization_id", "slug"),)
+        unique_together = (("project_id", "slug"),)
+        indexes = [
+            models.Index(fields=["organization_id", "slug"]),
+        ]
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
@@ -270,7 +279,7 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     @property
-    def schedule(self) -> Union[CrontabSchedule, IntervalSchedule]:
+    def schedule(self) -> CrontabSchedule | IntervalSchedule:
         schedule_type = self.config["schedule_type"]
         schedule = self.config["schedule"]
 
@@ -283,7 +292,7 @@ class Monitor(Model):
 
     @property
     def timezone(self):
-        return pytz.timezone(self.config.get("timezone") or "UTC")
+        return zoneinfo.ZoneInfo(self.config.get("timezone") or "UTC")
 
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])
@@ -305,11 +314,10 @@ class Monitor(Model):
         most recent checkin time. This is determined by the user-configured
         margin.
         """
+        from sentry.monitors.utils import get_checkin_margin
+
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        # TODO(epurkhiser): We should probably just set this value as a
-        # `default` in the validator for the config instead of having the magic
-        # default number here
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
+        return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
@@ -328,32 +336,32 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
+            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
 
-    def get_alert_rule(self):
-        alert_rule_id = self.config.get("alert_rule_id")
-        if alert_rule_id:
-            alert_rule = Rule.objects.filter(
+    def get_issue_alert_rule(self):
+        issue_alert_rule_id = self.config.get("alert_rule_id")
+        if issue_alert_rule_id:
+            issue_alert_rule = Rule.objects.filter(
                 project_id=self.project_id,
-                id=alert_rule_id,
+                id=issue_alert_rule_id,
                 source=RuleSource.CRON_MONITOR,
                 status=ObjectStatus.ACTIVE,
             ).first()
-            if alert_rule:
-                return alert_rule
+            if issue_alert_rule:
+                return issue_alert_rule
 
-            # If alert_rule_id is stale, clear it from the config
+            # If issue_alert_rule_id is stale, clear it from the config
             clean_config = self.config.copy()
             clean_config.pop("alert_rule_id", None)
             self.update(config=clean_config)
 
         return None
 
-    def get_alert_rule_data(self):
-        alert_rule = self.get_alert_rule()
-        if alert_rule:
-            data = alert_rule.data
-            alert_rule_data: Dict[str, Optional[Any]] = dict()
+    def get_issue_alert_rule_data(self):
+        issue_alert_rule = self.get_issue_alert_rule()
+        if issue_alert_rule:
+            data = issue_alert_rule.data
+            issue_alert_rule_data: dict[str, Any | None] = dict()
 
             # Build up alert target data
             targets = []
@@ -366,24 +374,24 @@ class Monitor(Model):
                             "targetType": action.get("targetType"),
                         }
                     )
-            alert_rule_data["targets"] = targets
+            issue_alert_rule_data["targets"] = targets
 
-            environment, alert_rule_environment_id = None, alert_rule.environment_id
-            if alert_rule_environment_id:
+            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
+            if issue_alert_rule_environment_id:
                 try:
-                    environment = Environment.objects.get(id=alert_rule_environment_id).name
+                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
                 except Environment.DoesNotExist:
                     pass
 
-            alert_rule_data["environment"] = environment
+            issue_alert_rule_data["environment"] = environment
 
-            return alert_rule_data
+            return issue_alert_rule_data
 
         return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -471,7 +479,6 @@ class MonitorCheckIn(Model):
     """
 
     attachment_id = BoundedBigIntegerField(null=True)
-    config = JSONField(default=dict)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
@@ -481,11 +488,23 @@ class MonitorCheckIn(Model):
         indexes = [
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest in monitor consumer
+            # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            # used for latest on api endpoints
+            # used for latest in monitor consumer
+            models.Index(
+                fields=["monitor_environment", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="consumer_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
@@ -542,6 +561,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
     ) -> MonitorEnvironment:
+        from sentry.monitors.rate_limit import update_monitor_quota
+
         if not environment_name:
             environment_name = "production"
 
@@ -551,9 +572,17 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
-        )[0]
+        monitor_env, created = MonitorEnvironment.objects.get_or_create(
+            monitor=monitor,
+            environment_id=environment.id,
+            defaults={"status": MonitorStatus.ACTIVE},
+        )
+
+        # recompute per-project monitor check-in rate limit quota
+        if created:
+            update_monitor_quota(monitor_env)
+
+        return monitor_env
 
 
 @region_silo_only_model
@@ -561,7 +590,7 @@ class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor")
-    environment = FlexibleForeignKey("sentry.Environment")
+    environment_id = BoundedBigIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     status = BoundedPositiveIntegerField(
@@ -572,6 +601,12 @@ class MonitorEnvironment(Model):
     The MonitorStatus of the monitor. This is denormalized from the check-ins
     list, since it would be possible to determine this by looking at recent
     check-ins. It is denormalized for simplicity.
+    """
+
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor environment is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
     next_checkin = models.DateTimeField(null=True)
@@ -592,25 +627,27 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
-    last_state_change = models.DateTimeField(null=True)
-    """
-    The last time that the monitor changed state. Used for issue fingerprinting.
-    """
-
     objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        unique_together = (("monitor", "environment"),)
+        unique_together = (("monitor", "environment_id"),)
         indexes = [
             models.Index(fields=["status", "next_checkin_latest"]),
         ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_environment(self) -> Environment:
+        return Environment.objects.get_from_cache(id=self.environment_id)
+
     def get_audit_log_data(self):
-        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+        return {
+            "name": self.get_environment().name,
+            "status": self.status,
+            "monitor": self.monitor.name,
+        }
 
     def get_last_successful_checkin(self):
         return (
@@ -620,31 +657,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
-        # TODO(rjo100): Check to see if there's an active incident
-        # if not, use last_state_change as fallback
-        active_incident = (
-            MonitorIncident.objects.filter(
+    def active_incident(self) -> MonitorIncident | None:
+        """
+        Retrieve the current active incident. If there is no active incident None will be returned.
+        """
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        # XXX(rjo100): While we migrate monitor issues to using the
-        # Incident stored grouphash we still may have some active issues
-        # that are using the old hashes. We can remove this in the
-        # future once all existing issues are resolved.
-        return hash_from_values(
-            [
-                "monitor",
-                str(self.monitor.guid),
-                self.environment.name,
-                str(self.last_state_change),
-            ]
-        )
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -657,6 +679,13 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+def default_grouphash():
+    """
+    Generate a unique 32 character grouphash for a monitor incident
+    """
+    return uuid.uuid4().hex
 
 
 @region_silo_only_model
@@ -681,9 +710,50 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
-    grouphash = models.CharField(max_length=32)
+    grouphash = models.CharField(max_length=32, default=default_grouphash)
+    """
+    Used for issue occurrences generation. Failed check-ins produce an
+    occurrence associated to this grouphash.
+    """
+
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
+        indexes = [
+            models.Index(fields=["monitor_environment", "resolving_checkin"]),
+            models.Index(
+                fields=["starting_timestamp"],
+                name="active_incident_idx",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+
+
+@region_silo_only_model
+class MonitorEnvBrokenDetection(Model):
+    """
+    Records an instance where we have detected a monitor environment to be
+    broken based on a long duration of failure and consecutive failing check-ins
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
+    detection_timestamp = models.DateTimeField(auto_now_add=True)
+    user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorenvbrokendetection"

@@ -1,6 +1,6 @@
 from datetime import timedelta
 from random import choice
-from typing import List, Optional, cast
+from typing import cast
 
 import pytest
 from django.utils import timezone
@@ -17,7 +17,6 @@ from sentry.api.endpoints.organization_metrics_estimation_stats import (
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
@@ -30,7 +29,6 @@ MINUTE = timedelta(minutes=1)
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test(stable=True)
 @freeze_time(MOCK_DATETIME)
 class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
     endpoint = "sentry-api-0-organization-metrics-estimation-stats"
@@ -222,7 +220,7 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
     actual = estimate_volume(indexed, base_indexed, metrics)
 
     for idx, val in enumerate(actual):
-        count: Optional[float] = cast(List[CountResult], val[1])[0]["count"]
+        count: float | None = cast(list[CountResult], val[1])[0]["count"]
         assert pytest.approx(count, 0.001) == expected[idx]
 
 
@@ -263,7 +261,7 @@ def test_estimate_stats_quality(zero_samples, expected_result):
     zero: CountResult = {"count": 0}
 
     data = cast(
-        List[MetricVolumeRow],
+        list[MetricVolumeRow],
         [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
         + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
     )
@@ -281,7 +279,7 @@ def test_count_non_zero_intervals(zero_samples):
     zero: CountResult = {"count": 0}
 
     data = cast(
-        List[MetricVolumeRow],
+        list[MetricVolumeRow],
         [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
         + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
     )

@@ -4,7 +4,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -19,7 +19,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
 
     def test(self):
-        self.create_userreport(date_added=timezone.now(), group=self.group, project=self.project)
+        self.create_userreport(date_added=timezone.now(), project=self.project)
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until('[data-test-id="user-feedback-list"]')

@@ -1,14 +1,13 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member as MemberType} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
-export function Member(params: Partial<MemberType> = {}): MemberType {
+export function MemberFixture(params: Partial<Member> = {}): Member {
   return {
     id: '1',
     email: 'sentry1@test.com',
     name: 'Sentry 1 Name',
     orgRole: 'member',
-    groupOrgRoles: [],
     teamRoles: [],
     role: 'member',
     roleName: 'Member',
@@ -31,7 +30,7 @@ export function Member(params: Partial<MemberType> = {}): MemberType {
       'sso:invalid': false,
       'partnership:restricted': false,
     },
-    user: User(),
+    user: UserFixture(),
     inviteStatus: 'approved',
     ...params,
   };

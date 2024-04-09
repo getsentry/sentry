@@ -1,16 +1,28 @@
 from __future__ import annotations
 
+import zipfile
+from io import BytesIO
 from os.path import join
 from tempfile import TemporaryFile
 from typing import Any
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.project import Project
-from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
+from sentry.profiles.task import (
+    _calculate_profile_duration_ms,
+    _deobfuscate,
+    _normalize,
+    _process_symbolicator_results_for_sample,
+)
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
@@ -114,6 +126,156 @@ def ios_profile():
 @pytest.fixture
 def android_profile():
     return load_profile("valid_android_profile.json")
+
+
+@pytest.fixture
+def sample_v1_profile():
+    return json.loads(
+        """{
+  "event_id": "41fed0925670468bb0457f61a74688ec",
+  "version": "1",
+  "os": {
+    "name": "iOS",
+    "version": "16.0",
+    "build_number": "19H253"
+  },
+  "device": {
+    "architecture": "arm64e",
+    "is_emulator": false,
+    "locale": "en_US",
+    "manufacturer": "Apple",
+    "model": "iPhone14,3"
+  },
+  "timestamp": "2022-09-01T09:45:00.000Z",
+  "profile": {
+    "samples": [
+      {
+        "stack_id": 0,
+        "thread_id": "1",
+        "queue_address": "0x0000000102adc700",
+        "elapsed_since_start_ns": "10500500"
+      },
+      {
+        "stack_id": 1,
+        "thread_id": "1",
+        "queue_address": "0x0000000102adc700",
+        "elapsed_since_start_ns": "20500500"
+      },
+      {
+        "stack_id": 0,
+        "thread_id": "1",
+        "queue_address": "0x0000000102adc700",
+        "elapsed_since_start_ns": "30500500"
+      },
+      {
+        "stack_id": 1,
+        "thread_id": "1",
+        "queue_address": "0x0000000102adc700",
+        "elapsed_since_start_ns": "35500500"
+      }
+    ],
+    "stacks": [[0], [1]],
+    "frames": [
+      {"instruction_addr": "0xa722447ffffffffc"},
+      {"instruction_addr": "0x442e4b81f5031e58"}
+    ],
+    "thread_metadata": {
+      "1": {"priority": 31},
+      "2": {}
+    },
+    "queue_metadata": {
+      "0x0000000102adc700": {"label": "com.apple.main-thread"},
+      "0x000000016d8fb180": {"label": "com.apple.network.connections"}
+    }
+  },
+  "release": "0.1 (199)",
+  "platform": "cocoa",
+  "debug_meta": {
+    "images": [
+      {
+        "debug_id": "32420279-25E2-34E6-8BC7-8A006A8F2425",
+        "image_addr": "0x000000010258c000",
+        "code_file": "/private/var/containers/Bundle/Application/C3511752-DD67-4FE8-9DA2-ACE18ADFAA61/TrendingMovies.app/TrendingMovies",
+        "type": "macho",
+        "image_size": 1720320,
+        "image_vmaddr": "0x0000000100000000"
+      }
+    ]
+  },
+  "transaction": {
+      "name": "example_ios_movies_sources.MoviesViewController",
+      "trace_id": "4b25bc58f14243d8b208d1e22a054164",
+      "id": "30976f2ddbe04ac9b6bffe6e35d4710c",
+      "active_thread_id": "259",
+      "relative_start_ns": "500500",
+      "relative_end_ns": "50500500"
+  }
+}"""
+    )
+
+
+@pytest.fixture
+def sample_v1_profile_without_transaction_timestamps(sample_v1_profile):
+    for key in {"relative_start_ns", "relative_end_ns"}:
+        del sample_v1_profile["transaction"][key]
+    return sample_v1_profile
+
+
+@pytest.fixture
+def sample_v2_profile():
+    return json.loads(
+        """{
+  "event_id": "41fed0925670468bb0457f61a74688ec",
+  "version": "2",
+  "profile": {
+    "samples": [
+      {
+        "stack_id": 0,
+        "thread_id": "1",
+        "timestamp": 1710958503.629
+      },
+      {
+        "stack_id": 1,
+        "thread_id": "1",
+        "timestamp": 1710958504.629
+      },
+      {
+        "stack_id": 0,
+        "thread_id": "1",
+        "timestamp": 1710958505.629
+      },
+      {
+        "stack_id": 1,
+        "thread_id": "1",
+        "timestamp": 1710958506.629
+      }
+    ],
+    "stacks": [[0], [1]],
+    "frames": [
+      {"instruction_addr": "0xa722447ffffffffc"},
+      {"instruction_addr": "0x442e4b81f5031e58"}
+    ],
+    "thread_metadata": {
+      "1": {"priority": 31},
+      "2": {}
+    }
+  },
+  "release": "0.1 (199)",
+  "platform": "cocoa",
+  "debug_meta": {
+    "images": [
+      {
+        "debug_id": "32420279-25E2-34E6-8BC7-8A006A8F2425",
+        "image_addr": "0x000000010258c000",
+        "code_file": "/private/var/containers/Bundle/Application/C3511752-DD67-4FE8-9DA2-ACE18ADFAA61/TrendingMovies.app/TrendingMovies",
+        "type": "macho",
+        "image_size": 1720320,
+        "image_vmaddr": "0x0000000100000000"
+      }
+    ]
+  }
+}"""
+    )
 
 
 @pytest.fixture
@@ -351,7 +513,7 @@ def test_process_symbolicator_results_for_sample():
     ]
 
     _process_symbolicator_results_for_sample(
-        profile, stacktraces, set(range(len(profile["profile"]["frames"])))
+        profile, stacktraces, set(range(len(profile["profile"]["frames"]))), profile["platform"]
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
@@ -421,7 +583,9 @@ def test_process_symbolicator_results_for_sample_js():
         if is_valid_javascript_frame(frame, profile)
     ]
 
-    _process_symbolicator_results_for_sample(profile, stacktraces, set(frames_sent))
+    _process_symbolicator_results_for_sample(
+        profile, stacktraces, set(frames_sent), profile["platform"]
+    )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
 
@@ -458,3 +622,112 @@ def test_decode_signature(project, android_profile):
 
     assert frames[0]["signature"] == "()"
     assert frames[1]["signature"] == "(): boolean"
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "profile, duration_ms",
+    [
+        ("sample_v1_profile", 50),
+        ("sample_v2_profile", 3000),
+        ("android_profile", 2020),
+        ("sample_v1_profile_without_transaction_timestamps", 25),
+    ],
+)
+def test_calculate_profile_duration(profile, duration_ms, request):
+    assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
+
+
+@pytest.mark.django_db(transaction=True)
+class DeobfuscationViaSymbolicator(TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
+    def upload_proguard_mapping(self, uuid, mapping_file_content):
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, "w")
+        f.writestr("proguard/%s.txt" % uuid, mapping_file_content)
+        f.writestr("ignored-file.txt", b"This is just some stuff")
+        f.close()
+
+        response = self.client.post(
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
+            },
+            format="multipart",
+        )
+
+        assert response.status_code == 201, response.content
+        assert len(response.json()) == 1
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_basic_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "project_id": self.project.id,
+                "build_id": PROGUARD_UUID,
+                "event_id": android_profile["profile_id"],
+                "profile": {
+                    "methods": [
+                        {
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
+                            "source_file": "Something.java",
+                            "source_line": 67,
+                        },
+                        {
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()Z",
+                            "source_file": "Else.java",
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+        with override_options(
+            {
+                "profiling.deobfuscate-using-symbolicator.enable-for-project": [self.project.id],
+            }
+        ):
+            _deobfuscate(android_profile, self.project)
+
+        assert android_profile["profile"]["methods"] == [
+            {
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": "getClassContext",
+                "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "signature": "()",
+                "source_file": "Something.java",
+                "source_line": 67,
+            },
+            {
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": "getExtraClassContext",
+                "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "signature": "(): boolean",
+                "source_file": "Else.java",
+                "source_line": 69,
+            },
+        ]

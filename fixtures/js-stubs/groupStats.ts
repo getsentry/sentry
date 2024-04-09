@@ -1,6 +1,6 @@
-import {GroupStats as GroupStatsType} from 'sentry/types';
+import {GroupStats} from 'sentry/types';
 
-export function GroupStats(params: Partial<GroupStatsType> = {}): GroupStatsType {
+export function GroupStatsFixture(params: Partial<GroupStats> = {}): GroupStats {
   return {
     count: '327482',
     firstSeen: '2019-04-05T19:44:05.963Z',

@@ -3,7 +3,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

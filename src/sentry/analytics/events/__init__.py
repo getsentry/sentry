@@ -12,15 +12,19 @@ from .comment_webhooks import *  # noqa: F401,F403
 from .cron_monitor_created import *  # noqa: F401,F403
 from .eventuser_endpoint_request import *  # noqa: F401,F403
 from .eventuser_equality_check import *  # noqa: F401,F403
+from .eventuser_snuba_for_projects import *  # noqa: F401,F403
+from .eventuser_snuba_query import *  # noqa: F401,F403
 from .first_cron_checkin_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_feedback_sent import *  # noqa: F401,F403
+from .first_new_feedback_sent import *  # noqa: F401,F403
 from .first_profile_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403
 from .first_replay_sent import *  # noqa: F401,F403
 from .first_sourcemaps_sent import *  # noqa: F401,F403
 from .first_transaction_sent import *  # noqa: F401,F403
 from .first_user_context_sent import *  # noqa: F401,F403
+from .grouping_parameterization_experiment import *  # noqa: F401,F403
 from .groupowner_assignment import *  # noqa: F401,F403
 from .inapp_request import *  # noqa: F401,F403
 from .integration_commit_context_all_frames import *  # noqa: F401,F403
@@ -36,6 +40,7 @@ from .issue_deleted import *  # noqa: F401,F403
 from .issue_escalating import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403
 from .issue_mark_reviewed import *  # noqa: F401,F403
+from .issue_priority import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403
 from .issue_tracker_used import *  # noqa: F401,F403
 from .issue_unignored import *  # noqa: F401,F403
@@ -50,6 +55,7 @@ from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
 from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
+from .open_pr_comment import *  # noqa: F401,F403
 from .org_auth_token_created import *  # noqa: F401,F403
 from .org_auth_token_deleted import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403
@@ -61,6 +67,8 @@ from .quick_trace_connected_services import *  # noqa: F401,F403
 from .release_created import *  # noqa: F401,F403
 from .release_get_previous_commits import *  # noqa: F401,F403
 from .release_set_commits import *  # noqa: F401,F403
+from .relocation_created import *  # noqa: F401,F403
+from .relocation_organization_imported import *  # noqa: F401,F403
 from .repo_linked import *  # noqa: F401,F403
 from .rule_disable_opt_out import *  # noqa: F401,F403
 from .rule_reenable import *  # noqa: F401,F403

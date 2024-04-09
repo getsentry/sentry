@@ -14,5 +14,8 @@ from sentry.tasks.base import instrumented_task, retry
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id: int) -> None:
     integration = Integration.objects.get(id=integration_id)
-    installation = integration.get_installation(None)
+    org_install = integration.organizationintegration_set.first()
+    if not org_install:
+        return
+    installation = integration.get_installation(org_install.organization_id)
     installation.sync_metadata()

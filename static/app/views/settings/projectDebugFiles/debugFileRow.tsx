@@ -8,14 +8,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {Project} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
 
@@ -104,7 +104,7 @@ function DebugFileRow({
               >
                 <Button
                   size="xs"
-                  icon={<IconDownload size="xs" />}
+                  icon={<IconDownload />}
                   href={downloadUrl}
                   disabled={!hasRole}
                 >
@@ -127,7 +127,7 @@ function DebugFileRow({
                 >
                   <Button
                     priority="danger"
-                    icon={<IconDelete size="xs" />}
+                    icon={<IconDelete />}
                     size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"

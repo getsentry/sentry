@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {Activity, GroupActivity, Organization} from 'sentry/types';
+import type {Activity, GroupActivity, Organization} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
 const defaultProps = {
@@ -290,7 +290,7 @@ class ActivityItem extends Component<Props, State> {
           });
         }
         assignee = MemberListStore.getById(data.assignee);
-        if (assignee && assignee.email) {
+        if (assignee?.email) {
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: <span title={assignee.email}>{assignee.name}</span>,

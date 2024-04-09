@@ -1,8 +1,9 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import type {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -53,7 +54,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -118,7 +119,41 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-export enum RateUnits {
+export type CountUnit = 'count';
+
+export type PercentageUnit = 'percentage';
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
+export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
   PER_HOUR = '1/hour',
@@ -126,15 +161,21 @@ export enum RateUnits {
 
 // Rates normalized to /second unit
 export const RATE_UNIT_MULTIPLIERS = {
-  [RateUnits.PER_SECOND]: 1,
-  [RateUnits.PER_MINUTE]: 1 / 60,
-  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
 export const RATE_UNIT_LABELS = {
-  [RateUnits.PER_SECOND]: '/s',
-  [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/hr',
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
+};
+
+export const RATE_UNIT_TITLE = {
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
@@ -390,6 +431,19 @@ export const AGGREGATIONS = {
   },
   [AggregationKey.P75]: {
     ...getDocsAndOutputType(AggregationKey.P75),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
     parameters: [
       {
         kind: 'column',
@@ -1051,7 +1105,7 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg].outputType;
   }
 
-  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1198,6 +1252,7 @@ const alignedTypes: ColumnValueType[] = [
   'percentage',
   'percent_change',
   'rate',
+  'size',
 ];
 
 export function fieldAlignment(
@@ -1206,6 +1261,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1223,7 +1281,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

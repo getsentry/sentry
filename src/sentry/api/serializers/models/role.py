@@ -1,6 +1,5 @@
-from typing import Any, List, Mapping, Optional
-
-from typing_extensions import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer
@@ -12,7 +11,7 @@ class BaseRoleSerializerResponse(TypedDict):
     id: str
     name: str
     desc: str
-    scopes: List[str]
+    scopes: list[str]
 
     allowed: bool
     isAllowed: bool
@@ -26,7 +25,7 @@ class OrganizationRoleSerializerResponse(BaseRoleSerializerResponse):
 
 
 class TeamRoleSerializerResponse(BaseRoleSerializerResponse):
-    isMinimumRoleFor: Optional[str]
+    isMinimumRoleFor: str | None
 
 
 class RoleSerializer(Serializer):
@@ -56,6 +55,7 @@ class RoleSerializer(Serializer):
             "allowed": obj in allowed_roles,  # backward compatibility
             "isAllowed": obj in allowed_roles,
             "isRetired": is_retired_role,
+            "isTeamRolesAllowed": obj.is_team_roles_allowed,
         }
 
 

@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -7,9 +8,9 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
-  const org = Organization();
-  const integration = TestStubs.GitHubIntegration();
-  let resetReposSpy;
+  const org = OrganizationFixture();
+  const integration = GitHubIntegrationFixture();
+  let resetReposSpy: jest.SpyInstance;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -18,8 +19,7 @@ describe('IntegrationRepos', function () {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    resetReposSpy();
+    resetReposSpy.mockClear();
   });
 
   describe('Getting repositories', function () {
@@ -49,7 +49,7 @@ describe('IntegrationRepos', function () {
       const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
-        body: Repository({integrationId: '1'}),
+        body: RepositoryFixture({integrationId: '1'}),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
@@ -113,7 +113,7 @@ describe('IntegrationRepos', function () {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
-    it('does not disable add repo for members', function () {
+    it('does not disable add repo for members', async function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
@@ -129,10 +129,10 @@ describe('IntegrationRepos', function () {
       render(
         <IntegrationRepos
           integration={integration}
-          organization={Organization({access: []})}
+          organization={OrganizationFixture({access: []})}
         />
       );
-      expect(screen.getByText('Add Repository')).toBeEnabled();
+      await waitFor(() => expect(screen.getByText('Add Repository')).toBeEnabled());
     });
   });
 
@@ -141,7 +141,7 @@ describe('IntegrationRepos', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
-          Repository({
+          RepositoryFixture({
             integrationId: undefined,
             externalSlug: 'example/repo-name',
             provider: {
@@ -178,7 +178,7 @@ describe('IntegrationRepos', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [Repository({name: 'repo-name-other', externalSlug: '9876'})],
+        body: [RepositoryFixture({name: 'repo-name-other', externalSlug: '9876'})],
       });
       const getItems = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,

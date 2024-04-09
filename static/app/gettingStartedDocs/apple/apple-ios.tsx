@@ -2,10 +2,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/apple-macos';
 import {t, tct} from 'sentry/locale';
 
 const getExperimentalFeaturesSnippet = () => `
@@ -176,6 +177,8 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: appleFeedbackOnboarding,
+  crashReportOnboarding: appleFeedbackOnboarding,
 };
 
 export default docs;

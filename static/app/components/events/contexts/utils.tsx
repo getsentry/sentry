@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import ContextData from 'sentry/components/contextData';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import type {Event, KeyValueListData} from 'sentry/types';
+import {defined, toTitleCase} from 'sentry/utils';
 
 import {AppEventContext} from './app';
 import {BrowserEventContext} from './browser';
@@ -145,7 +145,7 @@ export function getKnownData<Data, DataType>({
         value: raw ? (
           knownDataDetails.value
         ) : (
-          <ContextData
+          <StructuredEventData
             data={knownDataDetails.value}
             meta={meta?.[type]}
             withAnnotatedText
@@ -179,6 +179,74 @@ export function getUnknownData({
       subject: startCase(key),
       meta: meta?.[key]?.[''],
     }));
+}
+
+export function getContextTitle({
+  alias,
+  type,
+  value = {},
+}: {
+  alias: string;
+  type: string;
+  value?: Record<string, any>;
+}) {
+  if (defined(value.title) && typeof value.title !== 'object') {
+    return value.title;
+  }
+
+  if (!defined(type)) {
+    return toTitleCase(alias);
+  }
+
+  switch (type) {
+    case 'app':
+      return t('App');
+    case 'device':
+      return t('Device');
+    case 'os':
+      return t('Operating System');
+    case 'user':
+      return t('User');
+    case 'gpu':
+      return t('Graphics Processing Unit');
+    case 'runtime':
+      return t('Runtime');
+    case 'trace':
+      return t('Trace Details');
+    case 'otel':
+      return t('OpenTelemetry');
+    case 'unity':
+      return t('Unity');
+    case 'memory_info': // Current value for memory info
+    case 'Memory Info': // Legacy for memory info
+      return t('Memory Info');
+    case 'threadpool_info': // Current value for thread pool info
+    case 'ThreadPool Info': // Legacy value for thread pool info
+      return t('Thread Pool Info');
+    case 'default':
+      if (alias === 'state') {
+        return t('Application State');
+      }
+      return toTitleCase(alias);
+    default:
+      return toTitleCase(type);
+  }
+}
+
+export function getContextMeta(event: Event, type: string): Record<string, any> {
+  const defaultMeta = event._meta?.contexts?.[type] ?? {};
+  switch (type) {
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
+      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
+      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
+    case 'user':
+      return event._meta?.user ?? defaultMeta;
+    default:
+      return defaultMeta;
+  }
 }
 
 const RelativeTime = styled('span')`

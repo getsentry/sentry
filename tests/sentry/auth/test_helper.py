@@ -17,7 +17,6 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.outbox import outbox_context
-from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -39,7 +38,7 @@ class AuthIdentityHandlerTest(TestCase):
         self.provider = "dummy"
         self.request = _set_up_request()
 
-        self.auth_provider_inst = AuthProvider.objects.create(
+        self.auth_provider_inst = self.create_auth_provider(
             organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
@@ -81,17 +80,16 @@ class AuthIdentityHandlerTest(TestCase):
     def set_up_user_identity(self):
         """Set up a persistent user who already has an auth identity."""
         user = self.set_up_user()
-        auth_identity = AuthIdentity.objects.create(
+        auth_identity = self.create_auth_identity(
             user=user, auth_provider=self.auth_provider_inst, ident="test_ident"
         )
         return user, auth_identity
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
-
         auth_identity = self.handler.handle_new_user()
         user = auth_identity.user
 
@@ -171,7 +169,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert assigned_member.id == member.id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.auth")
     def test_simple(self, mock_auth):
@@ -226,7 +224,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=persisted_om)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity(self, mock_messages):
@@ -366,7 +364,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     def _test_simple(self, mock_render, expected_template):
         redirect = self.handler.handle_unknown_identity(self.state)
@@ -441,7 +439,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     # TODO: More test cases for various values of request.POST.get("op")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthHelperTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -494,12 +492,14 @@ class AuthHelperTest(TestCase):
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
 
+@control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):
     def setUp(self):
         super().setUp()
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            member = OrganizationMember.objects.get(
+                organization=self.organization, user_id=self.user.id
+            )
         self.identity_id = self.identity["id"]
         self.verification_value = {
             "user_id": self.user.id,
@@ -509,11 +509,11 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         }
 
     def test_has_verified_account_success(self):
-        UserEmail.objects.create(email=self.email, user=self.user)
+        self.create_useremail(email=self.email, user=self.user)
         assert self.handler.has_verified_account(self.verification_value) is True
 
     def test_has_verified_account_fail_email(self):
-        UserEmail.objects.create(email=self.email, user=self.user)
+        self.create_useremail(email=self.email, user=self.user)
         identity = {
             "id": "1234",
             "email": "b@test.com",
@@ -524,5 +524,5 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
 
     def test_has_verified_account_fail_user_id(self):
         wrong_user = self.create_user()
-        UserEmail.objects.create(email=self.email, user=wrong_user)
+        self.create_useremail(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False

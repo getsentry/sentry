@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,12 +13,12 @@ describe('OrganizationTeamProjects', function () {
   let postMock!: jest.Mock;
   let deleteMock!: jest.Mock;
 
-  const team = TestStubs.Team({slug: 'team-slug'});
-  const project = TestStubs.Project({
+  const team = TeamFixture({slug: 'team-slug'});
+  const project = ProjectFixture({
     teams: [team],
     access: ['project:read', 'project:write', 'project:admin'],
   });
-  const project2 = TestStubs.Project({
+  const project2 = ProjectFixture({
     id: '3',
     slug: 'project-slug-2',
     name: 'Project Name 2',
@@ -24,7 +26,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   const {routerContext, routerProps, organization} = initializeOrg({
-    organization: Organization({slug: 'org-slug'}),
+    organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
   });

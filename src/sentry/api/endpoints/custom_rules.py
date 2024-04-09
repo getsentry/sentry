@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional
 
 import sentry_sdk
 from django.db import DatabaseError
@@ -14,7 +13,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.event_search import SearchFilter, SearchKey, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -23,7 +21,7 @@ from sentry.models.dynamicsampling import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
+from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, parse_search_query
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
@@ -44,8 +42,6 @@ class UnsupportedSearchQuery(Exception):
     def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs):
         super().__init__(error_code.value, *args, **kwargs)
         self.error_code = error_code.value
-
-    pass
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -95,6 +91,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
             if period > MAX_RULE_PERIOD:
                 # limit the expiry period
                 data["period"] = MAX_RULE_PERIOD_STRING
+
         return data
 
 
@@ -121,17 +118,14 @@ class CustomRulePermission(BasePermission):
 
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
-    permission_classes = (CustomRulePermission,)
-
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-
         if not features.has("organizations:investigation-bias", organization, actor=request.user):
             return Response(status=404)
 
@@ -141,8 +135,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
+
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
 
             # for now delta it is fixed at 2 days (maybe in the future will base it on the query period)
             delta = timedelta(days=2)
@@ -159,6 +154,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
                 query=query,
+                created_by_id=request.user.id,
             )
 
             # schedule update for affected project configs
@@ -214,7 +210,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             org_rule = True
 
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
         except UnsupportedSearchQuery as e:
             return Response({"query": [e.error_code]}, status=400)
         except InvalidSearchQuery as e:
@@ -236,7 +232,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             return _rule_to_response(rule)
 
         if not rule.is_org_level and org_rule:
-            # we need an org rule and we have a simple rule return not found
+            # we need an org rule, and we have a simple rule return not found
             return Response(status=204)
 
         # project rule request and project rule found # see if we have all projects
@@ -261,44 +257,46 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
         "projects": [project.id for project in rule.projects.all()],
         "orgId": rule.organization.id,
     }
+
     return Response(response_data, status=200)
 
 
-def _is_not_supported(searchFilters: List[SearchFilter]) -> Optional[UnsupportedSearchQueryReason]:
+def get_rule_condition(query: str | None) -> RuleCondition:
     """
-    Check if the search query is not supported by the custom rules
+    Gets the rule condition given a query.
 
-    Curently we only support transaction queries
+    The rule returned, is in the format which is understood by Relay.
     """
-    transaction_filter = False
-
-    for searchFilter in searchFilters:
-        if searchFilter.key.name == "event.type" and searchFilter.value.value == "transaction":
-            transaction_filter = True
-            break
-    if not transaction_filter:
-        return UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY
-    return None
-
-
-def get_condition(query: Optional[str]) -> RuleCondition:
     try:
         if not query:
             raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
-        else:
-            tokens = parse_search_query(query)
 
-            reason = _is_not_supported(tokens)
-            if reason is not None:
-                raise UnsupportedSearchQuery(reason)
-            # transform a simple message query into a transaction condition:
-            # "foo environment:development" -> "transaction:foo environment:development"
-            tokens = message_to_transaction_condition(tokens)
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
+        try:
+            # First we parse the query.
+            tokens = parse_search_query(
+                query=query, removed_blacklisted=True, force_transaction_event_type=True
+            )
+        except ValueError:
+            raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
+
+        # In case there are no tokens anymore, we will return a condition that always matches.
+        if not tokens:
+            return {"op": "and", "inner": []}
+
+        # Second we convert it to the Relay's internal rules format.
+        converter = SearchQueryConverter(tokens)
+        condition = converter.convert()
+
         return condition
-    except UnsupportedSearchQuery:
-        raise  # do not log unsupported queries (they are expected)
+    except UnsupportedSearchQuery as unsupported_ex:
+        # log unsupported queries with a different message so that
+        # we can differentiate them from other errors
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", unsupported_ex)
+            message = "Unsupported search query"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
     except Exception as ex:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("query", query)
@@ -308,14 +306,15 @@ def get_condition(query: Optional[str]) -> RuleCondition:
         raise
 
 
-def _clean_project_list(project_ids: List[int]) -> List[int]:
+def _clean_project_list(project_ids: list[int]) -> list[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
         # special case for all projects convention ( sends a project id of -1)
         return []
+
     return project_ids
 
 
-def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: list[int]):
     """
     Schedule a task to update the project configs for the given projects
     """
@@ -332,28 +331,3 @@ def _schedule_invalidate_project_configs(organization: Organization, project_ids
                 trigger="dynamic_sampling:custom_rule_upsert",
                 project_id=project_id,
             )
-
-
-def message_to_transaction_condition(tokens: List[SearchFilter]) -> List[SearchFilter]:
-    """
-    Transforms queries containing messages into proper transaction queries
-
-    eg: "foo environment:development" -> "transaction:foo environment:development"
-
-    a string "foo" is parsed into a SearchFilter(key=SearchKey(name="message"), operator="=", value="foo")
-    we need to transform it into a SearchFilter(key=SearchKey(name="transaction"), operator="=", value="foo")
-
-    """
-    new_tokens = []
-    for token in tokens:
-        if token.key.name == "message" and token.operator == "=":
-            # transform the token from message to transaction
-            new_tokens.append(
-                SearchFilter(
-                    key=SearchKey("transaction"), value=token.value, operator=token.operator
-                )
-            )
-        else:
-            # nothing to change append the token as is
-            new_tokens.append(token)
-    return new_tokens

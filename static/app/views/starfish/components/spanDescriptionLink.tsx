@@ -2,9 +2,14 @@ import {Link} from 'react-router';
 import * as qs from 'query-string';
 
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+
+const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: React.ReactNode;
@@ -12,6 +17,7 @@ interface Props {
   endpoint?: string;
   endpointMethod?: string;
   group?: string;
+  spanOp?: string;
 }
 
 export function SpanDescriptionLink({
@@ -19,9 +25,11 @@ export function SpanDescriptionLink({
   projectId,
   endpoint,
   endpointMethod,
+  spanOp,
   description,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const routingContext = useRoutingContext();
 
   const queryString = {
@@ -29,15 +37,18 @@ export function SpanDescriptionLink({
     project: projectId,
     endpoint,
     endpointMethod,
+    ...(spanOp ? {[SPAN_OP]: spanOp} : {}),
   };
 
   return (
     <OverflowEllipsisTextContainer>
       {group ? (
         <Link
-          to={`${routingContext.baseURL}/${
-            extractRoute(location) ?? 'spans'
-          }/span/${group}?${qs.stringify(queryString)}`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}${routingContext.baseURL}/${
+              extractRoute(location) ?? 'spans'
+            }/span/${group}?${qs.stringify(queryString)}`
+          )}
         >
           {description}
         </Link>

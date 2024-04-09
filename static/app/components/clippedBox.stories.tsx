@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
+import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -77,8 +77,8 @@ export default storyBook(ClippedBox, story => {
       <Fragment>
         <p>
           Some callbacks are available:{' '}
-          <JSXProperty name="onSetRenderedHeight" value={Function} />
-          & <JSXProperty name="onReveal" value={Function} />.
+          <JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
+          <JSXProperty name="onReveal" value={Function} />.
         </p>
         <SideBySide>
           {[50, 100, 150].map(imgHeight => {

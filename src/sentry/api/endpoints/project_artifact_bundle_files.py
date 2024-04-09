@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -17,7 +17,7 @@ from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimi
 
 
 class ArtifactFile:
-    def __init__(self, file_path: str, info: Dict[str, str]):
+    def __init__(self, file_path: str, info: dict[str, str]):
         self.file_path = file_path
         self.info = info
 
@@ -36,7 +36,7 @@ class ArtifactBundleSource:
         self._files = files
 
     @cached_property
-    def sorted_and_filtered_files(self) -> List[ArtifactFile]:
+    def sorted_and_filtered_files(self) -> list[ArtifactFile]:
         return sorted(
             [
                 ArtifactFile(file_path=file_path, info=info)
@@ -53,8 +53,9 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -106,7 +107,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 project.organization.id, artifact_bundle
             )
 
-            def format_date(date: Optional[datetime]) -> Optional[str]:
+            def format_date(date: datetime | None) -> str | None:
                 return None if date is None else date.isoformat()[:19] + "Z"
 
             return serialize(
@@ -134,8 +135,6 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
                 on_results=serialize_results,
             )
-        except Exception as exc:
-            raise exc
         finally:
             # We must close the archive before returning the value, otherwise we will get an error.
             archive.close()

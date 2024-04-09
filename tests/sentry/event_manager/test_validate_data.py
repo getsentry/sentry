@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.constants import MAX_CULPRIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.event_manager import EventManager
@@ -16,7 +17,7 @@ def test_timestamp():
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
-    now = datetime.utcnow()
+    now = timezone.now()
     data = validate_and_normalize({"timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
     assert "errors" not in data
 

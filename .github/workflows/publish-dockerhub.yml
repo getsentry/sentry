@@ -6,13 +6,13 @@ on:
       - releases/**
 jobs:
   publish-sentry:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Pull the test image
         id: image_pull
         env:
-          IMAGE_URL: us.gcr.io/sentryio/sentry:${{ github.sha }}
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
         shell: bash
         run: |
           echo "We poll for the Docker image that the GCB/GHA build produces until it succeeds or this job times out."
@@ -33,7 +33,7 @@ jobs:
         shell: bash
         env:
           SHORT_SHA: ${{ steps.short_sha.outputs.sha }}
-          IMAGE_URL: us.gcr.io/sentryio/sentry:${{ github.sha }}
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
         run: |
           # only login if the password is set
           if [[ "${{ secrets.DOCKER_HUB_RW_TOKEN }}" ]]; then echo "${{ secrets.DOCKER_HUB_RW_TOKEN }}" | docker login --username=sentrybuilder --password-stdin; fi

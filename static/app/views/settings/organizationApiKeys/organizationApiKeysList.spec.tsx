@@ -1,4 +1,4 @@
-import {DeprecatedApiKey} from 'sentry-fixture/deprecatedApiKey';
+import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -30,7 +30,7 @@ describe('OrganizationApiKeysList', function () {
         organization={organization}
         params={{}}
         routes={routes}
-        keys={[DeprecatedApiKey()]}
+        keys={[DeprecatedApiKeyFixture()]}
         router={router}
         routeParams={{}}
         route={route}

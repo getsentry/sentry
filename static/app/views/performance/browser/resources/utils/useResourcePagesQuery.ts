@@ -17,7 +17,10 @@ const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 /**
  * Gets a list of pages that have a resource.
  */
-export const useResourcePagesQuery = (defaultResourceTypes?: string[]) => {
+export const useResourcePagesQuery = (
+  defaultResourceTypes?: string[],
+  search?: string
+) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
@@ -30,6 +33,9 @@ export const useResourcePagesQuery = (defaultResourceTypes?: string[]) => {
     ...DEFAULT_RESOURCE_FILTERS,
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
     ...getDomainFilter(spanDomain),
+    ...(search && search.length > 0
+      ? [`${SpanMetricsField.TRANSACTION}:*${[search]}*`]
+      : []),
   ]; // TODO: We will need to consider other ops
 
   const eventView = EventView.fromNewQueryWithPageFilters(

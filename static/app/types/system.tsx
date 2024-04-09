@@ -1,7 +1,8 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import type {ParntershipAgreementType} from 'sentry/types/hooks';
 
 import type {User} from './user';
 
@@ -10,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
-  SU_ACCESS_FORM = 'SuperuserAccessForm',
+  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -119,7 +120,7 @@ declare global {
   }
 }
 
-interface Region {
+export interface Region {
   name: string;
   url: string;
 }
@@ -139,6 +140,10 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -153,21 +158,25 @@ export interface Config {
     sentryUrl: string;
     superuserUrl?: string;
   };
+  // A list of regions that the user has membership in.
+  memberRegions: Region[];
   /**
    * This comes from django (django.contrib.messages)
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
   privacyUrl: string | null;
-  // The list of regions the current user has memberships in.
+  // The list of regions the user has has access to.
   regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
+  shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
@@ -175,6 +184,11 @@ export interface Config {
   termsUrl: string | null;
   theme: 'light' | 'dark';
   urlPrefix: string;
+  /**
+   * The user should not be accessible directly except during
+   * app initialization. Use `useUser` or ConfigStore instead.
+   * @deprecated
+   */
   user: User;
   userIdentity: {
     email: string;
@@ -189,6 +203,14 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
+  relocationConfig?: {
+    selectableRegions: string[];
+  };
+  shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
     id: string;

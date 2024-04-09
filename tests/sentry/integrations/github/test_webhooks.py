@@ -6,6 +6,7 @@ import responses
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
+    INSTALLATION_DELETE_EVENT_EXAMPLE,
     INSTALLATION_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
@@ -14,19 +15,21 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test(stable=True)
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -65,7 +68,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -103,7 +106,93 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
 
-@region_silo_test(stable=True)
+@control_silo_test
+class InstallationDeleteEventWebhookTest(APITestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_deleted(self, get_jwt):
+        project = self.project  # force creation
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization.id, self.user)
+        assert integration.status == ObjectStatus.ACTIVE
+
+        repo = self.create_repo(
+            project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+            response = self.client.post(
+                path=self.url,
+                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation",
+                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+            assert response.status_code == 204
+
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.status == ObjectStatus.DISABLED
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.DISABLED
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_deleted_no_org_integration(self, get_jwt):
+        project = self.project  # force creation
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization.id, self.user)
+        assert integration.status == ObjectStatus.ACTIVE
+
+        # Set up condition that the OrganizationIntegration is deleted prior to the webhook event
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        ).delete()
+
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.status == ObjectStatus.DISABLED
+
+
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -406,7 +495,6 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-@region_silo_test(stable=True)
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -435,7 +523,8 @@ class PullRequestEventWebhook(APITestCase):
 
         assert response.status_code == 204
 
-    def test_opened(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_opened(self, mock_metrics):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
 
@@ -466,6 +555,28 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_opened_missing_option(self, mock_metrics):
+        project = self.project  # force creation
+        self.create_group(project=project, short_id=7)
+
+        Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_open_pr_bot", value=False
+        )
+
+        self._setup_repo_test(project)
+
+        assert mock_metrics.incr.call_count == 0
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -477,7 +588,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
+        mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
@@ -534,7 +645,7 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
+        mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
@@ -626,7 +737,8 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-    def test_closed(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_closed(self, mock_metrics):
         project = self.project  # force creation
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -670,6 +782,8 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.title == "new closed title"
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+        assert mock_metrics.incr.call_count == 0
 
     def assert_group_link(self, group, pr):
         link = GroupLink.objects.all().first()

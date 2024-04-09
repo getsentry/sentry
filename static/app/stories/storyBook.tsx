@@ -1,4 +1,5 @@
-import {Children, JSXElementConstructor, ReactNode} from 'react';
+import type {JSXElementConstructor, ReactNode} from 'react';
+import {Children} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/profiling/flex';

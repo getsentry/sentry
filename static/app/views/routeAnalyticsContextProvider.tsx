@@ -2,7 +2,7 @@ import {createContext, useMemo} from 'react';
 import type {RouteContextInterface} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 const DEFAULT_CONTEXT = {
   setDisableRouteAnalytics: () => {},

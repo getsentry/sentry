@@ -1,5 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFeedbackFixture} from 'sentry-fixture/userFeedback';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +15,7 @@ describe('UserFeedback', function () {
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const project = TestStubs.Project({isMember: true});
+  const project = ProjectFixture({isMember: true});
 
   const routeProps = {
     routes: router.routes,
@@ -34,7 +36,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
   });
 
@@ -42,9 +44,9 @@ describe('UserFeedback', function () {
     ProjectsStore.reset();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -59,14 +61,14 @@ describe('UserFeedback', function () {
 
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByText('Something bad happened')).toBeInTheDocument();
+    expect(await screen.findByText('Something bad happened')).toBeInTheDocument();
   });
 
   it('renders no project message', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -79,15 +81,15 @@ describe('UserFeedback', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders empty state', function () {
+  it('renders empty state', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
     });
 
     const params = {
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       params: {
         orgId: organization.slug,
@@ -96,10 +98,10 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders empty state with project query', function () {
+  it('renders empty state with project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -107,8 +109,8 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       location: {
         ...routeProps.location,
@@ -122,13 +124,13 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       params: {
         orgId: organization.slug,
@@ -153,7 +155,7 @@ describe('UserFeedback', function () {
     );
   });
 
-  it('renders empty state with multi project query', function () {
+  it('renders empty state with multi project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -161,8 +163,8 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       location: {
         ...routeProps.location,
@@ -176,6 +178,6 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 });

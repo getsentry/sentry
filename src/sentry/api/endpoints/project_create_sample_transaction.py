@@ -6,13 +6,13 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.constants import DATA_ROOT
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import create_sample_event_basic
 
 base_platforms_with_transactions = ["javascript", "python", "apple-ios"]
@@ -35,13 +35,12 @@ def fix_event_data(data):
     random ids for traces, spans, and the event id.
     Largely based on sentry.utils.samples.load_data but more simple
     """
-    timestamp = datetime.utcnow() - timedelta(minutes=1)
+    timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
     timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    timestamp = timestamp.replace(tzinfo=timezone.utc)
-    data["timestamp"] = to_timestamp(timestamp)
+    data["timestamp"] = timestamp.timestamp()
 
     start_timestamp = timestamp - timedelta(seconds=3)
-    data["start_timestamp"] = to_timestamp(start_timestamp)
+    data["start_timestamp"] = start_timestamp.timestamp()
 
     trace = uuid4().hex
     span_id = uuid4().hex[:16]
@@ -67,6 +66,7 @@ def fix_event_data(data):
 
 @region_silo_endpoint
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

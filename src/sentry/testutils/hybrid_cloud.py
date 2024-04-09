@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import ipaddress
 import os
 import threading
-from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from typing import Any, TypedDict
+from unittest.mock import patch
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -19,7 +23,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class HybridCloudTestMixin:
     @property
-    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+    def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return get_regional_scheduled_deletion(SiloMode.get_current_mode())
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -78,7 +82,7 @@ class SimulatedTransactionWatermarks(threading.local):
             connection = transaction.get_connection(using or "default")
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
 
-    def connections_above_watermark(self) -> Set[str]:
+    def connections_above_watermark(self) -> set[str]:
         result = set()
         for connection in connections.all():
             if self.connection_transaction_depth_above_watermark(connection=connection):
@@ -136,14 +140,14 @@ def enforce_no_cross_transaction_interactions():
 
 class TransactionDetails(TypedDict):
     transaction: str | None
-    queries: List[str]
+    queries: list[str]
 
 
 class TransactionDetailsWrapper:
-    result: List[TransactionDetails]
+    result: list[TransactionDetails]
     alias: str
 
-    def __init__(self, alias: str, result: List[TransactionDetails]):
+    def __init__(self, alias: str, result: list[TransactionDetails]):
         self.result = result
         self.alias = alias
 
@@ -168,8 +172,8 @@ class TransactionDetailsWrapper:
 
 
 @contextlib.contextmanager
-def collect_transaction_queries() -> Iterator[List[TransactionDetails]]:
-    result: List[TransactionDetails] = []
+def collect_transaction_queries() -> Iterator[list[TransactionDetails]]:
+    result: list[TransactionDetails] = []
 
     with contextlib.ExitStack() as stack:
         for conn in connections.all():
@@ -208,11 +212,11 @@ def simulate_on_commit(request: Any):
             return
 
         old_validate = connection.validate_no_atomic_block
-        connection.validate_no_atomic_block = lambda: None  # type: ignore
+        connection.validate_no_atomic_block = lambda: None  # type: ignore[method-assign]
         try:
             connection.run_and_clear_commit_hooks()
         finally:
-            connection.validate_no_atomic_block = old_validate  # type: ignore
+            connection.validate_no_atomic_block = old_validate  # type: ignore[method-assign]
 
     def new_atomic_exit(self, exc_type, *args, **kwds):
         _old_atomic_exit(self, exc_type, *args, **kwds)
@@ -240,13 +244,13 @@ def simulate_on_commit(request: Any):
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
-    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore[method-assign]
     transaction.on_commit = new_atomic_on_commit  # type: ignore[assignment]
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
     try:
         yield
     finally:
-        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore[method-assign]
         transaction.on_commit = _old_transaction_on_commit
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
 
@@ -256,3 +260,11 @@ def use_split_dbs() -> bool:
     # in stone.
     SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     return not SENTRY_USE_MONOLITH_DBS
+
+
+@contextmanager
+def override_allowed_region_silo_ip_addresses(*allowed_ip_addresses):
+    with patch("sentry.silo.client.get_region_ip_addresses") as mock_get_region_ip_addresses:
+        override_value = frozenset(ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses)
+        mock_get_region_ip_addresses.return_value = override_value
+        yield

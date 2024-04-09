@@ -1,4 +1,5 @@
-import pytz
+from typing import Literal
+
 import sentry_sdk
 from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
@@ -7,36 +8,30 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    PreventNumericSlugMixin,
-)
+from sentry import quotas
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
-from sentry.monitors.models import (
-    MAX_SLUG_LENGTH,
-    CheckInStatus,
-    Monitor,
-    MonitorObjectStatus,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
-    "active": MonitorObjectStatus.ACTIVE,
-    "disabled": MonitorObjectStatus.DISABLED,
+    "active": ObjectStatus.ACTIVE,
+    "disabled": ObjectStatus.DISABLED,
 }
 
 SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
     "interval": ScheduleType.INTERVAL,
 }
+
+IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
 
@@ -131,8 +126,9 @@ class ConfigValidator(serializers.Serializer):
     )
 
     timezone = serializers.ChoiceField(
-        choices=pytz.all_timezones,
+        choices=sorted(AVAILABLE_TIMEZONES),
         required=False,
+        allow_blank=True,
         help_text="tz database style timezone string",
     )
 
@@ -173,6 +169,10 @@ class ConfigValidator(serializers.Serializer):
             schedule_type = self.instance.get("schedule_type")
         else:
             schedule_type = None
+
+        # Remove blank timezone values
+        if attrs.get("timezone") == "":
+            del attrs["timezone"]
 
         schedule = attrs.get("schedule")
         if not schedule:
@@ -233,32 +233,46 @@ class ConfigValidator(serializers.Serializer):
 
 
 @extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
-class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
+class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(
         max_length=128,
         help_text="Name of the monitor. Used for notifications.",
     )
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+    slug = SentrySerializerSlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
-        error_messages={
-            "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
-        },
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
-        help_text="Status of the monitor. Disabled monitors do not generate events or notifications.",
+        help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.",
+    )
+    is_muted = serializers.BooleanField(
+        required=False,
+        help_text="Disable creation of monitor incidents",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):
-        return MONITOR_STATUSES.get(value, value)
+        status = MONITOR_STATUSES.get(value, value)
+        monitor = self.context.get("monitor")
+
+        # Activating a monitor may only be done if the monitor may be assigned
+        # a seat, otherwise fail with the reason it cannot.
+        #
+        # XXX: This check will ONLY be performed when a monitor is provided via
+        #      context. It is the callers responsabiliy to ensure that a
+        #      monitor is provided in context for this to be validated.
+        if status == ObjectStatus.ACTIVE and monitor:
+            result = quotas.backend.check_assign_monitor_seat(monitor)
+            if not result.assignable:
+                raise ValidationError(result.reason)
+
+        return status
 
     def validate_type(self, value):
         return MONITOR_TYPES.get(value, value)
@@ -272,7 +286,6 @@ class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-        value = super().validate_slug(value)
         return value
 
     def update(self, instance, validated_data):
@@ -370,3 +383,19 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    slugs = serializers.ListField(
+        child=SentrySerializerSlugField(
+            max_length=MAX_SLUG_LENGTH,
+        ),
+        required=True,
+    )
+
+    def validate_slugs(self, value):
+        if Monitor.objects.filter(
+            slug__in=value, organization_id=self.context["organization"].id
+        ).count() != len(value):
+            raise ValidationError("Not all slugs are valid for this organization.")
+        return value

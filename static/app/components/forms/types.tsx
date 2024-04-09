@@ -1,11 +1,11 @@
-import {createFilter} from 'react-select';
+import type {createFilter} from 'react-select';
 
 import type {AlertProps} from 'sentry/components/alert';
-import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
-import FormModel from 'sentry/components/forms/model';
-import {SliderProps} from 'sentry/components/slider';
-import {AvatarProject, Project, SelectValue} from 'sentry/types';
+import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
+import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
+import type FormModel from 'sentry/components/forms/model';
+import type {SliderProps} from 'sentry/components/slider';
+import type {AvatarProject, Project, SelectValue} from 'sentry/types';
 
 export const FieldType = [
   'array',
@@ -190,6 +190,10 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+export type SentryOrganizationRoleSelectorType = {
+  type: 'sentry_organization_role_selector';
+};
+
 export type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
@@ -204,6 +208,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
   | {type: (typeof FieldType)[number]}

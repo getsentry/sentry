@@ -34,12 +34,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             project_id=group.project_id,
             endpoint="sentry.api.endpoints.group_tagkey_values.get",
         )
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
         try:
-            tagstore.get_group_tag_key(
+            tagstore.backend.get_group_tag_key(
                 group,
                 None,
                 lookup_key,
@@ -62,7 +62,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         else:
             serializer_cls = None
 
-        paginator = tagstore.get_group_tag_value_paginator(
+        paginator = tagstore.backend.get_group_tag_value_paginator(
             group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
         )
 

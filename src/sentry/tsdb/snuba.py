@@ -3,10 +3,10 @@ from __future__ import annotations
 import dataclasses
 import functools
 import itertools
-from collections.abc import Mapping, Set
+from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, List, Optional, Sequence
+from typing import Any
 
 from snuba_sdk import (
     Column,
@@ -47,11 +47,11 @@ class SnubaModelQuerySettings:
     # The column in Snuba that we want to put in the group by statement
     groupby: str
     # The column in Snuba that we want to run the aggregate function on
-    aggregate: Optional[str]
+    aggregate: str | None
     # Any additional model specific conditions we want to pass in the query
     conditions: Sequence[Any]
     # The projected columns to select in the underlying dataset
-    selected_columns: Optional[Sequence[Any]] = None
+    selected_columns: Sequence[Any] | None = None
 
 
 # combine DEFAULT, ERROR, and SECURITY as errors. We are now recording outcome by
@@ -167,20 +167,18 @@ class SnubaTSDB(BaseTSDB):
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(Dataset.Events, "project_id", None, []),
         TSDBModel.group: SnubaModelQuerySettings(Dataset.Events, "group_id", None, []),
-        TSDBModel.release: SnubaModelQuerySettings(
-            Dataset.Events, "tags[sentry:release]", None, []
-        ),
+        TSDBModel.release: SnubaModelQuerySettings(Dataset.Events, "release", None, []),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "tags[sentry:user]", []
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            Dataset.Events, "project_id", "tags[sentry:user]", []
+            Dataset.Events, "project_id", "user", []
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "environment", []
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            Dataset.Events, "group_id", "tags[sentry:release]", []
+            Dataset.Events, "group_id", "release", []
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
             Dataset.Events, "project_id", "group_id", []
@@ -213,7 +211,7 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super().__init__(**options)
 
-    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> list[Any]:
         """
         Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
         Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
@@ -261,8 +259,8 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
-        tenant_ids: Optional[dict[str, str | int]] = None,
-        referrer_suffix: Optional[str] = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
@@ -322,21 +320,21 @@ class SnubaTSDB(BaseTSDB):
     def __get_data_snql(
         self,
         model: TSDBModel,
-        keys: Sequence[Any],
-        start: Optional[datetime],
-        end: Optional[datetime],
-        rollup: Optional[int] = None,
-        environment_ids: Optional[Sequence[int]] = None,
+        keys: Sequence | Set | Mapping,
+        start: datetime,
+        end: datetime | None,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
         aggregation: str = "count",
         group_on_model: bool = True,
         group_on_time: bool = False,
-        conditions: Optional[ConditionGroup] = None,
+        conditions: ConditionGroup | None = None,
         use_cache: bool = False,
-        jitter_value: Optional[int] = None,
+        jitter_value: int | None = None,
         manual_group_on_time: bool = False,
         is_grouprelease: bool = False,
-        tenant_ids: Optional[dict[str, str | int]] = None,
-        referrer_suffix: Optional[str] = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
@@ -352,8 +350,8 @@ class SnubaTSDB(BaseTSDB):
         model_dataset = model_query_settings.dataset
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
+        keys_map_tmp = dict(zip(columns, self.flatten_keys(keys)))
+        keys_map = {k: v for k, v in keys_map_tmp.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -378,7 +376,7 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         aggregated_as = "aggregate"
-        aggregations: List[SelectableExpression] = [
+        aggregations: list[SelectableExpression] = [
             Function(
                 aggregation,
                 [Column(model_aggregate)] if model_aggregate else [],
@@ -395,14 +393,14 @@ class SnubaTSDB(BaseTSDB):
             limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
             # build up order by
-            orderby: List[OrderBy] = []
+            orderby: list[OrderBy] = []
             if group_on_time:
                 orderby.append(OrderBy(Column("time"), Direction.DESC))
             if group_on_model and model_group is not None:
                 orderby.append(OrderBy(Column(model_group), Direction.ASC))
 
             # build up where conditions
-            conditions = conditions if conditions is not None else []
+            conditions = list(conditions) if conditions is not None else []
             if model_query_settings.conditions is not None:
                 conditions += model_query_settings.conditions
 
@@ -438,7 +436,9 @@ class SnubaTSDB(BaseTSDB):
                 app_id="tsdb.get_data",
                 query=Query(
                     match=Entity(model_dataset.value),
-                    select=(model_query_settings.selected_columns or []) + aggregations,
+                    select=list(
+                        itertools.chain((model_query_settings.selected_columns or []), aggregations)
+                    ),
                     where=where_conds,
                     groupby=[Column(g) for g in groupby] if groupby else None,
                     orderby=orderby,
@@ -693,7 +693,7 @@ class SnubaTSDB(BaseTSDB):
           },
         }, ...
         """
-        from typing import MutableMapping
+        from collections.abc import MutableMapping
 
         if isinstance(result, MutableMapping):
             for key, val in result.items():
@@ -909,7 +909,7 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
         )
 
-    def flatten_keys(self, items):
+    def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
         """
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the
@@ -922,6 +922,6 @@ class SnubaTSDB(BaseTSDB):
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
         elif isinstance(items, (Sequence, Set)):
-            return (items, None)
+            return (list(items), None)
         else:
             raise ValueError("Unsupported type: %s" % (type(items)))

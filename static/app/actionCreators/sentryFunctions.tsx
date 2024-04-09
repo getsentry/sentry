@@ -1,6 +1,6 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Organization, SentryFunction} from 'sentry/types';
+import type {Organization, SentryFunction} from 'sentry/types';
 
 import {
   addErrorMessage,

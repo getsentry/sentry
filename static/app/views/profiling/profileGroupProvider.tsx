@@ -1,8 +1,9 @@
 import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Frame} from 'sentry/utils/profiling/frame';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 type ProfileGroupContextValue = ProfileGroup;
 
@@ -16,7 +17,7 @@ export function useProfileGroup() {
   return context;
 }
 
-const LoadingGroup: ProfileGroup = {
+export const LOADING_PROFILE_GROUP: Readonly<ProfileGroup> = {
   name: 'Loading',
   activeProfileIndex: 0,
   transactionID: null,
@@ -37,13 +38,13 @@ interface ProfileGroupProviderProps {
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
   const profileGroup = useMemo(() => {
     if (!props.input) {
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
     try {
       return importProfile(props.input, props.traceID, props.type, props.frameFilter);
     } catch (err) {
       Sentry.captureException(err);
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
   }, [props.input, props.traceID, props.type, props.frameFilter]);
 

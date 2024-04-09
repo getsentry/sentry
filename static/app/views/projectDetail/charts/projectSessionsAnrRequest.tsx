@@ -1,13 +1,13 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {SessionApiResponse} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {SessionApiResponse} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
@@ -15,7 +15,7 @@ import useApiRequests from 'sentry/utils/useApiRequests';
 
 import {DisplayModes} from '../projectCharts';
 
-import {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
+import type {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
 
 const BAD_BEHAVIOUR_THRESHOLD = 0.47;
 
@@ -151,8 +151,8 @@ function ProjectSessionsAnrRequest({
                   totalUsers === 0 && previousPeriodTotalUsers === 0
                     ? 0
                     : anrRate === null
-                    ? null
-                    : anrRate * 100,
+                      ? null
+                      : anrRate * 100,
               };
             }),
         },
@@ -191,8 +191,8 @@ function ProjectSessionsAnrRequest({
                     totalUsers === 0 && previousPeriodTotalUsers === 0
                       ? 0
                       : previousAnrRate === null
-                      ? null
-                      : previousAnrRate * 100,
+                        ? null
+                        : previousAnrRate * 100,
                 };
               }),
           } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null

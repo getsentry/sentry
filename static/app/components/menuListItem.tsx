@@ -1,13 +1,14 @@
 import {forwardRef as reactForwardRef, memo, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -357,7 +358,7 @@ const LabelWrap = styled('div')`
   min-width: 0;
 `;
 
-const Label = styled('p')`
+const Label = styled('div')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
@@ -365,7 +366,7 @@ const Label = styled('p')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Details = styled('p')<{disabled: boolean; priority: Priority}>`
+const Details = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;

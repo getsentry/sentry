@@ -134,7 +134,7 @@ def expose_fingerprint_dict(values, info=None):
 
 
 class CustomFingerprintVariant(BaseVariant):
-    """A completely custom fingerprint."""
+    """A user defined custom fingerprint."""
 
     type = "custom-fingerprint"
 
@@ -151,6 +151,16 @@ class CustomFingerprintVariant(BaseVariant):
 
     def _get_metadata_as_dict(self):
         return expose_fingerprint_dict(self.values, self.info)
+
+
+class BuiltInFingerprintVariant(CustomFingerprintVariant):
+    """A built-in, Sentry defined fingerprint."""
+
+    type = "built-in-fingerprint"
+
+    @property
+    def description(self):
+        return "Sentry defined fingerprint"
 
 
 class SaltedComponentVariant(ComponentVariant):

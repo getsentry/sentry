@@ -1,19 +1,20 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Sequence, Tuple, TypeVar
+from collections.abc import Sequence
+from typing import Any, TypeVar
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 
 TeamData = TypeVar("TeamData")
-DictOfMembers = Dict[Any, List[TeamData]]
+DictOfMembers = dict[Any, list[TeamData]]
 MembersTeams = DictOfMembers[str]
-MembersTeamRoles = DictOfMembers[Dict[str, str]]
+MembersTeamRoles = DictOfMembers[dict[str, str]]
 
 
 def get_teams_by_organization_member_id(
     organization_members: Sequence[OrganizationMember],
-) -> Tuple[MembersTeams, MembersTeamRoles]:
+) -> tuple[MembersTeams, MembersTeamRoles]:
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(

@@ -1,13 +1,13 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
-import BaseChart from 'sentry/components/charts/baseChart';
-import {RenderProps} from 'sentry/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Client} from 'sentry/api';
+import type BaseChart from 'sentry/components/charts/baseChart';
+import type {RenderProps} from 'sentry/components/charts/eventsRequest';
+import type {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 
-import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
-import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
+import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
+import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
 export enum VisualizationDataState {
   ERROR = 'error',
@@ -23,6 +23,9 @@ export enum GenericPerformanceWidgetDataType {
   LINE_LIST = 'line_list',
   TRENDS = 'trends',
   STACKED_AREA = 'stacked_area',
+  PERFORMANCE_SCORE = 'performance_score',
+  SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  PERFORMANCE_SCORE_LIST = 'performance_score_list',
 }
 
 export type PerformanceWidgetProps = {
@@ -145,7 +148,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
-  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =

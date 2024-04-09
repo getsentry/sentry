@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
@@ -11,16 +11,17 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
@@ -29,16 +30,16 @@ import {
   getFieldRenderer,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
-  Column,
   fieldAlignment,
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {
-  eventDetailsRouteWithEventView,
   generateEventSlug,
+  generateLinkToEventInTraceView,
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -63,7 +64,7 @@ import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
-import {TableColumn} from './types';
+import type {TableColumn} from './types';
 
 export type TableViewProps = {
   error: string | null;
@@ -183,18 +184,19 @@ function TableView(props: TableViewProps) {
     if (!hasIdField) {
       let value = dataRow.id;
 
-      if (tableData && tableData.meta) {
+      if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const eventIdLink = (
@@ -295,13 +297,14 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const idLink = (
@@ -337,13 +340,18 @@ function TableView(props: TableViewProps) {
         </TransactionLink>
       );
     } else if (columnKey === 'trace') {
+      const timestamp = getTimeStampFromTableDateField(
+        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+      );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
         const target = getTraceDetailsUrl(
           organization,
           String(dataRow.trace),
           dateSelection,
-          {}
+          {},
+          timestamp,
+          dataRow.id
         );
 
         cell = (
@@ -591,11 +599,12 @@ function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
+        supportsInvestigationRule
       />
     );
   }
 
-  const {error, eventView, isLoading, location, organization, tableData} = props;
+  const {error, eventView, isLoading, location, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -603,31 +612,27 @@ function TableView(props: TableViewProps) {
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
     : eventView.hasIdField()
-    ? []
-    : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
-
-  const replayIds = tableData?.data?.map(row => String(row.replayId)).filter(Boolean);
+      ? []
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
   return (
-    <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-      <GridEditable
-        isLoading={isLoading}
-        error={error}
-        data={tableData ? tableData.data : []}
-        columnOrder={columnOrder}
-        columnSortBy={columnSortBy}
-        title={t('Results')}
-        grid={{
-          renderHeadCell: _renderGridHeaderCell as any,
-          renderBodyCell: _renderGridBodyCell as any,
-          onResizeColumn: _resizeColumn as any,
-          renderPrependColumns: _renderPrependColumns as any,
-          prependColumnWidths,
-        }}
-        headerButtons={renderHeaderButtons}
-        location={location}
-      />
-    </ReplayIdCountProvider>
+    <GridEditable
+      isLoading={isLoading}
+      error={error}
+      data={tableData ? tableData.data : []}
+      columnOrder={columnOrder}
+      columnSortBy={columnSortBy}
+      title={t('Results')}
+      grid={{
+        renderHeadCell: _renderGridHeaderCell as any,
+        renderBodyCell: _renderGridBodyCell as any,
+        onResizeColumn: _resizeColumn as any,
+        renderPrependColumns: _renderPrependColumns as any,
+        prependColumnWidths,
+      }}
+      headerButtons={renderHeaderButtons}
+      location={location}
+    />
   );
 }
 

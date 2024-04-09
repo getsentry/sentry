@@ -12,4 +12,9 @@ class UserSignUpEvent(analytics.Event):
     )
 
 
+class RelocationUserSignUpEvent(UserSignUpEvent):
+    type = "relocation.user_signup"
+
+
 analytics.register(UserSignUpEvent)
+analytics.register(RelocationUserSignUpEvent)

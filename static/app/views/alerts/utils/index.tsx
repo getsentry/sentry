@@ -1,23 +1,27 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import {Organization, SessionFieldWithOperation} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
+import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import toArray from 'sentry/utils/toArray';
+import type {MetricRule, SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   Dataset,
   Datasource,
   EventTypes,
-  MetricRule,
-  SavedMetricRule,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
-import {AlertRuleStatus, Incident, IncidentStats} from '../types';
+import type {Incident, IncidentStats} from '../types';
+import {AlertRuleStatus} from '../types';
 
 /**
  * Gets start and end date query parameters from stats
@@ -35,13 +39,6 @@ export function isIssueAlert(
   data: IssueAlertRule | SavedMetricRule | MetricRule
 ): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
-}
-
-export enum DatasetOption {
-  ALL = 'all',
-  ERRORS = 'errors',
-  SESSIONS = 'sessions',
-  PERFORMANCE = 'performance',
 }
 
 export const DATA_SOURCE_LABELS = {
@@ -143,6 +140,12 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, op} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, op);
+  }
+
   return axisLabelFormatter(value, aggregateOutputType(seriesName));
 }
 
@@ -153,6 +156,12 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, op} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, op);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));
@@ -202,22 +211,3 @@ export function getTeamParams(team?: string | string[]): string[] {
 
   return toArray(team);
 }
-
-const datasetValues = new Set(Object.values(DatasetOption));
-export function getQueryDataset(dataset: any): DatasetOption {
-  if ((datasetValues as Set<any>).has(dataset)) {
-    return dataset as DatasetOption;
-  }
-  return DatasetOption.ALL;
-}
-
-export const datasetToQueryParam: Record<DatasetOption, Dataset[] | undefined> = {
-  [DatasetOption.ALL]: undefined,
-  [DatasetOption.ERRORS]: [Dataset.ERRORS],
-  [DatasetOption.SESSIONS]: [Dataset.METRICS],
-  [DatasetOption.PERFORMANCE]: [
-    Dataset.GENERIC_METRICS,
-    // TODO(telemetry-experience): remove this once we migrated all performance alerts to generic metrics
-    Dataset.TRANSACTIONS,
-  ],
-};

@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
-import {ContextItemProps} from './types';
+import type {ContextItemProps} from './types';
 import {generateIconName} from './utils';
 
 type Data = {

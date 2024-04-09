@@ -40,7 +40,7 @@ class BgTask:
                 try:
                     self.callback()
                 except Exception:
-                    logging.error("bgtask.failed", exc_info=True, extra=dict(task_name=self.name))
+                    logging.exception("bgtask.failed", extra=dict(task_name=self.name))
                 next_run = now + self.interval
             time.sleep(1.0)
 
@@ -54,8 +54,7 @@ class BgTask:
         if self.running:
             return
         logger.info("bgtask.spawn", extra=dict(task_name=self.name))
-        t = threading.Thread(target=self.run)
-        t.setDaemon(True)
+        t = threading.Thread(target=self.run, daemon=True)
         t.start()
 
     def stop(self):

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Sequence, cast
+from typing import Any, cast
 
 import sentry_sdk
 from requests import PreparedRequest
@@ -27,11 +28,10 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -43,19 +43,15 @@ logger = logging.getLogger("sentry.integrations.github")
 MINIMUM_REQUESTS = 200
 
 
-class GitHubApproachingRateLimit(Exception):
-    pass
-
-
 class GithubRateLimitInfo:
-    def __init__(self, info: Dict[str, int]) -> None:
+    def __init__(self, info: dict[str, int]) -> None:
         self.limit = info["limit"]
         self.remaining = info["remaining"]
         self.reset = info["reset"]
         self.used = info["used"]
 
     def next_window(self) -> str:
-        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
@@ -173,8 +169,10 @@ class GithubProxyClient(IntegrationProxyClient):
             )
             return prepared_request
 
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
         prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
+            prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
         return prepared_request
 
@@ -186,7 +184,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubClientMixin(GithubProxyClient):
-
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -233,17 +230,23 @@ class GitHubClientMixin(GithubProxyClient):
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
-        return pullrequest
+        return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+    def get_pullrequest(self, repo: str, pull_number: str) -> JSONData:
         """
-        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
         Returns the pull request details
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
-        return pullrequest
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
+
+    def get_pullrequest_files(self, repo: str, pull_number: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
+
+        Returns up to 30 files associated with a pull request. Responses are paginated.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
     def get_repo(self, repo: str) -> JSONData:
         """
@@ -262,7 +265,7 @@ class GitHubClientMixin(GithubProxyClient):
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree: JSONData = {}
         # We do not cache this call since it is a rather large object
-        contents: Dict[str, Any] = self.get(
+        contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
             # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
             params={"recursive": 1},
@@ -274,7 +277,8 @@ class GitHubClientMixin(GithubProxyClient):
         if contents.get("truncated"):
             # e.g. getsentry/DataForThePeople
             logger.warning(
-                f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
+                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                repo_full_name,
             )
         tree = contents["tree"]
 
@@ -287,7 +291,7 @@ class GitHubClientMixin(GithubProxyClient):
         only_source_code_files: bool = True,
         only_use_cache: bool = False,
         cache_seconds: int = 3600 * 24,
-    ) -> List[str]:
+    ) -> list[str]:
         """It return all files for a repo or just source code files.
 
         repo_full_name: e.g. getsentry/sentry
@@ -298,7 +302,7 @@ class GitHubClientMixin(GithubProxyClient):
         cache_seconds: How long to cache a value for
         """
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
-        repo_files: List[str] = cache.get(key, [])
+        repo_files: list[str] = cache.get(key, [])
         if not repo_files and not only_use_cache:
             tree = self.get_tree(repo_full_name, tree_sha)
             if tree:
@@ -317,12 +321,12 @@ class GitHubClientMixin(GithubProxyClient):
 
         return repo_files
 
-    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
+    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
         contents into the cache.
         """
-        trees: Dict[str, RepoTree] = {}
+        trees: dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
         repositories = self._populate_repositories(gh_org, cache_seconds)
         extra.update({"repos_num": str(len(repositories))})
@@ -338,9 +342,9 @@ class GitHubClientMixin(GithubProxyClient):
 
         return trees
 
-    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> List[Dict[str, str]]:
+    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> list[dict[str, str]]:
         cache_key = f"githubtrees:repositories:{gh_org}"
-        repositories: List[Dict[str, str]] = cache.get(cache_key, [])
+        repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
         if not repositories:
             # Remove unnecessary fields from the response
@@ -356,7 +360,7 @@ class GitHubClientMixin(GithubProxyClient):
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> bool:
+    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
         Log different messages based on the error received. Returns a boolean indicating whether
         the error should count towards the connection errors tally.
@@ -371,24 +375,24 @@ class GitHubClientMixin(GithubProxyClient):
         # TODO: Add condition for  getsentry/DataForThePeople
         # e.g. getsentry/nextjs-sentry-example
         if txt == "Git Repository is empty.":
-            logger.warning(f"The repository is empty. {msg}", extra=extra)
+            logger.warning("The repository is empty. %s", msg, extra=extra)
         elif txt == "Not Found":
-            logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
         elif txt == "Repository access blocked":
-            logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
         elif txt == "Server Error":
-            logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            logger.warning("Github failed to respond. %s.", msg, extra=extra)
             should_count_error = True
         elif txt == "Bad credentials":
-            logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
         elif txt == "Connection reset by peer":
-            logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
             should_count_error = True
         elif txt == "Connection broken: invalid chunk length":
-            logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
+            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
             should_count_error = True
         elif txt and txt.startswith("Unable to reach host:"):
-            logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
+            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
             should_count_error = True
         elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
@@ -397,18 +401,16 @@ class GitHubClientMixin(GithubProxyClient):
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.exception(
-                f"Investigate if to raise error. An error happened. {msg}", extra=extra
-            )
+            logger.error("Investigate if to raise error. An error happened. %s", msg, extra=extra)
 
         return should_count_error
 
-    def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
+    def _populate_trees(self, repositories: list[dict[str, str]]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
         """
-        trees: Dict[str, RepoTree] = {}
+        trees: dict[str, RepoTree] = {}
         only_use_cache = False
         connection_error_count = 0
 
@@ -461,7 +463,7 @@ class GitHubClientMixin(GithubProxyClient):
         return trees
 
     def _populate_tree(
-        self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int
+        self, repo_info: dict[str, str], only_use_cache: bool, cache_seconds: int
     ) -> RepoTree:
         full_name = repo_info["full_name"]
         branch = repo_info["default_branch"]
@@ -494,7 +496,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
         """
         Find repositories matching a query.
-        NOTE: This API is rate limited to 30 requests/minute
+        NOTE: All search APIs share a rate limit of 30 requests/minute
 
         https://docs.github.com/en/rest/search#search-repositories
         """
@@ -528,9 +530,8 @@ class GitHubClientMixin(GithubProxyClient):
             output = []
 
             page_number = 1
-            logger.info(f"Page {page_number}: {path}?per_page={self.page_size}")
+            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
-            logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
@@ -541,20 +542,19 @@ class GitHubClientMixin(GithubProxyClient):
                 and resp["total_count"] > 0
                 and not output
             ):
-                logger.info(f"headers: {resp.headers}")
-                logger.info(f"output: {output}")
-                logger.info(f"next_link: {next_link}")
+                logger.info("headers: %s", resp.headers)
+                logger.info("output: %s", output)
+                logger.info("next_link: %s", next_link)
                 logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
                 resp = self.get(next_link)
-                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info(f"Page {page_number}: {next_link}")
+                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
@@ -565,6 +565,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
+        NOTE: All search APIs share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -607,88 +608,35 @@ class GitHubClientMixin(GithubProxyClient):
 
     def get_labels(self, repo: str) -> Sequence[JSONData]:
         """
+        Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels")
+        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
         """
         from base64 import b64decode
 
-        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
+        contents = self.get(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": ref},
+            raw_response=True if codeowners else False,
+            headers=headers,
+        )
 
-    def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]]:
-        [owner, name] = repo.name.split("/")
-        query = f"""query {{
-            repository(name: "{name}", owner: "{owner}") {{
-                ref(qualifiedName: "{ref}") {{
-                    target {{
-                        ... on Commit {{
-                            blame(path: "{path}") {{
-                                ranges {{
-                                        commit {{
-                                            oid
-                                            author {{
-                                                name
-                                                email
-                                            }}
-                                            message
-                                            committedDate
-                                        }}
-                                    startingLine
-                                    endingLine
-                                    age
-                                }}
-                            }}
-                        }}
-                    }}
-                }}
-            }}
-        }}"""
-
-        try:
-            contents = self.post(
-                path="/graphql",
-                data={"query": query},
-                allow_text=False,
-            )
-        except ValueError as e:
-            sentry_sdk.capture_exception(e)
-            return []
-
-        errors = contents.get("errors", [])
-        if len(errors) > 0:
-            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
-                raise ApiRateLimitedError("GitHub rate limit exceeded")
-
-            # When data is present, it means that the query was at least partially successful,
-            # usually a missing repo/branch/file which is expected with wrong configurations.
-            # If data is not present, the query may be formed incorrectly, so raise an error.
-            if not contents.get("data"):
-                err_message = ", ".join([error.get("message", "") for error in errors])
-                raise ApiError(err_message)
-
-        response_data = contents.get("data")
-        if not isinstance(response_data, dict):
-            raise ApiError("GitHub returned no data.", 404)
-        response_repo = response_data.get("repository")
-        if not isinstance(response_repo, dict):
-            raise ApiError("Repository does not exist in GitHub.", 404)
-        response_ref = response_repo.get("ref")
-        if not isinstance(response_ref, dict):
-            raise ApiError("Branch does not exist in GitHub.", 404)
-
-        return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
+        result = (
+            contents.content.decode("utf-8")
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
+        return result
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
@@ -698,27 +646,36 @@ class GitHubClientMixin(GithubProxyClient):
             "provider": "github",
             "organization_integration_id": self.org_integration_id,
         }
-        metrics.incr("sentry.integrations.github.get_blame_for_files")
-        rate_limit = self.get_rate_limit(specific_resource="graphql")
-        if rate_limit.remaining < MINIMUM_REQUESTS:
-            metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
-            logger.error(
-                "sentry.integrations.github.get_blame_for_files.rate_limit",
-                extra={
-                    "provider": "github",
-                    "specific_resource": "graphql",
-                    "remaining": rate_limit.remaining,
-                    "next_window": rate_limit.next_window(),
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
-            raise GitHubApproachingRateLimit()
+        metrics.incr("integrations.github.get_blame_for_files")
+        try:
+            rate_limit = self.get_rate_limit(specific_resource="graphql")
+        except ApiError:
+            # Some GitHub instances don't enforce rate limiting and will respond with a 404
+            pass
+        else:
+            if rate_limit.remaining < MINIMUM_REQUESTS:
+                metrics.incr(
+                    "integrations.github.get_blame_for_files.not_enough_requests_remaining"
+                )
+                logger.error(
+                    "sentry.integrations.github.get_blame_for_files.rate_limit",
+                    extra={
+                        "provider": "github",
+                        "specific_resource": "graphql",
+                        "remaining": rate_limit.remaining,
+                        "next_window": rate_limit.next_window(),
+                        "organization_integration_id": self.org_integration_id,
+                    },
+                )
+                raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
-        data = create_blame_query(file_path_mapping, extra=log_info)
-        cache_key = self.get_cache_key("/graphql", data)
+        query, variables = create_blame_query(file_path_mapping, extra=log_info)
+        data = {"query": query, "variables": variables}
+        cache_key = self.get_cache_key("/graphql", "", json.dumps(data))
         response = self.check_cache(cache_key)
         if response:
+            metrics.incr("integrations.github.get_blame_for_files.got_cached")
             logger.info(
                 "sentry.integrations.github.get_blame_for_files.got_cached",
                 extra=log_info,
@@ -727,11 +684,11 @@ class GitHubClientMixin(GithubProxyClient):
             try:
                 response = self.post(
                     path="/graphql",
-                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    data=data,
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(e, log_info)
+                logger.exception(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)
@@ -739,14 +696,19 @@ class GitHubClientMixin(GithubProxyClient):
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
 
-        if response.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in response.get("errors", [])]
-            )
-            logger.error(
-                "get_blame_for_files.graphql_error",
-                extra={**log_info, "error_message": err_message},
-            )
+        errors = response.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not response.get("data"):
+                err_message = ", ".join(
+                    [error.get("message", "") for error in response.get("errors", [])]
+                )
+                raise ApiError(err_message)
 
         return extract_commits_from_blame_response(
             response=response,

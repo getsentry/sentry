@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 
 export type DataKey =
   | 'change'
@@ -17,7 +18,10 @@ export type DataKey =
   | 'count'
   | 'avg(http.response_content_length)'
   | 'avg(http.decoded_response_content_length)'
-  | 'avg(http.transfer_size)';
+  | 'avg(http.response_transfer_size)'
+  | 'bundleSize'
+  | 'unsuccessfulHTTPCodes'
+  | 'httpCodeBreakdown';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -33,17 +37,23 @@ export const DataTitles: Record<DataKey, string> = {
   slowFrames: t('Slow Frames %'),
   ttid: t('Time To Initial Display'),
   ttfd: t('Time To Full Display'),
+  bundleSize: t('Bundle size'),
   'avg(http.response_content_length)': t('Avg Encoded Size'),
   'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
-  'avg(http.transfer_size)': t('Avg Transfer Size'),
+  'avg(http.response_transfer_size)': t('Avg Transfer Size'),
+  unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
+  httpCodeBreakdown: t('Response Code Breakdown'),
 };
 
-export const getThroughputTitle = (spanOp?: string) => {
+export const getThroughputTitle = (
+  spanOp?: string,
+  throughputUnit = RateUnit.PER_MINUTE
+) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Min');
+    return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   if (defined(spanOp)) {
-    return t('Requests');
+    return `${t('Requests')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   return '--';
 };
@@ -56,12 +66,15 @@ export const getDurationChartTitle = (spanOp?: string) => {
   return '--';
 };
 
-export const getThroughputChartTitle = (spanOp?: string) => {
+export const getThroughputChartTitle = (
+  spanOp?: string,
+  throughputUnit = RateUnit.PER_MINUTE
+) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Minute');
+    return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   if (spanOp) {
-    return t('Requests Per Minute');
+    return `${t('Requests')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   return '--';
 };

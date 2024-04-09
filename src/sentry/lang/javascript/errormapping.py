@@ -22,7 +22,7 @@ SOFT_TIMEOUT_FUZZINESS = 10
 HARD_TIMEOUT = 7200
 
 REACT_MAPPING_URL = (
-    "https://raw.githubusercontent.com/facebook/" "react/master/scripts/error-codes/codes.json"
+    "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
 
 error_processors: dict[str, Processor] = {}
@@ -131,7 +131,7 @@ def rewrite_exception(data):
                     rv = True
                     break
             except Exception as e:
-                logger.error('Failed to run processor "%s": %s', processor.vendor, e, exc_info=True)
+                logger.exception('Failed to run processor "%s": %s', processor.vendor, e)
                 data.setdefault("_metrics", {})["flag.processing.error"] = True
 
     if meta.raw():

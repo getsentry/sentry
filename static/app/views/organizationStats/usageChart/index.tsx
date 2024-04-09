@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import {Theme, withTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import type {
@@ -21,15 +22,16 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
+import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme from 'sentry/utils/theme';
 
-import {formatUsageWithUnits, GIGABYTE} from '../utils';
+import {formatUsageWithUnits} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
+const GIGABYTE = 10 ** 9;
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
@@ -78,6 +80,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.profile.titleName,
     value: DATA_CATEGORY_INFO.profile.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.monitor.titleName,
+    value: DATA_CATEGORY_INFO.monitor.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -376,6 +384,7 @@ export class UsageChart extends Component<UsageChartProps, State> {
   get chartLegendData() {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
+
     const legend: LegendComponentOption['data'] = [
       {
         name: SeriesTypes.ACCEPTED,

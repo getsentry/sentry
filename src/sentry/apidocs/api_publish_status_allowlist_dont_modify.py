@@ -3,6 +3,7 @@
     The goal is to eventually find owners for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
+
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/": {"GET"},
     "/api/0/relays/register/challenge/": {"POST"},
@@ -16,8 +17,8 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/activities/": {"GET"},
     "/api/0/{var}/{issue_id}/events/": {"GET"},
     "/api/0/{var}/{issue_id}/events/{event_id}/": {"GET"},
-    "/api/0/{var}/{issue_id}/api/0/(:issues|groups)/{issue_id}/{var}/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/api/0/(:issues|groups)/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
+    "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
+    "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
     "/api/0/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
     "/api/0/{var}/{issue_id}/hashes/split/": {"DELETE", "GET", "PUT"},
     "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
@@ -71,14 +72,8 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/{var}/{issue_id}/activities/": {"GET"},
     "/api/0/organizations/{organization_slug}/{var}/{issue_id}/events/": {"GET"},
     "/api/0/organizations/{organization_slug}/{var}/{issue_id}/events/{event_id}/": {"GET"},
-    "/api/0/organizations/{organization_slug}/{var}/{issue_id}/api/0/organizations/{organization_slug}/(:issues|groups)/{issue_id}/{var}/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_slug}/{var}/{issue_id}/api/0/organizations/{organization_slug}/(:issues|groups)/{issue_id}/{var}/{note_id}/": {
-        "DELETE",
-        "PUT",
-    },
+    "/api/0/organizations/{organization_slug}/{var}/{issue_id}/{var}/": {"GET", "POST"},
+    "/api/0/organizations/{organization_slug}/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
     "/api/0/organizations/{organization_slug}/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
     "/api/0/organizations/{organization_slug}/{var}/{issue_id}/hashes/split/": {
         "DELETE",
@@ -584,7 +579,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/projects/{organization_slug}/{project_slug}/tombstones/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/tombstones/{tombstone_id}/": {"DELETE"},
     "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-link/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-links/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/grouping-configs/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/": {"POST"},
     "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/apps/": {"POST"},
@@ -687,6 +681,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/api-authorizations/": {"GET", "DELETE"},
     "/api/0/api-tokens/": {"DELETE", "GET", "POST"},
     "/api/0/prompts-activity/": {"GET", "PUT"},
+    "/api/0/organizations/{organization_slug}/prompts-activity/": {"GET", "PUT"},
     "/api/0/authenticators/": {"GET"},
     "/api/0/accept-transfer/": {"GET", "POST"},
     "/api/0/accept-invite/{organization_slug}/{member_id}/{token}/": {"GET", "POST"},

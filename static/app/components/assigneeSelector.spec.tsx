@@ -1,3 +1,10 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -24,52 +31,45 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = TestStubs.User({
+    USER_1 = UserFixture({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = UserFixture({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = TestStubs.User({
+    USER_3 = UserFixture({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
     });
-    USER_4 = TestStubs.Member({
+    USER_4 = MemberFixture({
       id: '4',
       name: 'Jane Doe',
       email: 'janedoe@example.com',
-      team_slug: 'cool-team2',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = TeamFixture({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
     });
 
-    GROUP_2 = TestStubs.Group({
+    GROUP_2 = GroupFixture({
       id: '1338',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
       owners: [
         {
           type: 'suspectCommit',
@@ -84,7 +84,6 @@ describe('AssigneeSelector', () => {
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     assignMock = MockApiClient.addMockResponse({
@@ -113,7 +112,12 @@ describe('AssigneeSelector', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([PROJECT_1]);
+  });
+
   afterEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -145,7 +149,7 @@ describe('AssigneeSelector', () => {
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
-        TestStubs.User({
+        UserFixture({
           id: '555',
           name: 'Here Comes a New Challenger',
           email: 'guile@mail.us.af.mil',
@@ -280,7 +284,7 @@ describe('AssigneeSelector', () => {
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 

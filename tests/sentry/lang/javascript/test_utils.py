@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Dict
+from typing import Any
 
 from sentry.lang.javascript.plugin import generate_modules
 from sentry.lang.javascript.utils import generate_module, trim_line
@@ -89,7 +89,7 @@ def test_generate_module():
 
 
 def test_ensure_module_names():
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "message": "hello",
         "platform": "javascript",
         "exception": {

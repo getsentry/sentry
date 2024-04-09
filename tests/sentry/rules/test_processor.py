@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
@@ -21,7 +21,6 @@ from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -45,7 +44,6 @@ class MockConditionTrue(EventCondition):
         return True
 
 
-@region_silo_test(stable=True)
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -357,9 +355,12 @@ class RuleProcessorTest(TestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
-        with patch("sentry.rules.processor.rules", init_registry()), patch(
-            "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
-        ) as passes:
+        with (
+            patch("sentry.rules.processor.rules", init_registry()),
+            patch(
+                "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
+            ) as passes,
+        ):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -390,7 +391,6 @@ class MockFilterFalse(EventFilter):
         return False
 
 
-@region_silo_test(stable=True)
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
@@ -627,7 +627,7 @@ class RuleProcessorTestFilters(TestCase):
         release = self.create_release(
             project=self.project,
             version="2021-02.newRelease",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 
@@ -672,7 +672,9 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_title_link_notification_uuid(self, mock_post):
+        # TODO: make this a block kit test
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -741,7 +743,6 @@ class RuleProcessorTestFilters(TestCase):
             in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
         )
 
-    @with_feature("organizations:integrations-discord-notifications")
     @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
     def test_discord_title_link_notification_uuid(self, mock_build):
         integration = self.create_integration(

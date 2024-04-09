@@ -2,8 +2,10 @@ from django.conf import settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test
 class SudoTest(APITestCase):
     def test_sudo_required_del_org(self):
         org = self.create_organization()

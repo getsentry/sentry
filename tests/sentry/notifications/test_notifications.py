@@ -16,8 +16,8 @@ from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
+from sentry.models.identity import Identity, IdentityStatus
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
@@ -27,6 +27,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -64,14 +65,16 @@ def get_notification_uuid(url: str):
     return notification_uuid
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user
     """
 
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -80,8 +83,7 @@ class ActivityNotificationTest(APITestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=self.idp,
@@ -90,15 +92,16 @@ class ActivityNotificationTest(APITestCase):
             scopes=[],
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        url = "/api/0/users/me/notification-settings/"
-        data = {
-            "workflow": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "deploy": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "alerts": {"user": {"me": {"email": "always", "slack": "always"}}},
-        }
         self.login_as(self.user)
-        response = self.client.put(url, format="json", data=data)
-        assert response.status_code == 204, response.content
+        # modify settings
+        for type in ["workflow", "deploy", "alerts"]:
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type=type,
+                value="always",
+            )
 
         responses.add(
             method=responses.POST,
@@ -114,7 +117,9 @@ class ActivityNotificationTest(APITestCase):
         self.short_id = self.group.qualified_short_id
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_note_notification(self):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when a comment is created on an issue.
@@ -151,7 +156,9 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_unassignment_notification(self):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
@@ -217,7 +224,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_resolution_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
@@ -268,7 +277,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_deployment_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when a release is deployed.
@@ -332,7 +343,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_regression_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue regresses.
@@ -396,7 +409,9 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_resolved_in_release_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved by a release.
@@ -458,11 +473,12 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
-        pass
 
     @responses.activate
     @patch("sentry.analytics.record")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_issue_notification(self, record_analytics):
+        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue comes in that triggers an alert rule.

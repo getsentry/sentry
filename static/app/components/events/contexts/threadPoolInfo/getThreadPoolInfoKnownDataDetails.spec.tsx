@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {
   getThreadPoolInfoKnownDataDetails,
   threadPoolInfoKnownDataValues,
@@ -13,7 +15,7 @@ describe('getThreadPoolInfoKnownDataDetails', function () {
       const threadPoolInfoKnownData = getThreadPoolInfoKnownDataDetails({
         type: threadPoolInfoKnownDataValues[type],
         data: threadPoolInfoMockData,
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!threadPoolInfoKnownData) {

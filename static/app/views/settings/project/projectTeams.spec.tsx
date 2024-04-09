@@ -1,3 +1,5 @@
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -14,19 +16,18 @@ import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 describe('ProjectTeams', function () {
   let org: Organization;
   let project: Project;
-  let routerContext: Record<string, any>;
 
-  const team1WithAdmin = TestStubs.Team({
+  const team1WithAdmin = TeamFixture({
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team2WithAdmin = TestStubs.Team({
+  const team2WithAdmin = TeamFixture({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team3NoAdmin = TestStubs.Team({
+  const team3NoAdmin = TeamFixture({
     id: '3',
     slug: 'team-slug-3',
     name: 'Team Name 3',
@@ -41,7 +42,6 @@ describe('ProjectTeams', function () {
       ...initialData.project,
       access: ['project:admin', 'project:write', 'project:admin'],
     };
-    routerContext = initialData.routerContext;
 
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
@@ -66,17 +66,6 @@ describe('ProjectTeams', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
-  });
-
   it('can remove a team from project', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
@@ -98,18 +87,18 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -120,13 +109,7 @@ describe('ProjectTeams', function () {
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
-    // Modal opens because this is the last team in project
-    renderGlobalModal();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByTestId('confirm-button'));
-
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
       expect.objectContaining({
@@ -156,17 +139,14 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -205,19 +185,16 @@ describe('ProjectTeams', function () {
       body: [team3NoAdmin],
     });
 
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -230,11 +207,10 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
-    renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Click confirm
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByText('Remove Team'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -252,14 +228,9 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -277,10 +248,6 @@ describe('ProjectTeams', function () {
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: {},
     });
@@ -295,18 +262,12 @@ describe('ProjectTeams', function () {
     const createTeam = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'POST',
-      body: {slug: 'new-team'},
+      body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(
-      <ProjectTeams
-        {...TestStubs.routeComponentProps()}
-        params={{projectId: project.slug}}
-        project={project}
-        organization={org}
-      />,
-      {context: routerContext}
-    );
+    render(<ProjectTeams project={project} organization={org} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);

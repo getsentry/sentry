@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from html import escape
-from typing import ClassVar, List, Optional, Union
+from typing import ClassVar, Union
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -16,7 +16,7 @@ from sentry.utils.safe import get_path, safe_execute
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
-DataPath = List[Union[str, int]]
+DataPath = list[Union[str, int]]
 
 
 def get_interface(name):
@@ -109,7 +109,7 @@ class Interface:
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data, datapath: Optional[DataPath] = None):
+    def to_python(cls, data, datapath: DataPath | None = None):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -124,7 +124,7 @@ class Interface:
         return rv
 
     @classmethod
-    def to_python_subpath(cls, data, path: DataPath, datapath: Optional[DataPath] = None):
+    def to_python_subpath(cls, data, path: DataPath, datapath: DataPath | None = None):
         if data is None:
             return None
 
@@ -164,24 +164,3 @@ class Interface:
         if not body:
             return ""
         return f"<pre>{escape(body)}</pre>"
-
-    # deprecated stuff.  These were deprecated in late 2018, once
-    # determined they are unused we can kill them.
-
-    def get_path(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_alias(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_slug(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path

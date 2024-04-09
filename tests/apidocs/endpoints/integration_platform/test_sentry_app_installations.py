@@ -3,9 +3,11 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.silo import control_silo_test
 
 
-class SentryAppInstallationDocs(APIDocsTestCase):
+@control_silo_test
+class SentryAppInstallationDocsTest(APIDocsTestCase):
     def setUp(self):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Jessla", owner=None)

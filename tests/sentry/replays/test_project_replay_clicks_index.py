@@ -5,12 +5,10 @@ from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test(stable=True)
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-clicks-index"
 
@@ -280,3 +278,9 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert len(response_data) == 2
             assert response_data[0]["node_id"] == 1
             assert response_data[1]["node_id"] == 2
+
+    def test_get_replays_invalid_filter_field(self):
+        """Test invalid filter fields error."""
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=abc:123")
+            assert response.status_code == 400

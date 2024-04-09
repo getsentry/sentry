@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional
 
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
@@ -28,19 +27,18 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
+    def get(self, *, organization_id: int) -> RpcOrganizationMapping | None:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_many(self, *, organization_ids: List[int]) -> List[RpcOrganizationMapping]:
+    def get_many(self, *, organization_ids: list[int]) -> list[RpcOrganizationMapping]:
         """Find all organizations with one of the given IDs.
 
         In contrast to the "get" methods on OrganizationService, this method is
         region-independent. It can find organizations from different regions in the
         same query.
         """
-        pass
 
     @rpc_method
     @abstractmethod

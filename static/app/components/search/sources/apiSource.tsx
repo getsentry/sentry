@@ -1,13 +1,13 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {
+import type {
   DocIntegration,
   EventIdResponse,
   IntegrationProvider,
@@ -20,13 +20,14 @@ import {
   Team,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
 // event ids must have string length of 32
@@ -41,65 +42,61 @@ async function createOrganizationResults(
   organizationsPromise: Promise<Organization[]>
 ): Promise<ResultItem[]> {
   const organizations = (await organizationsPromise) || [];
-  return flatten(
-    organizations.map(org => [
-      {
-        title: t('%s Dashboard', org.slug),
-        description: t('Organization Dashboard'),
-        model: org,
-        sourceType: 'organization',
-        resultType: 'route',
-        to: `/${org.slug}/`,
-      },
-      {
-        title: t('%s Settings', org.slug),
-        description: t('Organization Settings'),
-        model: org,
-        sourceType: 'organization',
-        resultType: 'settings',
-        to: `/settings/${org.slug}/`,
-      },
-    ])
-  );
+  return organizations.flatMap(org => [
+    {
+      title: t('%s Dashboard', org.slug),
+      description: t('Organization Dashboard'),
+      model: org,
+      sourceType: 'organization',
+      resultType: 'route',
+      to: `/${org.slug}/`,
+    },
+    {
+      title: t('%s Settings', org.slug),
+      description: t('Organization Settings'),
+      model: org,
+      sourceType: 'organization',
+      resultType: 'settings',
+      to: `/settings/${org.slug}/`,
+    },
+  ]);
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
   orgId?: string
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
-  return flatten(
-    projects.map(project => {
-      const projectResults: ResultItem[] = [
-        {
-          title: t('%s Settings', project.slug),
-          description: t('Project Settings'),
-          model: project,
-          sourceType: 'project',
-          resultType: 'settings',
-          to: `/settings/${orgId}/projects/${project.slug}/`,
-        },
-        {
-          title: t('%s Alerts', project.slug),
-          description: t('List of project alert rules'),
-          model: project,
-          sourceType: 'project',
-          resultType: 'route',
-          to: `/organizations/${orgId}/alerts/rules/?project=${project.id}`,
-        },
-      ];
-
-      projectResults.unshift({
-        title: t('%s Dashboard', project.slug),
-        description: t('Project Details'),
+  return projects.flatMap(project => {
+    const projectResults: ResultItem[] = [
+      {
+        title: t('%s Settings', project.slug),
+        description: t('Project Settings'),
+        model: project,
+        sourceType: 'project',
+        resultType: 'settings',
+        to: `/settings/${orgId}/projects/${project.slug}/`,
+      },
+      {
+        title: t('%s Alerts', project.slug),
+        description: t('List of project alert rules'),
         model: project,
         sourceType: 'project',
         resultType: 'route',
-        to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
-      });
+        to: `/organizations/${orgId}/alerts/rules/?project=${project.id}`,
+      },
+    ];
 
-      return projectResults;
-    })
-  );
+    projectResults.unshift({
+      title: t('%s Dashboard', project.slug),
+      description: t('Project Details'),
+      model: project,
+      sourceType: 'project',
+      resultType: 'route',
+      to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
+    });
+
+    return projectResults;
+  });
 }
 async function createTeamResults(
   teamsPromise: Promise<Team[]>,
@@ -163,23 +160,21 @@ async function createIntegrationResults(
 ): Promise<ResultItem[]> {
   const {providers} = (await integrationsPromise) || {};
   return (
-    (providers &&
-      providers.map(provider => ({
-        title: provider.name,
-        description: (
-          <span
-            dangerouslySetInnerHTML={{
-              __html: markedSingleLine(provider.metadata.description),
-            }}
-          />
-        ),
-        model: provider,
-        sourceType: 'integration',
-        resultType: 'integration',
-        to: `/settings/${orgId}/integrations/${provider.slug}/`,
-        configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
-      }))) ||
-    []
+    providers?.map(provider => ({
+      title: provider.name,
+      description: (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: markedSingleLine(provider.metadata.description),
+          }}
+        />
+      ),
+      model: provider,
+      sourceType: 'integration',
+      resultType: 'integration',
+      to: `/settings/${orgId}/integrations/${provider.slug}/`,
+      configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
+    })) || []
   );
 }
 
@@ -233,13 +228,11 @@ async function createShortIdLookupResult(
     return null;
   }
 
-  const issue = shortIdLookup && shortIdLookup.group;
+  const issue = shortIdLookup?.group;
   return {
     item: {
-      title: `${
-        (issue && issue.metadata && issue.metadata.type) || shortIdLookup.shortId
-      }`,
-      description: `${(issue && issue.metadata && issue.metadata.value) || t('Issue')}`,
+      title: `${issue?.metadata?.type || shortIdLookup.shortId}`,
+      description: `${issue?.metadata?.value || t('Issue')}`,
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
@@ -258,11 +251,11 @@ async function createEventIdLookupResult(
     return null;
   }
 
-  const event = eventIdLookup && eventIdLookup.event;
+  const event = eventIdLookup?.event;
   return {
     item: {
-      title: `${(event && event.metadata && event.metadata.type) || t('Event')}`,
-      description: `${event && event.metadata && event.metadata.value}`,
+      title: `${event?.metadata?.type || t('Event')}`,
+      description: `${event?.metadata?.value}`,
       sourceType: 'event',
       resultType: 'event',
       to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
@@ -476,20 +469,18 @@ class ApiSource extends Component<Props, State> {
       sentryApps,
       docIntegrations,
     ] = requests;
-    const searchResults = flatten(
-      await Promise.all([
-        createOrganizationResults(organizations),
-        createProjectResults(projects, orgId),
-        createTeamResults(teams, orgId),
-        createMemberResults(members, orgId),
-        createIntegrationResults(integrations, orgId),
-        createPluginResults(plugins, orgId),
-        createSentryAppResults(sentryApps, orgId),
-        createDocIntegrationResults(docIntegrations, orgId),
-      ])
-    );
+    const searchResults = await Promise.all([
+      createOrganizationResults(organizations),
+      createProjectResults(projects, orgId),
+      createTeamResults(teams, orgId),
+      createMemberResults(members, orgId),
+      createIntegrationResults(integrations, orgId),
+      createPluginResults(plugins, orgId),
+      createSentryAppResults(sentryApps, orgId),
+      createDocIntegrationResults(docIntegrations, orgId),
+    ]);
 
-    return searchResults;
+    return searchResults.flat();
   }
 
   // Create result objects from API requests that do not require fuzzy search
@@ -518,7 +509,7 @@ class ApiSource extends Component<Props, State> {
 
     return children({
       isLoading: this.state.loading,
-      results: flatten([results, directResults].filter(defined)) || [],
+      results: [results, directResults].flat().filter(defined),
     });
   }
 }

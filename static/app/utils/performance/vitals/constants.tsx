@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {measurementType} from 'sentry/utils/discover/fields';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {Vital} from 'sentry/utils/performance/vitals/types';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
 
 export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
@@ -43,6 +43,16 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     poorThreshold: 300,
     type: measurementType(WebVital.FID),
+  },
+  [WebVital.INP]: {
+    slug: 'inp',
+    name: t('Interaction to Next Paint'),
+    acronym: 'INP',
+    description: t(
+      'The duration of the longest interaction observed, ignoring outliers.'
+    ),
+    poorThreshold: 500,
+    type: measurementType(WebVital.INP),
   },
   [WebVital.CLS]: {
     slug: 'cls',

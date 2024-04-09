@@ -1,4 +1,4 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 

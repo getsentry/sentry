@@ -22,6 +22,7 @@ from sentry.integrations.utils.atlassian_connect import (
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
@@ -53,24 +54,35 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
+        integration = self.get_integration_from_request()
+        if not integration:
+            raise Integration.DoesNotExist()
+
         regions = self.get_regions_from_organizations()
+
         if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         if len(regions) > 1:
             # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
             # first region to forward along to.
             logger.info(
-                f"{self.provider}.too_many_regions",
+                "%s.too_many_regions",
+                self.provider,
                 extra={"path": self.request.path, "regions": regions},
             )
-            return self.get_response_from_control_silo()
 
         if self.view_class in self.immediate_response_region_classes:
-            return self.get_response_from_region_silo(region=regions[0])
+            try:
+                return self.get_response_from_region_silo(region=regions[0])
+            except ApiError as err:
+                sentry_sdk.capture_exception(err)
+                return self.get_response_from_control_silo()
 
         if self.view_class in self.outbox_response_region_classes:
-            return self.get_response_from_outbox_creation(regions=regions)
+            return self.get_response_from_webhookpayload_for_integration(
+                regions=regions, integration=integration
+            )
 
         return self.get_response_from_control_silo()

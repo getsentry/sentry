@@ -40,8 +40,7 @@ class SlackPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(parse_qs(request.body)["payload"][0])
@@ -56,8 +55,7 @@ class SlackPluginTest(PluginTestCase):
                     ],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
-                    "title_link": "http://example.com/organizations/baz/issues/%s/?referrer=slack"
-                    % group.id,
+                    "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                 }
             ],
         }
@@ -78,8 +76,7 @@ class SlackPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(parse_qs(request.body)["payload"][0])
@@ -91,8 +88,7 @@ class SlackPluginTest(PluginTestCase):
                     "fields": [{"short": True, "value": "bar", "title": "Project"}],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
-                    "title_link": "http://example.com/organizations/baz/issues/%s/?referrer=slack"
-                    % group.id,
+                    "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                 }
             ],
         }
@@ -114,8 +110,7 @@ class SlackPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(parse_qs(request.body)["payload"][0])
@@ -127,8 +122,7 @@ class SlackPluginTest(PluginTestCase):
                     "fields": [{"short": False, "value": "foo.bar", "title": "Culprit"}],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
-                    "title_link": "http://example.com/organizations/baz/issues/%s/?referrer=slack"
-                    % group.id,
+                    "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                 }
             ],
         }
@@ -148,15 +142,13 @@ class SlackPluginTest(PluginTestCase):
         notification = Notification(event=event, rule=rule)
 
         # No exception since 404s are supposed to be ignored
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         responses.replace("POST", "http://example.com/slack", status=400)
 
         # Other exceptions should not be ignored
-        with self.options({"system.url-prefix": "http://example.com"}):
-            with pytest.raises(ApiError):
-                self.plugin.notify(notification)
+        with pytest.raises(ApiError):
+            self.plugin.notify(notification)
 
     @responses.activate
     def test_no_error_on_ignorable_slack_errors(self):
@@ -179,6 +171,5 @@ class SlackPluginTest(PluginTestCase):
         responses.replace("POST", "http://example.com/slack", status=403, body="some_other_error")
 
         # Other exceptions should not be ignored
-        with self.options({"system.url-prefix": "http://example.com"}):
-            with pytest.raises(ApiError):
-                self.plugin.notify(notification)
+        with pytest.raises(ApiError):
+            self.plugin.notify(notification)

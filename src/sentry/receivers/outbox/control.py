@@ -8,7 +8,8 @@ and perform RPC calls to propagate changes to relevant region(s).
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django.dispatch import receiver
 
@@ -19,7 +20,6 @@ from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 
@@ -55,35 +55,6 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
     ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
-def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds: Any):
-    from sentry.models.outbox import ControlOutbox
-    from sentry.silo.client import RegionSiloClient
-    from sentry.types.region import get_region_by_name
-
-    region = get_region_by_name(name=region_name)
-    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
-
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        # By default, these clients will raise errors on non-20x response codes
-        response = RegionSiloClient(region=region).request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            # We need to send the body as raw bytes to avoid interfering with webhook signatures
-            data=webhook_payload.body,
-            json=False,
-        )
-        logger.info(
-            "webhook_proxy.complete",
-            extra={
-                "status": response.status_code,
-                "request_path": webhook_payload.path,
-                "request_method": webhook_payload.method,
-            },
-        )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)

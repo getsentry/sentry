@@ -1,8 +1,6 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 import Jed from 'jed';
-import isObject from 'lodash/isObject';
-import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -98,7 +96,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
 
   // always re-parse, do not cache, because we change the match
   sprintf.parse(formatString).forEach((match: any, idx: number) => {
-    if (isString(match)) {
+    if (typeof match === 'string') {
       nodes.push(match);
       return;
     }
@@ -138,7 +136,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
     return true;
   }
 
-  if (args.length !== 1 || !isObject(args[0])) {
+  if (args.length !== 1 || !args[0] || typeof args[0] !== 'object') {
     return false;
   }
 
@@ -249,7 +247,7 @@ export function renderTemplate(
     const group = template[groupKey] || [];
 
     for (const item of group) {
-      if (isString(item)) {
+      if (typeof item === 'string') {
         children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
         children.push(renderGroup(item.group));
@@ -302,7 +300,8 @@ function mark<T extends React.ReactNode>(node: T): T {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as T;
+  // TODO(TS): Should proxy be created using `React.createElement`?
+  return proxy as any as T;
 }
 
 /**

@@ -1,9 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import {BaseGroup, EventOrGroupType, IssueCategory} from 'sentry/types';
+import type {BaseGroup} from 'sentry/types';
+import {EventOrGroupType, IssueCategory} from 'sentry/types';
 
 describe('EventOrGroupTitle', function () {
   const data = {
@@ -63,7 +66,7 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([{organization: Organization()}]);
+    const routerContext = RouterContextFixture([{organization: OrganizationFixture()}]);
 
     render(
       <EventOrGroupTitle
@@ -117,7 +120,7 @@ describe('EventOrGroupTitle', function () {
             function: 'useOverflowTabs',
             display_title_with_tree_label: false,
           },
-          actor: TestStubs.User(),
+          actor: UserFixture(),
           isTombstone: true,
         }}
         withStackTracePreview
@@ -140,7 +143,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([{organization: Organization()}]);
+      const routerContext = RouterContextFixture([{organization: OrganizationFixture()}]);
 
       render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
 

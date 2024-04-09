@@ -6,81 +6,117 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {Sort} from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
+import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
+import type {
+  InteractionSpanSampleRowWithScore,
+  TransactionSampleRowWithScore,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  TransactionSampleRow,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
-  score: number;
-};
+type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
+type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
 
-type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
-
-export const COLUMN_ORDER: GridColumnOrder<
-  keyof TransactionSampleRowWithScoreAndExtra
->[] = [
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
+const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Event ID')},
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
+
+const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
+  keyof InteractionSpanSampleRowWithScore
+>[] = [
+  {
+    key: SpanIndexedField.SPAN_DESCRIPTION,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('Interaction Target'),
+  },
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
+  {key: SpanIndexedField.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
+];
+
+enum Datatype {
+  PAGELOADS = 'pageloads',
+  INTERACTIONS = 'interactions',
+}
+
+const DATATYPE_KEY = 'type';
 
 type Props = {
   transaction: string;
-  columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
   limit?: number;
   search?: string;
 };
 
-export function PageSamplePerformanceTable({
-  transaction,
-  columnOrder,
-  search,
-  limit = 9,
-}: Props) {
+export function PageSamplePerformanceTable({transaction, search, limit = 9}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const router = useRouter();
+
+  let datatype = Datatype.PAGELOADS;
+  switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
+    case 'interactions':
+      datatype = Datatype.INTERACTIONS;
+      break;
+    default:
+      datatype = Datatype.PAGELOADS;
+  }
+
+  const sortableFields = SORTABLE_INDEXED_FIELDS;
+
   const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
-    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+    sortableFields: sortableFields as unknown as string[],
   });
+
   const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
@@ -90,33 +126,48 @@ export function PageSamplePerformanceTable({
 
   const query = decodeScalar(location.query.query);
 
-  // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
-  // We can't query by performance score yet, so we're using LCP as a best estimate
-  const {data, isLoading, pageLinks} = useTransactionSamplesWebVitalsQuery({
+  const {
+    data: tableData,
+    isLoading,
+    pageLinks,
+  } = useTransactionSamplesWebVitalsQuery({
     limit,
     transaction,
     query: search,
     withProfiles: true,
+    enabled: datatype === Datatype.PAGELOADS,
   });
 
-  const tableData: TransactionSampleRowWithScoreAndExtra[] = data.map(row => ({
-    ...row,
-    view: null,
-  }));
+  const {
+    data: interactionsTableData,
+    isFetching: isInteractionsLoading,
+    pageLinks: interactionsPageLinks,
+  } = useInpSpanSamplesWebVitalsQuery({
+    transaction,
+    enabled: datatype === Datatype.INTERACTIONS,
+    limit,
+    filters: new MutableSearch(query ?? '').filters,
+  });
+
+  const {profileExists} = useProfileExists(
+    interactionsTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
+  );
+
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
-  function renderHeadCell(col: Column) {
+  function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
+      const key = col.key === 'inpScore' ? 'measurements.score.total' : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
-      if (sort?.field === col.key) {
+      if (sort?.field === key) {
         if (sort.kind === 'desc') {
           newSortDirection = 'asc';
         }
       }
 
-      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${col.key}`;
+      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
       return {
         ...location,
@@ -124,7 +175,7 @@ export function PageSamplePerformanceTable({
       };
     }
 
-    const canSort = (SORTABLE_INDEXED_FIELDS as ReadonlyArray<string>).includes(col.key);
+    const canSort = (sortableFields as ReadonlyArray<string>).includes(col.key);
 
     if (
       [
@@ -133,6 +184,7 @@ export function PageSamplePerformanceTable({
         'measurements.ttfb',
         'measurements.fid',
         'measurements.cls',
+        'measurements.inp',
         'transaction.duration',
       ].includes(col.key)
     ) {
@@ -153,11 +205,32 @@ export function PageSamplePerformanceTable({
         </AlignRight>
       );
     }
-    if (col.key === 'score') {
+    if (col.key === 'totalScore' || col.key === 'inpScore') {
       return (
-        <AlignCenter>
-          <span>{t('Perf Score')}</span>
-        </AlignCenter>
+        <SortLink
+          title={
+            <AlignCenter>
+              <StyledTooltip
+                isHoverable
+                title={
+                  <span>
+                    {t('The overall performance rating of this page.')}
+                    <br />
+                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+              >
+                <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+              </StyledTooltip>
+            </AlignCenter>
+          }
+          direction={sort?.field === col.key ? sort.kind : undefined}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+          align={undefined}
+        />
       );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
@@ -170,16 +243,19 @@ export function PageSamplePerformanceTable({
     return <span>{col.name}</span>;
   }
 
-  function renderBodyCell(col: Column, row: TransactionSampleRowWithScoreAndExtra) {
+  function renderBodyCell(
+    col: Column | InteractionsColumn,
+    row: TransactionSampleRowWithScore | InteractionSpanSampleRowWithScore
+  ) {
     const {key} = col;
-    if (key === 'score') {
+    if (key === 'totalScore' || key === 'inpScore') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row.score} />
+          <PerformanceBadge score={row[key]} />
         </AlignCenter>
       );
     }
-    if (key === 'transaction') {
+    if (key === 'transaction' && 'transaction' in row) {
       return (
         <NoOverflow>
           {project && (
@@ -205,12 +281,13 @@ export function PageSamplePerformanceTable({
         'measurements.lcp',
         'measurements.ttfb',
         'measurements.fid',
+        'measurements.inp',
         'transaction.duration',
       ].includes(key)
     ) {
       return (
         <AlignRight>
-          {row[key] === null ? (
+          {row[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
             getFormattedDuration((row[key] as number) / 1000)
@@ -219,21 +296,30 @@ export function PageSamplePerformanceTable({
       );
     }
     if (['measurements.cls', 'opportunity'].includes(key)) {
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return (
+        <AlignRight>
+          {row[key] === undefined ? (
+            <NoValue>{' \u2014 '}</NoValue>
+          ) : (
+            Math.round((row[key] as number) * 100) / 100
+          )}
+        </AlignRight>
+      );
     }
     if (key === 'profile.id') {
+      const profileId = String(row[key]);
       const profileTarget =
-        defined(row.projectSlug) && defined(row['profile.id'])
+        defined(row.projectSlug) && defined(row[key])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
               projectSlug: row.projectSlug,
-              profileId: String(row['profile.id']),
+              profileId,
             })
           : null;
       return (
         <NoOverflow>
           <AlignCenter>
-            {profileTarget && (
+            {profileTarget && profileExists(profileId) && (
               <Tooltip title={t('View Profile')}>
                 <LinkButton to={profileTarget} size="xs">
                   <IconProfiling size="xs" />
@@ -247,13 +333,17 @@ export function PageSamplePerformanceTable({
 
     if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== null &&
+        (row['transaction.duration'] !== undefined ||
+          row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
           {
-            replayId: row.replayId,
-            id: row.id,
-            'transaction.duration': row['transaction.duration'],
+            replayId: row[key],
+            id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
+            'transaction.duration':
+              datatype === Datatype.INTERACTIONS
+                ? row[SpanIndexedField.SPAN_SELF_TIME]
+                : row['transaction.duration'],
             timestamp: row.timestamp,
           },
           undefined
@@ -261,21 +351,29 @@ export function PageSamplePerformanceTable({
       return (
         <NoOverflow>
           <AlignCenter>
-            {replayTarget && (
-              <Tooltip title={t('View Replay')}>
-                <LinkButton to={replayTarget} size="xs">
-                  <IconPlay size="xs" />
-                </LinkButton>
-              </Tooltip>
-            )}
+            {replayTarget &&
+              Object.keys(replayTarget).length > 0 &&
+              replayExists(row[key]) && (
+                <Tooltip title={t('View Replay')}>
+                  <LinkButton to={replayTarget} size="xs">
+                    <IconPlay size="xs" />
+                  </LinkButton>
+                </Tooltip>
+              )}
           </AlignCenter>
         </NoOverflow>
       );
     }
 
-    if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+    if (key === 'id' && 'id' in row) {
+      const eventTarget = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
+        dataRow: row,
+        eventView: EventView.fromLocation(location),
+        organization,
+        location,
+      });
+
       return (
         <NoOverflow>
           <Tooltip title={t('View Transaction')}>
@@ -284,12 +382,47 @@ export function PageSamplePerformanceTable({
         </NoOverflow>
       );
     }
+
+    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      return (
+        <NoOverflow>
+          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+        </NoOverflow>
+      );
+    }
+
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
   return (
     <span>
       <SearchBarContainer>
+        {
+          <SegmentedControl
+            size="md"
+            value={datatype}
+            onChange={newDataSet => {
+              // Reset pagination and sort when switching datatypes
+              router.replace({
+                ...location,
+                query: {
+                  ...location.query,
+                  sort: undefined,
+                  cursor: undefined,
+                  [DATATYPE_KEY]: newDataSet,
+                },
+              });
+            }}
+          >
+            <SegmentedControl.Item key={Datatype.PAGELOADS}>
+              {t('Pageloads')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
+              {t('Interactions')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        }
+
         <StyledSearchBar
           query={query}
           organization={organization}
@@ -300,22 +433,28 @@ export function PageSamplePerformanceTable({
             })
           }
         />
-        <StyledPagination pageLinks={pageLinks} disabled={isLoading} size="md" />
+        <StyledPagination
+          pageLinks={
+            datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks
+          }
+          disabled={
+            datatype === Datatype.INTERACTIONS ? isInteractionsLoading : isLoading
+          }
+          size="md"
+        />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!pageLinks && (
+        {!(datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
           <Wrapper>
             <ButtonBar merged>
               <Button
-                icon={<IconChevron direction="left" size="sm" />}
-                size="md"
+                icon={<IconChevron direction="left" />}
                 disabled
                 aria-label={t('Previous')}
               />
               <Button
-                icon={<IconChevron direction="right" size="sm" />}
-                size="md"
+                icon={<IconChevron direction="right" />}
                 disabled
                 aria-label={t('Next')}
               />
@@ -324,18 +463,34 @@ export function PageSamplePerformanceTable({
         )}
       </SearchBarContainer>
       <GridContainer>
-        <GridEditable
-          isLoading={isLoading}
-          columnOrder={columnOrder ?? COLUMN_ORDER}
-          columnSortBy={[]}
-          data={tableData}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-          minimumColWidth={70}
-        />
+        {datatype === Datatype.PAGELOADS && (
+          <GridEditable
+            isLoading={isLoading}
+            columnOrder={PAGELOADS_COLUMN_ORDER}
+            columnSortBy={[]}
+            data={tableData}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+            minimumColWidth={70}
+          />
+        )}
+        {datatype === Datatype.INTERACTIONS && (
+          <GridEditable
+            isLoading={isInteractionsLoading}
+            columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
+            columnSortBy={[]}
+            data={interactionsTableData}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+            minimumColWidth={70}
+          />
+        )}
       </GridContainer>
     </span>
   );
@@ -354,6 +509,8 @@ const AlignRight = styled('span')<{color?: string}>`
 `;
 
 const AlignCenter = styled('div')`
+  display: block;
+  margin: auto;
   text-align: center;
   width: 100%;
 `;
@@ -410,4 +567,13 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
+`;
+
+const TooltipHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
 `;

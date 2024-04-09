@@ -1,17 +1,16 @@
-import {Member} from 'sentry-fixture/member';
-import {User} from 'sentry-fixture/user';
+import {MemberFixture} from 'sentry-fixture/member';
+import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member as MemberType} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
-export function Members(params: MemberType[] = []): MemberType[] {
+export function MembersFixture(params: Member[] = []): Member[] {
   return [
-    Member(),
+    MemberFixture(),
     {
       id: '2',
       name: 'Sentry 2 Name',
       email: 'sentry2@test.com',
       orgRole: 'member',
-      groupOrgRoles: [],
       teamRoles: [],
       dateCreated: '',
       role: 'member',
@@ -42,7 +41,6 @@ export function Members(params: MemberType[] = []): MemberType[] {
       name: 'Sentry 3 Name',
       email: 'sentry3@test.com',
       orgRole: 'owner',
-      groupOrgRoles: [],
       teamRoles: [],
       role: 'owner',
       dateCreated: '',
@@ -66,14 +64,13 @@ export function Members(params: MemberType[] = []): MemberType[] {
         'member-limit:restricted': false,
         'partnership:restricted': false,
       },
-      user: User(),
+      user: UserFixture(),
     },
     {
       id: '4',
       name: 'Sentry 4 Name',
       email: 'sentry4@test.com',
       orgRole: 'owner',
-      groupOrgRoles: [],
       teamRoles: [],
       dateCreated: '',
       role: 'owner',

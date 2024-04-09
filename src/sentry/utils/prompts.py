@@ -14,6 +14,11 @@ DEFAULT_PROMPTS = {
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "vitals_alert": {"required_fields": ["organization_id"]},
     "github_missing_members": {"required_fields": ["organization_id"]},
+    "codecov_stacktrace_prompt": {"required_fields": ["organization_id", "project_id"]},
+    "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
+    "issue_priority": {"required_fields": ["organization_id"]},
+    "data_consent_banner": {"required_fields": ["organization_id"]},
+    "data_consent_priority": {"required_fields": ["organization_id"]},
 }
 
 

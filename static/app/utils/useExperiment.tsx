@@ -2,7 +2,7 @@ import noop from 'lodash/noop';
 
 import {unassignedValue} from 'sentry/data/experimentConfig';
 import HookStore from 'sentry/stores/hookStore';
-import {ExperimentAssignment, ExperimentKey} from 'sentry/types/experiments';
+import type {ExperimentAssignment, ExperimentKey} from 'sentry/types/experiments';
 
 type UseExperimentOptions = {
   /**

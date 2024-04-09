@@ -1,4 +1,5 @@
-from typing import Any, Iterator, List, Mapping, Optional, Type, Union
+from collections.abc import Iterator, Mapping
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -47,9 +48,9 @@ from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, 
 
 def get_foreign_key_columns(
     destination: BaseModel,
-    *source_models: Type[BaseModel],
+    *source_models: type[BaseModel],
 ) -> Iterator[str]:
-    destination_model: Type[BaseModel] = type(destination)
+    destination_model: type[BaseModel] = type(destination)
     found_one = False
     for field in destination_model._meta.get_fields():
         if isinstance(field, HybridCloudForeignKey):
@@ -69,7 +70,7 @@ def get_foreign_key_columns(
 
 def get_foreign_key_column(
     destination: BaseModel,
-    source_model: Type[BaseModel],
+    source_model: type[BaseModel],
 ) -> str:
     return next(get_foreign_key_columns(destination, source_model))
 
@@ -78,8 +79,8 @@ def get_conflicting_unique_columns(
     destination: BaseModel,
     fk: str,
     category: OutboxCategory,
-) -> Iterator[List[str]]:
-    destination_model: Type[BaseModel] = type(destination)
+) -> Iterator[list[str]]:
+    destination_model: type[BaseModel] = type(destination)
 
     uniques = list(destination_model._meta.unique_together) + [
         (field.name,)
@@ -90,7 +91,7 @@ def get_conflicting_unique_columns(
         return
 
     scope = category.get_scope()
-    scope_controlled_columns: List[str]
+    scope_controlled_columns: list[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
 
@@ -119,12 +120,12 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: Union[Type[ReplicatedControlModel], Type[ReplicatedRegionModel]],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
     destination: BaseModel,
-    fk: Optional[str] = None,
+    fk: str | None = None,
 ):
     category: OutboxCategory = source_model.category
-    destination_model: Type[BaseModel] = type(destination)
+    destination_model: type[BaseModel] = type(destination)
     fk = fk or get_foreign_key_column(destination, source_model)
     dest_filter: Mapping[str, Any] = {fk: getattr(destination, fk)}
 
@@ -147,7 +148,7 @@ def handle_replication(
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
-        organization: Optional[Organization] = None
+        organization: Organization | None = None
         if api_token.organization_id is not None:
             try:
                 organization = Organization.objects.get(id=api_token.organization_id)
@@ -155,16 +156,17 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 return
 
         destination = ApiTokenReplica(
-            application_id=api_token.application_id,  # type: ignore
+            application_id=api_token.application_id,  # type: ignore[misc]
             organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
+            hashed_token=api_token.hashed_token,
             expires_at=api_token.expires_at,
             apitoken_id=api_token.id,
             scope_list=api_token.scope_list,
-            allowed_origins="\n".join(api_token.allowed_origins)
-            if api_token.allowed_origins
-            else None,
+            allowed_origins=(
+                "\n".join(api_token.allowed_origins) if api_token.allowed_origins else None
+            ),
             user_id=api_token.user_id,
         )
         handle_replication(ApiToken, destination)
@@ -181,7 +183,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             token_hashed=token.token_hashed,
             name=token.name,
             scope_list=token.scope_list,
-            created_by_id=token.created_by_id,  # type: ignore
+            created_by_id=token.created_by_id,  # type: ignore[misc]
             date_deactivated=token.date_deactivated,
         )
         handle_replication(OrgAuthToken, destination)
@@ -198,7 +200,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             auth_provider_id=auth_provider.id,
             provider=auth_provider.provider,
             organization_id=organization.id,
-            config=auth_provider.config,  # type: ignore
+            config=auth_provider.config,  # type: ignore[misc]
             default_role=auth_provider.default_role,
             default_global_access=auth_provider.default_global_access,
             allow_unlinked=auth_provider.flags.allow_unlinked,
@@ -216,7 +218,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             user_id=auth_identity.user_id,
             auth_provider_id=auth_identity.auth_provider_id,
             ident=auth_identity.ident,
-            data=auth_identity.data,  # type: ignore
+            data=auth_identity.data,  # type: ignore[misc]
             last_verified=auth_identity.last_verified,
         )
 
@@ -276,6 +278,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             )
             org_slug_qs.delete()
 
+    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
+            AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
+
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
@@ -294,7 +300,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             organization_id=external_actor.organization_id,
             user_id=external_actor.user_id,
             provider=external_actor.provider,
-            team_id=external_actor.team_id,  # type: ignore
+            team_id=external_actor.team_id,  # type: ignore[misc]
             integration_id=integration.id,
         )
         handle_replication(ExternalActor, destination, "externalactor_id")
@@ -325,7 +331,6 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             slug=team.slug,
             name=team.name,
             status=team.status,
-            org_role=team.org_role,
         )
 
         handle_replication(Team, destination)

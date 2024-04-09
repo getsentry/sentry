@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -14,14 +14,13 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import KeyRow from './keyRow';
 
@@ -187,7 +186,7 @@ class ProjectKeys extends DeprecatedAsyncView<Props, State> {
               onClick={this.handleCreateKey}
               size="sm"
               priority="primary"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               disabled={!hasAccess}
             >
               {t('Generate New Key')}

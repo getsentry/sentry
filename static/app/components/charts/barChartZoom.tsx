@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
+import type {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
 
 type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
@@ -87,7 +87,7 @@ class BarChartZoom extends Component<Props> {
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({

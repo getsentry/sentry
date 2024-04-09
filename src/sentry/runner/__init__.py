@@ -1,17 +1,15 @@
-import datetime
+from __future__ import annotations
+
 import logging
 import os
 import sys
+from typing import Any
 
 import click
 import sentry_sdk
 
 import sentry
 from sentry.utils.imports import import_string
-
-# We need to run this here because of a concurrency bug in Python's locale
-# with the lazy initialization.
-datetime.datetime.strptime("", "")
 
 # Parse out a pretty version for use with --version
 version_string = sentry.__semantic_version__
@@ -26,8 +24,7 @@ version_string = sentry.__semantic_version__
     metavar="PATH",
 )
 @click.version_option(version=version_string)
-@click.pass_context
-def cli(ctx, config):
+def cli(config: str) -> None:
     """Sentry is cross-platform crash reporting built with love.
 
     The configuration file is looked up in the `~/.sentry` config
@@ -46,7 +43,7 @@ def cli(ctx, config):
 for cmd in map(
     import_string,
     (
-        "sentry.runner.commands.backup.compare",
+        "sentry.runner.commands.backup.backup",
         "sentry.runner.commands.backup.export",
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",
@@ -81,7 +78,9 @@ for cmd in map(
     cli.add_command(cmd)
 
 
-def make_django_command(name, django_command=None, help=None):
+def make_django_command(
+    name: str, django_command: str | None = None, help: str | None = None
+) -> click.Command:
     "A wrapper to convert a Django subcommand a Click command"
     if django_command is None:
         django_command = name
@@ -94,7 +93,7 @@ def make_django_command(name, django_command=None, help=None):
     )
     @click.argument("management_args", nargs=-1, type=click.UNPROCESSED)
     @click.pass_context
-    def inner(ctx, management_args):
+    def inner(ctx: click.Context, management_args: tuple[str, ...]) -> None:
         from sentry.runner.commands.django import django
 
         ctx.params["management_args"] = (django_command,) + management_args
@@ -106,7 +105,7 @@ def make_django_command(name, django_command=None, help=None):
 cli.add_command(make_django_command("shell", help="Run a Python interactive interpreter."))
 
 
-def configure(*, skip_service_validation: bool = False):
+def configure(*, skip_service_validation: bool = False) -> None:
     """
     Kick things off and configure all the things.
 
@@ -131,7 +130,7 @@ def configure(*, skip_service_validation: bool = False):
     _configure(ctx, py, yaml, skip_service_validation)
 
 
-def get_prog():
+def get_prog() -> str:
     """
     Extract the proper program executable.
 
@@ -150,7 +149,7 @@ class UnknownCommand(ImportError):
     pass
 
 
-def call_command(name, obj=None, **kwargs):
+def call_command(name: str, obj: object = None, **kwargs: Any) -> None:
     try:
         command = import_string(name)
     except (ImportError, AttributeError):
@@ -164,7 +163,7 @@ def call_command(name, obj=None, **kwargs):
             click.echo("Aborted!", err=True)
 
 
-def main():
+def main() -> None:
     func = cli
     kwargs = {
         "prog_name": get_prog(),
@@ -190,6 +189,6 @@ def main():
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)
                 logger.info("We have reported the error below to Sentry")
-            raise e
+            raise
     else:
         func(**kwargs)

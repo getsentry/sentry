@@ -6,12 +6,16 @@ various backends to see if their external behavior makes sense, and that e.g.
 the mock indexer actually behaves the same as the postgres indexer.
 """
 
-from typing import Mapping, Set
+from collections.abc import Mapping
 
 import pytest
 
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
-from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.cache import (
+    BULK_RECORD_CACHE_NAMESPACE,
+    CachingIndexer,
+    StringIndexerCache,
+)
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
@@ -61,7 +65,7 @@ def writes_limiter_option_name(use_case_id):
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
@@ -339,6 +343,58 @@ def test_already_created_plus_written_results(indexer, indexer_cache, use_case_i
         )
         assert_fetch_type_for_tag_string_set(
             fetch_meta[use_case_id][org_id], FetchType.FIRST_SEEN, {"v1.2.3:xyz"}
+        )
+
+
+def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
+    """
+    Test that the caching indexer will incur a miss if the data is staying in the cache for too long
+    """
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        indexer = CachingIndexer(indexer_cache, indexer)
+
+        use_case_id = UseCaseID.SPANS
+        org_id = 1
+        s = "str"
+
+        res = indexer.bulk_record({use_case_id: {org_id: {s}}})
+        id = res.get_mapped_results()[use_case_id][org_id][s]
+        assert res.get_fetch_metadata()[use_case_id][org_id][s].fetch_type == FetchType.FIRST_SEEN
+
+        indexer.cache.cache.set(
+            indexer.cache._make_namespaced_cache_key(
+                BULK_RECORD_CACHE_NAMESPACE, f"{use_case_id.value}:{org_id}:{s}"
+            ),
+            indexer.cache._make_cache_val(id, 0),
+            version=indexer_cache.version,
+        )
+
+        assert (
+            indexer.bulk_record({use_case_id: {org_id: {s}}})
+            .get_fetch_metadata()[use_case_id][org_id][s]
+            .fetch_type
+            == FetchType.DB_READ
+        )
+
+        assert indexer.cache._validate_result(
+            indexer.cache.cache.get(
+                indexer.cache._make_namespaced_cache_key(
+                    BULK_RECORD_CACHE_NAMESPACE, f"{use_case_id.value}:{org_id}:{s}"
+                ),
+                version=indexer_cache.version,
+            )
+        )
+
+        assert (
+            indexer.bulk_record({use_case_id: {org_id: {s}}})
+            .get_fetch_metadata()[use_case_id][org_id][s]
+            .fetch_type
+            == FetchType.CACHE_HIT
         )
 
 

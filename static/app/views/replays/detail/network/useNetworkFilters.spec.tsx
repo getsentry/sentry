@@ -13,7 +13,8 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetworkFilters';
+import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
+import useNetworkFilters from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -161,7 +162,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -173,7 +174,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -239,7 +240,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -251,7 +252,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({

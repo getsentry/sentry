@@ -3,11 +3,10 @@ import {findDOMNode} from 'react-dom';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl, {
-  StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
+import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +15,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Project} from 'sentry/types';
+import type {Integration, Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -181,7 +180,7 @@ class ContextPickerModal extends Component<Props> {
     if (el !== null) {
       const input = el.querySelector('input');
 
-      input && input.focus();
+      input?.focus();
     }
   };
 

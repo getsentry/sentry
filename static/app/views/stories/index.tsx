@@ -1,7 +1,10 @@
+import {useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import OrganizationContainer from 'sentry/views/organizationContainer';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
 import storiesContext from 'sentry/views/stories/storiesContext';
@@ -15,28 +18,42 @@ type Props = RouteComponentProps<{}, {}, any, StoriesQuery>;
 
 export default function Stories({location}: Props) {
   const story = useStoriesLoader({filename: location.query.name});
+  const [searchTerm, setSearchTerm] = useState('');
 
   return (
-    <Layout>
-      <StoryHeader style={{gridArea: 'head'}} />
-      <aside style={{gridArea: 'aside'}}>
-        <StoryTree files={storiesContext().files()} />
-      </aside>
+    <OrganizationContainer>
+      <Layout>
+        <StoryHeader style={{gridArea: 'head'}} />
 
-      {story.error ? (
-        <VerticalScroll style={{gridArea: 'body'}}>
-          <ErrorStory error={story.error} />
-        </VerticalScroll>
-      ) : story.resolved ? (
-        <Main style={{gridArea: 'body'}}>
-          <StoryFile filename={story.filename} resolved={story.resolved} />
-        </Main>
-      ) : (
-        <VerticalScroll style={{gridArea: 'body'}}>
-          <EmptyStory />
-        </VerticalScroll>
-      )}
-    </Layout>
+        <Sidebar style={{gridArea: 'aside'}}>
+          <Input
+            placeholder="Search files by name"
+            onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+          />
+          <TreeContainer>
+            <StoryTree
+              files={storiesContext()
+                .files()
+                .filter(s => s.toLowerCase().includes(searchTerm))}
+            />
+          </TreeContainer>
+        </Sidebar>
+
+        {story.error ? (
+          <VerticalScroll style={{gridArea: 'body'}}>
+            <ErrorStory error={story.error} />
+          </VerticalScroll>
+        ) : story.resolved ? (
+          <Main style={{gridArea: 'body'}}>
+            <StoryFile filename={story.filename} resolved={story.resolved} />
+          </Main>
+        ) : (
+          <VerticalScroll style={{gridArea: 'body'}}>
+            <EmptyStory />
+          </VerticalScroll>
+        )}
+      </Layout>
+    </OrganizationContainer>
   );
 }
 
@@ -52,6 +69,18 @@ const Layout = styled('div')`
 
   height: 100vh;
   padding: var(--stories-grid-space);
+`;
+
+const Sidebar = styled('aside')`
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const TreeContainer = styled('div')`
+  overflow: scroll;
+  flex-grow: 1;
 `;
 
 const VerticalScroll = styled('main')`

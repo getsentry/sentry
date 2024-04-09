@@ -1,11 +1,12 @@
-import {ReactNode, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import useRouter from 'sentry/utils/useRouter';
@@ -14,7 +15,6 @@ import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  Subtitle,
   WidgetContainer,
 } from './styles';
 
@@ -106,7 +106,7 @@ export function ProfilesChartWidget({
       },
       legend: {
         right: 16,
-        top: 12,
+        top: 0,
         data: SERIES_ORDER.slice(),
       },
     };
@@ -116,7 +116,6 @@ export function ProfilesChartWidget({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
-        <Subtitle>{t('P50(), P75(), P95(), P99() over time')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom router={router} {...selection?.datetime}>

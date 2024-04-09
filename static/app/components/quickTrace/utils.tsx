@@ -1,16 +1,16 @@
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {
+import type {
   EventLite,
   QuickTraceEvent,
   TraceError,
@@ -144,6 +144,26 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestamp(event: Event): string | number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (
+      key in event &&
+      (typeof event[key] === 'string' || typeof event[key] === 'number')
+    ) {
+      return event[key];
+    }
+  }
+
+  return undefined;
+}
+
 export function generateTraceTarget(
   event: Event,
   organization: OrganizationSummary
@@ -154,7 +174,14 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl(
+      organization,
+      traceId,
+      dateSelection,
+      {},
+      getEventTimestamp(event),
+      event.eventID
+    );
   }
 
   const eventView = EventView.fromSavedQuery({

@@ -6,35 +6,23 @@ import hmac
 import inspect
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    Mapping,
-    NoReturn,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
 import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
-from typing_extensions import Self
+from requests.adapters import HTTPAdapter, Retry
 
+from sentry import options
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -61,16 +49,6 @@ class RpcServiceSetupException(RpcException):
     """Indicates an error in declaring the properties of RPC services."""
 
 
-class RpcServiceUnimplementedException(RpcException):
-    """Indicates that an RPC service is not yet able to complete a remote call.
-
-    This is a temporary measure while the RPC services are being developed. It
-    signals that a remote call in a testing or development environment should fall
-    back to a monolithic implementation. When RPC services are production-ready,
-    these should become hard failures.
-    """
-
-
 class RpcMethodSignature(SerializableFunctionSignature):
     """Represent the contract for an RPC method.
 
@@ -79,7 +57,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
     resolving the arguments to the correct region for a remote call.
     """
 
-    def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
+    def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
@@ -102,7 +80,6 @@ class RpcMethodSignature(SerializableFunctionSignature):
                 "`local_mode = SiloMode.REGION`"
             )
         if is_region_service and region_resolution is None:
-            # Use UnimplementedRegionResolution as a placeholder if needed
             raise self._setup_exception("Needs @regional_rpc_method")
 
         return region_resolution
@@ -112,20 +89,13 @@ class RpcMethodSignature(SerializableFunctionSignature):
             raise self._setup_exception("Does not run on the region silo")
 
         try:
-            try:
-                region = self._region_resolution.resolve(arguments)
-                return _RegionResolutionResult(region)
-            except RegionMappingNotFound:
-                if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
-                    return _RegionResolutionResult(None, is_early_halt=True)
-                else:
-                    raise
-        except Exception as e:
-            raise RpcServiceUnimplementedException(
-                self.base_service_cls.__name__,
-                self.base_function.__name__,
-                "Error while resolving region",
-            ) from e
+            region = self._region_resolution.resolve(arguments)
+            return _RegionResolutionResult(region)
+        except RegionMappingNotFound:
+            if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                return _RegionResolutionResult(None, is_early_halt=True)
+            else:
+                raise
 
 
 @dataclass(frozen=True)
@@ -141,7 +111,7 @@ class _RegionResolutionResult:
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def __init__(
         self,
-        base_service_cls: Type[RpcService],
+        base_service_cls: type[RpcService],
         constructors: Mapping[SiloMode, Callable[[], RpcService]],
         signatures: Mapping[str, RpcMethodSignature],
     ) -> None:
@@ -197,7 +167,7 @@ def regional_rpc_method(
     return decorator
 
 
-_global_service_registry: Dict[str, DelegatingRpcService] = {}
+_global_service_registry: dict[str, DelegatingRpcService] = {}
 
 
 class RpcService(abc.ABC):
@@ -335,7 +305,7 @@ class RpcService(abc.ABC):
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if signature is None:
-                    raise RpcServiceUnimplementedException(
+                    raise RpcServiceSetupException(
                         cls.key,
                         method_name,
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
@@ -394,7 +364,7 @@ class RpcResponseException(RpcException):
 
 def _look_up_service_method(
     service_name: str, method_name: str
-) -> Tuple[DelegatingRpcService, Callable[..., Any]]:
+) -> tuple[DelegatingRpcService, Callable[..., Any]]:
     try:
         service = _global_service_registry[service_name]
     except KeyError:
@@ -483,17 +453,12 @@ class _RemoteSiloCall:
 
         return_value = serial_response["value"]
         service, _ = _look_up_service_method(self.service_name, self.method_name)
-        return (
-            None
-            if return_value is None
-            else service.deserialize_rpc_response(self.method_name, return_value)
-        )
+        return service.deserialize_rpc_response(self.method_name, return_value)
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
             rpc_destination_region=self.region.name if self.region else None,
-            rpc_service=self.service_name,
-            rpc_method=self.method_name,
+            rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
 
@@ -509,7 +474,13 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
+        metrics.distribution(
+            "hybrid_cloud.dispatch_rpc.request_size",
+            len(data),
+            tags=self._metrics_tags(),
+        )
         with self._open_request_context():
+            self._check_disabled()
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
@@ -518,13 +489,13 @@ class _RemoteSiloCall:
                 "hybrid_cloud.dispatch_rpc.response_code",
                 tags=self._metrics_tags(status=response.status_code),
             )
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.response_size",
+                len(response.content),
+                tags=self._metrics_tags(status=response.status_code),
+            )
 
             if response.status_code == 200:
-                metrics.gauge(
-                    "hybrid_cloud.dispatch_rpc.response_size",
-                    len(response.content),
-                    tags=self._metrics_tags(),
-                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
@@ -543,6 +514,11 @@ class _RemoteSiloCall:
         return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
+        rpc_method = f"{self.service_name}.{self.method_name}"
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag("rpc_method", rpc_method)
+            scope.set_tag("rpc_status_code", response.status_code)
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
@@ -556,6 +532,13 @@ class _RemoteSiloCall:
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
         if response.status_code == 400:
+            logger.warning(
+                "rpc.bad_request",
+                extra={
+                    "rpc_method": rpc_method,
+                    "error": response.content.decode("utf8"),
+                },
+            )
             raise self._remote_exception("Invalid service request")
         raise self._remote_exception(f"Service unavailable ({response.status_code} status)")
 
@@ -573,18 +556,49 @@ class _RemoteSiloCall:
         else:
             target_mode = SiloMode.CONTROL
 
-        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-            target_mode, self.region
+        with (
+            SingleProcessSiloModeState.exit(),
+            SingleProcessSiloModeState.enter(target_mode, self.region),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
             }
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
-    def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
+    def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=options.get("hybridcloud.rpc.retries"),
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["POST"],
+            )
+        )
+        http = requests.Session()
+        http.mount("http://", retry_adapter)
+        http.mount("https://", retry_adapter)
+
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
-        return requests.post(url, headers=headers, data=data)
+
+        try:
+            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+        except requests.exceptions.ConnectionError as e:
+            raise self._remote_exception("RPC Connection failed") from e
+        except requests.exceptions.RetryError as e:
+            raise self._remote_exception("RPC failed, max retries reached.") from e
+        except requests.exceptions.Timeout as e:
+            raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+
+    def _check_disabled(self):
+        if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
+            service_method = f"{self.service_name}.{self.method_name}"
+            if service_method in disabled_service_methods:
+                raise RpcDisabledException(f"RPC {service_method} disabled")
+
+
+class RpcDisabledException(Exception):
+    """Indicates that an RPC method has been disabled and a request has not been made."""
 
 
 class RpcAuthenticationSetupException(Exception):

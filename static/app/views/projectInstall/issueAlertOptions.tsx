@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -7,15 +6,12 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import * as Layout from 'sentry/components/layouts/thirds';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
-  IssueAlertRuleAction,
-} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types';
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
 export enum MetricValues {
@@ -24,7 +20,7 @@ export enum MetricValues {
 }
 
 export enum RuleAction {
-  ALERT_ON_EVERY_ISSUE,
+  DEFAULT_ALERT,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
 }
@@ -35,6 +31,7 @@ const ISSUE_ALERT_DEFAULT_ACTION: Omit<
 > = {
   id: IssueAlertActionType.NOTIFY_EMAIL,
   targetType: 'IssueOwners',
+  fallthroughType: 'ActiveMembers',
 };
 
 const METRIC_CONDITION_MAP = {
@@ -49,6 +46,7 @@ type Props = DeprecatedAsyncComponent['props'] & {
   alertSetting?: string;
   interval?: string;
   metric?: MetricValues;
+  platformLanguage?: SupportedLanguages;
   threshold?: string;
 };
 
@@ -116,7 +114,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
+      alertSetting: this.props.alertSetting ?? RuleAction.DEFAULT_ALERT.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
       threshold: this.props.threshold ?? '10',
@@ -139,7 +137,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   ): [string, string | React.ReactElement][] {
     const customizedAlertOption: [string, React.ReactNode] = [
       RuleAction.CUSTOMIZED_ALERTS.toString(),
-      <CustomizeAlertsGrid
+      <CustomizeAlert
         key={RuleAction.CUSTOMIZED_ALERTS}
         onClick={e => {
           // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
@@ -176,11 +174,15 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           }))}
           onChange={interval => this.setStateAndUpdateParents({interval: interval.value})}
         />
-      </CustomizeAlertsGrid>,
+      </CustomizeAlert>,
     ];
 
+    const default_label = this.shouldUseNewDefaultSetting()
+      ? t('Alert me on high priority issues')
+      : t('Alert me on every new issue');
+
     const options: [string, React.ReactNode][] = [
-      [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [RuleAction.DEFAULT_ALERT.toString(), default_label],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
@@ -190,12 +192,20 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     ]);
   }
 
+  shouldUseNewDefaultSetting(): boolean {
+    return (
+      this.props.organization.features.includes('default-high-priority-alerts') &&
+      (this.props.platformLanguage === SupportedLanguages.PYTHON ||
+        this.props.platformLanguage === SupportedLanguages.JAVASCRIPT)
+    );
+  }
+
   getUpdatedData(): RequestDataFragment {
     let defaultRules: boolean;
     let shouldCreateCustomRule: boolean;
     const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
-      case RuleAction.ALERT_ON_EVERY_ISSUE:
+      case RuleAction.DEFAULT_ALERT:
         defaultRules = true;
         shouldCreateCustomRule = false;
         break;
@@ -225,14 +235,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
               ),
             ]
           : undefined,
-      actions: [
-        {
-          ...ISSUE_ALERT_DEFAULT_ACTION,
-          ...(this.props.organization.features.includes('issue-alert-fallback-targeting')
-            ? {fallthroughType: 'ActiveMembers'}
-            : {}),
-        },
-      ],
+      actions: [ISSUE_ALERT_DEFAULT_ACTION],
       actionMatch: 'all',
       frequency: 5,
     };
@@ -303,19 +306,14 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     );
 
     return (
-      <Fragment>
-        <PageHeadingWithTopMargins withMargins>
-          {t('2. Set your alert frequency')}
-        </PageHeadingWithTopMargins>
-        <Content>
-          <RadioGroupWithPadding
-            choices={issueAlertOptionsChoices}
-            label={t('Options for creating an alert')}
-            onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
-            value={this.state.alertSetting}
-          />
-        </Content>
-      </Fragment>
+      <Content>
+        <RadioGroupWithPadding
+          choices={issueAlertOptionsChoices}
+          label={t('Options for creating an alert')}
+          onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
+          value={this.state.alertSetting}
+        />
+      </Content>
     );
   }
 }
@@ -327,27 +325,25 @@ const Content = styled('div')`
   padding-bottom: ${space(4)};
 `;
 
-const CustomizeAlertsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, max-content);
+const CustomizeAlert = styled('div')`
+  display: flex;
   gap: ${space(1)};
+  flex-wrap: wrap;
   align-items: center;
 `;
+
 const InlineInput = styled(Input)`
   width: 80px;
 `;
+
 const InlineSelectControl = styled(SelectControl)`
   width: 160px;
 `;
+
 const RadioGroupWithPadding = styled(RadioGroup)`
   margin-bottom: ${space(2)};
 `;
-const PageHeadingWithTopMargins = styled(Layout.Title)`
-  margin-top: 65px;
-  margin-bottom: 0;
-  padding-bottom: ${space(3)};
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-`;
+
 const RadioItemWrapper = styled('div')`
   min-height: 35px;
   display: flex;

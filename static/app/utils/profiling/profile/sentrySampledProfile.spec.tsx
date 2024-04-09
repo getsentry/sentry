@@ -1,6 +1,6 @@
 import merge from 'lodash/merge';
 
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 
 import {Frame} from '../frame';
 

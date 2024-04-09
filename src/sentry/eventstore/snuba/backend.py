@@ -1,8 +1,9 @@
 import logging
 import random
+from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -66,8 +67,8 @@ class SnubaEventStorage(EventStorage):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=DEFAULT_LIMIT,
@@ -303,6 +304,7 @@ class SnubaEventStorage(EventStorage):
         group_id=None,
         skip_transaction_groupevent=False,
         tenant_ids=None,
+        occurrence_id: str | None = None,
     ):
         """
         Get an event given a project ID and event ID
@@ -328,6 +330,17 @@ class SnubaEventStorage(EventStorage):
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id
+        elif occurrence_id is not None and group_id is not None:
+            event.group_id = group_id
+
+            event._snuba_data = {
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project_id,
+                "timestamp": event.timestamp,
+                "occurrence_id": occurrence_id,
+            }
+
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
@@ -413,7 +426,9 @@ class SnubaEventStorage(EventStorage):
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
-        prev_filter.start = datetime.utcfromtimestamp(0)
+
+        # We only store 90 days of data, add a few extra days just in case
+        prev_filter.start = event.datetime - timedelta(days=100)
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         prev_filter.end = event.datetime + timedelta(seconds=1)

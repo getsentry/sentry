@@ -3,6 +3,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_only_model
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.slug import SentrySlugField
 
 
 @control_silo_only_model
@@ -14,7 +15,7 @@ class DocIntegration(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     name = models.CharField(max_length=64)
-    slug = models.CharField(max_length=64, unique=True)
+    slug = SentrySlugField(max_length=64, unique=True, db_index=False)
     author = models.CharField(max_length=255)
     description = models.TextField()
     url = models.URLField()

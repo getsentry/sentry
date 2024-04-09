@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
     IncidentStatusMethod,
 )
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.constants import (
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+    SUBSCRIPTION_METRICS_LOGGER,
+)
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -31,10 +34,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
-
-INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
-INCIDENT_SNAPSHOT_BATCH_SIZE = 50
-SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(
@@ -81,7 +80,7 @@ def send_subscriber_notifications(activity_id: int) -> None:
 
 
 def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
 ) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
@@ -94,8 +93,8 @@ def generate_incident_activity_email(
 
 
 def build_activity_context(
-    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
-) -> Dict[str, Any]:
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+) -> dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 
@@ -130,7 +129,7 @@ def build_activity_context(
 
 @register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
 def handle_subscription_metrics_logger(
-    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+    subscription_update: QuerySubscriptionUpdate, subscription: QuerySubscription
 ) -> None:
     """
     Logs results from a `QuerySubscription`.
@@ -141,7 +140,7 @@ def handle_subscription_metrics_logger(
         if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore
+            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore[method-assign]
             aggregation_value = processor.get_aggregation_value(subscription_update)
 
             logger.info(
@@ -160,7 +159,7 @@ def handle_subscription_metrics_logger(
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
 def handle_snuba_query_update(
-    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+    subscription_update: QuerySubscriptionUpdate, subscription: QuerySubscription
 ) -> None:
     """
     Handles a subscription update for a `QuerySubscription`.
@@ -185,7 +184,7 @@ def handle_trigger_action(
     project_id: int,
     method: str,
     new_status: int,
-    metric_value: Optional[int] = None,
+    metric_value: int | None = None,
     **kwargs: Any,
 ) -> None:
     try:
@@ -240,7 +239,7 @@ def handle_trigger_action(
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
-    from sentry.incidents.models import AlertRule
+    from sentry.incidents.models.alert_rule import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)

@@ -1,13 +1,14 @@
-import Cookies from 'js-cookie';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('Role', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     orgRole: 'admin',
     orgRoleList: [
       {
@@ -15,28 +16,32 @@ describe('Role', function () {
         name: 'Member',
         desc: '...',
         minimumTeamRole: 'contributor',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'admin',
         name: 'Admin',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'manager',
         name: 'Manager',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'owner',
         name: 'Owner',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
     ],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       organization,
     },
@@ -45,11 +50,15 @@ describe('Role', function () {
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
     beforeEach(function () {
+      OrganizationStore.init();
       childrenMock.mockClear();
     });
 
     it('has a sufficient role', function () {
-      render(<Role role="admin">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="admin">{childrenMock}</Role>, {
+        context: routerContext,
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
@@ -59,6 +68,7 @@ describe('Role', function () {
     it('has an insufficient role', function () {
       render(<Role role="manager">{childrenMock}</Role>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -67,25 +77,23 @@ describe('Role', function () {
     });
 
     it('gives access to a superuser with insufficient role', function () {
-      ConfigStore.config.user = TestStubs.User({isSuperuser: true});
-      Cookies.set = jest.fn();
+      organization.access = ['org:superuser'];
+      OrganizationStore.onUpdate(organization, {replace: true});
 
-      render(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="owner">{childrenMock}</Role>, {
+        context: routerContext,
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
       });
-      expect(Cookies.set).toHaveBeenCalledWith(
-        'su-test-cookie',
-        'set-in-isActiveSuperuser',
-        {domain: '.sentry.io'}
-      );
-      ConfigStore.config.user = TestStubs.User({isSuperuser: false});
     });
 
     it('does not give access to a made up role', function () {
       render(<Role role="abcdefg">{childrenMock}</Role>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -96,7 +104,10 @@ describe('Role', function () {
     it('handles no user', function () {
       const user = {...ConfigStore.config.user};
       ConfigStore.config.user = undefined as any;
-      render(<Role role="member">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="member">{childrenMock}</Role>, {
+        context: routerContext,
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
@@ -109,6 +120,7 @@ describe('Role', function () {
       ConfigStore.config.user = undefined as any;
       const {rerender} = render(<Role role="member">{childrenMock}</Role>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -127,7 +139,7 @@ describe('Role', function () {
         <Role role="member" organization={{...organization, orgRoleList: []}}>
           {childrenMock}
         </Role>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -142,7 +154,7 @@ describe('Role', function () {
         <Role role="member">
           <div>The Child</div>
         </Role>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByText('The Child')).toBeInTheDocument();
@@ -153,7 +165,7 @@ describe('Role', function () {
         <Role role="owner">
           <div>The Child</div>
         </Role>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();

@@ -1,17 +1,16 @@
 from selenium.webdriver.common.by import By
 
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
         self.provider = "github"
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider=self.provider,
             external_id="some_github",
             name="Github",
@@ -59,13 +58,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             organization=self.organization, teams=[self.team, self.team2, self.team3], slug="bengal"
         )
 
-        with self.feature(
-            {
-                "organizations:integrations-codeowners": True,
-                "organizations:integrations-stacktrace-link": True,
-            }
-        ):
-
+        with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
@@ -91,13 +84,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_external_team_mappings(self):
-        with self.feature(
-            {
-                "organizations:integrations-codeowners": True,
-                "organizations:integrations-stacktrace-link": True,
-            }
-        ):
-
+        with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )

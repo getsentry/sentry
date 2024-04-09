@@ -1,5 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -16,18 +21,22 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Group, GroupActivityType, Organization as TOrganization} from 'sentry/types';
-import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
+import type {Group, Organization as TOrganization, Project} from 'sentry/types';
+import {GroupActivityType, PriorityLevel} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import GroupActivity from 'sentry/views/issueDetails/groupActivity';
+
+jest.mock('sentry/utils/useOrganization');
 
 describe('GroupActivity', function () {
-  let project;
+  let project!: Project;
   const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', TestStubs.User({id: '123'}));
+    ConfigStore.set('user', UserFixture({id: '123'}));
     GroupStore.init();
   });
 
@@ -43,27 +52,29 @@ describe('GroupActivity', function () {
     activity?: Group['activity'];
     organization?: TOrganization;
   } = {}) {
-    const group = TestStubs.Group({
+    const group = GroupFixture({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Test Note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user: UserFixture(),
+          project,
+        },
       ],
       project,
     });
     const {organization, routerContext, routerProps} = initializeOrg({
       organization: additionalOrg,
     });
+    jest.mocked(useOrganization).mockReturnValue(organization);
     GroupStore.add([group]);
-    TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]);
+    TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
-      <GroupActivity
-        {...routerProps}
-        api={new MockApiClient()}
-        params={{orgId: 'org-slug'}}
-        group={group}
-        organization={organization}
-      />,
+      <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
       {context: routerContext}
     );
   }
@@ -74,14 +85,14 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = TestStubs.User({name: 'Samwise'});
+    const user = UserFixture({name: 'Samwise'});
     createWrapper({
       activity: [
         {
           type: GroupActivityType.MARK_REVIEWED,
           id: 'reviewed-1',
           dateCreated: '',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {},
           user,
         },
@@ -92,13 +103,13 @@ describe('GroupActivity', function () {
   });
 
   it('renders a pr activity', function () {
-    const user = TestStubs.User({name: 'Test User'});
-    const repository = Repository();
+    const user = UserFixture({name: 'Test User'});
+    const repository = RepositoryFixture();
     createWrapper({
       activity: [
         {
           dateCreated: '',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-1',
           data: {
@@ -119,7 +130,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = TestStubs.User({id: '123', name: 'Mark'});
+    const user = UserFixture({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -132,7 +143,7 @@ describe('GroupActivity', function () {
           user,
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           type: GroupActivityType.ASSIGNED,
         },
       ],
@@ -152,9 +163,9 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
-            user: TestStubs.User(),
+            user: UserFixture(),
           },
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -168,7 +179,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = UserFixture({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -177,9 +188,9 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
-            user: TestStubs.User(),
+            user: UserFixture(),
           },
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -192,24 +203,78 @@ describe('GroupActivity', function () {
     expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
+  it('renders an assigned via suspect commit activity', function () {
+    createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'suspectCommitter',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry auto-assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).toHaveTextContent(/Assigned via Suspect Commit/);
+  });
+
+  it('does not render undefined when integration is not recognized', function () {
+    createWrapper({
+      activity: [
+        // @ts-ignore-next-line -> committing type crimes on `integration`
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'lottery',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).not.toHaveTextContent(/Assigned via Suspect Commit/);
+  });
+
   it('resolved in commit with no releases', function () {
     createWrapper({
       activity: [
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
               dateCreated: '',
               message: '',
               id: 'komal-commit',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [],
             },
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -224,16 +289,16 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
@@ -241,7 +306,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -256,31 +321,31 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-06-01',
                   dateReleased: '2022-06-02',
                   version: 'newest',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2021-08-03',
                   dateReleased: '2021-08-03',
                   version: 'oldest-release',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-04-21',
                   dateReleased: '2022-04-21',
                   version: 'randomTwo',
@@ -288,7 +353,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -298,7 +363,7 @@ describe('GroupActivity', function () {
   });
 
   it('requests assignees that are not in the team store', async function () {
-    const team = TestStubs.Team({id: '123', name: 'workflow'});
+    const team = TeamFixture({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [team],
@@ -309,11 +374,11 @@ describe('GroupActivity', function () {
           id: '123',
           user: null,
           type: GroupActivityType.ASSIGNED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             assignee: team.id,
             assigneeType: 'team',
-            user: TestStubs.User(),
+            user: UserFixture(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -337,7 +402,7 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
+      ConfigStore.set('user', UserFixture({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -373,54 +438,34 @@ describe('GroupActivity', function () {
     });
   });
 
-  it('renders ignored', function () {
+  it('renders archived until escalating', function () {
     createWrapper({
       activity: [
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             ignoreUntilEscalating: true,
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-    });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue'
-    );
-  });
-
-  it('renders archived until escalating if org has `escalating-issues` feature', function () {
-    createWrapper({
-      activity: [
-        {
-          id: '123',
-          type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
-          data: {
-            ignoreUntilEscalating: true,
-          },
-          user: TestStubs.User(),
-          dateCreated,
-        },
-      ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
     );
   });
 
-  it('renders escalating with forecast and plural events if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and plural events', function () {
     createWrapper({
       activity: [
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 200,
           },
@@ -430,7 +475,7 @@ describe('GroupActivity', function () {
         {
           id: '124',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 400,
           },
@@ -438,7 +483,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -448,13 +493,13 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating with forecast and singular event if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and singular event', function () {
     createWrapper({
       activity: [
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 1,
           },
@@ -462,31 +507,54 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
     );
   });
 
-  it('renders ignored until it happens x times in time window', function () {
+  it('renders issue unresvoled via jira', function () {
     createWrapper({
       activity: [
         {
           id: '123',
-          type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          type: GroupActivityType.SET_UNRESOLVED,
+          project: ProjectFixture(),
           data: {
-            ignoreCount: 400,
-            ignoreWindow: 1,
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
           },
-          user: TestStubs.User(),
+          user: null,
           dateCreated,
         },
       ],
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
+      'Sentry marked this issue as unresolved via Jira'
+    );
+  });
+
+  it('renders issue resolved via jira', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED,
+          project: ProjectFixture(),
+          data: {
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry marked this issue as resolved via Jira'
     );
   });
 
@@ -496,7 +564,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               count: 400,
@@ -521,7 +589,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               user_count: 1,
@@ -547,7 +615,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               until: date,
@@ -572,13 +640,13 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {},
-          user: TestStubs.User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
@@ -591,11 +659,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -611,11 +679,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             current_release_version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -632,7 +700,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {},
             dateCreated,
           },
@@ -648,7 +716,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@1.0.0',
             },
@@ -666,7 +734,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@2.0.0',
               resolved_in_version: 'frontend@1.0.0',
@@ -690,7 +758,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@abc1',
               resolved_in_version: 'frontend@abc2',
@@ -706,6 +774,47 @@ describe('GroupActivity', function () {
       );
       expect(activity).toHaveTextContent(
         'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
+
+    it('renders a set priority activity for escalating issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.HIGH,
+              reason: 'escalating',
+            },
+            dateCreated,
+          },
+        ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be high after it escalated'
+      );
+    });
+    it('renders a set priority activity for ongoing issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.LOW,
+              reason: 'ongoing',
+            },
+            dateCreated,
+          },
+        ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
       );
     });
   });

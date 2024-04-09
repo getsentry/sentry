@@ -1,11 +1,12 @@
+from datetime import timedelta
 from unittest import mock
+
+from django.utils import timezone
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -57,6 +58,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_user_tag(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "user": {
@@ -65,7 +68,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": iso_format(before_now(seconds=10)),
             },
             project_id=project.id,
         )
@@ -85,6 +88,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_tag_value_with_backslash(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "message": "minidumpC:\\Users\\test",
@@ -116,6 +121,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_count_sort(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "message": "message 1",
@@ -126,7 +133,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": iso_format(before_now(seconds=10)),
             },
             project_id=project.id,
         )
@@ -140,7 +147,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": iso_format(before_now(seconds=10)),
             },
             project_id=project.id,
         )
@@ -154,7 +161,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "bar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": iso_format(before_now(seconds=10)),
             },
             project_id=project.id,
         )

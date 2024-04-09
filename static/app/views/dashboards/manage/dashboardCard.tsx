@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 
 interface Props {
   detail: React.ReactNode;
@@ -15,7 +16,7 @@ interface Props {
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderContextMenu?: () => void;
+  renderContextMenu?: () => React.ReactNode;
 }
 
 function DashboardCard({
@@ -59,7 +60,7 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-          {renderContextMenu && renderContextMenu()}
+          {renderContextMenu?.()}
         </CardFooter>
       </StyledDashboardCard>
     </Link>

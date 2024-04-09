@@ -1,3 +1,5 @@
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ describe('AccountSecuritySessionHistory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders an ip address', function () {
+  it('renders an ip address', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -35,9 +37,9 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    render(<SessionHistory {...routerProps} />, {context: TestStubs.routerContext()});
+    render(<SessionHistory {...routerProps} />, {context: RouterContextFixture()});
 
-    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
+    expect(await screen.findByText('127.0.0.1')).toBeInTheDocument();
     expect(screen.getByText('192.168.0.1')).toBeInTheDocument();
     expect(screen.getByText('US (CA)')).toBeInTheDocument();
   });

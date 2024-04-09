@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Generator, Mapping, Optional
+from collections.abc import Generator, Mapping
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
@@ -84,7 +85,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
         pass
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"

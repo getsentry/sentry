@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from contextlib import nullcontext
-from random import random
-from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Literal, Self, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
+from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry import audit_log, features
@@ -15,16 +15,21 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
-from sentry.models.organization import Organization
+from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
-from ..exceptions.base import ApiError
+from ..exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiHostError,
+    ApiRetryError,
+    ApiTimeoutError,
+)
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
@@ -53,6 +58,10 @@ class BaseApiClient(TrackResponseMixin):
 
     integration_name: str
 
+    # Timeout for both the connect and the read timeouts.
+    # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+    timeout: int = 30
+
     def __init__(
         self,
         integration_id: int | None = None,
@@ -63,10 +72,10 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
         self.integration_id = integration_id
 
-    def __enter__(self) -> BaseApiClient:
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: Any) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
@@ -118,6 +127,12 @@ class BaseApiClient(TrackResponseMixin):
 
     def is_error_fatal(self, error: Exception) -> bool:
         return False
+
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        """
+        return build_session()
 
     @overload
     def _request(
@@ -183,7 +198,7 @@ class BaseApiClient(TrackResponseMixin):
             allow_redirects = method.upper() == "GET"
 
         if timeout is None:
-            timeout = 30
+            timeout = self.timeout
 
         full_url = self.build_url(path)
 
@@ -193,26 +208,9 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        parent_span_id = None
-        trace_id = None
-        currently_in_server_transaction = False
-        existing_transaction = None
-
         with sentry_sdk.configure_scope() as scope:
             if self.integration_type:
                 scope.set_tag(self.integration_type, self.name)
-
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-                currently_in_server_transaction = (
-                    scope.transaction and scope.transaction.op == sentry_sdk.consts.OP.HTTP_SERVER
-                )
-                if not currently_in_server_transaction and scope.transaction:
-                    existing_transaction = {
-                        "name": scope.transaction.name,
-                        "op": scope.transaction.op,
-                    }
 
         request = Request(
             method=method.upper(),
@@ -225,107 +223,92 @@ class BaseApiClient(TrackResponseMixin):
         )
         _prepared_request = prepared_request if prepared_request is not None else request.prepare()
 
-        with (
-            sentry_sdk.start_transaction(
-                op=f"{self.integration_type}.http",
-                name=f"{self.integration_type}.http_response.{self.name}",
-                parent_span_id=parent_span_id,
-                trace_id=trace_id,
-                sampled=random() < 0.05,
-            )
-            if not currently_in_server_transaction
-            # `nullcontext()` results in `span` being None. (We do this so that any spans or errors
-            # created attach themselves to the `http.server` transaction already in progress.)
-            else nullcontext()
-        ) as span:
-            # TODO: Examine the values we get back here to decide if there are any other
-            # existing transactions we should just let keep going rather than creating a new
-            # transaction here
-            if span and existing_transaction:
-                span.set_data("existing_transaction", existing_transaction)
+        extra = {"url": full_url}
+        # It shouldn't be possible for integration_type to be null.
+        if self.integration_type:
+            extra[self.integration_type] = self.name
 
-            extra = {"url": full_url}
-            # It shouldn't be possible for integration_type to be null.
-            if self.integration_type:
-                extra[self.integration_type] = self.name
+        try:
+            with self.build_session() as session:
+                finalized_request = self.finalize_request(_prepared_request)
+                environment_settings = session.merge_environment_settings(
+                    url=finalized_request.url,
+                    proxies={},
+                    stream=None,
+                    verify=self.verify_ssl,
+                    cert=None,
+                )
+                send_kwargs = {
+                    "timeout": timeout,
+                    "allow_redirects": allow_redirects,
+                    **environment_settings,
+                }
+                resp: Response = session.send(
+                    finalized_request,
+                    **send_kwargs,
+                )
+                if raw_response:
+                    return resp
+                resp.raise_for_status()
+        except RestrictedIPAddress as e:
+            self.track_response_data("restricted_ip_address", e, extra=extra)
+            self.record_error(e)
+            raise ApiHostError.from_exception(e) from e
+        except ConnectionError as e:
+            self.track_response_data("connection_error", e, extra=extra)
+            self.record_error(e)
+            raise ApiHostError.from_exception(e) from e
+        except Timeout as e:
+            self.track_response_data("timeout", e, extra=extra)
+            self.record_error(e)
+            raise ApiTimeoutError.from_exception(e) from e
+        except RetryError as e:
+            self.track_response_data("max_retries", e, extra=extra)
+            self.record_error(e)
+            raise ApiRetryError.from_exception(e) from e
+        except HTTPError as e:
+            error_resp = e.response
+            if error_resp is None:
+                self.track_response_data("unknown", e, extra=extra)
 
-            try:
-                with build_session() as session:
-                    finalized_request = self.finalize_request(_prepared_request)
-                    environment_settings = session.merge_environment_settings(
-                        url=finalized_request.url,
-                        proxies={},
-                        stream=None,
-                        verify=self.verify_ssl,
-                        cert=None,
-                    )
-                    send_kwargs = {
-                        "timeout": timeout,
-                        "allow_redirects": allow_redirects,
-                        **environment_settings,
-                    }
-                    resp: Response = session.send(
-                        finalized_request,
-                        **send_kwargs,
-                    )
-                    if raw_response:
-                        return resp
-                    resp.raise_for_status()
-            except RestrictedIPAddress as e:
-                self.track_response_data("restricted_ip_address", span, e, extra=extra)
+                self.logger.exception("request.error", extra=extra)
                 self.record_error(e)
-                raise ApiHostError.from_exception(e) from e
-            except ConnectionError as e:
-                self.track_response_data("connection_error", span, e, extra=extra)
+                raise ApiError("Internal Error", url=full_url) from e
+
+            self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
+            self.record_error(e)
+            raise ApiError.from_response(error_resp, url=full_url) from e
+
+        except Exception as e:
+            # Sometimes a ConnectionResetError shows up two or three deep in an exception
+            # chain, and you end up with an exception like
+            #     `ChunkedEncodingError("Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
+            #          ConnectionResetError(104, 'Connection reset by peer'))`,
+            # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
+            # Rather than worrying about what the other layers might be, we just stringify to detect this.
+            if "ConnectionResetError" in str(e):
+                self.track_response_data("connection_reset_error", e, extra=extra)
                 self.record_error(e)
-                raise ApiHostError.from_exception(e) from e
-            except Timeout as e:
-                self.track_response_data("timeout", span, e, extra=extra)
+                raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
+            # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
+            if "InvalidChunkLength" in str(e):
+                self.track_response_data("invalid_chunk_length", e, extra=extra)
                 self.record_error(e)
-                raise ApiTimeoutError.from_exception(e) from e
-            except HTTPError as e:
-                error_resp = e.response
-                if error_resp is None:
-                    self.track_response_data("unknown", span, e, extra=extra)
+                raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
-                    self.logger.exception("request.error", extra=extra)
-                    self.record_error(e)
-                    raise ApiError("Internal Error", url=full_url) from e
+            # If it's not something we recognize, let the caller deal with it
+            raise
 
-                self.track_response_data(error_resp.status_code, span, e, extra=extra)
-                self.record_error(e)
-                raise ApiError.from_response(error_resp, url=full_url) from e
+        self.track_response_data(resp.status_code, None, resp, extra=extra)
 
-            except Exception as e:
-                # Sometimes a ConnectionResetError shows up two or three deep in an exception
-                # chain, and you end up with an exception like
-                #     `ChunkedEncodingError("Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
-                #          ConnectionResetError(104, 'Connection reset by peer'))`,
-                # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
-                # Rather than worrying about what the other layers might be, we just stringify to detect this.
-                if "ConnectionResetError" in str(e):
-                    self.track_response_data("connection_reset_error", span, e, extra=extra)
-                    self.record_error(e)
-                    raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
-                # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
-                if "InvalidChunkLength" in str(e):
-                    self.track_response_data("invalid_chunk_length", span, e, extra=extra)
-                    self.record_error(e)
-                    raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
+        self.record_response_for_disabling_integration(resp)
 
-                # If it's not something we recognize, let the caller deal with it
-                raise e
+        if resp.status_code == 204:
+            return {}
 
-            self.track_response_data(resp.status_code, span, None, resp, extra=extra)
-
-            self.record_response(resp)
-
-            if resp.status_code == 204:
-                return {}
-
-            return BaseApiResponse.from_response(
-                resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
-            )
+        return BaseApiResponse.from_response(
+            resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
+        )
 
     # subclasses should override ``request``
     def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
@@ -404,7 +387,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: Response):
+    def record_response_for_disabling_integration(self, response: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
@@ -432,41 +415,46 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration(buffer)
 
-    def disable_integration(self, buffer) -> None:
-        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
+    def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
+        rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-        if (
-            integration_service.get_integration(integration_id=rpc_integration.id).status
-            == ObjectStatus.DISABLED
-        ):
+        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
             return
-        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
-        org = Organization.objects.get(id=oi.organization_id)
+
+        org = None
+        if len(rpc_org_integrations) > 0:
+            org_context = organization_service.get_organization_by_id(
+                id=rpc_org_integrations[0].organization_id,
+                include_projects=False,
+                include_teams=False,
+            )
+            if org_context:
+                org = org_context.organization
 
         extra = {
             "integration_id": self.integration_id,
             "buffer_record": buffer._get_all_from_buffer(),
         }
-        if len(rpc_org_integration) == 0 and rpc_integration is None:
+        if len(rpc_org_integrations) == 0 and rpc_integration is None:
             extra["provider"] = "unknown"
             extra["organization_id"] = "unknown"
-        elif len(rpc_org_integration) == 0:
+        elif len(rpc_org_integrations) == 0:
             extra["provider"] = rpc_integration.provider
             extra["organization_id"] = "unknown"
         elif rpc_integration is None:
             extra["provider"] = "unknown"
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
         else:
             extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
 
         self.logger.info(
             "integration.disabled",
             extra=extra,
         )
 
-        if (
+        if org and (
             (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
             or (rpc_integration.provider == "github")
             or (
@@ -474,14 +462,13 @@ class BaseApiClient(TrackResponseMixin):
                 and rpc_integration.provider == "gitlab"
             )
         ):
-
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
-                organization=org,
+                organization_id=org.id,
                 target_object=org.id,
                 event=audit_log.get_event_id("INTEGRATION_DISABLED"),
                 data={"provider": rpc_integration.provider},

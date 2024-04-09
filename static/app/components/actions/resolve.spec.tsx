@@ -1,4 +1,4 @@
-import selectEvent from 'react-select-event';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,
@@ -7,6 +7,7 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
 import ModalStore from 'sentry/stores/modalStore';
@@ -140,7 +141,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
     render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();
@@ -148,7 +149,7 @@ describe('ResolveActions', function () {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     await userEvent.click(screen.getByText('Another existing release…'));
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 
@@ -202,5 +203,29 @@ describe('ResolveActions', function () {
     expect(
       screen.queryByText('Resolving is better with Releases')
     ).not.toBeInTheDocument();
+  });
+
+  it('does render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease={false}
+      />
+    );
+    expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
+  });
+
+  it('does not render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease
+      />
+    );
+    expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
   });
 });

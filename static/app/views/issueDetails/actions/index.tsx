@@ -1,48 +1,38 @@
-import {Fragment, MouseEvent} from 'react';
+import type {MouseEvent} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {
-  ModalRenderProps,
-  openModal,
-  openReprocessEventModal,
-} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
 import ActionButton from 'sentry/components/actions/button';
-import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {
-  IconCheckmark,
-  IconEllipsis,
-  IconMute,
-  IconSubscribed,
-  IconUnsubscribed,
-} from 'sentry/icons';
+import {IconEllipsis, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
-  GroupStatus,
   GroupStatusResolution,
-  GroupSubstatus,
-  IssueCategory,
   MarkReviewed,
   Organization,
   Project,
   SavedQueryVersions,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -51,9 +41,11 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -90,21 +82,26 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
+
   const {
-    actions: {delete: deleteCap, deleteAndDiscard: deleteDiscardCap, share: shareCap},
+    actions: {
+      archiveUntilOccurrence: archiveUntilOccurrenceCap,
+      delete: deleteCap,
+      deleteAndDiscard: deleteDiscardCap,
+      share: shareCap,
+      resolveInRelease: resolveInReleaseCap,
+    },
     discover: discoverCap,
-  } = getConfigForIssueType(group);
+  } = config;
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
     const groupIsOccurrenceBacked =
       group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
-
-    const config = getConfigForIssueType(group);
 
     const discoverQuery = {
       id: undefined,
@@ -141,7 +138,6 @@ export function Actions(props: Props) {
     const {alert_date, alert_rule_id, alert_type} = query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
@@ -151,6 +147,7 @@ export function Actions(props: Props) {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
   };
 
@@ -179,6 +176,7 @@ export function Actions(props: Props) {
     );
 
     trackIssueAction('deleted');
+    IssueListCacheStore.reset();
   };
 
   const onUpdate = (data: UpdateData) => {
@@ -207,6 +205,7 @@ export function Actions(props: Props) {
     if ((data as {inbox: boolean}).inbox !== undefined) {
       trackIssueAction('mark_reviewed');
     }
+    IssueListCacheStore.reset();
   };
 
   const onReprocessEvent = () => {
@@ -257,6 +256,7 @@ export function Actions(props: Props) {
       complete: clearIndicators,
     });
     trackIssueAction('discarded');
+    IssueListCacheStore.reset();
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -275,7 +275,7 @@ export function Actions(props: Props) {
 
     return (
       <Feature
-        features={['projects:discard-groups']}
+        features="projects:discard-groups"
         hookName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
@@ -351,7 +351,6 @@ export function Actions(props: Props) {
     };
   };
 
-  const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate});
   const {dropdownItems: archiveDropdownItems} = getArchiveActions({
     onUpdate,
   });
@@ -360,44 +359,23 @@ export function Actions(props: Props) {
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'sm',
         }}
         items={[
-          ...(isIgnored || hasEscalatingIssues
+          ...(isIgnored
             ? []
             : [
                 {
-                  key: 'ignore',
+                  key: 'Archive',
                   className: 'hidden-sm hidden-md hidden-lg',
-                  label: t('Ignore'),
+                  label: t('Archive'),
                   isSubmenu: true,
                   disabled,
-                  children: [
-                    {
-                      key: 'ignore-now',
-                      label: t('Ignore Issue'),
-                      onAction: () => onIgnore(),
-                    },
-                    ...dropdownItems,
-                  ],
+                  children: archiveDropdownItems,
                 },
               ]),
-          ...(hasEscalatingIssues
-            ? isIgnored
-              ? []
-              : [
-                  {
-                    key: 'Archive',
-                    className: 'hidden-sm hidden-md hidden-lg',
-                    label: t('Archive'),
-                    isSubmenu: true,
-                    disabled,
-                    children: archiveDropdownItems,
-                  },
-                ]
-            : []),
           {
             key: 'open-in-discover',
             className: 'hidden-sm hidden-md hidden-lg',
@@ -457,6 +435,9 @@ export function Actions(props: Props) {
           },
         ]}
       />
+      {organization.features.includes('issue-details-new-experience-toggle') ? (
+        <NewIssueExperienceButton />
+      ) : null}
       <SubscribeAction
         className="hidden-xs"
         disabled={disabled}
@@ -472,7 +453,7 @@ export function Actions(props: Props) {
       {discoverCap.enabled && (
         <Feature
           hookName="feature-disabled:open-in-discover"
-          features={['discover-basic']}
+          features="discover-basic"
           organization={organization}
         >
           <ActionButton
@@ -497,9 +478,6 @@ export function Actions(props: Props) {
               : t('Change status to unresolved')
           }
           size="sm"
-          icon={
-            hasEscalatingIssues ? null : isResolved ? <IconCheckmark /> : <IconMute />
-          }
           disabled={disabled || isAutoResolved}
           onClick={() =>
             onUpdate({
@@ -509,35 +487,21 @@ export function Actions(props: Props) {
             })
           }
         >
-          {isIgnored
-            ? hasEscalatingIssues
-              ? t('Archived')
-              : t('Ignored')
-            : t('Resolved')}
+          {isIgnored ? t('Archived') : t('Resolved')}
         </ActionButton>
       ) : (
         <Fragment>
-          {hasEscalatingIssues ? (
-            <GuideAnchor target="issue_details_archive_button" position="bottom">
-              <ArchiveActions
-                className="hidden-xs"
-                size="sm"
-                isArchived={isIgnored}
-                onUpdate={onUpdate}
-                disabled={disabled}
-              />
-            </GuideAnchor>
-          ) : (
-            <IgnoreActions
-              className="hidden-xs"
-              isIgnored={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              size="sm"
-            />
-          )}
+          <ArchiveActions
+            className="hidden-xs"
+            size="sm"
+            isArchived={isIgnored}
+            onUpdate={onUpdate}
+            disabled={disabled}
+            disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+          />
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from django.db.models import QuerySet
 
@@ -24,15 +25,15 @@ class DatabaseBackedUserOptionService(UserOptionService):
         self,
         *,
         filter: UserOptionFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+    ) -> list[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
 
-    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+    def get_many(self, *, filter: UserOptionFilterArgs) -> list[RpcUserOption]:
         return self._FQ.get_many(filter)
 
-    def delete_options(self, *, option_ids: List[int]) -> None:
+    def delete_options(self, *, option_ids: list[int]) -> None:
         UserOption.objects.filter(id__in=option_ids).delete()
 
     def set_option(
@@ -58,10 +59,10 @@ class DatabaseBackedUserOptionService(UserOptionService):
         def base_query(self, ids_only: bool = False) -> QuerySet[UserOption]:
             return UserOption.objects
 
-        def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids")
 
-        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+        def serialize_api(self, serializer: None) -> Serializer:
             # User options should not be serialized in this way
             raise NotImplementedError
 
@@ -90,7 +91,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
                 )
 
             if "keys" in filters or "key" in filters:
-                keys: List[str] = []
+                keys: list[str] = []
                 if "keys" in filters:
                     keys = filters["keys"]
                 if "key" in filters:

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -23,9 +23,8 @@ import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
@@ -266,7 +265,11 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   }
 
   componentWillUnmount() {
-    this.listeners.forEach(callIfFunction);
+    this.listeners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   listeners = [

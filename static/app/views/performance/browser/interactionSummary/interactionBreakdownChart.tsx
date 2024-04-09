@@ -4,7 +4,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {getDurationUnit} from 'sentry/utils/discover/charts';
 import {useInteractionBreakdownTimeseriesQuery} from 'sentry/views/performance/browser/interactionSummary/useInteractionBreakdownTimeseriesQuery';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 type Props = {
   element: string;
@@ -25,10 +25,10 @@ export function InteractionBreakdownChart({operation, element, page}: Props) {
         height={200}
         data={data}
         loading={isLoading}
-        utc={false}
         chartColors={[CHART_PALETTE[0][0]]}
         durationUnit={getDurationUnit(data)}
         aggregateOutputFormat="duration"
+        type={ChartType.AREA}
         grid={{
           left: 20,
           right: 50,

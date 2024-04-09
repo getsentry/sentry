@@ -1,6 +1,6 @@
-import type {Broadcast as BroadcastType} from 'sentry/types';
+import type {Broadcast} from 'sentry/types';
 
-export function Broadcast(params: Partial<BroadcastType> = {}): BroadcastType {
+export function BroadcastFixture(params: Partial<Broadcast> = {}): Broadcast {
   return {
     dateCreated: new Date().toISOString(),
     dateExpires: new Date().toISOString(),

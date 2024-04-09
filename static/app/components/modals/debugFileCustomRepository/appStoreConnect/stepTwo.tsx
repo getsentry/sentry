@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 
-import {AppStoreApp, StepTwoData} from './types';
+import type {AppStoreApp, StepTwoData} from './types';
 
 type Props = {
   appStoreApps: AppStoreApp[];

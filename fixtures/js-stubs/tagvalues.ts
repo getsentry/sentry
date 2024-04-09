@@ -1,6 +1,6 @@
 import type {TagValue} from 'sentry/types';
 
-export function TagValues(params = []): TagValue[] {
+export function TagValuesFixture(params = []): TagValue[] {
   return [
     {
       username: 'david',

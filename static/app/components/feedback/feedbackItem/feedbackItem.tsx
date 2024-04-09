@@ -1,31 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/actions/button';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
+import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
+import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
+import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
-import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
-import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
+import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Flex} from 'sentry/components/profiling/flex';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import TextOverflow from 'sentry/components/textOverflow';
-import {IconLink} from 'sentry/icons';
+import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
-import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -37,150 +27,84 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
-  const {markAsRead, resolve} = useMutateFeedback({
-    feedbackIds: [feedbackItem.id],
-    organization,
-  });
-
   const url = eventData?.tags.find(tag => tag.key === 'url');
-  const replayId = eventData?.contexts?.feedback?.replay_id;
+  const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
-  const mutationOptions = {
-    onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
-    },
-  };
+  const overflowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setTimeout(() => {
+      overflowRef.current?.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }, 100);
+  }, [feedbackItem.id, overflowRef]);
 
   return (
     <Fragment>
-      <HeaderPanelItem>
-        <Flex gap={space(2)} justify="space-between" wrap="wrap">
-          <Flex column>
-            <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
-            </Flex>
-            <Flex gap={space(0.5)} align="center">
-              <ProjectAvatar
-                project={feedbackItem.project}
-                size={12}
-                title={feedbackItem.project.slug}
-              />
-              <TextOverflow>{feedbackItem.project.slug}</TextOverflow>
-            </Flex>
-          </Flex>
-          <Flex gap={space(1)} align="center" wrap="wrap">
-            <ErrorBoundary mini>
-              <FeedbackAssignedTo
-                feedbackIssue={feedbackItem}
-                feedbackEvent={eventData}
-              />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <Button
-                onClick={() => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  const newStatus =
-                    feedbackItem.status === 'resolved'
-                      ? GroupStatus.UNRESOLVED
-                      : GroupStatus.RESOLVED;
-                  resolve(newStatus, mutationOptions);
-                }}
-              >
-                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
-              </Button>
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <Button
-                onClick={() => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
-                }}
-              >
-                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
-              </Button>
-            </ErrorBoundary>
-          </Flex>
-        </Flex>
-      </HeaderPanelItem>
-      <OverflowPanelItem>
-        <Section
-          title={t('Description')}
-          contentRight={
-            <ErrorBoundary>
-              <FeedbackViewers feedbackItem={feedbackItem} />
-            </ErrorBoundary>
-          }
-        >
-          <Blockquote>
-            <pre>{feedbackItem.metadata.message}</pre>
-          </Blockquote>
+      <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
+      <OverflowPanelItem ref={overflowRef}>
+        <Section>
+          <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
         </Section>
 
-        <Section icon={<IconLink size="xs" />} title={t('Url')}>
-          <ErrorBoundary mini>
-            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
-          </ErrorBoundary>
-        </Section>
-
-        {hasReplayId && replayId ? (
-          <ReplaySection
-            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
-            organization={organization}
-            replayId={replayId}
-          />
+        {!crashReportId || (crashReportId && url) ? (
+          <Section icon={<IconLink size="xs" />} title={t('URL')}>
+            <TextCopyInput size="sm">
+              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
+            </TextCopyInput>
+          </Section>
         ) : null}
 
-        <TagsSection tags={tags} />
+        {crashReportId && (
+          <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
+            <ErrorBoundary mini>
+              <CrashReportSection
+                organization={organization}
+                crashReportId={crashReportId}
+                projectSlug={feedbackItem.project.slug}
+              />
+            </ErrorBoundary>
+          </Section>
+        )}
+
+        <FeedbackReplay
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          organization={organization}
+        />
+
+        <Section icon={<IconTag size="xs" />} title={t('Tags')}>
+          <TagsSection tags={tags} />
+        </Section>
+
+        <Section
+          icon={<IconChat size="xs" />}
+          title={
+            <Fragment>
+              {t('Internal Activity')}
+              <QuestionTooltip
+                size="xs"
+                title={t(
+                  'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
+                )}
+              />
+            </Fragment>
+          }
+        >
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
+        </Section>
       </OverflowPanelItem>
     </Fragment>
   );
 }
 
-const HeaderPanelItem = styled(PanelItem)`
-  display: grid;
-  padding: ${space(1)} ${space(2)};
-`;
-
+// 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
 
   flex-direction: column;
   flex-grow: 1;
-  gap: ${space(3)};
-`;
-
-const Blockquote = styled('blockquote')`
-  margin: 0 ${space(4)};
-  position: relative;
-
-  &::before {
-    position: absolute;
-    color: ${p => p.theme.purple300};
-    content: '❝';
-    font-size: ${space(4)};
-    left: -${space(4)};
-    top: -0.4rem;
-  }
-  &::after {
-    position: absolute;
-    border: 1px solid ${p => p.theme.purple300};
-    bottom: 0;
-    content: '';
-    left: -${space(1)};
-    top: 0;
-  }
-
-  & > pre {
-    margin: 0;
-    background: none;
-    font-family: inherit;
-    font-size: ${p => p.theme.fontSizeMedium};
-    line-height: 1.6;
-    padding: 0;
-    word-break: break-word;
-  }
+  gap: ${space(2)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
 `;

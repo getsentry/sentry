@@ -1,8 +1,10 @@
-import {SelectValue} from 'sentry/types';
-import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import type {SelectValue} from 'sentry/types';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {ColumnType, ISSUE_FIELDS} from './fields';
+import type {ColumnType} from './fields';
+import {ISSUE_FIELDS} from './fields';
 
 export function generateIssueWidgetFieldOptions(
   issueFields: Record<string, ColumnType> = ISSUE_FIELDS
@@ -30,7 +32,7 @@ export const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.DATE,
   IssueSortOptions.NEW,
   IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
+  IssueSortOptions.TRENDS,
   IssueSortOptions.USER,
 ];
 

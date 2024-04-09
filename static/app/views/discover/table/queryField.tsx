@@ -1,33 +1,34 @@
 import {Component, createRef} from 'react';
-import {components, SingleValueProps} from 'react-select';
+import type {SingleValueProps} from 'react-select';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
-import Input, {InputProps} from 'sentry/components/input';
-import Tag from 'sentry/components/tag';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
-import {
+import type {SelectValue} from 'sentry/types';
+import type {
   AggregateParameter,
   AggregationKeyWithAlias,
-  AGGREGATIONS,
   Column,
   ColumnType,
-  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
-import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
+import type {FieldValue, FieldValueColumns} from './types';
+import {FieldValueKind} from './types';
 
 export type FieldValueOption = SelectValue<FieldValue>;
 
@@ -593,7 +594,6 @@ class QueryField extends Component<Props> {
         tagType = 'success';
         break;
       case FieldValueKind.FIELD:
-      case FieldValueKind.METRICS:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
@@ -689,7 +689,7 @@ class QueryField extends Component<Props> {
         const operation =
           AGGREGATIONS[fieldValue.function[0]] ??
           SESSIONS_OPERATIONS[fieldValue.function[0]];
-        if (operation.parameters.length > 0) {
+        if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {
             gridColumnsQuantity = 2;
           } else {

@@ -1,4 +1,4 @@
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 export default function hydrateEventTags(
   eventData: Event | undefined
@@ -10,6 +10,7 @@ export default function hydrateEventTags(
   const eventTags = eventData.tags;
 
   const unorderedTags = {
+    ...eventTags.reduce((combined, tag) => ({...combined, [tag.key]: tag.value}), {}),
     ...(context.browser?.name ? {'browser.name': context.browser.name} : {}),
     ...(context.browser?.version ? {'browser.version': context.browser.version} : {}),
     ...(context.device?.brand ? {'device.brand': context.device?.brand} : {}),
@@ -27,6 +28,9 @@ export default function hydrateEventTags(
     ...(eventData.platform ? {platform: eventData.platform} : {}),
     ...(eventData.sdk?.name ? {'sdk.name': eventData.sdk?.name} : {}),
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),
+    ...(eventData?.contexts?.feedback?.replay_id
+      ? {replay_id: eventData?.contexts?.feedback?.replay_id}
+      : {}),
   };
 
   // Sort the tags by key

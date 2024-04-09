@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
@@ -11,8 +12,9 @@ from sentry.models.grouptombstone import GroupTombstone
 
 @region_silo_endpoint
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     def delete(self, request: Request, project, tombstone_id) -> Response:

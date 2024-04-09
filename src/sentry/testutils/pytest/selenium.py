@@ -3,9 +3,9 @@
 import logging
 import os
 import sys
+from collections.abc import MutableSequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -20,6 +20,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -115,8 +117,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -205,12 +207,11 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -219,16 +220,15 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
-            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
+            wait.until(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until(expected_conditions.title_is(title))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -240,34 +240,39 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until_not(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            )
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until_not(expected_conditions.title_is(title))
         else:
             raise
 
-        WebDriverWait(self.driver, timeout).until_not(condition)
+        return self
+
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
 
     def wait_for_images_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
         )
-
-        return self
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
 
     @property
     def switch_to(self):
@@ -331,7 +336,7 @@ class Browser:
             self.get("/")
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
+        logger.info("selenium.set-cookie.%s", name, extra={"value": value})
         # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
         # an invalid kwarg
         del cookie["secure"]
@@ -345,6 +350,7 @@ def pytest_addoption(parser):
     group._addoption(
         "--selenium-driver",
         dest="selenium_driver",
+        default="chrome",
         help="selenium driver (chrome, or firefox)",
     )
     group._addoption(
@@ -359,7 +365,6 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-
     if hasattr(config, "workerinput"):
         return  # xdist worker
 
@@ -435,7 +440,8 @@ def browser(request, live_server):
     # capture an issue where cookie lookup in the frontend failed, but did NOT
     # fail in the acceptance tests because the code worked fine when
     # document.cookie only had one cookie in it.
-    browser.save_cookie("acceptance_test_cookie", "1")
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        browser.save_cookie("acceptance_test_cookie", "1", path="/auth/login/")
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
@@ -531,7 +537,7 @@ def format_log(log):
     timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
     entries = [
         "{0} {1[level]} - {1[message]}".format(
-            datetime.utcfromtimestamp(entry["timestamp"] / 1000.0).strftime(timestamp_format), entry
+            datetime.fromtimestamp(entry["timestamp"] / 1000.0).strftime(timestamp_format), entry
         ).rstrip()
         for entry in log
     ]

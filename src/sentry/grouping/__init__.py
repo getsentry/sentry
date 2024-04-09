@@ -56,6 +56,10 @@ Variants
     by the SDK.  If the special `{{ default }}` value is used then this
     variant is not used.
 
+`BuiltInFingerprintVariant`:
+    Same as the custom fingerprint variant but produced by pre-defined
+    built-in rules.  This is used for server-side fingerprinting.
+
 `SaltedComponentVariant`:
     This variant is used when the server or client produces a fingerprint
     that refers (with the special `{{ default }}` value) to the default

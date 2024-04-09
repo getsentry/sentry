@@ -9,7 +9,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {OnboardingCustomComponentProps} from 'sentry/types';
+import type {OnboardingCustomComponentProps} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import SkipConfirm from './skipConfirm';

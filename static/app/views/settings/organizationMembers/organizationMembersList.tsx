@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
+import type {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
@@ -17,9 +17,9 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
+  BaseRole,
   Member,
-  MemberRole,
   MissingMember,
   Organization,
   OrganizationAuthProvider,
@@ -29,10 +29,8 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
-import {
-  RenderSearch,
-  SearchWrapper,
-} from 'sentry/views/settings/components/defaultSearchBar';
+import type {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
+import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import MembersFilter from './components/membersFilter';
@@ -47,7 +45,7 @@ interface State extends AsyncComponentState {
   authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
-  member: (Member & {roles: MemberRole[]}) | null;
+  member: (Member & {roles: BaseRole[]}) | null;
   members: Member[];
   missingMembers: {integration: string; users: MissingMember[]}[];
 }
@@ -173,30 +171,6 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
   };
 
-  handleInviteMissingMember = async (email: string) => {
-    const {organization} = this.props;
-
-    try {
-      await this.api.requestPromise(
-        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
-        {
-          method: 'POST',
-          data: {email},
-        }
-      );
-      addSuccessMessage(tct('Sent invite to [email]', {email}));
-      this.fetchMembersList();
-      this.setState(state => ({
-        missingMembers: state.missingMembers.map(integrationMissingMembers => ({
-          ...integrationMissingMembers,
-          users: integrationMissingMembers.users.filter(member => member.email !== email),
-        })),
-      }));
-    } catch {
-      addErrorMessage(t('Error sending invite'));
-    }
-  };
-
   fetchMembersList = async () => {
     const {organization} = this.props;
 
@@ -300,13 +274,7 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {
-      membersPageLinks,
-      members,
-      member: currentMember,
-      inviteRequests,
-      missingMembers,
-    } = this.state;
+    const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {access} = organization;
 
     const canAddMembers = access.includes('member:write');
@@ -322,7 +290,6 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
         <MembersFilter
@@ -334,15 +301,10 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
-    const githubMissingMembers = missingMembers?.filter(
-      integrationMissingMembers => integrationMissingMembers.integration === 'github'
-    )[0];
-
     return (
       <Fragment>
         <InviteBanner
-          missingMembers={githubMissingMembers}
-          onSendInvite={this.handleInviteMissingMember}
+          onSendInvite={this.fetchMembersList}
           onModalClose={this.fetchData}
           allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
         />

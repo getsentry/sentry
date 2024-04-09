@@ -12,13 +12,21 @@ describe('useLocalStorageState', () => {
     }
   });
 
-  it('throws if key is not a string', () => {
-    const results = reactHooks.renderHook(() =>
-      // @ts-expect-error force incorrect usage
-      useLocalStorageState({}, 'default value')
-    );
-    expect(results.result.error).toBeInstanceOf(TypeError);
-    expect(results.result.error?.message).toBe('useLocalStorage: key must be a string');
+  it('throws if key is not a string', async () => {
+    let errorResult!: TypeError;
+
+    reactHooks.renderHook(() => {
+      try {
+        // @ts-expect-error force incorrect usage
+        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+        useLocalStorageState({}, 'default value');
+      } catch (err) {
+        errorResult = err;
+      }
+    });
+
+    await waitFor(() => expect(errorResult).toBeInstanceOf(TypeError));
+    expect(errorResult.message).toBe('useLocalStorage: key must be a string');
   });
 
   it('initialized with value', () => {
@@ -68,6 +76,20 @@ describe('useLocalStorageState', () => {
     expect(result.current[0]).toBe('new value');
   });
 
+  it('sets new value using previous state', () => {
+    const {result} = reactHooks.renderHook(
+      (args: Parameters<typeof useLocalStorageState>) =>
+        useLocalStorageState(args[0], args[1]),
+      {initialProps: ['key', 'default value']}
+    );
+
+    reactHooks.act(() => {
+      result.current[1](p => `${p} + new value`);
+    });
+
+    expect(result.current[0]).toBe('default value + new value');
+  });
+
   it('updates localstorage value', async () => {
     const {result} = reactHooks.renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -83,6 +105,27 @@ describe('useLocalStorageState', () => {
     // Exhaust task queue because setItem is scheduled as microtask
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith('key', JSON.stringify('new value'));
+    });
+  });
+
+  it('updates localstorage value with function callback', async () => {
+    const {result} = reactHooks.renderHook(
+      (args: Parameters<typeof useLocalStorageState>) =>
+        useLocalStorageState(args[0], args[1]),
+      {initialProps: ['key', 'default value']}
+    );
+    const spy = jest.spyOn(Storage.prototype, 'setItem');
+
+    reactHooks.act(() => {
+      result.current[1](p => `${p} + new value`);
+    });
+
+    // Exhaust task queue because setItem is scheduled as microtask
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        'key',
+        JSON.stringify('default value + new value')
+      );
     });
   });
 

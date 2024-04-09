@@ -1,11 +1,12 @@
 import re
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import TypedDict
 
 from django.db.models import Max
 from rest_framework import serializers
 
-from sentry import features
+from sentry import features, options
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -17,18 +18,32 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.on_demand_metrics import (
+    _get_widget_on_demand_specs,
+    check_field_cardinality,
+    set_or_create_on_demand_state,
+)
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
+
+OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
+
+
+class QueryWarning(TypedDict):
+    queries: list[str | None]
+    columns: dict[str, str]
 
 
 def is_equation(field: str) -> bool:
@@ -113,10 +128,18 @@ class LayoutField(serializers.Field):
         return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
-class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
+class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
+    extraction_state = serializers.CharField(required=False)
+    enabled = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        return data
+
+
+class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    fields = serializers.ListField(child=serializers.CharField(), required=False)
+    fields = serializers.ListField(child=serializers.CharField(), required=False)  # type: ignore[assignment]  # XXX: clobbering Serializer.fields
     aggregates = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True
     )
@@ -127,6 +150,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
+
+    is_hidden = serializers.BooleanField(required=False)
+
+    on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
+    on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
     required_for_create = {"fields", "conditions"}
 
@@ -169,12 +197,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
-        params = {
+        params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context.get("projects")],
-            "organization_id": self.context.get("organization").id,
-            "environment": self.context.get("environment"),
+            "project_id": [p.id for p in self.context["projects"]],
+            "organization_id": self.context["organization"].id,
+            "environment": self.context.get("environment", []),
         }
 
         try:
@@ -196,7 +224,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 params=params,
                 config=QueryBuilderConfig(
                     equation_config={
-                        "auto_add": not is_table or injected_orderby_equation,
+                        "auto_add": bool(not is_table or injected_orderby_equation),
                         "aggregates_only": not is_table,
                     },
                     use_aggregate_conditions=True,
@@ -224,7 +252,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         try:
             builder.resolve_orderby(orderby)
-        except (InvalidSearchQuery) as err:
+        except InvalidSearchQuery as err:
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
@@ -243,10 +271,10 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
-class DashboardWidgetSerializer(CamelSnakeSerializer):
+class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, max_length=255)
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )
@@ -261,6 +289,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     )
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
+    query_warnings: QueryWarning = {"queries": [], "columns": {}}
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -277,7 +306,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 
     def validate(self, data):
         query_errors = []
+        all_columns: set[str] = set()
         has_query_error = False
+        self.query_warnings = {"queries": [], "columns": {}}
+        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
+        current_widget_specs = None
+        organization = self.context["organization"]
+
+        ondemand_feature = features.has(
+            "organizations:on-demand-metrics-extraction-widgets", organization
+        )
+
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
@@ -295,6 +334,37 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     has_query_error = True
                 else:
                     query_errors.append({})
+
+                if ondemand_feature and not query.get("on_demand_extraction_disabled", False):
+                    if query.get("columns"):
+                        all_columns = all_columns.union(query.get("columns"))
+                    # If this query wants ondemand check if we'll go over spec
+                    widget_query = DashboardWidgetQuery(
+                        fields=query["fields"],
+                        aggregates=query.get("aggregates"),
+                        columns=query.get("columns"),
+                        field_aliases=query.get("field_aliases"),
+                        conditions=query["conditions"],
+                        name=query.get("name", ""),
+                        orderby=query.get("orderby", ""),
+                    )
+                    # Get widget specs if we haven't yet
+                    if current_widget_specs is None:
+                        current_widget_specs = get_current_widget_specs(organization)
+                    widget_specs = _get_widget_on_demand_specs(widget_query, organization)
+                    if len(widget_specs) == 0:
+                        # Disabled since there are no applicable widgets
+                        self.query_warnings["queries"].append(
+                            OnDemandExtractionState.DISABLED_NOT_APPLICABLE
+                        )
+                    elif widget_exceeds_max_specs(widget_specs, current_widget_specs, organization):
+                        self.query_warnings["queries"].append(
+                            OnDemandExtractionState.DISABLED_SPEC_LIMIT
+                        )
+                    else:
+                        self.query_warnings["queries"].append(None)
+                else:
+                    self.query_warnings["queries"].append(None)
         if has_query_error:
             raise serializers.ValidationError({"queries": query_errors})
         if not data.get("id"):
@@ -303,7 +373,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     {"queries": "One or more queries are required to create a widget"}
                 )
             if not data.get("title"):
-                raise serializers.ValidationError({"title": "Title is required during creation."})
+                if not data.get("widget_type") == DashboardWidgetTypes.METRICS:
+                    raise serializers.ValidationError(
+                        {"title": "Title is required during creation."}
+                    )
             if data.get("display_type") is None:
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
@@ -351,10 +424,19 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                                     }
                                 }
                             )
+        if len(all_columns) > 0:
+            field_cardinality = check_field_cardinality(
+                list(all_columns), self.context["organization"], max_cardinality_allowed
+            )
+            for field, low_cardinality in field_cardinality.items():
+                if not low_cardinality:
+                    self.query_warnings["columns"][
+                        field
+                    ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
         return data
 
 
-class DashboardDetailsSerializer(CamelSnakeSerializer):
+class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
@@ -427,8 +509,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
-            created_by_id=self.context.get("request").user.id,
+            created_by_id=self.context["request"].user.id,
         )
+
+        assert self.instance is not None
 
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
@@ -459,7 +543,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         self.update_dashboard_filters(instance, validated_data)
 
-        schedule_update_project_configs(self.instance)
+        schedule_update_project_configs(instance)
 
         return instance
 
@@ -495,6 +579,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
     def create_widget(self, dashboard, widget_data, order):
+        organization = self.context["organization"]
+        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
+        # To match the format of the extraction state function in ondemand
+        ondemand_feature = features.has(
+            "organizations:on-demand-metrics-extraction-widgets", organization
+        )
+
+        current_widget_specs = get_current_widget_specs(organization)
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             display_type=widget_data["display_type"],
@@ -503,6 +595,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
@@ -520,9 +613,20 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
                     order=i,
+                    is_hidden=query.get("is_hidden", False),
                 )
             )
         DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        for new_query in new_queries:
+            query_cardinality = all(
+                check_field_cardinality(
+                    new_query.columns, organization, max_cardinality_allowed
+                ).values()
+            )
+            set_or_create_on_demand_state(
+                new_query, organization, query_cardinality, ondemand_feature, current_widget_specs
+            )
 
     def update_widget(self, widget, data, order):
         prev_layout = widget.detail.get("layout") if widget.detail else None
@@ -532,6 +636,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
+        widget.discover_widget_split = data.get(
+            "discover_widget_split", widget.discover_widget_split
+        )
         widget.order = order
         widget.limit = data.get("limit", widget.limit)
         widget.detail = {"layout": data.get("layout", prev_layout)}
@@ -541,6 +648,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             self.update_widget_queries(widget, data["queries"])
 
     def update_widget_queries(self, widget, data):
+        organization = self.context["organization"]
+        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
+        # To match the format of the extraction state function in ondemand
+        ondemand_feature = features.has(
+            "organizations:on-demand-metrics-extraction-widgets", organization
+        )
+        current_widget_specs = get_current_widget_specs(organization)
+
         query_ids = [query["id"] for query in data if "id" in query]
         self.remove_missing_queries(widget.id, query_ids)
 
@@ -551,10 +666,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         next_order = get_next_query_order(widget.id)
 
         new_queries = []
+        update_queries = []
         for i, query_data in enumerate(data):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
-                self.update_widget_query(existing_map[query_id], query_data, next_order + i)
+                update_queries.append(
+                    self.update_widget_query(existing_map[query_id], query_data, next_order + i)
+                )
             elif not query_id:
                 new_queries.append(
                     DashboardWidgetQuery(
@@ -565,6 +683,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         field_aliases=query_data.get("field_aliases"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
+                        is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
                     )
@@ -572,6 +691,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        for new_query in new_queries + update_queries:
+            query_cardinality = all(
+                check_field_cardinality(
+                    new_query.columns, organization, max_cardinality_allowed
+                ).values()
+            )
+            set_or_create_on_demand_state(
+                new_query, organization, query_cardinality, ondemand_feature, current_widget_specs
+            )
 
     def update_widget_query(self, query, data, order):
         query.name = data.get("name", query.name)
@@ -581,8 +710,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.aggregates = data.get("aggregates", query.aggregates)
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
+        query.is_hidden = data.get("is_hidden", query.is_hidden)
+
         query.order = order
         query.save()
+        return query
 
     def remove_missing_queries(self, widget_id, keep_ids):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()

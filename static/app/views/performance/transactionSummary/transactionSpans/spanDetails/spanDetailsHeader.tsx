@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
+import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 interface HeaderProps {
   spanSlug: SpanSlug;

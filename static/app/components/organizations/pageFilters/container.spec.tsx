@@ -1,7 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -356,7 +359,7 @@ describe('PageFiltersContainer', function () {
       organization: {
         features: ['global-views'],
       },
-      projects: [TestStubs.Project({id: 1}), TestStubs.Project({id: 2})],
+      projects: [ProjectFixture({id: '1'}), ProjectFixture({id: '2'})],
       router: {
         // we need this to be set to make sure org in context is same as
         // current org in URL
@@ -412,8 +415,6 @@ describe('PageFiltersContainer', function () {
     await waitFor(() =>
       expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
     );
-
-    expect(screen.getByRole('button', {name: 'Restore old values'})).toBeInTheDocument();
   });
 
   it('does not update local storage when disablePersistence is true', async function () {
@@ -514,7 +515,7 @@ describe('PageFiltersContainer', function () {
         ...organization,
         slug: 'org-slug',
         features: [],
-        projects: [TestStubs.Project({id: '123', slug: 'org-slug-project1'})],
+        projects: [ProjectFixture({id: '123', slug: 'org-slug-project1'})],
       };
 
       MockApiClient.addMockResponse({
@@ -527,7 +528,7 @@ describe('PageFiltersContainer', function () {
       act(() => OrganizationStore.onUpdate(updatedOrganization));
 
       initialData.router.location.query = {};
-      rerender(<PageFiltersContainer organization={updatedOrganization} />);
+      rerender(<PageFiltersContainer />);
 
       act(() => ProjectsStore.loadInitialData(updatedOrganization.projects));
 
@@ -564,12 +565,12 @@ describe('PageFiltersContainer', function () {
     it('selects a project if user is superuser and belongs to no projects', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
-        TestStubs.Config({
-          user: TestStubs.User({isSuperuser: true}),
+        ConfigFixture({
+          user: UserFixture({isSuperuser: true}),
         })
       );
-      const project = TestStubs.Project({id: '3', isMember: false});
-      const org = Organization({projects: [project]});
+      const project = ProjectFixture({id: '3', isMember: false});
+      const org = OrganizationFixture({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 
@@ -595,8 +596,8 @@ describe('PageFiltersContainer', function () {
     });
 
     it('selects first project if none (i.e. all) is requested', function () {
-      const project = TestStubs.Project({id: '3'});
-      const org = Organization({projects: [project]});
+      const project = ProjectFixture({id: '3'});
+      const org = OrganizationFixture({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 

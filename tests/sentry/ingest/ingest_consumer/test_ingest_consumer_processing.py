@@ -9,7 +9,13 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition, Topic
+from django.conf import settings
 
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
@@ -19,12 +25,14 @@ from sentry.ingest.consumer.processors import (
 )
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.eventuser import EventUser
-from sentry.models.files.file import File
 from sentry.models.userreport import UserReport
+from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
+from sentry.usage_accountant import accountant
 from sentry.utils import json
+from sentry.utils.eventuser import EventUser
+from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
 
@@ -149,6 +157,60 @@ def test_transactions_spawn_save_event_transaction(
 
 
 @django_db_all
+def test_accountant_transaction(default_project):
+    storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
+    broker = LocalBroker(storage)
+    topic = Topic("shared-resources-usage")
+    broker.create_topic(topic, 1)
+    producer = broker.get_producer()
+
+    set("shared_resources_accounting_enabled", [settings.EVENT_PROCESSING_STORE])
+
+    accountant.init_backend(producer)
+
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    serialized = json.dumps(payload)
+    process_event(
+        {
+            "payload": serialized,
+            "start_time": time.time() - 3600,
+            "event_id": payload["event_id"],
+            "project_id": default_project.id,
+            "remote_addr": "127.0.0.1",
+        },
+        project=default_project,
+    )
+
+    accountant._shutdown()
+    msg1 = broker.consume(Partition(topic, 0), 0)
+    assert msg1 is not None
+    payload = msg1.payload
+    assert payload is not None
+    formatted = loads(payload.value.decode("utf-8"))
+    assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
+    assert formatted["app_feature"] == "transactions"
+    assert formatted["usage_unit"] == "bytes"
+    assert formatted["amount"] == len(serialized)
+
+
+@django_db_all
 def test_feedbacks_spawn_save_event_feedback(
     default_project, task_runner, preprocess_event, save_event_feedback, monkeypatch
 ):
@@ -253,12 +315,10 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
     if not missing_chunks:
         (attachment,) = persisted_attachments
-        file = File.objects.get(id=attachment.file_id)
-        assert file.type == "custom.attachment"
-        assert file.headers == {"Content-Type": "text/plain"}
-        file_contents = file.getfile()
-        assert file_contents.read() == b"Hello World!"
-        assert file_contents.name == "lol.txt"
+        assert attachment.content_type == "text/plain"
+        assert attachment.name == "lol.txt"
+        with attachment.getfile() as file:
+            assert file.read() == b"Hello World!"
     else:
         assert not persisted_attachments
 
@@ -334,12 +394,10 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
         EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
     )
     (attachment,) = persisted_attachments
-    file = File.objects.get(id=attachment.file_id)
-    assert file.type == "event.view_hierarchy"
-    assert file.headers == {"Content-Type": "application/json"}
-    file_contents = file.getfile()
-    assert file_contents.read() == expected_response
-    assert file_contents.name == "view_hierarchy.json"
+    assert attachment.content_type == "application/json"
+    assert attachment.name == "view_hierarchy.json"
+    with attachment.getfile() as file:
+        assert file.read() == expected_response
 
 
 @django_db_all
@@ -412,13 +470,12 @@ def test_individual_attachments(
         assert not attachments
     else:
         (attachment,) = attachments
-        file = File.objects.get(id=attachment.file_id)
-        assert file.type == chunks[1]
-        assert file.headers == {"Content-Type": chunks[2]}
+        assert attachment.name == "foo.txt"
         assert attachment.group_id == group_id
-        file_contents = file.getfile()
-        assert file_contents.read() == b"".join(chunks[0])
-        assert file_contents.name == "foo.txt"
+        assert attachment.content_type == chunks[2]
+
+        with attachment.getfile() as file_contents:
+            assert file_contents.read() == b"".join(chunks[0])
 
 
 @django_db_all
@@ -435,9 +492,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
 
     mgr.normalize()
     mgr.save(default_project.id)
-
-    (evtuser,) = EventUser.objects.all()
-    assert not evtuser.name
 
     assert not UserReport.objects.all()
 
@@ -460,9 +514,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
 
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
-
-    (evtuser,) = EventUser.objects.all()
-    assert evtuser.name == "Hans Gans"
 
 
 @django_db_all
@@ -500,7 +551,8 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
 
-    (evtuser,) = EventUser.objects.all()
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
+    evtuser = EventUser.from_event(event)
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
     assert evtuser.name is None

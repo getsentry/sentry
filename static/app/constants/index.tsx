@@ -1,13 +1,8 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {
-  DataCategoryExact,
-  DataCategoryInfo,
-  OrgRole,
-  PermissionResource,
-  Scope,
-} from 'sentry/types';
+import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types';
 
 /**
  * Common constants here
@@ -16,10 +11,10 @@ import {
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
 
-export const usingCustomerDomain =
+export const USING_CUSTOMER_DOMAIN =
   typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
 
-export const customerDomain =
+export const CUSTOMER_DOMAIN =
   typeof window !== 'undefined'
     ? window?.__initialData?.customerDomain?.subdomain
     : undefined;
@@ -28,7 +23,7 @@ export const customerDomain =
 // to when the application does not have any further context
 //
 // e.g. loading app root or switching organization
-export const DEFAULT_APP_ROUTE = usingCustomerDomain
+export const DEFAULT_APP_ROUTE = USING_CUSTOMER_DOMAIN
   ? '/issues/'
   : '/organizations/:orgSlug/issues/';
 
@@ -54,6 +49,30 @@ export const API_ACCESS_SCOPES = [
   'team:write',
 ] as const;
 
+export const ALLOWED_SCOPES = [
+  'alerts:read',
+  'alerts:write',
+  'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:billing',
+  'org:integrations',
+  'org:read',
+  'org:superuser', // not an assignable API access scope
+  'org:write',
+  'project:admin',
+  'project:read',
+  'project:releases',
+  'project:write',
+  'team:admin',
+  'team:read',
+  'team:write',
+] as const;
+
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
 // different organization they are not a OrganizationMember of ).
@@ -61,30 +80,34 @@ export const ORG_ROLES: OrgRole[] = [
   {
     id: 'member',
     name: 'Member',
-    allowed: true,
+    isAllowed: true,
     desc: 'Members can view and act on events, as well as view most other data within the organization.',
     minimumTeamRole: 'contributor',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'admin',
     name: 'Admin',
-    allowed: true,
+    isAllowed: true,
     desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'manager',
     name: 'Manager',
-    allowed: true,
+    isAllowed: true,
     desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'owner',
     name: 'Organization Owner',
-    allowed: true,
+    isAllowed: true,
     desc: 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
 ];
 
@@ -200,6 +223,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
+export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -220,8 +244,8 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+// https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
+export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
@@ -278,7 +302,23 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
-};
+  [DataCategoryExact.MONITOR]: {
+    name: DataCategoryExact.MONITOR,
+    apiName: 'monitor',
+    plural: 'monitor check-ins',
+    displayName: 'monitor check-in',
+    titleName: t('Monitor Check-Ins'),
+    uid: 10,
+  },
+  [DataCategoryExact.MONITOR_SEAT]: {
+    name: DataCategoryExact.MONITOR_SEAT,
+    apiName: 'monitorSeat',
+    plural: 'monitorSeats',
+    displayName: 'cron monitors',
+    titleName: t('Cron Monitors'),
+    uid: 13,
+  },
+} as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
@@ -318,6 +358,7 @@ export const FILTER_MASK = '[Filtered]';
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
   ORG_NO_ACCESS: 'ORG_NO_ACCESS',
+  NO_ORGS: 'NO_ORGS',
 };
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
@@ -328,6 +369,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

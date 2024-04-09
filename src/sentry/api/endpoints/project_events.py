@@ -6,24 +6,27 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
 class ProjectEventsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(60, 60, 1),
+            RateLimitCategory.USER: RateLimit(60, 60, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(60, 60, 2),
         }
     }
 
@@ -39,6 +42,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         :qparam bool full: if this is set to true then the event payload will
                            include the full event body, including the stacktrace.
                            Set to 1 to enable.
+
+        :qparam bool sample: return events in pseudo-random order. This is deterministic,
+                             same query will return the same events in the same order.
 
         :pparam string organization_slug: the slug of the organization the
                                           groups belong to.
@@ -59,6 +65,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             event_filter.start = timezone.now() - timedelta(days=7)
 
         full = request.GET.get("full", False)
+        sample = request.GET.get("sample", False)
 
         data_fn = partial(
             eventstore.backend.get_events,
@@ -66,6 +73,11 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             referrer="api.project-events",
             tenant_ids={"organization_id": project.organization_id},
         )
+
+        if sample:
+            # not a true random ordering, but event_id is UUID, that's random enough
+            # for our purposes and doesn't have heavy performance impact
+            data_fn = partial(data_fn, orderby=[Columns.EVENT_ID.value.alias])
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(

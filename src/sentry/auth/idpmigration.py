@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from django.urls import reverse
 from rb.clients import LocalClient
@@ -107,7 +107,7 @@ class AccountConfirmLink:
         )
 
 
-def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
+def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
     cluster = get_redis_cluster()
     verification_key = f"auth:one-time-key:{key}"
     verification_str = cluster.get(verification_key)
@@ -115,7 +115,7 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
         metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
         return None
 
-    verification_value: Dict[str, Any] = json.loads(verification_str)
+    verification_value: dict[str, Any] = json.loads(verification_str)
     metrics.incr(
         "idpmigration.confirmation_success",
         tags={"provider": verification_value.get("provider")},

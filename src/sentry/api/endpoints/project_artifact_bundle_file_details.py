@@ -1,13 +1,13 @@
 import base64
 import binascii
 import posixpath
-from typing import Union
 
 import sentry_sdk
 from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -20,7 +20,7 @@ class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
         cls, file_path: str, archive: ArtifactBundleArchive
-    ) -> Union[Response, FileResponse]:
+    ) -> Response | FileResponse:
         try:
             fp, headers = archive.get_file(file_path)
             file_info = archive.get_file_info(file_path)
@@ -48,8 +48,9 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 

@@ -1,5 +1,6 @@
 import abc
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from snuba_sdk import OrderBy
 
@@ -10,15 +11,15 @@ from sentry.search.events.types import SelectType, WhereType
 
 
 class DatasetConfig(abc.ABC):
-    custom_threshold_columns: Set[str] = set()
-    non_nullable_keys: Set[str] = set()
+    custom_threshold_columns: set[str] = set()
+    non_nullable_keys: set[str] = set()
     missing_function_error = InvalidSearchQuery
 
     @property
     @abc.abstractmethod
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         pass
 
     @property
@@ -38,18 +39,18 @@ class DatasetConfig(abc.ABC):
 
     def reflective_result_type(
         self, index: int = 0
-    ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
+    ) -> Callable[[list[fields.FunctionArg], dict[str, Any]], str]:
         """Return the type of the metric, default to duration
 
         based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
         """
 
         def result_type_fn(
-            function_arguments: List[fields.FunctionArg], parameter_values: Dict[str, Any]
+            function_arguments: list[fields.FunctionArg], parameter_values: dict[str, Any]
         ) -> str:
             argument = function_arguments[index]
             value = parameter_values[argument.name]
-            if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore
+            if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore[attr-defined]
                 return field_type
             else:
                 return argument.get_type(value)

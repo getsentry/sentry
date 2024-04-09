@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -6,12 +7,10 @@ from django.urls import reverse
 from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
     METRIC_STRINGS = [
@@ -76,7 +75,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -105,7 +104,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
@@ -278,3 +277,26 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    @patch("sentry.snuba.metrics.datasource")
+    def test_metrics_layer_is_not_used(self, get_series):
+        self.store_span_metric(
+            4,
+            metric="http.response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        get_series.assert_not_called()

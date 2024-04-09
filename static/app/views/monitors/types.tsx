@@ -1,4 +1,5 @@
-import {ObjectStatus, Project} from 'sentry/types';
+import type {ObjectStatus, Project} from 'sentry/types';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -6,7 +7,7 @@ export enum MonitorType {
 }
 
 /**
- * Some old monitor configuratiosn do NOT have a schedule_type
+ * Some old monitor configurations do NOT have a schedule_type
  *
  * TODO: This should be removed once we've cleaned up our old data and can
  *       verify we don't have any config objects missing schedule_type
@@ -23,8 +24,6 @@ export enum MonitorStatus {
   ERROR = 'error',
   DISABLED = 'disabled',
   ACTIVE = 'active',
-  MISSED_CHECKIN = 'missed_checkin',
-  TIMEOUT = 'timeout',
 }
 
 export enum CheckInStatus {
@@ -36,11 +35,33 @@ export enum CheckInStatus {
 }
 
 interface BaseConfig {
+  /**
+   * How long (in minutes) after the expected check-in time will we wait until
+   * we consider the check-in to have been missed.
+   */
   checkin_margin: number;
+  /**
+   * How long (in minutes) is the check-in allowed to run for in
+   * CheckInStatus.IN_PROGRESS before it is considered failed.
+   */
   max_runtime: number;
+  /**
+   * tz database style timezone string
+   */
   timezone: string;
+  /**
+   * The id of thee "shadow" alert rule generated when alert assignees are
+   * selected
+   */
   alert_rule_id?: number;
+  /**
+   * How many consecutive missed or failed check-ins in a row before creating a
+   * new issue.
+   */
   failure_issue_threshold?: number | null;
+  /**
+   * How many successful check-ins in a row before resolving an issue.
+   */
   recovery_threshold?: number | null;
 }
 
@@ -71,11 +92,25 @@ export interface IntervalConfig extends BaseConfig {
 
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
+export interface MonitorEnvBrokenDetection {
+  environmentMutedTimestamp: string;
+  userNotifiedTimestamp: string;
+}
+
+export interface MonitorIncident {
+  brokenNotice: MonitorEnvBrokenDetection | null;
+  resolvingTimestamp: string;
+  startingTimestamp: string;
+}
+
 export interface MonitorEnvironment {
+  activeIncident: MonitorIncident | null;
   dateCreated: string;
+  isMuted: boolean;
   lastCheckIn: string | null;
   name: string;
   nextCheckIn: string | null;
+  nextCheckInLatest: string | null;
   status: MonitorStatus;
 }
 
@@ -84,6 +119,7 @@ export interface Monitor {
   dateCreated: string;
   environments: MonitorEnvironment[];
   id: string;
+  isMuted: boolean;
   name: string;
   project: Project;
   slug: string;
@@ -108,12 +144,54 @@ export interface MonitorStat {
 }
 
 export interface CheckIn {
+  /**
+   * Attachment ID for attachments sent via the legacy attachment HTTP
+   * endpoint. This will likely be removed in the future.
+   *
+   * @deprecated
+   */
   attachmentId: number | null;
+  /**
+   * Date the opening check-in was sent
+   */
   dateCreated: string;
+  /**
+   * Duration (in milliseconds)
+   */
   duration: number;
+  /**
+   * environment the check-in was sent to
+   */
   environment: string;
+  /**
+   * What was the monitors nextCheckIn value when this check-in occured, this
+   * is when we expected the check-in to happen.
+   */
   expectedTime: string;
+  /**
+   * Check-in GUID
+   */
   id: string;
+  /**
+   * A snapshot of the monitor configuration at the time of the check-in
+   */
+  monitorConfig: MonitorConfig;
+  /**
+   * Status of the check-in
+   */
   status: CheckInStatus;
+  /**
+   * Groups associated to this check-in (determiend by traceId)
+   */
   groups?: {id: number; shortId: string}[];
+}
+
+/**
+ * Object used to store config for the display next to an environment in the
+ * timeline view
+ */
+export interface StatusNotice {
+  color: ColorOrAlias;
+  icon: React.ReactNode;
+  label?: React.ReactNode;
 }

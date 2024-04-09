@@ -75,5 +75,6 @@ def process_organization_mapping_customer_id_update(
 
 @receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
 def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()

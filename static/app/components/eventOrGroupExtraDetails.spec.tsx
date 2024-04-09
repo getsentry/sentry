@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 
 describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();

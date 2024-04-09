@@ -24,7 +24,7 @@ describe('UnsubscribeIssue', function () {
     });
   });
 
-  it('loads data from the the API based on URL parameters', async function () {
+  it('loads data from the API based on URL parameters', async function () {
     const {router, routerProps, routerContext} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},
@@ -58,6 +58,9 @@ describe('UnsubscribeIssue', function () {
     const button = screen.getByRole('button', {name: 'Unsubscribe'});
     await userEvent.click(button);
 
-    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith(
+      '/organizations/acme/unsubscribe/issue/9876/?_=signature-value',
+      expect.objectContaining({data: {cancel: 1}})
+    );
   });
 });

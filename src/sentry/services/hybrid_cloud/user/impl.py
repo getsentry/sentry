@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, List, MutableMapping, Optional
+from collections.abc import Callable, MutableMapping
+from typing import Any
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -16,6 +17,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -29,12 +31,14 @@ from sentry.services.hybrid_cloud.filter_query import (
 from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
+    RpcAvatar,
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user, serialize_user_avatar
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
 
@@ -46,31 +50,31 @@ class DatabaseBackedUserService(UserService):
         self,
         *,
         filter: UserFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[UserSerializeType] = None,
-    ) -> List[OpaqueSerializedResponse]:
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+        serializer: UserSerializeType | None = None,
+    ) -> list[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
 
-    def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
+    def get_many(self, *, filter: UserFilterArgs) -> list[RpcUser]:
         return self._FQ.get_many(filter)
 
-    def get_many_ids(self, *, filter: UserFilterArgs) -> List[int]:
+    def get_many_ids(self, *, filter: UserFilterArgs) -> list[int]:
         return self._FQ.get_many_ids(filter)
 
     def get_many_by_email(
         self,
-        emails: List[str],
+        emails: list[str],
         is_active: bool = True,
         is_verified: bool = True,
-        organization_id: Optional[int] = None,
-    ) -> List[RpcUser]:
+        organization_id: int | None = None,
+    ) -> list[RpcUser]:
         user_emails_query = UserEmail.objects.filter(in_iexact("email", emails))
 
         if is_verified:
             user_emails_query = user_emails_query.filter(is_verified=True)
 
-        emails_by_user_ids: MutableMapping[int, List[str]] = {}
+        emails_by_user_ids: MutableMapping[int, list[str]] = {}
         for ue in user_emails_query:
             emails_by_user_ids.setdefault(ue.user_id, []).append(ue.email)
 
@@ -88,7 +92,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
-    ) -> List[RpcUser]:
+    ) -> list[RpcUser]:
         qs = self._FQ.base_query()
 
         if is_active is not None:
@@ -108,12 +112,16 @@ class DatabaseBackedUserService(UserService):
                 return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
 
+    def get_existing_usernames(self, *, usernames: list[str]) -> list[str]:
+        users = User.objects.filter(username__in=usernames)
+        return list(users.values_list("username", flat=True))
+
     def get_organizations(
         self,
         *,
         user_id: int,
         only_visible: bool = False,
-    ) -> List[RpcOrganizationMapping]:
+    ) -> list[RpcOrganizationMapping]:
         if user_id is None:
             # This is impossible if type hints are followed or Pydantic enforces type-checking
             # on serialization, but is still possible if we make a call
@@ -130,6 +138,17 @@ class DatabaseBackedUserService(UserService):
         if only_visible:
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
+
+    def get_member_region_names(self, *, user_id: int) -> list[str]:
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+        region_query = (
+            OrganizationMapping.objects.filter(organization_id__in=org_ids)
+            .values_list("region_name", flat=True)
+            .distinct()
+        )
+        return list(region_query)
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
@@ -156,7 +175,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str
-    ) -> Optional[RpcUser]:
+    ) -> RpcUser | None:
         user = User.objects.filter(
             social_auth__provider=provider,
             social_auth__uid=uid,
@@ -166,48 +185,57 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def get_first_superuser(self) -> Optional[RpcUser]:
+    def get_first_superuser(self) -> RpcUser | None:
         user = User.objects.filter(is_superuser=True, is_active=True).first()
         if user is None:
             return None
         return serialize_rpc_user(user)
 
     def get_or_create_user_by_email(
-        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
-    ) -> RpcUser:
+        self, *, email: str, ident: str | None = None, referrer: str | None = None
+    ) -> tuple[RpcUser, bool]:
         with transaction.atomic(router.db_for_write(User)):
-            user_query = User.objects.filter(email__iexact=email, is_active=True)
-            # Create User if it doesn't exist
-            if not user_query.exists():
-                user = User.objects.create(
-                    username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
-                    email=email,
-                    name=email,
-                )
-                user_signup.send_robust(
-                    sender=self, user=user, source="api", referrer=referrer or "unknown"
-                )
-                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-            else:
-                # Users are not supposed to have the same email but right now our auth pipeline let this happen
-                # So let's not break the user experience. Instead return the user with auth identity of ident or
-                # the first user if ident is None
-                user = user_query[0]
-                if user_query.count() > 1:
-                    logger.warning("Email has multiple users", extra={"email": email})
-                    if ident:
-                        identity_query = AuthIdentity.objects.filter(
-                            user__in=user_query, ident=ident
-                        )
-                        if identity_query.exists():
-                            user = identity_query[0].user
-                        if identity_query.count() > 1:
-                            logger.warning(
-                                "Email has two auth identity for the same ident",
-                                extra={"email": email},
-                            )
+            rpc_user = self.get_user_by_email(email=email, ident=ident)
+            if rpc_user:
+                return (rpc_user, False)
 
+            # Create User if it doesn't exist
+            user = User.objects.create(
+                username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
+                email=email,
+                name=email,
+            )
+            user_signup.send_robust(
+                sender=self, user=user, source="api", referrer=referrer or "unknown"
+            )
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+            return (serialize_rpc_user(user), True)
+
+    def get_user_by_email(
+        self,
+        *,
+        email: str,
+        ident: str | None = None,
+    ) -> RpcUser | None:
+        user_query = User.objects.filter(email__iexact=email, is_active=True)
+        if user_query.exists():
+            # Users are not supposed to have the same email but right now our auth pipeline let this happen
+            # So let's not break the user experience. Instead return the user with auth identity of ident or
+            # the first user if ident is None
+            user = user_query[0]
+            if user_query.count() > 1:
+                logger.warning("Email has multiple users", extra={"email": email})
+                if ident:
+                    identity_query = AuthIdentity.objects.filter(user__in=user_query, ident=ident)
+                    if identity_query.exists():
+                        user = identity_query[0].user
+                    if identity_query.count() > 1:
+                        logger.warning(
+                            "Email has two auth identity for the same ident",
+                            extra={"email": email},
+                        )
             return serialize_rpc_user(user)
+        return None
 
     def verify_any_email(self, *, email: str) -> bool:
         user_email = UserEmail.objects.filter(email__iexact=email).first()
@@ -217,6 +245,34 @@ class DatabaseBackedUserService(UserService):
             user_email.update(is_verified=True)
             return True
         return False
+
+    def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
+        return serialize_rpc_user(User.objects.create(username=username, email=email))
+
+    def trigger_user_consent_email_if_applicable(self, *, user_id: int) -> None:
+        user = User.objects.get(id=user_id)
+        flag = User.flags.newsletter_consent_prompt
+        user.update(flags=F("flags").bitor(flag))
+        user.send_confirm_emails(is_new_user=True)
+
+    def verify_user_emails(
+        self, *, user_id_emails: list[UserIdEmailArgs]
+    ) -> dict[int, RpcVerifyUserEmail]:
+        results = {}
+        for user_id_email in user_id_emails:
+            user_id = user_id_email["user_id"]
+            email = user_id_email["email"]
+            exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
+        return results
+
+    def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
+        possible_avatar = UserAvatar.objects.filter(user_id=user_id).first()
+
+        if not possible_avatar:
+            return None
+
+        return serialize_user_avatar(avatar=possible_avatar)
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
@@ -267,10 +323,10 @@ class DatabaseBackedUserService(UserService):
                 }
             )
 
-        def filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[UserFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids", "organization_id", "emails")
 
-        def serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
+        def serialize_api(self, serializer_type: UserSerializeType | None) -> Serializer:
             serializer: Serializer = UserSerializer()
             if serializer_type == UserSerializeType.DETAILED:
                 serializer = DetailedUserSerializer()

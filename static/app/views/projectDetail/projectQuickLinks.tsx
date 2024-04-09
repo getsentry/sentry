@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -7,7 +7,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';

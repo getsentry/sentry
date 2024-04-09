@@ -1,6 +1,8 @@
 from sentry.features.base import FeatureHandlerStrategy, OrganizationFeature, ProjectFeature
 from sentry.features.manager import FeatureManager
 
+# XXX: See `features/__init__.py` for documentation on how to use feature flags
+
 
 def register_permanent_features(manager: FeatureManager):
     """
@@ -16,7 +18,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:advanced-search",
         "organizations:app-store-connect-multiple",
         "organizations:change-alerts",
-        "organizations:commit-context",
         "organizations:codecov-integration",
         "organizations:crash-rate-alerts",
         "organizations:custom-symbol-sources",
@@ -50,6 +51,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:team-roles",
         "organizations:on-demand-metrics-prefill",
         "organizations:custom-metrics",
+        "organizations:customer-domains",
+        "organizations:frontend-domainsplit",
     ]
 
     permanent_project_features = [

@@ -1,11 +1,11 @@
-import {Plugin} from 'sentry-fixture/plugin';
+import {PluginFixture} from 'sentry-fixture/plugin';
 
-import {Plugin as PluginType} from 'sentry/types';
+import {Plugin} from 'sentry/types';
 
-export function Plugins(params: PluginType[] = []): PluginType[] {
+export function PluginsFixture(params: Plugin[] = []): Plugin[] {
   return [
-    Plugin(),
-    Plugin({
+    PluginFixture(),
+    PluginFixture({
       enabled: true,
       id: 'github',
       name: 'GitHub',
@@ -13,7 +13,7 @@ export function Plugins(params: PluginType[] = []): PluginType[] {
       canDisable: false,
       hasConfiguration: false,
     }),
-    Plugin({
+    PluginFixture({
       enabled: false,
       isHidden: true,
       name: 'Hidden Plugin',

@@ -41,7 +41,7 @@ function EventAttachmentActions({
       >
         <Button
           size="xs"
-          icon={<IconDelete size="xs" />}
+          icon={<IconDelete />}
           aria-label={t('Delete')}
           disabled={!url}
           title={!url ? t('Insufficient permissions to delete attachments') : undefined}
@@ -50,7 +50,7 @@ function EventAttachmentActions({
 
       <DownloadButton
         size="xs"
-        icon={<IconDownload size="xs" />}
+        icon={<IconDownload />}
         href={url ? `${url}?download=1` : ''}
         disabled={!url}
         title={!url ? t('Insufficient permissions to download attachments') : undefined}
@@ -62,14 +62,14 @@ function EventAttachmentActions({
           size="xs"
           disabled={!url || !hasPreview}
           priority={previewIsOpen ? 'primary' : 'default'}
-          icon={<IconShow size="xs" />}
+          icon={<IconShow />}
           onClick={handlePreview}
           title={
             !url
               ? t('Insufficient permissions to preview attachments')
               : !hasPreview
-              ? t('This attachment cannot be previewed')
-              : undefined
+                ? t('This attachment cannot be previewed')
+                : undefined
           }
         >
           {t('Preview')}

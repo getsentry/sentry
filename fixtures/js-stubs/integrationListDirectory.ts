@@ -1,6 +1,6 @@
-import {Integration, IntegrationProvider, SentryApp} from 'sentry/types';
+import type {Integration, IntegrationProvider, Plugin, SentryApp} from 'sentry/types';
 
-export function ProviderList(): {providers: IntegrationProvider[]} {
+export function ProviderListFixture(): {providers: IntegrationProvider[]} {
   return {
     providers: [
       {
@@ -35,7 +35,7 @@ export function ProviderList(): {providers: IntegrationProvider[]} {
   };
 }
 
-export function BitbucketIntegrationConfig(): Integration {
+export function BitbucketIntegrationConfigFixture(): Integration {
   return {
     accountType: '',
     gracePeriodEnd: '',
@@ -57,7 +57,7 @@ export function BitbucketIntegrationConfig(): Integration {
   };
 }
 
-export function GitHubIntegrationConfig(): Integration {
+export function GitHubIntegrationConfigFixture(): Integration {
   return {
     accountType: '',
     gracePeriodEnd: '',
@@ -79,7 +79,7 @@ export function GitHubIntegrationConfig(): Integration {
   };
 }
 
-export function OrgOwnedApps(): SentryApp[] {
+export function OrgOwnedAppsFixture(): SentryApp[] {
   return [
     {
       author: 'Sentry',
@@ -160,7 +160,7 @@ export function OrgOwnedApps(): SentryApp[] {
   ];
 }
 
-export function PublishedApps(): SentryApp[] {
+export function PublishedAppsFixture(): SentryApp[] {
   return [
     {
       author: 'Nisanthan',
@@ -192,7 +192,7 @@ export function PublishedApps(): SentryApp[] {
   ];
 }
 
-export function SentryAppInstalls() {
+export function SentryAppInstallsFixture() {
   return [
     {
       app: {
@@ -207,7 +207,7 @@ export function SentryAppInstalls() {
   ];
 }
 
-export function PluginListConfig() {
+export function PluginListConfigFixture() {
   return [
     {
       assets: [],
@@ -294,4 +294,55 @@ export function PluginListConfig() {
       metadata: {},
     },
   ];
+}
+
+export function WebhookPluginConfigFixture(plugin?: Partial<Plugin>): Plugin {
+  return {
+    id: 'webhooks',
+    name: 'WebHooks',
+    slug: 'webhooks',
+    shortName: 'WebHooks',
+    type: 'notification',
+    canDisable: true,
+    isTestable: true,
+    hasConfiguration: true,
+    metadata: {},
+    contexts: [],
+    status: 'unknown',
+    assets: [],
+    doc: '',
+    enabled: true,
+    version: '24.1.0.dev0',
+    author: {
+      name: 'Sentry Team',
+      url: 'https://github.com/getsentry/sentry',
+    },
+    isDeprecated: false,
+    isHidden: false,
+    description:
+      '\nTrigger outgoing HTTP POST requests from Sentry.\n\nNote: To configure webhooks over multiple projects, we recommend setting up an\nInternal Integration.\n',
+    features: ['alert-rule'],
+    featureDescriptions: [
+      {
+        description: 'Configure rule based outgoing HTTP POST requests from Sentry.',
+        featureGate: 'alert-rule',
+        featureId: 1,
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Report Issue',
+        url: 'https://github.com/getsentry/sentry/issues',
+      },
+      {
+        title: 'View Source',
+        url: 'https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks',
+      },
+      {
+        title: 'Internal Integrations',
+        url: 'https://docs.sentry.io/workflow/integrations/integration-platform/#internal-integrations',
+      },
+    ],
+    ...plugin,
+  };
 }

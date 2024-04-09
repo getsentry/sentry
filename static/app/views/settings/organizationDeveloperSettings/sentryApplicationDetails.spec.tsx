@@ -1,9 +1,11 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
@@ -14,14 +16,14 @@ describe('Sentry Application Details', function () {
   let createAppRequest;
   let editAppRequest;
 
-  const maskedValue = '*'.repeat(64);
+  const maskedValue = '************oken';
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org = Organization({features: ['sentry-app-logo-upload']});
+    org = OrganizationFixture({features: ['sentry-app-logo-upload']});
   });
 
   describe('Creating a new public Sentry App', () => {
@@ -35,7 +37,7 @@ describe('Sentry Application Details', function () {
           route={{path: 'new-public/'}}
           params={{}}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: RouterContextFixture([{organization: org}])}
       );
     }
 
@@ -146,7 +148,7 @@ describe('Sentry Application Details', function () {
           route={{path: 'new-internal/'}}
           params={{}}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: RouterContextFixture([{organization: org}])}
       );
     }
 
@@ -182,13 +184,13 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -219,10 +221,10 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows application data', function () {
+    it('shows application data', async function () {
       renderComponent();
 
-      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
@@ -246,16 +248,16 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
       });
-      token = SentryAppToken();
+      token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -288,13 +290,11 @@ describe('Sentry Application Details', function () {
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('shows tokens', function () {
+    it('has tokens', function () {
       renderComponent();
 
       expect(screen.getByText('Tokens')).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: 'Token value'})).toHaveValue(
-        '123456123456123456123456-token'
-      );
+      expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
     });
 
     it('shows just clientSecret', function () {
@@ -317,17 +317,17 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
         clientSecret: maskedValue,
       });
-      token = SentryAppToken({token: maskedValue, refreshToken: maskedValue});
+      token = SentryAppTokenFixture({token: maskedValue, refreshToken: maskedValue});
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -343,7 +343,7 @@ describe('Sentry Application Details', function () {
 
     it('shows masked tokens', function () {
       renderComponent();
-      expect(screen.getByRole('textbox', {name: 'Token value'})).toHaveValue(maskedValue);
+      expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
     });
 
     it('shows masked clientSecret', function () {
@@ -366,17 +366,17 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
         isAlertable: true,
       });
-      token = SentryAppToken();
+      token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -395,30 +395,37 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
         body: [
-          SentryAppToken({
+          SentryAppTokenFixture({
             token: '392847329',
             dateCreated: '2018-03-02T18:30:26Z',
+            id: '234',
           }),
         ],
       });
 
       renderComponent();
+      expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
+      expect(screen.getAllByLabelText('Token preview')).toHaveLength(1);
+
       await userEvent.click(screen.getByRole('button', {name: 'New Token'}));
 
       await waitFor(() => {
-        expect(screen.getAllByRole('textbox', {name: 'Token value'})).toHaveLength(2);
+        expect(screen.getAllByLabelText('Token preview')).toHaveLength(1);
+      });
+      await waitFor(() => {
+        expect(screen.getAllByLabelText('Generated token')).toHaveLength(1);
       });
     });
 
     it('removing token from list', async function () {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.id}/`,
         method: 'DELETE',
         body: {},
       });
 
       renderComponent();
-      await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
       expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
@@ -443,13 +450,13 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
       sentryApp.scopes = ['project:read', 'event:read'];
 
@@ -537,13 +544,13 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
 
       editAppRequest = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,

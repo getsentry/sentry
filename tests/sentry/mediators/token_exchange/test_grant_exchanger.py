@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestGrantExchanger(TestCase):
     def setUp(self):
         self.orm_install = self.create_sentry_app_installation(prevent_token_exchange=True)
@@ -57,7 +57,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
-        self.orm_install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
+        self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()

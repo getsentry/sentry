@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, ClassVar, Self, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
-from typing_extensions import Self
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    dependencies,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
+from sentry.utils.json import JSONData
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
@@ -49,6 +57,11 @@ class BaseModel(models.Model):
 
     __relocation_scope__: RelocationScope | set[RelocationScope]
     __relocation_dependencies__: set[str]
+
+    # Some models have a globally unique identifier, like a UUID. This should be a set of one or
+    # more fields, none of which are foreign keys, that are `unique=True` or `unique_together` for
+    # an entire Sentry instance.
+    __relocation_custom_ordinal__: list[str] | None = None
 
     objects: ClassVar[BaseManager[Self]] = BaseManager()
 
@@ -124,6 +137,21 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
+    def get_relocation_ordinal_fields(self) -> list[str] | None:
+        """
+        Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
+        the `write_relocation_import()` method may return an `ImportKind` besides
+        `ImportKind.Inserted`). In such cases, we want an ordering of models by a globally unique
+        value that is not the `pk`, to ensure that merged and inserted models are still ordered
+        correctly with respect to one another.
+        """
+
+        if self.__relocation_custom_ordinal__ is None:
+            return None
+
+        return self.__relocation_custom_ordinal__
+
+    @classmethod
     def get_possible_relocation_scopes(cls) -> set[RelocationScope]:
         """
         Retrieves the `RelocationScope` for a `Model` subclass. It always returns a set, to account for models that support multiple scopes on a situational, per-instance basis.
@@ -137,7 +165,13 @@ class BaseModel(models.Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        """ """
+        """
+        Create a custom query for performing exports. This is useful when we can't use the usual
+        method of filtering by foreign keys of already-seen models, and allows us to export a
+        smaller subset of data than "all models of this kind".
+
+        The `q` argument represents the exist query. This method should modify that query, then return it.
+        """
 
         model_name = get_model_name(cls)
         model_relations = dependencies()[model_name]
@@ -160,6 +194,22 @@ class BaseModel(models.Model):
                 q &= models.Q(**matched_fks_query)
 
         return q
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, _j: JSONData, _s: Sanitizer, _m: NormalizedModelName | None = None
+    ) -> None:
+        """
+        Takes the export JSON representation of this model, and "sanitizes" any data that might be
+        PII or otherwise user-specific. The JSON is modified in-place to avoid extra copies.
+
+        This function operates on the JSON form, rather than the Django model instance, for two
+        reasons: 1. we want the ability to sanitize exported JSON without first deserializing it,
+        and 2. to avoid risky situations where a model is modified in-place and then saved to the
+        production database by some far flung code that touches it later.
+        """
+
+        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
@@ -233,6 +283,15 @@ class DefaultFieldsModel(Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        sanitizer.set_datetime(json, SanitizableField(model_name, "date_added"))
+        sanitizer.set_datetime(json, SanitizableField(model_name, "date_updated"))
+        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
@@ -359,7 +418,7 @@ class ModelSiloLimit(SiloLimit):
             model_attr = getattr(model_class, model_attr_name)
             if callable(model_attr) and getattr(model_attr, "alters_data", False):
                 override = self.create_override(model_attr)
-                override.alters_data = True  # type: ignore
+                override.alters_data = True  # type: ignore[attr-defined]
 
                 # We have to resort to monkey-patching here. Dynamically extending
                 # and replacing the model class is not an option, because that would

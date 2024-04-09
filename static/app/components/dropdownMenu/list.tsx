@@ -3,19 +3,22 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {AriaMenuOptions, useMenu} from '@react-aria/menu';
+import type {AriaMenuOptions} from '@react-aria/menu';
+import {useMenu} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
-import {Node} from '@react-types/shared';
+import type {TreeProps, TreeState} from '@react-stately/tree';
+import {useTreeState} from '@react-stately/tree';
+import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import useOverlay from 'sentry/utils/useOverlay';
+import type useOverlay from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
-import DropdownMenuItem, {MenuItemProps} from './item';
+import type {MenuItemProps} from './item';
+import DropdownMenuItem from './item';
 import DropdownMenuSection from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
@@ -55,6 +58,10 @@ export interface DropdownMenuListProps
    */
   closeOnSelect?: boolean;
   /**
+   * To be displayed below the menu items
+   */
+  menuFooter?: React.ReactChild;
+  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactChild;
@@ -71,6 +78,7 @@ function DropdownMenuList({
   minMenuWidth,
   size,
   menuTitle,
+  menuFooter,
   overlayState,
   overlayPositionProps,
   ...props
@@ -246,6 +254,7 @@ function DropdownMenuList({
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
+            {menuFooter}
           </StyledOverlay>
         </DropdownMenuContext.Provider>
       </PositionWrapper>

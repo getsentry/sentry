@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+import sentry_sdk
+
 REPROCESSING_OPTION = "sentry:processing-rev"
 
 
@@ -26,6 +28,7 @@ def event_supports_reprocessing(data):
     return False
 
 
+@sentry_sdk.tracing.trace
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
     from sentry.models.options.project_option import ProjectOption

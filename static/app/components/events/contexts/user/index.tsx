@@ -3,11 +3,11 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
-import {AvatarUser} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {AvatarUser} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {getContextMeta, getKnownData, getUnknownData} from '../utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 
@@ -18,6 +18,7 @@ export type UserEventContextData = {
 type Props = {
   data: UserEventContextData;
   event: Event;
+  meta?: Record<string, any>;
 };
 
 export enum UserKnownDataType {
@@ -42,8 +43,8 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-export function UserEventContext({data, event}: Props) {
-  const meta = event._meta?.user ?? event._meta?.contexts?.user ?? {};
+export function UserEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'user');
 
   return (
     <div className="user-widget">

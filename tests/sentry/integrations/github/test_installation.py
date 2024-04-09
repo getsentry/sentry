@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEndpointTest(APITestCase):
     base_url = "https://api.github.com"
 

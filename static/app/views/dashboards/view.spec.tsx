@@ -1,4 +1,6 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -37,7 +39,7 @@ describe('Dashboards > ViewEditDashboard', function () {
 
     render(
       <ViewEditDashboard
-        location={TestStubs.location(location)}
+        location={LocationFixture(location)}
         organization={initialData.organization}
         router={initialData.router}
         params={{
@@ -48,7 +50,7 @@ describe('Dashboards > ViewEditDashboard', function () {
         routes={[]}
         routeParams={{}}
       >
-        {() => undefined}
+        <Fragment />
       </ViewEditDashboard>
     );
 

@@ -13,10 +13,9 @@ from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger(__name__)
-epoch = datetime.utcfromtimestamp(0)
+epoch = datetime.fromtimestamp(0)
 
 
 def random_normal(mu, sigma, minimum, maximum=None):
@@ -116,6 +115,7 @@ def load_data(
     trace_context=None,
     fingerprint=None,
     event_id=None,
+    metrics_summary=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -186,14 +186,17 @@ def load_data(
         timestamp = datetime.utcnow() - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
-    data.setdefault("timestamp", to_timestamp(timestamp))
+    data.setdefault("timestamp", timestamp.timestamp())
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
             start_timestamp = timestamp - timedelta(seconds=3)
         else:
             start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
-        data["start_timestamp"] = to_timestamp(start_timestamp)
+        data["start_timestamp"] = start_timestamp.timestamp()
+
+        if metrics_summary is not None:
+            data["_metrics_summary"] = metrics_summary
 
         if trace is None:
             trace = uuid4().hex

@@ -1,12 +1,12 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -17,9 +17,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {
   DATA_CATEGORY_INFO,
   DEFAULT_RELATIVE_PERIODS,
@@ -28,7 +28,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   DataCategoryInfo,
   DateString,
   Organization,
@@ -39,11 +39,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
-import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
+import type {ChartDataTransform} from './usageChart';
+import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+
+const relativeOptions = omit(DEFAULT_RELATIVE_PERIODS, ['1h']);
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -73,32 +76,22 @@ export type OrganizationStatsProps = {
 } & RouteComponentProps<{}, {}>;
 
 export class OrganizationStats extends Component<OrganizationStatsProps> {
-  get dataCategory(): DataCategoryInfo['plural'] {
-    const dataCategory = this.props.location?.query?.dataCategory;
-
-    switch (dataCategory) {
-      case DATA_CATEGORY_INFO.error.plural:
-      case DATA_CATEGORY_INFO.transaction.plural:
-      case DATA_CATEGORY_INFO.attachment.plural:
-      case DATA_CATEGORY_INFO.profile.plural:
-      case DATA_CATEGORY_INFO.replay.plural:
-        return dataCategory;
-      default:
-        return DATA_CATEGORY_INFO.error.plural;
-    }
-  }
-
   get dataCategoryInfo(): DataCategoryInfo {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
-    const dataCategoryInfo =
-      Object.values(DATA_CATEGORY_INFO).find(
-        categoryInfo => categoryInfo.plural === dataCategoryPlural
-      ) ?? DATA_CATEGORY_INFO.error;
-    return dataCategoryInfo;
+
+    const categories = Object.values(DATA_CATEGORY_INFO);
+    const info = categories.find(c => c.plural === dataCategoryPlural);
+
+    // Default to errors
+    return info ?? DATA_CATEGORY_INFO.error;
   }
 
-  get dataCategoryName(): string {
-    return this.dataCategoryInfo.titleName ?? t('Unknown Data Category');
+  get dataCategory() {
+    return this.dataCategoryInfo.plural;
+  }
+
+  get dataCategoryName() {
+    return this.dataCategoryInfo.titleName;
   }
 
   get dataDatetime(): DateTimeObject {
@@ -265,12 +258,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      return true;
+    });
 
     return (
       <PageControl>
@@ -320,12 +313,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      return true;
+    });
 
     return (
       <SelectorGrid>
@@ -336,13 +329,15 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
           onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
-        <StyledPageTimeRangeSelector
+        <StyledTimeRangeSelector
           relative={period ?? ''}
           start={start ?? null}
           end={end ?? null}
           utc={utc ?? null}
           onChange={this.handleUpdateDatetime}
-          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+          relativeOptions={relativeOptions}
+          triggerLabel={period && relativeOptions[period]}
+          triggerProps={{prefix: t('Date Range')}}
         />
       </SelectorGrid>
     );
@@ -352,18 +347,21 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    * This method is replaced by the hook "component:enhanced-org-stats"
    */
   renderUsageStatsOrg() {
-    const {organization, router} = this.props;
+    const {organization, router, location, params, routes} = this.props;
     return (
       <UsageStatsOrg
         isSingleProject={this.isSingleProject}
         projectIds={this.projectIds}
         organization={organization}
         dataCategory={this.dataCategory}
-        dataCategoryName={this.dataCategoryName}
+        dataCategoryName={this.dataCategoryInfo.titleName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
         handleChangeState={this.setStateOnUrl}
         router={router}
+        location={location}
+        params={params}
+        routes={routes}
       />
     );
   }
@@ -403,8 +401,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
               <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
-                  dataCategory={this.dataCategory}
-                  dataCategoryName={this.dataCategoryName}
+                  dataCategory={this.dataCategoryInfo}
+                  dataCategoryName={this.dataCategoryInfo.titleName}
                   isSingleProject={this.isSingleProject}
                   projectIds={this.projectIds}
                   dataDatetime={this.dataDatetime}
@@ -473,7 +471,7 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   grid-column: auto / span 1;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto / span 2;

@@ -29,8 +29,6 @@ VALID_FIELD_SET = (
     "clicks",
     "info_ids",
     "warning_ids",
-    "new_error_ids",
-    "new_count_errors",
     "count_warnings",
     "count_infos",
 )
@@ -74,6 +72,13 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
     query = serializers.CharField(
         help_text="A structured query string to filter the output by.", required=False
+    )
+    per_page = serializers.IntegerField(
+        help_text="Limit the number of rows to return in the result.", required=False
+    )
+    cursor = serializers.CharField(
+        help_text="The cursor parameter is used to paginate results. See [here](https://docs.sentry.io/api/pagination/) for how to use this query parameter",
+        required=False,
     )
 
 

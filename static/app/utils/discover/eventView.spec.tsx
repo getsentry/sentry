@@ -1,15 +1,16 @@
 import shuffle from 'lodash/shuffle';
-import {Organization} from 'sentry-fixture/organization';
-import {PageFilters} from 'sentry-fixture/pageFilters';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {NewQuery, SavedQuery} from 'sentry/types';
+import type {NewQuery, SavedQuery} from 'sentry/types';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,
-  MetaType,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
-import {Column} from 'sentry/utils/discover/fields';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,
@@ -71,7 +72,7 @@ describe('EventView constructor', function () {
 
 describe('EventView.fromLocation()', function () {
   it('maps query strings', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '42',
         name: 'best query',
@@ -115,7 +116,7 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('includes first valid statsPeriod', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '42',
         name: 'best query',
@@ -151,7 +152,7 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('includes start and end', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '42',
         name: 'best query',
@@ -185,7 +186,7 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('generates event view when there are no query strings', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {},
     });
 
@@ -517,7 +518,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const pageFilters = PageFilters();
+    const pageFilters = PageFiltersFixture();
 
     const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
 
@@ -537,9 +538,12 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   });
 
   it('merges page filter values', function () {
-    const pageFilters = TestStubs.PageFilters({
+    const pageFilters = PageFiltersFixture({
       datetime: {
         period: '3d',
+        start: null,
+        end: null,
+        utc: null,
       },
       projects: [42],
       environments: ['prod'],
@@ -575,7 +579,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         statsPeriod: '99d',
       },
@@ -606,7 +610,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   });
 
   it('merges global selection values', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         statsPeriod: '99d',
         project: ['456'],
@@ -638,7 +642,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   });
 
   it('new query takes precedence over global selection values', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         statsPeriod: '99d',
         project: ['456'],
@@ -677,7 +681,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     // also test start and end
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
@@ -738,7 +742,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       version: 2,
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         statsPeriod: '14d',
         project: ['123'],
@@ -770,7 +774,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
     });
 
     const savedQuery2: SavedQuery = {...saved, range: undefined};
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         project: ['123'],
         environment: ['staging'],
@@ -817,7 +821,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       version: 2,
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '42',
         statsPeriod: '7d',
@@ -863,7 +867,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       yAxis: ['count()'],
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '5',
         project: ['1'],
@@ -906,7 +910,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       version: 2,
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '42',
         statsPeriod: '7d',
@@ -932,7 +936,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       display: 'previous',
     });
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         id: '42',
         statsPeriod: '7d',
@@ -975,7 +979,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       id: '3',
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51+0000',
@@ -985,7 +989,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
@@ -996,7 +1000,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
 
-    const location3 = TestStubs.location({
+    const location3 = LocationFixture({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
@@ -1007,7 +1011,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     expect(eventView.isEqualTo(eventView3)).toBe(true);
 
-    const location4 = TestStubs.location({
+    const location4 = LocationFixture({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51+0000',
@@ -1034,7 +1038,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       projects: [1],
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         id: '3',
         end: '2019-10-23T19:27:04+0000',
@@ -1044,7 +1048,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         id: '3',
         end: '2019-10-23T19:27:04+0000',
@@ -1055,7 +1059,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
-    const location3 = TestStubs.location({
+    const location3 = LocationFixture({
       query: {
         id: '3',
         end: '',
@@ -1089,7 +1093,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       version: 2,
     };
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         statsPeriod: '14d',
         project: ['123'],
@@ -1122,7 +1126,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   it('filters out invalid teams', function () {
     const eventView = EventView.fromSavedQueryOrLocation(
       undefined,
-      TestStubs.location({
+      LocationFixture({
         query: {
           statsPeriod: '14d',
           project: ['123'],
@@ -1254,7 +1258,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       display: 'releases',
     });
 
-    expect(eventView.getEventsAPIPayload(TestStubs.location())).toEqual({
+    expect(eventView.getEventsAPIPayload(LocationFixture())).toEqual({
       field: ['id'],
       per_page: 50,
       sort: '-id',
@@ -1273,7 +1277,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: 'event.type:csp',
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         query: 'TypeError',
       },
@@ -1289,7 +1293,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: 'event.type:csp',
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {},
     });
 
@@ -1304,7 +1308,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: 'event.type:csp',
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {},
     });
 
@@ -1319,7 +1323,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: 'event.type:csp',
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         start: '2020-08-12 12:13:14',
         end: '2020-08-26 12:13:14',
@@ -1359,7 +1363,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       environment: ['staging'],
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         start: '',
         end: '',
@@ -1383,7 +1387,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         start: '',
         end: '',
@@ -1417,7 +1421,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       environment: ['staging'],
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         start: '',
         utc: 'true',
@@ -1439,7 +1443,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = TestStubs.location({
+    const location2 = LocationFixture({
       query: {
         end: '',
         utc: 'true',
@@ -1474,7 +1478,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       project: [],
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
@@ -1522,7 +1526,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       end: '2019-10-02T00:00:00',
     });
 
-    let location = TestStubs.location({
+    let location = LocationFixture({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
@@ -1546,7 +1550,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       end: '2019-10-02T00:00:00',
     });
 
-    location = TestStubs.location({
+    location = LocationFixture({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
@@ -1569,7 +1573,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       ...initialState,
     });
 
-    location = TestStubs.location({
+    location = LocationFixture({
       query: {
         statsPeriod: '55d',
         period: '30d',
@@ -1583,7 +1587,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '55d',
     });
 
-    location = TestStubs.location({
+    location = LocationFixture({
       query: {
         period: '30d',
         start: '2020-10-01T00:00:00',
@@ -1596,7 +1600,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '30d',
     });
 
-    location = TestStubs.location({
+    location = LocationFixture({
       query: {
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
@@ -1620,7 +1624,7 @@ describe('EventView.getFacetsAPIPayload()', function () {
       query: 'event.type:csp',
     });
 
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         start: '',
         end: '',
@@ -2978,7 +2982,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3034,7 +3038,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3098,7 +3102,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const showTransactions = EventsDisplayFilterName.P99;
   const breakdown = SpanOperationBreakdownFilter.HTTP;
   const webVital = WebVital.LCP;
@@ -3573,7 +3577,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getEventsAPIPayload', function () {
     it('is not similar when relevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({
+      const location = LocationFixture({
         query: {
           project: 'project',
           environment: 'environment',
@@ -3586,7 +3590,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3596,14 +3600,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when irrelevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({
+      const location = LocationFixture({
         query: {
           bestCountry: 'canada',
         },
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3613,11 +3617,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3627,14 +3631,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a new column is added', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3644,7 +3648,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is updated with no changes', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3653,7 +3657,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3663,7 +3667,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced field', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3672,7 +3676,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3682,7 +3686,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced aggregation', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3691,7 +3695,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3701,7 +3705,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is renamed', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3710,7 +3714,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3720,11 +3724,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is deleted', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3734,11 +3738,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({...state, fields: shuffle(state.fields)});
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3756,7 +3760,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3766,7 +3770,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3784,7 +3788,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3794,7 +3798,7 @@ describe('isAPIPayloadSimilar', function () {
         equationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3806,7 +3810,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getFacetsAPIPayload', function () {
     it('only includes relevant parameters', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const results = thisEventView.getFacetsAPIPayload(location);
       const expected = {
         query: state.query,
@@ -3820,7 +3824,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3829,7 +3833,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3838,14 +3842,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a columns are different', function () {
       const thisEventView = new EventView(state);
-      const location = TestStubs.location({});
+      const location = LocationFixture({});
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = TestStubs.location({});
+      const otherLocation = LocationFixture({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3856,7 +3860,7 @@ describe('isAPIPayloadSimilar', function () {
 
 describe('pickRelevantLocationQueryStrings', function () {
   it('picks relevant query strings', function () {
-    const location = TestStubs.location({
+    const location = LocationFixture({
       query: {
         project: 'project',
         environment: 'environment',

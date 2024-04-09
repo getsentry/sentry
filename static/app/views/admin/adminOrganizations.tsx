@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Link from 'sentry/components/links/link';
 import ResultGrid from 'sentry/components/resultGrid';

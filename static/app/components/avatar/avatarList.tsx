@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarUser, Team} from 'sentry/types';
+import type {AvatarUser, Team} from 'sentry/types';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
@@ -45,7 +45,7 @@ function AvatarList({
   return (
     <AvatarListWrapper className={className}>
       {!!numCollapsedAvatars && (
-        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
           <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
@@ -80,6 +80,7 @@ export default AvatarList;
 // used in releases list page to do some alignment
 export const AvatarListWrapper = styled('div')`
   display: flex;
+  align-items: center;
   flex-direction: row-reverse;
 `;
 

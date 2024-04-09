@@ -1,5 +1,5 @@
-import selectEvent from 'react-select-event';
-import {Members} from 'sentry-fixture/members';
+import {MembersFixture} from 'sentry-fixture/members';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +15,7 @@ describe('Project Ownership Input', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: Members(),
+      body: MembersFixture(),
     });
     put = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/ownership/`,
@@ -23,9 +23,7 @@ describe('Project Ownership Input', function () {
       body: {raw: 'url:src @dummy@example.com'},
     });
     MemberListStore.init();
-    MemberListStore.loadInitialData([
-      TestStubs.User({id: '1', email: 'bob@example.com'}),
-    ]);
+    MemberListStore.loadInitialData([UserFixture({id: '1', email: 'bob@example.com'})]);
   });
 
   it('renders', async function () {
@@ -68,17 +66,12 @@ describe('Project Ownership Input', function () {
       />
     );
 
-    // Set a path, as path is selected bu default.
-    await userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'file.js');
-
-    // Select the user.
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Rule owner'}),
-      'Foo Bar'
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Ownership Rules'}),
+      '\npath:file.js bob@example.com'
     );
 
-    // Add the new rule.
-    await userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(put).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/ownership/`,

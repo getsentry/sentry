@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type Preferences = {
   /**

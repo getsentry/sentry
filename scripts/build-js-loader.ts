@@ -1,8 +1,5 @@
 /* eslint-disable no-console */
-/* eslint import/no-nodejs-modules:0 */
-
-import fs from 'fs';
-
+import fs from 'node:fs';
 import {minify} from 'terser';
 import * as ts from 'typescript';
 
@@ -42,7 +39,7 @@ async function run() {
   const {code: minifiedBase} = await minify(base, {
     ecma: 5,
     mangle: {
-      reserved: ['onLoad', 'forceLoad'],
+      reserved: ['onLoad', 'forceLoad', 'sentryOnLoad'],
     },
     format: {
       ecma: 5,

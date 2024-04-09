@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
@@ -19,11 +19,7 @@ function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
   ) : (
     <EmptyState>
       <p>{t('No results found')}</p>
-      <Button
-        icon={<IconClose color="gray500" size="sm" isCircled />}
-        onClick={clearSearchTerm}
-        size="md"
-      >
+      <Button icon={<IconClose color="gray500" isCircled />} onClick={clearSearchTerm}>
         {t('Clear filters')}
       </Button>
     </EmptyState>

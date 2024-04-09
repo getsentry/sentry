@@ -2,11 +2,12 @@ from django.http.response import HttpResponse
 from rest_framework.request import Request
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.web.frontend.base import BaseView
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@control_silo_view
 class AccountConfirmationView(BaseView):
     # the user using this endpoint is currently locked out of their account so auth isn't required.
     auth_required = False
@@ -32,5 +33,7 @@ class AccountConfirmationView(BaseView):
         organization_id = verification_value.get("organization_id")
         if organization_id is None:
             return None
-        org_context = organization_service.get_organization_by_id(id=organization_id, user_id=None)
-        return org_context.organization.slug if org_context is not None else None
+        try:
+            return OrganizationMapping.objects.get(organization_id=organization_id).slug
+        except OrganizationMapping.DoesNotExist:
+            return None

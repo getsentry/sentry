@@ -1,9 +1,11 @@
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {RelatedExceptions} from 'sentry/components/events/interfaces/crashContent/exception/relatedExceptions';
 
 describe('ExceptionGroupContext', function () {
-  const entry = TestStubs.EventEntryExceptionGroup();
+  const entry = EventEntryExceptionGroupFixture();
 
   const exceptionGroup1Mechanism = entry.data.values?.find(
     ({type}) => type === 'ExceptionGroup 1'
@@ -11,8 +13,9 @@ describe('ExceptionGroupContext', function () {
   const exceptionGroup2Mechanism = entry.data.values?.find(
     ({type}) => type === 'ExceptionGroup 2'
   )?.mechanism;
-  const typeErrorMechanism = entry.data.values?.find(({type}) => type === 'TypeError')
-    ?.mechanism;
+  const typeErrorMechanism = entry.data.values?.find(
+    ({type}) => type === 'TypeError'
+  )?.mechanism;
 
   const defaultProps = {
     allExceptions: entry.data.values ?? [],

@@ -1,12 +1,13 @@
 import omit from 'lodash/omit';
 
 import {defined} from 'sentry/utils';
-import GenericDiscoverQuery, {
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
-import {SuspectSpans} from './types';
+import type {SuspectSpans} from './types';
 
 type SuspectSpansProps = {
   maxExclusiveTime?: string;

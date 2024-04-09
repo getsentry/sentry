@@ -6,17 +6,18 @@ import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/pe
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {
-  EventTransaction,
   getIssueTypeFromOccurrenceType,
-  Organization,
+  isOccurrenceBased,
+  isTransactionBased,
 } from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import TraceView from '../spans/traceView';
-import {TraceContextType} from '../spans/types';
+import type {TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
@@ -42,9 +43,11 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const hasProfilingFeature = organization.features.includes('profiling');
 
-  const issueType = getIssueTypeFromOccurrenceType(event.occurrence?.type);
+  const typeId = event.occurrence?.type;
+  const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
+  const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   return (
     <EventDataSection
@@ -54,7 +57,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
       actions={
-        issueType && (
+        issueType &&
+        hasSetting && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
             to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}

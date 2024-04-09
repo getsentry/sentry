@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest import mock
 
 import pytest
@@ -8,13 +7,12 @@ from rest_framework.exceptions import ParseError
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         super().setUp()
@@ -76,6 +74,15 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
         assert response.status_code == 400, response.content
 
+    @with_feature("organizations:issue-priority-ui")
+    def test_invalid_query_priority(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
+            )
+
+        assert response.status_code == 400, response.content
+
     def test_no_projects(self):
         no_project_org = self.create_organization(owner=self.user)
 
@@ -118,7 +125,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         url = reverse(
@@ -131,6 +138,29 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 {
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_errors_dataset_event(self):
+        """Test that the errors dataset returns data for an issue's short ID"""
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_1 = self.store_event(
+                data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+            ).group
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        with self.feature(self.features):
+            response = self.client.get(
+                url,
+                {
+                    "query": f"issue:{group_1.qualified_short_id} is:unresolved",
+                    "dataset": "errors",
                 },
                 format="json",
             )
@@ -181,7 +211,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature(self.features):
             # Don't quantize short time periods
             self.client.get(
@@ -213,7 +243,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             assert len(mock_quantize.mock_calls) == 2
 
 
-@region_silo_test
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -390,3 +419,35 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["shortId"] == event.group.qualified_short_id
         assert int(response.data[0]["id"]) == event.group_id
+
+
+class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
+    url_name = "sentry-api-0-organization-spans-samples"
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_slug": project.organization.slug})
+
+        response = self.client.get(
+            url,
+            {
+                "query": "span.is_segment:1 transaction:api/0/foo",
+                "lowerBound": "0",
+                "firstBound": "10",
+                "secondBound": "20",
+                "upperBound": "200",
+                "column": "span.duration",
+            },
+            format="json",
+            extra={"project": [project.id]},
+        )
+
+        assert response.status_code == 200, response.content
+
+        # the SQL should have is_segment converted into an int for all requests
+        assert all(
+            "is_segment = 1" in call_args[0][0].serialize()
+            for call_args in mock_raw_snql_query.call_args_list
+        )

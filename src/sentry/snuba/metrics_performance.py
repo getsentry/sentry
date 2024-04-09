@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from snuba_sdk import Column
@@ -14,9 +17,10 @@ from sentry.search.events.builder import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 logger = logging.getLogger(__name__)
@@ -44,7 +48,8 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    granularity: Optional[int] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    granularity: int | None = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -68,6 +73,7 @@ def query(
                 transform_alias_to_input_format=transform_alias_to_input_format,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
@@ -75,26 +81,72 @@ def query(
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
+        results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
+@overload
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
-    queries: List[str],
-    params: Dict[str, str],
+    queries: list[str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    groupby: Optional[Column] = None,
-    apply_formatting: Optional[bool] = True,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    *,
+    apply_formatting: Literal[False],
+) -> EventsResponse:
+    ...
+
+
+@overload
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
 ) -> SnubaTSResult:
+    ...
+
+
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    *,
+    apply_formatting: bool = True,
+) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
@@ -107,7 +159,6 @@ def bulk_timeseries_query(
     if metrics_compatible:
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_queries = []
-            metrics_query = None
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
                     params,
@@ -127,18 +178,18 @@ def bulk_timeseries_query(
 
             metrics_referrer = referrer + ".metrics-enhanced"
             bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
-            result = {"data": []}
+            _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
-                result["data"] = [*result["data"], *br["data"]]
-                result["meta"] = br["meta"]
+                _result["data"] = [*_result["data"], *br["data"]]
+                _result["meta"] = br["meta"]
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = metrics_query.process_results(result)
+            result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
             if not apply_formatting:
-                return result
+                return result  # EventsResponseData type
 
             result["data"] = (
                 discover.zerofill(
@@ -183,17 +234,18 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    groupby: Optional[Column] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -202,7 +254,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: Dict[str, Any]):
+    def run_metrics_query(inner_params: ParamsType):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 inner_params,
@@ -216,6 +268,7 @@ def timeseries_query(
                     allow_metric_aggregates=allow_metric_aggregates,
                     use_metrics_layer=use_metrics_layer,
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
+                    on_demand_metrics_type=on_demand_metrics_type,
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -235,10 +288,13 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
+            sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
             return {
                 "data": result["data"],
                 "isMetricsData": True,
+                "isMetricsExtractedData": metrics_query.use_on_demand,
                 "meta": result["meta"],
             }
 
@@ -330,7 +386,9 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
-):
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+) -> SnubaTSResult | dict[str, Any]:
     if top_events is None:
         top_events = query(
             selected_columns,
@@ -342,6 +400,8 @@ def top_events_timeseries(
             referrer=referrer,
             auto_aggregations=True,
             use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
@@ -355,6 +415,8 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -367,6 +429,10 @@ def top_events_timeseries(
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
+            ),
         )
 
         # TODO: use bulk_snql_query
@@ -395,7 +461,7 @@ def top_events_timeseries(
 
     translated_groupby = top_events_builder.translated_groupby
 
-    results = (
+    results: dict[str, Any] = (
         {discover.OTHER_KEY: {"order": limit, "data": other_result["data"]}}
         if len(other_result.get("data", []))
         else {}
@@ -422,6 +488,9 @@ def top_events_timeseries(
                 if zerofill_results
                 else item["data"],
                 "order": item["order"],
+                # One of the queries in the builder has required, thus, we mark all of them
+                # This could mislead downstream consumers of the meta data
+                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
             },
             params["start"],
             params["end"],
@@ -536,7 +605,7 @@ def normalize_histogram_results(fields, histogram_params, results):
     """
 
     # zerofill and rename the columns while making sure to adjust for precision
-    bucket_maps = {field: {} for field in fields}
+    bucket_maps: dict[str, Any] = {field: {} for field in fields}
     # Only one row in metrics result
     data = results["data"][0]
     for field in fields:
@@ -544,7 +613,7 @@ def normalize_histogram_results(fields, histogram_params, results):
         histogram_alias = get_function_alias(histogram_column)
         bucket_maps[field] = {start: height for start, end, height in data[histogram_alias]}
 
-    new_data = {field: [] for field in fields}
+    new_data: dict[str, Any] = {field: [] for field in fields}
     for i in range(histogram_params.num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for field in fields:

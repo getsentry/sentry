@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
@@ -47,6 +47,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="List an Organization's Projects",
@@ -54,7 +55,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationProjectResponseDict", List[OrganizationProjectResponse]
+                "OrganizationProjectResponseDict", list[OrganizationProjectResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

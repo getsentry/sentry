@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
@@ -10,6 +11,10 @@ COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 def has_discover_links(links: list[str]) -> bool:
     return any(match_link(link)[0] == LinkType.DISCOVER for link in links)
+
+
+def is_event_challenge(data: Mapping[str, Any]) -> bool:
+    return data.get("type", "") == "url_verification"
 
 
 class SlackEventRequest(SlackDMRequest):
@@ -42,8 +47,7 @@ class SlackEventRequest(SlackDMRequest):
 
     def is_challenge(self) -> bool:
         """We need to call this before validation."""
-        _is_challenge: bool = self.request.data.get("type") == "url_verification"
-        return _is_challenge
+        return is_event_challenge(self.request.data)
 
     @property
     def dm_data(self) -> Mapping[str, Any]:

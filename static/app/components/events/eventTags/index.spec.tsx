@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -6,29 +8,20 @@ import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('event tags', function () {
   it('display redacted tags', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       tags: null,
       _meta: {
         tags: {'': {rem: [['project:2', 'x']]}},
       },
-    };
+    });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
@@ -46,8 +39,7 @@ describe('event tags', function () {
       {key: 'device.family', value: 'iOS'},
     ];
 
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       tags,
       _meta: {
         tags: {
@@ -58,23 +50,15 @@ describe('event tags', function () {
           },
         },
       },
-    };
+    });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     expect(screen.getByText('device.family')).toBeInTheDocument();
     expect(screen.getByText('iOS')).toBeInTheDocument();
@@ -90,29 +74,21 @@ describe('event tags', function () {
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
-  it('transacation tag links to transaction overview', function () {
+
+  it('transaction tag links to transaction overview', function () {
     const tags = [{key: 'transaction', value: 'mytransaction'}];
 
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       tags,
-    };
+    });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     expect(screen.getByText('mytransaction')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(

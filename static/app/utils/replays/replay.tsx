@@ -2,10 +2,13 @@ type JsonObject = Record<string, unknown>;
 type JsonArray = unknown[];
 
 export type NetworkMetaWarning =
+  | 'MAYBE_JSON_TRUNCATED'
   | 'JSON_TRUNCATED'
   | 'TEXT_TRUNCATED'
   | 'INVALID_JSON'
-  | 'URL_SKIPPED';
+  | 'URL_SKIPPED'
+  | 'BODY_PARSE_ERROR'
+  | 'UNPARSEABLE_BODY_TYPE';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];

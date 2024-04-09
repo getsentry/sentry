@@ -1,6 +1,6 @@
-import {Repository as RepositoryType, RepositoryStatus} from 'sentry/types';
+import {Repository, RepositoryStatus} from 'sentry/types';
 
-export function Repository(params: Partial<RepositoryType> = {}): RepositoryType {
+export function RepositoryFixture(params: Partial<Repository> = {}): Repository {
   return {
     id: '4',
     name: 'example/repo-name',

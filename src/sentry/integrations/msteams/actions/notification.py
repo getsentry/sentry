@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
@@ -31,14 +30,18 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
 
-    def get_integrations(self) -> List[RpcIntegration]:
+    def get_integrations(self) -> list[RpcIntegration]:
+        # The MSTeams tenant limitation does not seem to be true anymore
+        # Test out the integration through FF to contain the exposure
+        if features.has("organizations:integrations-msteams-tenant", self.project.organization):
+            return [a for a in super().get_integrations()]
         # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
         # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
         return [
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None):
+    def after(self, event: GroupEvent, state: EventState, notification_uuid: str | None = None):
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()

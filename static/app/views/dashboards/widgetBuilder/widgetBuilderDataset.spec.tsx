@@ -1,8 +1,7 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,17 +11,19 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -211,19 +212,19 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     measurementsMetaMock = MockApiClient.addMockResponse({
@@ -270,7 +271,7 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
+    resetMockDate();
   });
 
   describe('Release Widgets', function () {
@@ -362,7 +363,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort on tags except release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -403,7 +404,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('makes the appropriate sessions call', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -435,7 +436,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls the session endpoint with the right limit', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -473,7 +474,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -532,7 +533,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -551,11 +552,11 @@ describe('WidgetBuilder', function () {
         queries: [
           {
             name: 'errors',
-            conditions: 'event.type:error',
-            fields: ['sdk.name', 'count()'],
-            columns: ['sdk.name'],
-            aggregates: ['count()'],
-            orderby: '-sdk.name',
+            conditions: '',
+            fields: ['session.crash_free_rate'],
+            columns: ['scount_abnormal(session)'],
+            aggregates: ['session.crash_free_rate'],
+            orderby: '-session.crash_free_rate',
           },
         ],
         interval: '1d',
@@ -604,7 +605,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {

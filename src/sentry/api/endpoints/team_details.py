@@ -5,16 +5,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, roles
+from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    PreventNumericSlugMixin,
-    region_silo_endpoint,
-)
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -22,20 +18,14 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
-class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+class TeamSerializer(CamelSnakeModelSerializer):
+    slug = SentrySerializerSlugField(
         max_length=50,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
-    )
-    org_role = serializers.ChoiceField(
-        choices=tuple(list(roles.get_choices()) + [("")]),
-        default="",
     )
 
     class Meta:
         model = Team
-        fields = ("name", "slug", "org_role")
+        fields = ("name", "slug")
 
     def validate_slug(self, value):
         qs = Team.objects.filter(slug=value, organization=self.instance.organization).exclude(
@@ -43,12 +33,6 @@ class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
         )
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-        super().validate_slug(value)
-        return value
-
-    def validate_org_role(self, value):
-        if value == "":
-            return None
         return value
 
 
@@ -107,36 +91,11 @@ class TeamDetailsEndpoint(TeamEndpoint):
                                owners can set this value.
         :auth: required
         """
-        team_org_role = team.org_role
-        if team_org_role != request.data.get("orgRole"):
-            if not features.has("organizations:org-roles-for-teams", team.organization, actor=None):
-                # remove the org role, but other fields can still be set
-                del request.data["orgRole"]
-
-            if team.idp_provisioned:
-                return Response(
-                    {
-                        "detail": "This team is managed through your organization's identity provider."
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            # users should not be able to set the role of a team to something higher than themselves
-            # only allow the top dog to do this so they can set the org_role to any role in the org
-            elif not request.access.has_scope("org:admin"):
-                return Response(
-                    {
-                        "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
             data = team.get_audit_log_data()
-            data["old_org_role"] = team_org_role
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,

@@ -2,19 +2,18 @@ import {PureComponent} from 'react';
 import color from 'color';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -25,12 +24,8 @@ import {
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
-import {
-  AlertRuleThresholdType,
-  AlertRuleTriggerType,
-  MetricRule,
-  Trigger,
-} from '../../types';
+import type {MetricRule, Trigger} from '../../types';
+import {AlertRuleThresholdType, AlertRuleTriggerType} from '../../types';
 
 type DefaultProps = {
   comparisonData: Series[];
@@ -279,8 +274,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
                 fill: isResolution
                   ? COLOR.RESOLUTION_FILL
                   : isCritical
-                  ? COLOR.CRITICAL_FILL
-                  : COLOR.WARNING_FILL,
+                    ? COLOR.CRITICAL_FILL
+                    : COLOR.WARNING_FILL,
               },
 
               // This needs to be below the draggable line
@@ -401,8 +396,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             changeStatus === AlertRuleTriggerType.CRITICAL
               ? theme.red300
               : changeStatus === AlertRuleTriggerType.WARNING
-              ? theme.yellow300
-              : theme.green300;
+                ? theme.yellow300
+                : theme.green300;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
@@ -430,12 +425,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         grid={CHART_GRID}
         {...chartOptions}
         graphic={Graphic({
-          elements: flatten(
-            triggers.map((trigger: Trigger) => [
-              ...this.getThresholdLine(trigger, 'alertThreshold', false),
-              ...this.getThresholdLine(trigger, 'resolveThreshold', true),
-            ])
-          ),
+          elements: triggers.flatMap((trigger: Trigger) => [
+            ...this.getThresholdLine(trigger, 'alertThreshold', false),
+            ...this.getThresholdLine(trigger, 'resolveThreshold', true),
+          ]),
         })}
         colors={CHART_PALETTE[0]}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}

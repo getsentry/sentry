@@ -1,29 +1,36 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useCallback, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {SidebarOrientation} from './types';
+import type {SidebarOrientation} from './types';
 import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+
+const tooltipDisabledProps = {
+  disabled: true,
+};
 
 export type SidebarItemProps = {
   /**
@@ -85,10 +92,6 @@ export type SidebarItemProps = {
    */
   isNewSeenKeySuffix?: string;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
-  /**
-   * The current organization. Useful for analytics.
-   */
-  organization?: Organization;
   search?: string;
   to?: string;
   /**
@@ -119,7 +122,6 @@ function SidebarItem({
   className,
   orientation,
   isNewSeenKeySuffix,
-  organization,
   onClick,
   trailingItems,
   variant,
@@ -143,12 +145,20 @@ function SidebarItem({
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
-  const recordAnalytics = () => {
-    trackAnalytics('growth.clicked_sidebar', {
-      item: id,
-      organization: organization || null,
-    });
-  };
+  const organization = useOrganization({allowNull: true});
+
+  const recordAnalytics = useCallback(
+    () => trackAnalytics('growth.clicked_sidebar', {item: id, organization}),
+    [id, organization]
+  );
+
+  const toProps: LocationDescriptor = useMemo(() => {
+    return {
+      pathname: to ? to : href ?? '#',
+      search,
+      state: {source: SIDEBAR_NAVIGATION_SOURCE},
+    };
+  }, [to, href, search]);
 
   const badges = (
     <Fragment>
@@ -158,30 +168,34 @@ function SidebarItem({
     </Fragment>
   );
 
-  const tooltipLabel = (
-    <Fragment>
-      {label} {badges}
-    </Fragment>
+  const handleItemClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      !(to || href) && event.preventDefault();
+      recordAnalytics();
+      onClick?.(id, event);
+      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+    },
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
   );
 
   return (
-    <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
+    <Tooltip
+      disabled={!collapsed && !isTop}
+      title={
+        <Flex align="center">
+          {label} {badges}
+        </Flex>
+      }
+      position={placement}
+    >
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
-        to={{
-          pathname: to ? to : href ?? '#',
-          search,
-          state: {source: SIDEBAR_NAVIGATION_SOURCE},
-        }}
+        to={toProps}
         className={className}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-          !(to || href) && event.preventDefault();
-          recordAnalytics();
-          onClick?.(id, event);
-          showIsNew && localStorage.setItem(isNewSeenKey, 'true');
-        }}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
@@ -198,21 +212,21 @@ function SidebarItem({
             <CollapsedFeatureBadge
               type="new"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isBeta && (
             <CollapsedFeatureBadge
               type="beta"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isAlpha && (
             <CollapsedFeatureBadge
               type="alpha"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {badge !== undefined && badge > 0 && (
@@ -248,7 +262,8 @@ export function isItemActive(
     (item?.label === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Alerts' &&
       location.pathname.includes('/alerts/') &&
-      !location.pathname.startsWith('/settings/'))
+      !location.pathname.startsWith('/settings/')) ||
+    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/'))
   );
 }
 
@@ -312,7 +327,7 @@ const StyledSidebarItem = styled(Link, {
   }
 
   &:hover,
-  &.focus-visible {
+  &:focus-visible {
     color: ${p => p.theme.white};
   }
 
@@ -320,7 +335,7 @@ const StyledSidebarItem = styled(Link, {
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
   }
@@ -361,8 +376,9 @@ const SidebarItemLabel = styled('span')`
   opacity: 1;
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  overflow: hidden;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {

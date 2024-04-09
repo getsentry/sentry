@@ -1,28 +1,26 @@
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {fromSorts} from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {formatSpanOperation} from 'sentry/utils/formatters';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanSummaryView} from 'sentry/views/starfish/views/spanSummaryPage/spanSummaryView';
 import {
@@ -48,32 +46,38 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter: SpanSummaryQueryFilters = endpoint
-    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  if (endpoint) {
+    filters.transaction = endpoint;
+  }
+
+  if (endpointMethod) {
+    filters['transaction.method'] = endpointMethod;
+  }
 
   const sort =
     fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
       isAValidSort
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
-  if (endpointMethod && queryFilter) {
-    queryFilter['transaction.method'] = endpointMethod;
-  }
+  const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: ['span.op', 'span.group', 'project.id', 'sps()'],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
-  const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
-    groupId,
-    queryFilter,
-    ['span.op', 'span.group', 'project.id', 'sps()'],
-    'api.starfish.span-summary-page-metrics'
-  );
+  const spanMetrics = data[0] ?? {};
 
   const span = {
     ['span.op']: spanMetrics['span.op'],
     ['span.group']: groupId,
   };
 
-  const title = [getSpanOperationDescription(span['span.op']), t('Summary')].join(' ');
+  const title = [startCase(formatSpanOperation(span['span.op'])), t('Summary')].join(' ');
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -102,7 +106,7 @@ function SpanSummaryPage({params, location}: Props) {
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
         <StarfishPageFiltersContainer>
-          <PageErrorProvider>
+          <PageAlertProvider>
             <Layout.Header>
               <Layout.HeaderContent>
                 {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
@@ -115,7 +119,7 @@ function SpanSummaryPage({params, location}: Props) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <PageErrorAlert />
+                <PageAlert />
 
                 <SpanSummaryView groupId={groupId} />
 
@@ -135,7 +139,7 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               </Layout.Main>
             </Layout.Body>
-          </PageErrorProvider>
+          </PageAlertProvider>
         </StarfishPageFiltersContainer>
       </Layout.Page>
     </SentryDocumentTitle>

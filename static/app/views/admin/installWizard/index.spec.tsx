@@ -1,4 +1,4 @@
-import {InstallWizard as InstallWizardFixture} from 'sentry-fixture/installWizard';
+import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

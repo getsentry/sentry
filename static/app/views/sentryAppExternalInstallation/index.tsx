@@ -1,9 +1,8 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -11,8 +10,9 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
-import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
+import ConfigStore from 'sentry/stores/configStore';
+import type {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -34,7 +34,6 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getDefaultState() {
     const state = super.getDefaultState();
@@ -52,6 +51,20 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],
     ];
+  }
+
+  onLoadAllEndpointsSuccess() {
+    // auto select the org if there is only one
+    const {organizations} = this.state;
+    if (organizations.length === 1) {
+      this.onSelectOrg(organizations[0].slug);
+    }
+
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      this.onSelectOrg(customerDomain.subdomain);
+    }
   }
 
   getTitle() {
@@ -108,11 +121,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
       organization,
     });
 
-    const install = await installSentryApp(
-      this.controlSiloApi,
-      organization.slug,
-      sentryApp
-    );
+    const install = await installSentryApp(this.api, organization.slug, sentryApp);
     // installation is complete if the status is installed
     if (install.status === 'installed') {
       trackIntegrationAnalytics('integrations.installation_complete', {
@@ -137,15 +146,21 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
   };
 
   onSelectOrg = async (orgSlug: string) => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    // redirect to the org if it's different than the org being selected
+    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
+      window.location.assign(urlWithQuery);
+      return;
+    }
+    // otherwise proceed as normal
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
       const [organization, installations]: [Organization, SentryAppInstallation[]] =
         await Promise.all([
-          this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
-          this.controlSiloApi.requestPromise(
-            `/organizations/${orgSlug}/sentry-app-installations/`
-          ),
+          this.api.requestPromise(`/organizations/${orgSlug}/`),
+          this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
         ]);
       const isInstalled = installations
         .map(install => install.app.slug)
@@ -258,6 +273,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
               options={this.getOptions()}
+              data-test-id="org-select"
             />
           )}
         </FieldGroup>

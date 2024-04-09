@@ -5,6 +5,11 @@ type SetupType = 'automatic' | 'manual';
 type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';
 
 export type EcosystemEventParameters = {
+  'integrations.non_inapp_stacktrace_link_clicked': {
+    group_id: number;
+    provider: string;
+    view: StackTraceView;
+  } & BaseEventAnalyticsParams;
   'integrations.stacktrace_codecov_link_clicked': {
     group_id: number;
     view: StackTraceView;
@@ -60,4 +65,6 @@ export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
   'integrations.stacktrace_submit_config': 'Integrations: Stacktrace Submit Config',
   'integrations.stacktrace_codecov_link_clicked':
     'Integrations: Stacktrace Codecov Link Clicked',
+  'integrations.non_inapp_stacktrace_link_clicked':
+    'Integrations: Non-InApp Stacktrace Link Clicked',
 };

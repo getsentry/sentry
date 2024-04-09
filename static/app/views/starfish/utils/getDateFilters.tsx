@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 
 const PERIOD_REGEX = /^(\d+)([h,d])$/;
 

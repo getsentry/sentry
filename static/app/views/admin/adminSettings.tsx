@@ -130,7 +130,7 @@ export default class AdminSettings extends DeprecatedAsyncView<{}, State> {
             {fields['beacon.anonymous']}
           </Panel>
 
-          <Feature features={['organizations:performance-issues-dev']}>
+          <Feature features="organizations:performance-issues-dev">
             <Panel>
               <PanelHeader>Performance Issues - All</PanelHeader>
               {fields['performance.issues.all.problem-detection']}
@@ -219,7 +219,7 @@ export default class AdminSettings extends DeprecatedAsyncView<{}, State> {
               {fields['profile.issues.blocked_main_thread-ppg.ga-rollout']}
             </Panel>
           </Feature>
-          <Feature features={['organizations:view-hierarchies-options-dev']}>
+          <Feature features="organizations:view-hierarchies-options-dev">
             <Panel>
               <PanelHeader>View Hierarchy</PanelHeader>
             </Panel>

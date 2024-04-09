@@ -36,7 +36,6 @@ Status checks:
     See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import logging
-from typing import Dict, Optional, Union
 from uuid import uuid4
 
 import requests
@@ -86,7 +85,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
 @region_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Retrieves available applications with provided credentials.
 
@@ -133,7 +132,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
         serializer = AppStoreConnectCredentialsSerializer(data=request.data)
@@ -142,10 +141,10 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        cfg_id: Optional[str] = data.get("id")
-        apc_key: Optional[str] = data.get("appconnectKey")
-        apc_private_key: Optional[str] = data.get("appconnectPrivateKey")
-        apc_issuer: Optional[str] = data.get("appconnectIssuer")
+        cfg_id: str | None = data.get("id")
+        apc_key: str | None = data.get("appconnectKey")
+        apc_private_key: str | None = data.get("appconnectPrivateKey")
+        apc_issuer: str | None = data.get("appconnectIssuer")
         if cfg_id:
             try:
                 current_config = appconnect.AppStoreConnectConfig.from_project_config(
@@ -205,7 +204,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
 @region_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
@@ -219,7 +218,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
         serializer = AppStoreCreateCredentialsSerializer(data=request.data)
@@ -275,15 +274,15 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     bundleId = serializers.CharField(min_length=1, required=False)
 
     def validate_appconnectPrivateKey(
-        self, private_key_json: Optional[Union[str, Dict[str, bool]]]
-    ) -> Optional[json.JSONData]:
+        self, private_key_json: str | dict[str, bool] | None
+    ) -> json.JSONData | None:
         return validate_secret(private_key_json)
 
 
 @region_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Updates a subset of the existing credentials.
 
@@ -297,7 +296,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
         serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
@@ -349,7 +348,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 @region_silo_endpoint
 class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Triggers an immediate check for new App Store Connect builds.
 
@@ -365,7 +364,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     enforce_rate_limit = True
 
@@ -403,7 +402,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
 @region_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Returns a summary of the project's App Store Connect configuration
     and builds.
@@ -441,7 +440,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [ProjectPermission]
+    permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         config_ids = appconnect.AppStoreConnectConfig.all_config_ids(project)

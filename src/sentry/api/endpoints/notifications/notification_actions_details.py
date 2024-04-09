@@ -20,7 +20,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
-from sentry.apidocs.examples import notification_examples
+from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
@@ -31,13 +31,12 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 @extend_schema(tags=["Alerts"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     """
     Manages a single NotificationAction via the action_id passed in the path.
@@ -91,9 +90,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_SLUG,
             NotificationParams.ACTION_ID,
         ],
-        request=None,
         responses={200: OutgoingNotificationActionSerializer},
-        examples=notification_examples.GET_NOTIFICATION_ACTION,
+        examples=NotificationActionExamples.GET_NOTIFICATION_ACTION,
     )
     def get(
         self, request: Request, organization: Organization, action: NotificationAction
@@ -121,7 +119,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             202: OutgoingNotificationActionSerializer,
             400: RESPONSE_BAD_REQUEST,
         },
-        examples=notification_examples.UPDATE_NOTIFICATION_ACTION,
+        examples=NotificationActionExamples.UPDATE_NOTIFICATION_ACTION,
     )
     def put(
         self, request: Request, organization: Organization, action: NotificationAction
@@ -164,11 +162,9 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_SLUG,
             NotificationParams.ACTION_ID,
         ],
-        request=None,
         responses={
             204: RESPONSE_NO_CONTENT,
         },
-        examples=notification_examples.DELETE_NOTIFICATION_ACTION,
     )
     def delete(
         self, request: Request, organization: Organization, action: NotificationAction

@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -15,7 +15,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let createMock;
-  const organization = Organization({
+  const organization = OrganizationFixture({
     access: ['org:write'],
   });
 
@@ -83,7 +83,7 @@ describe('CreateSavedSearchModal', function () {
     await userEvent.click(screen.getByRole('textbox', {name: /filter issues/i}));
     await userEvent.paste('is:resolved');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe('CreateSavedSearchModal', function () {
           data: {
             name: 'new search name',
             query: 'is:resolved',
-            sort: IssueSortOptions.PRIORITY,
+            sort: IssueSortOptions.TRENDS,
             type: 0,
             visibility: SavedSearchVisibility.OWNER,
           },
@@ -104,7 +104,7 @@ describe('CreateSavedSearchModal', function () {
 
   describe('visibility', () => {
     it('only allows owner-level visibility without org:write permission', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: [],
       });
 
@@ -136,7 +136,7 @@ describe('CreateSavedSearchModal', function () {
   });
 
   it('can change to org-level visibility with org:write permission', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);

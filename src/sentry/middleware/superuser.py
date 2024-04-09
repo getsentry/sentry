@@ -21,6 +21,7 @@ class SuperuserMiddleware(MiddlewareMixin):
         su = Superuser(request)
 
         request.superuser = su
+        # XXX(schew2381): is_superuser is a DEPRECATED property. Please use is_active_superuser(request) instead.
         request.is_superuser = lambda: request.superuser.is_active
 
         if su.is_active:

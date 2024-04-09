@@ -6,21 +6,21 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
-import {
+import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
   WidgetDataResult,
   WidgetPropUnion,
 } from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import type {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';
@@ -110,7 +110,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
     !missingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
   const isLoading = Object.values(props.widgetData).some(d => !d || d.isLoading);
   const isErrored =
-    !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
+    !missingDataKeys && Object.values(props.widgetData).some(d => d?.isErrored);
 
   return (
     <Container data-test-id="performance-widget-container">
@@ -123,7 +123,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
         hasData={hasData}
         errorComponent={<DefaultErrorComponent height={totalHeight} />}
         dataComponents={Visualizations.map((Visualization, index) => (
-          <ContentContainer
+          <ContentBodyContainer
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
@@ -143,7 +143,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
               ),
               fixed: <Placeholder height={`${chartHeight}px`} />,
             })}
-          </ContentContainer>
+          </ContentBodyContainer>
         ))}
         loadingComponent={
           <LoadingWrapper height={totalHeight}>
@@ -181,6 +181,10 @@ const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boo
   padding-left: ${p => (p.noPadding ? space(0) : space(2))};
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
+`;
+
+const ContentBodyContainer = styled(ContentContainer)`
+  height: 100%;
 `;
 
 const PerformanceWidgetPlaceholder = styled(Placeholder)`

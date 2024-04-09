@@ -4,10 +4,10 @@ from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test, no_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAvatarTestCase(TestCase):
     def test_set_null(self):
         with self.options(
@@ -28,7 +28,7 @@ class UserAvatarTestCase(TestCase):
             assert UserAvatar.objects.get(id=avatar.id).get_file() is None
 
 
-# Not siloed, this logic will be removed after data is moved.
+@no_silo_test  # Not siloed, this logic will be removed after data is moved.
 class AvatarMigrationTestCase(TestCase):
     def test_transition_to_control(self):
         user = self.create_user("foo@example.com")
@@ -50,7 +50,6 @@ class AvatarMigrationTestCase(TestCase):
             assert isinstance(avatar.get_file(), ControlFile)
 
 
-@region_silo_test(stable=True)
 class OrganizationAvatarTestCase(TestCase):
     def test_set_null(self):
         org = self.create_organization()

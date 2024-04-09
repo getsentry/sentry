@@ -1,29 +1,19 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import inspect
 import itertools
 import logging
 import threading
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from concurrent import futures
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
@@ -36,7 +26,7 @@ STATUS_SUCCESS = "success"
 
 
 class Service:
-    __all__: Tuple[str, ...] = ()
+    __all__: Iterable[str] = ()
 
     def validate(self) -> None:
         """
@@ -73,11 +63,11 @@ class LazyServiceWrapper(LazyObject, Proxied):
 
     def __init__(
         self,
-        backend_base: Type[Proxied],
+        backend_base: type[Proxied],
         backend_path: str,
         options: Mapping[str, Any],
-        dangerous: Optional[Sequence[Type[Service]]] = (),
-        metrics_path: Optional[str] = None,
+        dangerous: Sequence[type[Service]] | None = (),
+        metrics_path: str | None = None,
     ):
         super().__init__()
         self.__dict__.update(
@@ -133,13 +123,13 @@ def resolve_callable(value: str | AnyCallable) -> AnyCallable:
     if callable(value):
         return value
     elif isinstance(value, str):
-        return cast(Callable[..., Any], import_string(value))
+        return import_string(value)
     else:
         raise TypeError("Expected callable or string")
 
 
 class Context:
-    def __init__(self, request: Request, backends: Dict[Type[Service | None], Service]):
+    def __init__(self, request: Request, backends: dict[type[Service | None], Service]):
         self.request = request
         self.backends = backends
 
@@ -231,10 +221,10 @@ class Delegator:
 
     def __init__(
         self,
-        base: Type[Service],
-        backends: Mapping[str, Tuple[Service, Executor]],
+        base: type[Service],
+        backends: Mapping[str, tuple[Service, Executor]],
         selector: Selector,
-        callback: Optional[Callback] = None,
+        callback: Callback | None = None,
     ) -> None:
         self.base = base
         self.backends = backends
@@ -249,7 +239,7 @@ class Delegator:
 
     class State(threading.local):
         def __init__(self) -> None:
-            self.context: None | Context = None
+            self.context: Context | None = None
 
     __state = State()
 
@@ -399,7 +389,7 @@ class Delegator:
 
 def build_instance_from_options(
     options: Mapping[str, Any],
-    default_constructor: None | Callable[..., Service] = None,
+    default_constructor: Callable[..., Service] | None = None,
 ) -> Service:
     try:
         path = options["path"]
@@ -444,6 +434,9 @@ class ServiceDelegator(Delegator, Service):
     - A dotted import path string (``path.to.callable``) that will be
       imported at backend instantiation, or
     - A reference to a callable object.
+
+    If you're shifting a service from one backend storage system to another
+    consider using `make_writebehind_selector` to generate your selector function.
     """
 
     def __init__(
@@ -477,7 +470,68 @@ class ServiceDelegator(Delegator, Service):
             backend.setup()
 
 
-def get_invalid_timing_reason(timing: Tuple[Optional[float], Optional[float]]) -> str:
+KeyFetch = Callable[[Context, str, Mapping[str, Any]], str | int]
+
+
+def make_writebehind_selector(
+    *, option_name: str, key_fetch: KeyFetch, move_to: str, move_from: str
+) -> Selector:
+    """
+    Generates a selector_func that will do write-behind delegation
+
+    The provided option_name is expected to have values between -1 and 1
+
+    -1.0 - 0.01 The move_from will be primary, while move_to will increasingly be added as a secondary.
+    At 0.0 - Only move_from will be used.
+    0.01 - 1.0 The move_to will increasingly be used as primary.
+
+    The `key_fetch` function gets the parameters expected by `Selector` and
+    is expected to return a consistent str|int that will be hashed for consistent
+    rollouts. If no consistent key exists you can use random number generation.
+
+    The `move_to` and `move_from` parameters should match the keys used to defined
+    the backends in the `ServiceDelegator` configuration.
+
+    Example:
+
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: "a-consistent-key",
+    )
+    """
+
+    def selector(context: Context, method: str, callargs: Mapping[str, Any]) -> list[str]:
+        rollout_rate = options.get(option_name)
+        if rollout_rate == 0.0:
+            return [move_from]
+
+        key = key_fetch(context, method, callargs)
+        if isinstance(key, str):
+            intkey = int(hashlib.md5(key.encode("utf8")).hexdigest(), base=16)
+        else:
+            intkey = key
+
+        if not isinstance(intkey, int):
+            logger.error("make_writebehind_selector.invalid", extra={"received_type": type(intkey)})
+            return [move_from]
+
+        if rollout_rate < 0:
+            if (intkey % 10000) / 10000 < rollout_rate * -1.0:
+                return [move_from, move_to]
+            return [move_from]
+        else:
+            # rollout > 0
+            if (intkey % 10000) / 10000 < rollout_rate:
+                return [move_to, move_from]
+
+        return [move_from, move_to]
+
+    return selector
+
+
+def get_invalid_timing_reason(timing: tuple[float | None, float | None]) -> str:
     start, stop = timing
     if start is None and stop is None:
         return "no_data"
@@ -508,8 +562,8 @@ def callback_timing(
     backend_names: Sequence[str],
     results: Sequence[TimedFuture],
     metric_name: str,
-    result_comparator: Optional[Callable[[str, str, str, Any, Any], Mapping[str, str]]] = None,
-    sample_rate: Optional[float] = None,
+    result_comparator: Callable[[str, str, str, Any, Any], Mapping[str, str]] | None = None,
+    sample_rate: float | None = None,
 ) -> None:
     """
     Collects timing stats on results returned to the callback method of a `ServiceDelegator`. Either
@@ -557,7 +611,7 @@ def callback_timing(
             "status": primary_status,
             "primary": "true",
         },
-        **metric_kwargs,  # type: ignore
+        **metric_kwargs,  # type: ignore[arg-type]
     )
 
     for i, secondary_backend_name in enumerate(backend_names[1:], 1):
@@ -592,7 +646,7 @@ def callback_timing(
             )
         else:
             secondary_duration_ms = (secondary_timing[1] - secondary_timing[0]) * 1000
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_ms",
                 secondary_duration_ms,
                 tags={
@@ -601,17 +655,20 @@ def callback_timing(
                     "status": secondary_status,
                     "primary": "false",
                 },
-                **metric_kwargs,  # type: ignore
+                unit="millisecond",
+                **metric_kwargs,  # type: ignore[arg-type]
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_delta_ms",
                 secondary_duration_ms - primary_duration_ms,
                 tags=tags,
-                **metric_kwargs,  # type: ignore
+                unit="millisecond",
+                **metric_kwargs,  # type: ignore[arg-type]
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_relative_delta",
                 secondary_duration_ms / primary_duration_ms,
                 tags=tags,
-                **metric_kwargs,  # type: ignore
+                unit="millisecond",
+                **metric_kwargs,  # type: ignore[arg-type]
             )

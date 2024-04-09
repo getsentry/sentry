@@ -5,25 +5,30 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
+import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
+const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
@@ -35,6 +40,7 @@ export function SampleList({
   transactionName,
   transactionMethod,
   spanDescription,
+  additionalFields,
   onClose,
   transactionRoute = '/performance/summary/',
 }: Props) {
@@ -77,20 +83,40 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `${transactionRoute}?${qs.stringify({
-    project: query.project,
-    transaction: transactionName,
-  })}`;
+  const link = normalizeUrl(
+    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
+      project: query.project,
+      transaction: transactionName,
+    })}`
+  );
+
+  let extraQuery: string[] | undefined = undefined;
+  if (query.query) {
+    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+  }
 
   function defaultOnClose() {
     router.replace({
       pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
     });
   }
 
+  let columnOrder = DEFAULT_COLUMN_ORDER;
+
+  if (additionalFields?.includes(HTTP_RESPONSE_CONTENT_LENGTH)) {
+    columnOrder = [
+      ...DEFAULT_COLUMN_ORDER,
+      {
+        key: HTTP_RESPONSE_CONTENT_LENGTH,
+        name: t('Encoded Size'),
+        width: COL_WIDTH_UNDEFINED,
+      },
+    ];
+  }
+
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
@@ -115,7 +141,7 @@ export function SampleList({
             </Title>
           </TitleContainer>
         </HeaderContainer>
-        <PageErrorAlert />
+        <PageAlert />
 
         <SampleInfo
           groupId={groupId}
@@ -127,6 +153,7 @@ export function SampleList({
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
+          additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
               `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
@@ -134,6 +161,7 @@ export function SampleList({
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
           onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
+          query={extraQuery}
           highlightedSpanId={highlightedSpanId}
         />
 
@@ -144,9 +172,12 @@ export function SampleList({
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
           transactionName={transactionName}
+          query={extraQuery}
+          columnOrder={columnOrder}
+          additionalFields={additionalFields}
         />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

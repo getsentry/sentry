@@ -17,7 +17,7 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
@@ -25,6 +25,10 @@ const PlatformList = styled('div')`
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
+
+  &.centered {
+    justify-content: center;
+  }
 `;
 
 const selectablePlatforms = platforms.filter(platform =>
@@ -42,9 +46,12 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  modal?: boolean;
+  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
+  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
 }
@@ -80,7 +87,18 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       return currentCategory?.platforms?.has(platform.id);
     };
 
-    const filtered = selectablePlatforms
+    // temporary replacement of selectablePlatforms while `nintendo` is behind feature flag
+    const tempSelectablePlatforms = selectablePlatforms;
+    if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
+      const nintendo = platforms.find(p => p.id === 'nintendo');
+      if (nintendo) {
+        if (!tempSelectablePlatforms.includes(nintendo)) {
+          tempSelectablePlatforms.push(nintendo);
+        }
+      }
+    }
+
+    const filtered = tempSelectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -100,12 +118,18 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName} = this.props;
+    const {
+      setPlatform,
+      listProps,
+      listClassName,
+      navClassName,
+      showFilterBar = true,
+    } = this.props;
     const {filter, category} = this.state;
 
     return (
       <Fragment>
-        <NavContainer>
+        <NavContainer className={navClassName}>
           <CategoryNav>
             {categoryList.map(({id, name}) => (
               <ListLink
@@ -126,12 +150,14 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               </ListLink>
             ))}
           </CategoryNav>
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => this.setState({filter: val}, this.logSearch)}
-          />
+          {showFilterBar && (
+            <StyledSearchBar
+              size="sm"
+              query={filter}
+              placeholder={t('Filter Platforms')}
+              onChange={val => this.setState({filter: val}, this.logSearch)}
+            />
+          )}
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => {
@@ -191,6 +217,11 @@ const NavContainer = styled('div')`
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  &.centered {
+    grid-template-columns: none;
+    justify-content: center;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -236,7 +267,7 @@ const ClearButton = styled(Button)`
 `;
 
 ClearButton.defaultProps = {
-  icon: <IconClose isCircled size="xs" />,
+  icon: <IconClose isCircled />,
   borderless: true,
   size: 'xs',
 };

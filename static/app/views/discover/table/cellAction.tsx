@@ -2,20 +2,21 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {TableColumn} from './types';
+import type {TableColumn} from './types';
 
 export enum Actions {
   ADD = 'add',
@@ -253,7 +254,9 @@ class CellAction extends Component<Props, State> {
     const cellActions = makeCellActions(this.props);
 
     return (
-      <Container data-test-id="cell-action-container">
+      <Container
+        data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+      >
         {children}
         {cellActions?.length && (
           <DropdownMenu
@@ -311,7 +314,7 @@ const ActionMenuTrigger = styled(Button)`
 
   opacity: 0;
   transition: opacity 0.1s;
-  &.focus-visible,
+  &:focus-visible,
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;

@@ -2,17 +2,19 @@ import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {Organization} from 'sentry/types';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import ColumnEditCollection from 'sentry/views/discover/table/columnEditCollection';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 interface Props {
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   fields: QueryFieldValue[];
+  isOnDemandWidget: boolean;
   onChange: (newColumns: QueryFieldValue[]) => void;
   organization: Organization;
   widgetType: WidgetType;
@@ -33,6 +35,7 @@ export function ColumnFields({
   filterAggregateParameters,
   filterPrimaryOptions,
   noFieldsMessage,
+  isOnDemandWidget,
 }: Props) {
   return (
     <FieldGroup
@@ -52,6 +55,7 @@ export function ColumnFields({
           filterAggregateParameters={filterAggregateParameters}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
+          isOnDemandWidget={isOnDemandWidget}
         />
       ) : (
         // The only other display type this component
@@ -67,6 +71,7 @@ export function ColumnFields({
           source={widgetType}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
+          isOnDemandWidget={isOnDemandWidget}
         />
       )}
     </FieldGroup>

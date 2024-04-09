@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -22,8 +22,10 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.details import ROLE_CHOICES
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -73,7 +75,7 @@ class OperationValue(Field):
     or an object depending on the client.
     """
 
-    def to_representation(self, value) -> Union[Dict, bool]:
+    def to_representation(self, value) -> dict | bool:
         if isinstance(value, bool):
             return value
         elif isinstance(value, dict):
@@ -84,7 +86,7 @@ class OperationValue(Field):
                 return value
         raise ValidationError("value must be a boolean or object")
 
-    def to_internal_value(self, data) -> Union[Dict, bool]:
+    def to_internal_value(self, data) -> dict | bool:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
@@ -306,7 +308,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
-        request=None,
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
@@ -429,7 +430,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
 
 class SCIMListMembersResponse(SCIMListBaseResponse):
-    Resources: List[OrganizationMemberSCIMSerializerResponse]
+    Resources: list[OrganizationMemberSCIMSerializerResponse]
 
 
 @region_silo_endpoint
@@ -441,7 +442,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Members",
+        operation_id="List an Organization's SCIM Members",
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         responses={
             200: inline_sentry_response_serializer(
@@ -531,9 +532,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        with sentry_sdk.start_transaction(
-            name="scim.provision_member", op="scim", sampled=True
-        ) as txn:
+        with sentry_sdk.configure_scope() as scope:
             if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
                 role = request.data["sentryOrgRole"].lower()
                 idp_role_restricted = True
@@ -541,7 +540,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             else:
                 role = organization.default_role
                 idp_role_restricted = False
-            txn.set_tag("role_restricted", idp_role_restricted)
+            scope.set_tag("role_restricted", idp_role_restricted)
 
             # Allow any role as long as it doesn't have `org:admin` permissions
             allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -549,11 +548,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             # Check for roles not found
             # TODO: move this to the serializer verification
             if role not in {role.id for role in allowed_roles}:
-                txn.set_tag("invalid_role_selection", True)
+                scope.set_tag("invalid_role_selection", True)
                 raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
-            txn.set_tag("invalid_role_selection", False)
-            serializer = OrganizationMemberSerializer(
+            scope.set_tag("invalid_role_selection", False)
+            serializer = OrganizationMemberRequestSerializer(
                 data={
                     "email": request.data.get("userName"),
                     "role": roles.get(role).id,
@@ -609,9 +608,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 organization_id=organization.id,
                 target_object=member.id,
                 data=member.get_audit_log_data(),
-                event=audit_log.get_event_id("MEMBER_INVITE")
-                if settings.SENTRY_ENABLE_INVITES
-                else audit_log.get_event_id("MEMBER_ADD"),
+                event=(
+                    audit_log.get_event_id("MEMBER_INVITE")
+                    if settings.SENTRY_ENABLE_INVITES
+                    else audit_log.get_event_id("MEMBER_ADD")
+                ),
             )
 
             if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):

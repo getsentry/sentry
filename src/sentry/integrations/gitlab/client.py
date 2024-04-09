@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -115,23 +116,44 @@ class GitLabProxyApiClient(IntegrationProxyClient):
 
     def request(self, *args: Any, **kwargs: Any):
         if SiloMode.get_current_mode() == SiloMode.REGION:
+            # Skip token refreshes in Region silo, as these will
+            # be handled below by the control silo when the
+            # integration proxy invokes the client code.
             return super().request(*args, **kwargs)
-        # Only perform the refresh token flow in either monolithic or the control silo mode.
+
+        return self._issue_request_with_auto_token_refresh(*args, **kwargs)
+
+    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any):
         try:
-            return super().request(*args, **kwargs)
-        except ApiUnauthorized as e:
-            if self.is_refreshing_token:
-                raise e
-
-            self.is_refreshing_token = True
-            self.refreshed_identity = self._refresh_auth()
-
             response = super().request(*args, **kwargs)
+        except ApiUnauthorized:
+            if self.is_refreshing_token:
+                raise
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            self.is_refreshing_token = False
-            self.refreshed_identity = None
+        if (
+            kwargs.get("raw_response", False)
+            and response.status_code == 401
+            and not self.is_refreshing_token
+        ):
+            # Because the caller may make the request with the raw_response
+            # option, we need to manually check the response status code and
+            # refresh the token if an auth error occurs.
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            return response
+        return response
+
+    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any):
+        assert not self.is_refreshing_token, "A token refresh is already occurring"
+        self.is_refreshing_token = True
+        self.refreshed_identity = self._refresh_auth()
+
+        response = super().request(*args, **kwargs)
+
+        self.is_refreshing_token = False
+        self.refreshed_identity = None
+
+        return response
 
     def get_user(self):
         """Get a user
@@ -305,37 +327,29 @@ class GitLabProxyApiClient(IntegrationProxyClient):
                 raise
             return None
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        from base64 import b64decode
 
         project_id = repo.config["project_id"]
         encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        contents = self.get(request_path, params={"ref": ref})
+        request_path = GitLabApiClientPath.file_raw.format(project=project_id, path=encoded_path)
 
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        contents = self.get(request_path, params={"ref": ref}, raw_response=True)
+        result = contents.content.decode("utf-8")
 
-    def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]]:
-        project_id = repo.config["project_id"]
-        encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
-        contents = self.get(
-            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
-        )
+        return result
 
-        return contents or []
-
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> list[FileBlameInfo]:
         metrics.incr("sentry.integrations.gitlab.get_blame_for_files")
         return fetch_file_blames(
-            self, files, extra={"provider": "gitlab", "org_integration_id": self.org_integration_id}
+            self,
+            files,
+            extra={**extra, "provider": "gitlab", "org_integration_id": self.org_integration_id},
         )

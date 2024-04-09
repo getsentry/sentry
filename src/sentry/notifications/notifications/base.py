@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import uuid
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -10,15 +11,7 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models.environment import Environment
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
-    NotificationSettingEnum,
-    NotificationSettingTypes,
-    UnsubscribeContext,
-    get_notification_setting_type_name,
-)
+from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -37,8 +30,8 @@ class BaseNotification(abc.ABC):
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
-    notification_setting_type: NotificationSettingTypes | None = None
+    # some notifications have no settings for it which is why it is optional
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
@@ -56,7 +49,6 @@ class BaseNotification(abc.ABC):
         When we want to collect analytics about this type of notification, we
         will use this key. This MUST be snake_case.
         """
-        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -94,7 +86,6 @@ class BaseNotification(abc.ABC):
          - src/sentry/templates/path/to/example.txt
         then set `template_path` for the notification to `path/to/example`.
         """
-        pass
 
     def get_recipient_context(
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
@@ -179,9 +170,7 @@ class BaseNotification(abc.ABC):
                     **self.get_custom_analytics_params(recipient),
                 )
 
-    def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
-    ) -> str:
+    def get_referrer(self, provider: ExternalProviders, recipient: RpcActor | None = None) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
@@ -189,7 +178,7 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
+        self, provider: ExternalProviders, recipient: RpcActor | None = None
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.
@@ -210,8 +199,8 @@ class BaseNotification(abc.ABC):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.notification_setting_type:
-                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+            if self.notification_setting_type_enum:
+                fine_tuning_key = self.notification_setting_type_enum.value
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
 
@@ -233,32 +222,22 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        from sentry.notifications.utils.participants import get_notification_recipients_v2
+        from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
-            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
-            if self.notification_setting_type
+            self.notification_setting_type_enum
+            if self.notification_setting_type_enum
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        if should_use_notifications_v2(self.organization):
-            return get_notification_recipients_v2(
-                recipients=recipients,
-                type=setting_type,
-                organization_id=self.organization.id,
-            )
-
-        accepting_recipients: Mapping[
-            ExternalProviders, Iterable[RpcActor]
-        ] = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization,
-            recipients,
-            self.notification_setting_type or NotificationSettingTypes.ISSUE_ALERTS,
+        return get_notification_recipients(
+            recipients=recipients,
+            type=setting_type,
+            organization_id=self.organization.id,
         )
-        return accepting_recipients
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        # need a notification_setting_type to call this function
-        if not self.notification_setting_type:
+        # need a notification_setting_type_enum to call this function
+        if not self.notification_setting_type_enum:
             raise NotImplementedError
 
         available_providers = self.get_notification_providers()

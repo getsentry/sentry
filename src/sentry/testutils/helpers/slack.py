@@ -1,10 +1,8 @@
-from typing import Optional
 from urllib.parse import parse_qs
 
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
-from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -59,7 +57,7 @@ def add_identity(
     return idp
 
 
-def find_identity(idp: IdentityProvider, user: User) -> Optional[Identity]:
+def find_identity(idp: IdentityProvider, user: User) -> Identity | None:
     identities = Identity.objects.filter(
         idp=idp,
         user=user,
@@ -92,11 +90,6 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
     )
 
 
-def send_notification(provider, *args_list):
-    if provider == ExternalProviders.SLACK:
-        send_notification_as_slack(*args_list, {})
-
-
 def get_channel(index=0):
     """Get the channel ID the Slack message went to"""
     assert len(responses.calls) >= 1
@@ -125,6 +118,16 @@ def get_attachment_no_text():
     attachments = json.loads(data["attachments"][0])
     assert len(attachments) == 1
     return attachments[0]
+
+
+def get_blocks_and_fallback_text(index=0):
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[index].request.body)
+    assert "blocks" in data
+    assert "text" in data
+    blocks = json.loads(data["blocks"][0])
+    fallback_text = data["text"][0]
+    return blocks, fallback_text
 
 
 def setup_slack_with_identities(organization, user):

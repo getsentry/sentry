@@ -1,13 +1,13 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import {IssueConfigField} from 'sentry/types';
-import {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {IssueConfigField} from 'sentry/types';
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -240,7 +240,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       }
 
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
-      selectEvent.openMenu(menu);
+      await selectEvent.openMenu(menu);
       await userEvent.type(menu, 'Joe{Escape}');
       await selectEvent.select(menu, 'Joe');
 

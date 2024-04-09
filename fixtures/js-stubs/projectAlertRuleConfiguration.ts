@@ -1,15 +1,8 @@
-import {
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
-} from 'sentry/types/alerts';
+import type {IssueAlertConfiguration} from 'sentry/types/alerts';
 
-type Config = {
-  actions: IssueAlertRuleActionTemplate[];
-  conditions: IssueAlertRuleConditionTemplate[];
-  filters: IssueAlertRuleConditionTemplate[];
-};
-
-export function ProjectAlertRuleConfiguration(params: Partial<Config> = {}): Config {
+export function ProjectAlertRuleConfigurationFixture(
+  params: Partial<IssueAlertConfiguration> = {}
+): IssueAlertConfiguration {
   return {
     actions: [
       {
@@ -185,6 +178,32 @@ export function ProjectAlertRuleConfiguration(params: Partial<Config> = {}): Con
               ['Team', 'Team'],
               ['Member', 'Member'],
             ],
+          },
+        },
+      },
+      {
+        id: 'sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter',
+        label:
+          "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest release in {environment}",
+        enabled: true,
+        formFields: {
+          oldest_or_newest: {
+            type: 'choice',
+            choices: [
+              ['oldest', 'oldest'],
+              ['newest', 'newest'],
+            ],
+          },
+          older_or_newer: {
+            type: 'choice',
+            choices: [
+              ['older', 'older'],
+              ['newer', 'newer'],
+            ],
+          },
+          environment: {
+            type: 'string',
+            placeholder: 'value',
           },
         },
       },

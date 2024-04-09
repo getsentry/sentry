@@ -1,44 +1,42 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
-import SegmentExplorerQuery, {
+import type {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {
   platformAndConditionsToPerformanceType,
   ProjectPerformanceType,
 } from '../../utils';
-import {
-  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
-  SpanOperationBreakdownFilter,
-} from '../filter';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import {SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD} from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
 import {normalizeSearchConditions} from '../utils';
 
@@ -451,7 +449,7 @@ export class TagExplorer extends Component<Props> {
               </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
-                data={tableData && tableData.data ? tableData.data : []}
+                data={tableData?.data ? tableData.data : []}
                 columnOrder={columns}
                 columnSortBy={columnSortBy}
                 grid={{

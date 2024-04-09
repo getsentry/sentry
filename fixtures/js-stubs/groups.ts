@@ -1,13 +1,13 @@
-import {Group as MockGroup} from 'sentry-fixture/group';
-import {Project as MockProject} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {GroupStatus} from 'sentry/types';
 
-export function Groups() {
-  const project = MockProject({name: 'Internal', slug: 'project-slug', id: '123'});
+export function GroupsFixture() {
+  const project = ProjectFixture({name: 'Internal', slug: 'project-slug', id: '123'});
 
   return [
-    MockGroup({
+    GroupFixture({
       lastSeen: '2017-07-25T02:22:19Z',
       userCount: 1,
       culprit: 'Constructor.onSimilarUpdate(app/views/groupSimilar/groupingMergedList)',
@@ -25,7 +25,7 @@ export function Groups() {
       isSubscribed: true,
       project,
     }),
-    MockGroup({
+    GroupFixture({
       lastSeen: '2017-07-25T02:20:35Z',
       userCount: 1,
       culprit: 'size(app/views/groupSimilar/groupingMergedList)',
@@ -44,7 +44,7 @@ export function Groups() {
       isSubscribed: true,
       project,
     }),
-    MockGroup({
+    GroupFixture({
       lastSeen: '2017-07-24T23:41:44Z',
       userCount: 3,
       culprit: 'length(app/views/groupSimilar/groupSimilarView)',
@@ -66,7 +66,7 @@ export function Groups() {
       isSubscribed: true,
       project,
     }),
-    MockGroup({
+    GroupFixture({
       lastSeen: '2017-07-25T23:21:19Z',
       userCount: 1,
       culprit: 'stale(app/views/groupDetails)',

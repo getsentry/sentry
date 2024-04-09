@@ -4,9 +4,11 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
+
+const mockRRWebFrames = []; // This is only needed for replay.hydrate-error breadcrumbs.
 
 describe('hydrateBreadcrumbs', () => {
   const replayRecord = ReplayRecordFixture({started_at: new Date('2023/12/23')});
@@ -18,7 +20,7 @@ describe('hydrateBreadcrumbs', () => {
       ReplayConsoleFrameFixture({timestamp: new Date('2023/12/25')}),
     ];
 
-    expect(hydrateBreadcrumbs(replayRecord, breadcrumbs)).toStrictEqual([
+    expect(hydrateBreadcrumbs(replayRecord, breadcrumbs, mockRRWebFrames)).toStrictEqual([
       {
         category: 'console',
         data: {logger: 'unknown'},

@@ -1,19 +1,22 @@
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
-  const organization = Organization({});
-  const project = TestStubs.Project();
+  const organization = OrganizationFixture({});
+  const project = ProjectFixture();
 
   const url = `/projects/${organization.slug}/${project.slug}/events/1/actionable-items/`;
 
   const defaultProps = {
-    project: TestStubs.Project(),
-    event: TestStubs.Event(),
+    project: ProjectFixture(),
+    event: EventFixture(),
     isShare: false,
   };
 
@@ -61,7 +64,7 @@ describe('Actionable Items', () => {
       method: 'GET',
     });
 
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: eventErrors,
     });
 
@@ -97,7 +100,7 @@ describe('Actionable Items', () => {
       method: 'GET',
     });
 
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: eventErrors,
       sdk: {
         name: 'sentry.cocoa',
@@ -113,6 +116,88 @@ describe('Actionable Items', () => {
     expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 
+  it('does not render hidden flutter web errors', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'my_app/main.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
+        },
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
+  it('handles unknown flutter source', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        // Missing Source key
+        data: {},
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
   it('displays missing mapping file', async () => {
     const eventError = [
       {
@@ -121,7 +206,7 @@ describe('Actionable Items', () => {
         data: {mapping_uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7'},
       },
     ];
-    const eventWithDebugMeta = TestStubs.Event({
+    const eventWithDebugMeta = EventFixture({
       platform: 'java',
       entries: [
         {

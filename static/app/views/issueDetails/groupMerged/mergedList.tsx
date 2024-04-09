@@ -5,8 +5,8 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {Fingerprint} from 'sentry/stores/groupingStore';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Fingerprint} from 'sentry/stores/groupingStore';
+import type {Group, Organization, Project} from 'sentry/types';
 
 import MergedItem from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';

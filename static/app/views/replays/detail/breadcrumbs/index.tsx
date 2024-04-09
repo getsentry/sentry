@@ -1,10 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -44,7 +40,7 @@ function Breadcrumbs() {
     useExtractedDomNodes({replay});
   const {data: frameToTrace, isFetching: isFetchingTraces} = useReplayPerfData({replay});
 
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);

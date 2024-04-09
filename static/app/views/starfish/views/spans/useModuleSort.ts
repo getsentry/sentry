@@ -2,7 +2,7 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
   [QueryParameterNames.SPANS_SORT]?: string;

@@ -5,7 +5,6 @@ import type {Organization} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import AccountNotificationFineTuning from './accountNotificationFineTuning';
-import AccountNotificationFineTuningV2 from './accountNotificationFineTuningV2';
 
 interface AccountNotificationFineTuningControllerProps
   extends RouteComponentProps<{fineTuneType: string}, {}> {
@@ -14,7 +13,6 @@ interface AccountNotificationFineTuningControllerProps
 }
 
 export function AccountNotificationFineTuningController({
-  organizations,
   organizationsLoading,
   ...props
 }: AccountNotificationFineTuningControllerProps) {
@@ -22,15 +20,7 @@ export function AccountNotificationFineTuningController({
     return <LoadingIndicator />;
   }
 
-  // check if feature is enabled for any organization
-  const hasFeature = organizations.some(org =>
-    org.features.includes('notification-settings-v2')
-  );
-  return hasFeature ? (
-    <AccountNotificationFineTuningV2 {...props} />
-  ) : (
-    <AccountNotificationFineTuning {...props} />
-  );
+  return <AccountNotificationFineTuning {...props} />;
 }
 
 export default withOrganizations(AccountNotificationFineTuningController);

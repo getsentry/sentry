@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
@@ -8,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def log_extrapolated_monthly_volume(
-    org_id: int, project_id: Optional[int], volume: int, extrapolated_volume: int, window_size: int
+    org_id: int, project_id: int | None, volume: int, extrapolated_volume: int, window_size: int
 ) -> None:
     extra = {
         "org_id": org_id,
@@ -27,7 +26,7 @@ def log_extrapolated_monthly_volume(
 
 
 def log_sample_rate_source(
-    org_id: int, project_id: Optional[int], used_for: str, source: str, sample_rate: Optional[float]
+    org_id: int, project_id: int | None, used_for: str, source: str, sample_rate: float | None
 ) -> None:
     extra = {"org_id": org_id, "sample_rate": sample_rate, "source": source, "used_for": used_for}
 
@@ -61,6 +60,10 @@ def log_query_timeout(query: str, offset: int, timeout_seconds: int) -> None:
     # We also want to collect a metric, in order to measure how many retries we are having. It may help us to spot
     # possible problems on the Snuba end that affect query performance.
     metrics.incr("dynamic_sampling.query_timeout", tags={"query": query})
+
+
+def log_skipped_job(org_id: int, job: str):
+    logger.info("dynamic_sampling.skipped_job", extra={"org_id": org_id, "job": job})
 
 
 def log_recalibrate_org_error(org_id: int, error: str) -> None:

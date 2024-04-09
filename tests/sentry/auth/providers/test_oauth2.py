@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from functools import cached_property
-from typing import Any, Mapping
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,7 @@ class DummyOAuth2Provider(OAuth2Provider):
         pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuth2ProviderTest(TestCase):
     @cached_property
     def auth_provider(self):

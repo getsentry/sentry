@@ -1,9 +1,11 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, List, Mapping, Optional
+from typing import Any, Optional
 
 from django.utils import timezone
 
+from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
@@ -13,7 +15,8 @@ from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.user import User
@@ -76,11 +79,11 @@ def fetch_metric_alert_sessions_data(
         )
         return resp.data
     except Exception as exc:
-        logger.error(
-            f"Failed to load sessions for chart: {exc}",
-            exc_info=True,
+        logger.exception(
+            "Failed to load sessions for chart: %s",
+            exc,
         )
-        raise exc
+        raise
 
 
 def fetch_metric_alert_events_timeseries(
@@ -88,7 +91,7 @@ def fetch_metric_alert_events_timeseries(
     rule_aggregate: str,
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -114,10 +117,11 @@ def fetch_metric_alert_events_timeseries(
         return [series]
     except Exception as exc:
         logger.error(
-            f"Failed to load events-stats for chart: {exc}",
+            "Failed to load events-stats for chart: %s",
+            exc,
             exc_info=True,
         )
-        raise exc
+        raise
 
 
 def fetch_metric_alert_incidents(
@@ -125,7 +129,7 @@ def fetch_metric_alert_incidents(
     alert_rule: AlertRule,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -142,7 +146,8 @@ def fetch_metric_alert_incidents(
         return resp.data
     except Exception as exc:
         logger.error(
-            f"Failed to load incidents for chart: {exc}",
+            "Failed to load incidents for chart: %s",
+            exc,
             exc_info=True,
         )
         return []
@@ -151,13 +156,13 @@ def fetch_metric_alert_incidents(
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident] = None,
-    period: Optional[str] = None,
-    start: Optional[str] = None,
-    end: Optional[str] = None,
+    selected_incident: Incident | None = None,
+    period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     user: Optional["User"] = None,
-    size: Optional[ChartSize] = None,
-) -> Optional[str]:
+    size: ChartSize | None = None,
+) -> str | None:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
@@ -191,7 +196,12 @@ def build_metric_alert_chart(
         ),
     }
 
-    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
+    allow_mri = features.has(
+        "organizations:custom-metrics",
+        organization,
+        actor=user,
+    )
+    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
@@ -228,6 +238,8 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif query_type == SnubaQuery.Type.ERROR:
+            query_params["dataset"] = "errors"
         else:
             query_params["dataset"] = "discover"
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
@@ -241,7 +253,8 @@ def build_metric_alert_chart(
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
-            f"Failed to generate chart for metric alert: {exc}",
+            "Failed to generate chart for metric alert: %s",
+            exc,
             exc_info=True,
         )
         return None

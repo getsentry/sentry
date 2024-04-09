@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
@@ -13,8 +14,8 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.utils import get_date_range_from_params
-from sentry.incidents.models import (
-    AlertRule,
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentActivityType,
     IncidentProject,
@@ -25,6 +26,7 @@ from sentry.models.project import Project
 
 @region_silo_endpoint
 class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -122,6 +124,7 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
 
 @region_silo_endpoint
 class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

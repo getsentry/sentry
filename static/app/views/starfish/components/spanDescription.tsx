@@ -1,33 +1,116 @@
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/starfish/components/stackTraceMiniFrame';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
-type Props = {
-  span: Pick<
-    MetricsResponse,
-    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
-  >;
-};
+interface Props {
+  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
+  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  preliminaryDescription?: string;
+}
 
-export function SpanDescription({span}: Props) {
-  if (span[SpanMetricsField.SPAN_OP]?.startsWith('db')) {
-    return <DatabaseSpanDescription span={span} />;
+export function SpanDescription(props: Props) {
+  const {op, preliminaryDescription} = props;
+
+  if (op.startsWith('db')) {
+    return <DatabaseSpanDescription {...props} />;
   }
 
-  return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
+  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
-function DatabaseSpanDescription({span}: Props) {
-  const formatter = new SQLishFormatter();
+const formatter = new SQLishFormatter();
+
+export function DatabaseSpanDescription({
+  groupId,
+  preliminaryDescription,
+}: Omit<Props, 'op'>) {
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
+    filters: {'span.group': groupId},
+    sorts: [INDEXED_SPAN_SORT],
+    limit: 1,
+    fields: [
+      SpanIndexedField.PROJECT_ID,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+    ],
+    referrer: 'api.starfish.span-description',
+  });
+  const indexedSpan = indexedSpans?.[0];
+
+  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
+  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
+    groupId,
+    [INDEXED_SPAN_SORT],
+    Boolean(indexedSpan)
+  );
+
+  const rawDescription =
+    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
+  const formatterDescription = useMemo(() => {
+    return formatter.toString(rawDescription ?? '');
+  }, [rawDescription]);
 
   return (
-    <CodeSnippet language="sql">
-      {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
-    </CodeSnippet>
+    <Frame>
+      {areIndexedSpansLoading ? (
+        <WithPadding>
+          <LoadingIndicator mini />
+        </WithPadding>
+      ) : (
+        <CodeSnippet language="sql" isRounded={false}>
+          {formatterDescription}
+        </CodeSnippet>
+      )}
+
+      {!areIndexedSpansLoading && !isRawSpanLoading && (
+        <Fragment>
+          {rawSpan?.data?.['code.filepath'] ? (
+            <StackTraceMiniFrame
+              projectId={indexedSpan?.project_id?.toString()}
+              eventId={indexedSpan?.['transaction.id']}
+              frame={{
+                filename: rawSpan?.data?.['code.filepath'],
+                lineNo: rawSpan?.data?.['code.lineno'],
+                function: rawSpan?.data?.['code.function'],
+              }}
+            />
+          ) : (
+            <MissingFrame />
+          )}
+        </Fragment>
+      )}
+    </Frame>
   );
 }
+
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
+};
+
+export const Frame = styled('div')`
+  border: solid 1px ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
+
+const WithPadding = styled('div')`
+  display: flex;
+  padding: ${space(1)} ${space(2)};
+`;
 
 const WordBreak = styled('div')`
   word-break: break-word;

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Sequence
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from typing import Any
 
 from snuba_sdk import (
     Column,
@@ -38,21 +39,26 @@ MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
-def query_replays_collection(
-    project_ids: List[int],
+# Compatibility function for getsentry code.
+def query_replays_collection(*args, **kwargs):
+    return query_replays_collection_raw(*args, **kwargs)[0]
+
+
+def query_replays_collection_raw(
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    environment: List[str],
-    fields: List[str],
-    sort: Optional[str],
-    limit: Optional[str],
-    offset: Optional[str],
+    environment: list[str],
+    fields: list[str],
+    sort: str | None,
+    limit: int,
+    offset: int,
     search_filters: Sequence[SearchFilter],
-    organization: Optional[Organization] = None,
-    actor: Optional[Any] = None,
-) -> dict:
+    organization: Organization | None = None,
+    actor: Any | None = None,
+):
     """Query aggregated replay collection."""
-    paginators = make_pagination_values(limit, offset)
+    paginators = Paginators(limit, offset)
 
     return query_using_optimized_search(
         fields=fields,
@@ -64,6 +70,7 @@ def query_replays_collection(
         project_ids=project_ids,
         period_start=start,
         period_stop=end,
+        request_user_id=actor.id if actor else None,
     )
 
 
@@ -72,7 +79,8 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-    organization: Optional[Organization] = None,
+    organization: Organization | None = None,
+    request_user_id: int | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -87,6 +95,7 @@ def query_replay_instance(
             project_ids=project_ids,
             period_start=start,
             period_end=end,
+            request_user_id=request_user_id,
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
@@ -94,10 +103,10 @@ def query_replay_instance(
 
 
 def query_replays_count(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    replay_ids: List[str],
+    replay_ids: list[str],
     tenant_ids: dict[str, Any],
 ):
     snuba_request = Request(
@@ -106,7 +115,11 @@ def query_replays_count(
         query=Query(
             match=Entity("replays"),
             select=[
-                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                # The expression is explicitly aliased as "rid" to prevent the default
+                # alias "replay_id" from shadowing the replay_id column. When the column
+                # is shadowed our index is disabled in the WHERE and we waste a lot of
+                # compute parsing UUIDs we don't care about.
+                _strip_uuid_dashes("replay_id", Column("replay_id"), alias="rid"),
                 Function(
                     "ifNull",
                     parameters=[
@@ -143,7 +156,7 @@ def query_replays_count(
 
 
 def query_replays_dataset_tagkey_values(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
     environment: str | None,
@@ -210,7 +223,7 @@ def query_replays_dataset_tagkey_values(
 
 def anyIfNonZeroIP(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     return Function(
@@ -222,7 +235,7 @@ def anyIfNonZeroIP(
 
 def anyIf(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     """Returns any value of a non group-by field. in our case, they are always the same,
@@ -284,7 +297,6 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
-        "new_count_errors",
         "count_warnings",
         "count_infos",
     },
@@ -304,7 +316,7 @@ def make_pagination_values(limit: Any, offset: Any) -> Paginators:
     return Paginators(limit, offset)
 
 
-def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
+def _coerce_to_integer_default(value: str | None, default: int) -> int:
     """Return an integer or default."""
     if value is None:
         return default
@@ -318,7 +330,7 @@ def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
 def _strip_uuid_dashes(
     input_name: str,
     input_value: Expression,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ):
     return Function(
@@ -424,7 +436,7 @@ def _collect_new_errors():
                 ],
             ),
         ],
-        alias="new_error_ids",
+        alias="errorIds",
     )
 
 
@@ -459,7 +471,7 @@ def _filter_empty_uuids(column_name):
 #
 # If a mapping is left as `[]` the query-alias will default to the field name.
 
-FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
+FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "id": ["replay_id"],
     "replay_type": ["replay_type"],
     "project_id": ["project_id"],
@@ -517,6 +529,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "click.testid": ["click.testid"],
     "click.textContent": ["click.text"],
     "click.title": ["click.title"],
+    "click.component_name": ["click.component_name"],
     "click.selector": [
         "click.alt",
         "click.aria_label",
@@ -538,16 +551,15 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.testid",
         "click.text",
         "click.title",
+        "click.component_name",
     ],
-    "new_error_id": ["new_error_ids"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
-    "new_error_ids": ["new_error_ids"],
     "warning_ids": ["warning_ids"],
     "info_ids": ["info_ids"],
-    "new_count_errors": ["new_count_errors"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
+    "has_viewed": ["has_viewed"],
 }
 
 
@@ -571,17 +583,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="traceIds",
     ),
-    "error_ids": Function(
-        "arrayMap",
-        parameters=[
-            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
-            Function(
-                "groupUniqArrayArray",
-                parameters=[Column("error_ids")],
-            ),
-        ],
-        alias="errorIds",
-    ),
     "started_at": Function(
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
@@ -599,11 +600,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="agg_urls",
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
-    "count_errors": Function(
-        "sum",
-        parameters=[Function("length", parameters=[Column("error_ids")])],
-        alias="count_errors",
-    ),
     "count_urls": Function(
         "sum",
         parameters=[Function("length", parameters=[Column("urls")])],
@@ -690,13 +686,16 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "new_error_ids": _collect_new_errors(),
+    "click.component_name": Function(
+        "groupArray", parameters=[Column("click_component_name")], alias="click_component_name"
+    ),
+    "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
-    "new_count_errors": Function(
+    "count_errors": Function(
         "sum",
         parameters=[Column("count_error_events")],
-        alias="new_count_errors",
+        alias="count_errors",
     ),
     "count_warnings": Function(
         "sum",
@@ -738,7 +737,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 }
 
 
-def collect_aliases(fields: List[str]) -> List[str]:
+def collect_aliases(fields: list[str]) -> list[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     # Required fields.
     result = {"is_archived", "finished_at", "agg_environment"}
@@ -759,9 +758,16 @@ def collect_aliases(fields: List[str]) -> List[str]:
     return list(result)
 
 
-def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
+def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
     """Return a list of columns to select."""
-    return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+    selection = []
+    for alias in collect_aliases(fields):
+        if alias == "has_viewed":
+            selection.append(compute_has_viewed(user_id))
+        else:
+            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+
+    return selection
 
 
 def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
@@ -770,3 +776,23 @@ def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, No
             yield child
         elif isinstance(child, ParenExpression):
             yield from _extract_children(child)
+
+
+def compute_has_viewed(viewed_by_id: int | None) -> Function:
+    if viewed_by_id is None:
+        # Return the literal "false" if no user-id was specified.
+        return Function("equals", parameters=[1, 2])
+
+    return Function(
+        "greater",
+        parameters=[
+            Function(
+                "sum",
+                parameters=[
+                    Function("equals", parameters=[Column("viewed_by_id"), viewed_by_id]),
+                ],
+            ),
+            0,
+        ],
+        alias="has_viewed",
+    )

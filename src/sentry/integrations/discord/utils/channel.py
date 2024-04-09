@@ -6,8 +6,7 @@ from django.core.exceptions import ValidationError
 from requests.exceptions import Timeout
 
 from sentry.integrations.discord.client import DiscordClient
-from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiTimeoutError, IntegrationError
 
 from . import logger
 
@@ -36,14 +35,12 @@ SUPPORTED_CHANNEL_TYPES = {
 }
 
 
-def validate_channel_id(
-    channel_id: str, guild_id: str, integration_id: int | None, guild_name: str | None
-) -> None:
+def validate_channel_id(channel_id: str, guild_id: str, guild_name: str | None) -> None:
     """
     Make sure that for this integration, the channel exists, belongs to this
     integration, and our bot has access to it.
     """
-    client = DiscordClient(integration_id=integration_id)
+    client = DiscordClient()
     try:
         result = client.get_channel(channel_id)
     except ApiError as e:

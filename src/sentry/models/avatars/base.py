@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from typing import ClassVar
+from typing import ClassVar, Self
 from urllib.parse import urljoin
 from uuid import uuid4
 
@@ -9,7 +9,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
 from django.utils.encoding import force_bytes
 from PIL import Image
-from typing_extensions import Self
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope

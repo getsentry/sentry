@@ -1,4 +1,6 @@
-from typing import List
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from django.conf import settings
 from django.db.models.signals import pre_save
@@ -29,10 +31,23 @@ from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.web.decorators import transaction_start
+from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
+
+
+def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action)
+        safe_execute(
+            action_inst.send_confirmation_notification,
+            rule=rule,
+            new=new,
+            changed=changed,
+        )
 
 
 def clean_rule_data(data):
@@ -47,70 +62,223 @@ def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("actions", []))
 
 
+@dataclass
+class MatcherResult:
+    has_key: bool = False
+    key_matches: bool = False
+
+
+class DuplicateRuleEvaluator:
+    ACTIONS_KEY = "actions"
+    ENVIRONMENT_KEY = "environment"
+    SPECIAL_FIELDS = [ACTIONS_KEY, ENVIRONMENT_KEY]
+
+    EXCLUDED_FIELDS = ["name", "user_id"]
+
+    def __init__(
+        self,
+        project_id: int,
+        rule_data: dict[Any, Any] | None = None,
+        rule_id: int | None = None,
+        rule: Rule | None = None,
+    ) -> None:
+        """
+        rule.data will supersede rule_data if passed in
+        """
+        self._project_id: int = project_id
+        self._rule_data: dict[Any, Any] = rule.data if rule else rule_data
+        self._rule_id: int | None = rule_id
+        self._rule: Rule | None = rule
+
+        self._keys_to_check: set[str] = self._get_keys_to_check()
+
+        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], MatcherResult]] = {
+            self.ENVIRONMENT_KEY: self._environment_matcher,
+            self.ACTIONS_KEY: self._actions_matcher,
+        }
+
+    def _get_keys_to_check(self) -> set[str]:
+        """
+        Returns a set of keys that should be checked against all existing rules.
+        Some keys are ignored as they are not part of the logic.
+        Some keys are required to check, and are added on top.
+        """
+        keys_to_check: set[str] = {
+            key for key in list(self._rule_data.keys()) if key not in self.EXCLUDED_FIELDS
+        }
+        keys_to_check.update(self.SPECIAL_FIELDS)
+
+        return keys_to_check
+
+    def _get_func_to_call(self, key_to_check: str) -> Callable:
+        return self._matcher_funcs_by_key.get(key_to_check, self._default_matcher)
+
+    def _default_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+        """
+        Default function that checks if the key exists in both rules for comparison, and compares the values.
+        """
+        match_results = MatcherResult()
+
+        existing_rule_key_data = existing_rule.data.get(key_to_check)
+        current_rule_key_data = self._rule_data.get(key_to_check)
+        if existing_rule_key_data and current_rule_key_data:
+            match_results.has_key = True
+
+        if match_results.has_key:
+            match_results.key_matches = existing_rule_key_data == current_rule_key_data
+        return match_results
+
+    def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+        """
+        Special function that checks if the environments are the same.
+        """
+
+        # Do the default check to see if both rules have the same environment key, and if they do, use the result.
+        if (
+            base_result := self._default_matcher(existing_rule, key_to_check)
+        ) and base_result.has_key:
+            return base_result
+
+        # Otherwise, we need to do the special checking for keys
+        match_results = MatcherResult()
+        if self._rule:
+            if existing_rule.environment_id and self._rule.environment_id:
+                # If the existing rule and our rule both have environment ids, check if it's the same
+                match_results.has_key = True
+                match_results.key_matches = (
+                    existing_rule.environment_id == self._rule.environment_id
+                )
+            elif (
+                existing_rule.environment_id
+                and not self._rule.environment_id
+                or not existing_rule.environment_id
+                and self._rule.environment_id
+            ):
+                # Otherwise, if one of the rules has an environment key, but the other does not, the key was checked,
+                # but it is obviously not the same anymore
+                match_results.has_key = True
+        else:
+            current_rule_key_data = self._rule_data.get(key_to_check)
+            if existing_rule.environment_id and current_rule_key_data:
+                match_results.has_key = True
+                match_results.key_matches = existing_rule.environment_id == current_rule_key_data
+            elif (
+                existing_rule.environment_id
+                and not current_rule_key_data
+                or not existing_rule.environment_id
+                and current_rule_key_data
+            ):
+                match_results.has_key = True
+
+        return match_results
+
+    def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+        """
+        Special function that checks if the actions are the same against a rule.
+        """
+        match_results = MatcherResult()
+
+        existing_actions = existing_rule.data.get(key_to_check)
+        current_actions = self._rule_data.get(key_to_check)
+        if not existing_actions and not current_actions:
+            return match_results
+
+        # At this point, either both have the key, or one of the rules has the key, so this has to be true
+        match_results.has_key = True
+        # Only compare if both have the key
+        if existing_actions and current_actions:
+            match_results.key_matches = self._compare_lists_of_dicts(
+                keys_to_ignore=["uuid"], list1=existing_actions, list2=current_actions
+            )
+
+        return match_results
+
+    @classmethod
+    def _compare_lists_of_dicts(
+        cls,
+        keys_to_ignore: list[str],
+        list1: list[dict[Any, Any]] | None = None,
+        list2: list[dict[Any, Any]] | None = None,
+    ) -> bool:
+        if list1 is None or list2 is None:
+            return False
+
+        if len(list1) != len(list2):
+            return False
+
+        for i, left in enumerate(list1):
+            right = list2[i]
+            raw_left = {k: v for k, v in left.items() if k not in keys_to_ignore}
+            raw_right = {k: v for k, v in right.items() if k not in keys_to_ignore}
+
+            # TODO (Yash): This code commented below is the corrected logic which accounts for bad key values.
+            # clean_left = cls._get_clean_actions_dict(raw_left)
+            # clean_right = cls._get_clean_actions_dict(raw_right)
+            # if clean_left != clean_right:
+            #     return False
+            """
+            This is a bug in the current logic.
+            When comparing DB values to serialized values, the values that are `None` are not properly converted to
+            empty strings.
+            This means we end up incorrectly evaluating the actions aren't the same, when they actually are.
+            """
+            if raw_left != raw_right:
+                return False
+
+        return True
+
+    @classmethod
+    def _get_clean_actions_dict(cls, actions_dict: dict[Any, Any]) -> dict[Any, Any]:
+        """
+        Returns a dictionary where None is substituted with empty string to help compare DB values vs serialized values
+        """
+        cleaned_dict = {}
+        for k, v in actions_dict.items():
+            cleaned_dict[k] = "" if v is None else v
+
+        return cleaned_dict
+
+    def find_duplicate(self) -> Rule | None:
+        """
+        Determines whether specified rule already exists, and if it does, returns it.
+        """
+        existing_rules = Rule.objects.exclude(id=self._rule_id).filter(
+            project__id=self._project_id, status=ObjectStatus.ACTIVE
+        )
+        for existing_rule in existing_rules:
+            keys_checked = 0
+            keys_matched = 0
+            for key_to_check in self._keys_to_check:
+                func = self._get_func_to_call(key_to_check=key_to_check)
+                results: MatcherResult = func(
+                    existing_rule=existing_rule, key_to_check=key_to_check
+                )
+                if results.has_key:
+                    keys_checked += 1
+                    if results.key_matches:
+                        keys_matched += 1
+
+            if keys_checked > 0 and keys_checked == keys_matched:
+                return existing_rule
+
+        return None
+
+
 def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
-    if rule:
-        rule_data = rule.data
-
-    matchers = {key for key in list(rule_data.keys()) if key not in ("name", "user_id")}
-    extra_fields = ["actions", "environment"]
-    matchers.update(extra_fields)
-    existing_rules = Rule.objects.exclude(id=rule_id).filter(
-        project=project, status=ObjectStatus.ACTIVE
+    """
+    TODO(Yash): Refactor to remove this function, but for now keep it as a catch all for all existing flows.
+    """
+    evaluator = DuplicateRuleEvaluator(
+        project_id=project.id,
+        rule_data=rule_data,
+        rule_id=rule_id,
+        rule=rule,
     )
-
-    for existing_rule in existing_rules:
-        keys = 0
-        matches = 0
-        for matcher in matchers:
-            if existing_rule.data.get(matcher) and rule_data.get(matcher):
-                keys += 1
-
-                if existing_rule.data[matcher] == rule_data[matcher]:
-                    matches += 1
-
-            elif matcher in extra_fields:
-                if matcher == "environment":
-                    if rule:
-                        # we have to compare env data differently if coming from db rather than app
-                        if existing_rule.environment_id and rule.environment_id:
-                            keys += 1
-                            if existing_rule.environment_id == rule.environment_id:
-                                matches += 1
-                        elif (
-                            existing_rule.environment_id
-                            and not rule.environment_id
-                            or not existing_rule.environment_id
-                            and rule.environment_id
-                        ):
-                            keys += 1
-
-                    else:
-                        if existing_rule.environment_id and rule_data.get(matcher):
-                            keys += 1
-                            if existing_rule.environment_id == rule_data.get(matcher):
-                                matches += 1
-                        elif (
-                            existing_rule.environment_id
-                            and not rule_data.get(matcher)
-                            or not existing_rule.environment_id
-                            and rule_data.get(matcher)
-                        ):
-                            keys += 1
-                elif not existing_rule.data.get(matcher) and not rule_data.get(matcher):
-                    # neither rule has the matcher
-                    continue
-
-                else:
-                    # one rule has the matcher and the other one doesn't
-                    keys += 1
-
-        if keys == matches:
-            return existing_rule
-    return None
+    return evaluator.find_duplicate()
 
 
 class ProjectRulesPostSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -200,16 +368,19 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a Discord notification**
-- `server` - The integration ID associated with the Discord server.
-- `channel_id` - The ID of the channel to send the notification to.
+**Send a Slack notification**
+- `workspace` - The integration ID associated with the Slack workspace.
+- `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
+- `channel_id` (optional) - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
-    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-    "server": 63408298,
-    "channel_id": 94732897,
-    "tags": "browser,user"
+    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+    "workspace": 293854098,
+    "channel": "#warning",
+    "tags": "environment,level"
+    "notes": "Please <http://example.com|click here> for triage information"
 }
 ```
 
@@ -224,70 +395,16 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send an Opsgenie notification**
-- `account` - The integration ID associated with the Opsgenie account.
-- `team` - The ID of the Opsgenie team to send the notification to.
-```json
-{
-    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-    "account": 8723897589,
-    "team": "9438930258-fairy"
-}
-```
-
-**Send a PagerDuty notification**
-- `account` - The integration ID associated with the PagerDuty account.
-- `service` - The ID of the service to send the notification to.
-```json
-{
-    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
-    "account": 92385907,
-    "service": 9823924
-}
-```
-
-**Send a Slack notification**
-- `workspace` - The integration ID associated with the Slack workspace.
-- `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
-- `channel_id` (optional) - The ID of the channel to send the notification to.
+**Send a Discord notification**
+- `server` - The integration ID associated with the Discord server.
+- `channel_id` - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
-    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-    "workspace": 293854098,
-    "channel": "#warning",
-    "tags": "environment,level"
-}
-```
-
-**Send a notification to a service**
-- `service` - The plugin slug.
-```json
-{
-    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-    "service": "mail"
-}
-```
-
-**Send a notification to a Sentry app with a custom webhook payload**
-- `settings` - A list of objects denoting the settings each action will be created with. All required fields must be included.
-- `sentryAppInstallationUuid` - The ID for the Sentry app
-```json
-{
-    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-    "settings": [
-        {"name": "title", "value": "Team Rocket"},
-        {"name": "summary", "value": "We're blasting off again."},
-    ],
-    "sentryAppInstallationUuid": 643522
-    "hasSchemaFormConfig": true
-}
-```
-
-**Send a notification (for all legacy integrations)**
-```json
-{
-    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+    "server": 63408298,
+    "channel_id": 94732897,
+    "tags": "browser,user"
 }
 ```
 
@@ -338,6 +455,25 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
+**Create a GitHub Enterprise Issue**
+- `integration` - The integration ID associated with GitHub Enterprise.
+- `repo` - The name of the repository to create the issue in.
+- `title` - The title of the issue.
+- `body` (optional) - The contents of the issue.
+- `assignee` (optional) - The GitHub user to assign the issue to.
+- `labels` (optional) - A list of labels to assign to the issue.
+```json
+{
+    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+    "integration": 93749,
+    "repo": default,
+    "title": "My Test Issue",
+    "assignee": "Baxter the Hacker",
+    "labels": ["bug", "p1"]
+    ""
+}
+```
+
 **Create an Azure DevOps work item**
 - `integration` - The integration ID.
 - `project` - The ID of the Azure DevOps project.
@@ -349,6 +485,63 @@ A list of actions that take place when all required conditions and filters for t
     "integration": 294838,
     "project": "0389485",
     "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+}
+```
+
+**Send a PagerDuty notification**
+- `account` - The integration ID associated with the PagerDuty account.
+- `service` - The ID of the service to send the notification to.
+- `severity` - The severity of the Pagerduty alert. This is optional, the default is `critical` for fatal issues, `error` for error issues, `warning` for warning issues, and `info` for info and debug issues.
+```json
+{
+    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+    "account": 92385907,
+    "service": 9823924,
+    "severity": "critical"
+}
+```
+
+**Send an Opsgenie notification**
+- `account` - The integration ID associated with the Opsgenie account.
+- `team` - The ID of the Opsgenie team to send the notification to.
+- `priority` - The priority of the Opsgenie alert. This is optional, the default is `P3`.
+```json
+{
+    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+    "account": 8723897589,
+    "team": "9438930258-fairy",
+    "priority": "P1"
+}
+```
+
+**Send a notification to a service**
+- `service` - The plugin slug.
+```json
+{
+    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+    "service": "mail"
+}
+```
+
+**Send a notification to a Sentry app with a custom webhook payload**
+- `settings` - A list of objects denoting the settings each action will be created with. All required fields must be included.
+- `sentryAppInstallationUuid` - The ID for the Sentry app
+```json
+{
+    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+    "settings": [
+        {"name": "title", "value": "Team Rocket"},
+        {"name": "summary", "value": "We're blasting off again."},
+    ],
+    "sentryAppInstallationUuid": 643522
+    "hasSchemaFormConfig": true
+}
+```
+
+**Send a notification (for all legacy integrations)**
+```json
+{
+    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
 }
 ```
 """,
@@ -491,14 +684,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            200: inline_sentry_response_serializer("ListRules", List[RuleSerializerResponse]),
+            200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def get(self, request: Request, project) -> Response:
         """
         Return a list of active issue alert rules bound to a project.
@@ -535,7 +727,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Create a new issue alert rule for the given project.
@@ -649,7 +840,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(uuid_context, status=202)
 
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
-            kwargs.get("actions")
+            kwargs["actions"]
         )
         rule = Creator.run(request=request, **kwargs)
 
@@ -677,5 +868,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:rule-create-edit-confirm-notification", project.organization
+        ):
+            send_confirmation_notification(rule=rule, new=True)
+            metrics.incr(
+                "rule_confirmation.create.notification.sent",
+                skip_internal=False,
+            )
 
         return Response(serialize(rule, request.user))

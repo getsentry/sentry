@@ -1,22 +1,26 @@
-import {CSSProperties, Fragment} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import {DateTime} from 'sentry/components/dateTime';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -26,7 +30,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
+import type {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
 
 type Keys =
   | 'id'
@@ -179,7 +183,16 @@ export function TransactionSamplesTable({
 
     if (column.key === 'id') {
       return (
-        <Link {...commonProps} to={`/performance/${row['project.name']}:${row.id}`}>
+        <Link
+          {...commonProps}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug(row),
+            organization,
+            location,
+            eventView,
+            dataRow: row,
+          })}
+        >
           {row.id.slice(0, 8)}
         </Link>
       );
@@ -189,7 +202,9 @@ export function TransactionSamplesTable({
       return row.profile_id ? (
         <Link
           {...commonProps}
-          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamegraph/`
+          )}
         >
           {row.profile_id.slice(0, 8)}
         </Link>

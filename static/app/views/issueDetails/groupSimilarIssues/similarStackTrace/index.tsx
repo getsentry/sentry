@@ -1,19 +1,21 @@
-import {useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
-import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
+import type {SimilarItem} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -35,6 +37,10 @@ type ItemState = {
   similar: SimilarItem[];
 };
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
@@ -48,13 +54,26 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
+  const hasSimilarityEmbeddingsFeature = project.features.includes(
+    'similarity-embeddings'
+  );
 
   const fetchData = useCallback(() => {
     setStatus('loading');
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
-    if (hasSimilarityFeature) {
+    if (hasSimilarityEmbeddingsFeature) {
+      reqs.push({
+        endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
+          {
+            k: 10,
+            threshold: 0.01,
+          }
+        )}`,
+        dataKey: 'similar',
+      });
+    } else if (hasSimilarityFeature) {
       reqs.push({
         endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
@@ -65,7 +84,13 @@ function SimilarStackTrace({params, location, project}: Props) {
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, orgId, hasSimilarityFeature]);
+  }, [
+    location.query,
+    groupId,
+    orgId,
+    hasSimilarityFeature,
+    hasSimilarityEmbeddingsFeature,
+  ]);
 
   const onGroupingChange = useCallback(
     ({
@@ -132,37 +157,61 @@ function SimilarStackTrace({params, location, project}: Props) {
   }, [params, location.query, items]);
 
   const hasSimilarItems =
-    hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
-
-  const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
+    (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
+    (items.similar.length > 0 || items.filtered.length > 0);
 
   return (
-    <Layout.Body>
-      <Layout.Main fullWidth>
-        <HeaderWrapper>
-          <Title>{t('Issues with a similar stack trace')}</Title>
-          <small>
-            {t(
-              'This is an experimental feature. Data may not be immediately available while we process merges.'
-            )}
-          </small>
-        </HeaderWrapper>
-        {status === 'loading' && <LoadingIndicator />}
-        {status === 'error' && (
-          <LoadingError
-            message={t('Unable to load similar issues, please try again later')}
-            onRetry={fetchData}
-          />
-        )}
-        {status === 'ready' && !hasSimilarItems && (
-          <Panel>
-            <EmptyStateWarning>
-              <p>{t("There don't seem to be any similar issues.")}</p>
-            </EmptyStateWarning>
-          </Panel>
-        )}
-        {status === 'ready' && hasSimilarItems && (
-          <IssuesReplayCountProvider groupIds={groupsIds}>
+    <Fragment>
+      {hasSimilarityEmbeddingsFeature && (
+        <Alert
+          type="info"
+          showIcon
+          defaultExpanded
+          expand={
+            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made. If you have any questions, you can feel free to reach out to the team at #proj-ml-grouping.'
+          }
+        >
+          Hi there! We're running an internal POC to improve grouping with ML techniques.
+          Each similar issue has been scored as "Would Group: Yes" and "Would Group: No,"
+          which refers to whether or not we'd group the similar issue into the main issue.
+        </Alert>
+      )}
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <HeaderWrapper>
+            <Title>{t('Issues with a similar stack trace')}</Title>
+            <small>
+              {t(
+                'This is an experimental feature. Data may not be immediately available while we process merges.'
+              )}
+            </small>
+          </HeaderWrapper>
+          {status === 'loading' && <LoadingIndicator />}
+          {status === 'error' && (
+            <LoadingError
+              message={t('Unable to load similar issues, please try again later')}
+              onRetry={fetchData}
+            />
+          )}
+          {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+            <Panel>
+              <EmptyStateWarning>
+                <p>{t("There don't seem to be any similar issues.")}</p>
+              </EmptyStateWarning>
+            </Panel>
+          )}
+          {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+            <Panel>
+              <EmptyStateWarning>
+                <p>
+                  {t(
+                    "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+                  )}
+                </p>
+              </EmptyStateWarning>
+            </Panel>
+          )}
+          {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
             <List
               items={items.similar}
               filteredItems={items.filtered}
@@ -172,10 +221,22 @@ function SimilarStackTrace({params, location, project}: Props) {
               groupId={groupId}
               pageLinks={items.pageLinks}
             />
-          </IssuesReplayCountProvider>
-        )}
-      </Layout.Main>
-    </Layout.Body>
+          )}
+          {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+            <List
+              items={items.similar.concat(items.filtered)}
+              filteredItems={[]}
+              onMerge={handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={items.pageLinks}
+            />
+          )}
+          <DataConsentBanner source="grouping" />
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
   );
 }
 

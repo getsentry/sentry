@@ -2,6 +2,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -30,6 +32,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (ProjectTeamsPermission,)
 
     @extend_schema(
@@ -58,6 +61,13 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
 
         # A user with project:write can grant access to this project to other user/teams
         project.add_team(team)
+        self.create_audit_entry(
+            request=self.request,
+            organization_id=project.organization_id,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_TEAM_ADD"),
+            data={"team_slug": team_slug, "project_slug": project.slug},
+        )
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
     @extend_schema(
@@ -67,7 +77,6 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             GlobalParams.TEAM_SLUG,
         ],
-        request=None,
         responses={
             200: ProjectWithTeamSerializer,
             403: RESPONSE_FORBIDDEN,
@@ -91,5 +100,12 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["You do not have permission to perform this action."]}, status=403
             )
         project.remove_team(team)
+        self.create_audit_entry(
+            request=self.request,
+            organization_id=project.organization_id,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_TEAM_REMOVE"),
+            data={"team_slug": team_slug, "project_slug": project.slug},
+        )
 
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=200)

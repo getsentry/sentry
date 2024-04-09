@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import Http404, HttpResponse
+from django.http import Http404
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
@@ -13,14 +15,12 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -69,9 +69,8 @@ class SlackLinkTeamView(BaseView):
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.
     """
 
-    @transaction_start("SlackLinkTeamView")
     @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params: str) -> HttpResponse:
+    def handle(self, request: Request, signed_params: str) -> HttpResponseBase:
         if request.method not in ALLOWED_METHODS:
             return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 
@@ -198,12 +197,10 @@ class SlackLinkTeamView(BaseView):
         # Turn on notifications for all of a team's projects.
         # TODO(jangjodi): Remove this once the flag is removed
         if not has_team_workflow:
-            notifications_service.update_settings(
-                external_provider=ExternalProviders.SLACK,
-                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-                setting_option=NotificationSettingOptionValues.ALWAYS,
-                actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
-                organization_id_for_team=team.organization_id,
+            notifications_service.enable_all_settings_for_provider(
+                external_provider=ExternalProviderEnum.SLACK,
+                team_id=team.id,
+                types=[NotificationSettingEnum.ISSUE_ALERTS],
             )
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,

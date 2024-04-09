@@ -17,6 +17,9 @@ class OrganizationMemberMapping(Model):
     """
     This model resides exclusively in the control silo, and will
     - map a user or an email to a specific organization to indicate an organization membership
+
+    Note: If we ever expand this model to include flags we need to update the bulk updates
+    that are skipping outboxes because we assume flags are not replicated in a few place.
     """
 
     # This model is "autocreated" via an outbox write from the regional `Organization` it
@@ -50,9 +53,9 @@ class OrganizationMemberMapping(Model):
         db_table = "sentry_organizationmembermapping"
         unique_together = (("organization_id", "organizationmember_id"),)
 
-        index_together = (
-            ("organization_id", "user"),
-            ("organization_id", "email"),
+        indexes = (
+            models.Index(fields=("organization_id", "user")),
+            models.Index(fields=("organization_id", "email")),
         )
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

@@ -2,12 +2,12 @@ import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {
+import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -15,30 +15,28 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {MetaType} from 'sentry/utils/discover/eventView';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
-  getFieldRenderer,
-  RenderFunctionBaggage,
-} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AggregationOutputType,
   errorsAndTransactionsAggregateFunctionOutputType,
   getAggregateAlias,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
-  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
+import type {
+  DiscoverQueryExtras,
   DiscoverQueryRequestParams,
-  doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {
@@ -49,9 +47,11 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {shouldUseOnDemandMetrics} from 'sentry/views/dashboards/widgetBuilder/onDemandMetricWidget/utils';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
-import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
@@ -60,7 +60,8 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DisplayType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -74,7 +75,8 @@ import {
   transformSeries,
 } from '../widgetCard/widgetQueries';
 
-import {DatasetConfig, handleOrderByReset} from './base';
+import type {DatasetConfig} from './base';
+import {handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -114,15 +116,28 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   ],
   getTableRequest: (
     api: Client,
+    widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,
     mepSetting?: MEPState | null
   ) => {
     const url = `/organizations/${organization.slug}/events/`;
+
+    const useOnDemandMetrics = shouldUseOnDemandMetrics(
+      organization,
+      widget,
+      onDemandControlContext
+    );
+    const queryExtras = {
+      useOnDemandMetrics,
+      ...getQueryExtraForSplittingDiscover(widget, organization, !!useOnDemandMetrics),
+      onDemandType: 'dynamic_query',
+    };
     return getEventsRequest(
       url,
       api,
@@ -132,7 +147,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
       limit,
       cursor,
       referrer,
-      mepSetting
+      mepSetting,
+      queryExtras
     );
   },
   getSeriesRequest: getEventsSeriesRequest,
@@ -407,7 +423,14 @@ function renderTraceAsLinkable(
     return null;
   }
   const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl(organization, String(data.trace), dateSelection, {});
+  const target = getTraceDetailsUrl(
+    organization,
+    String(data.trace),
+    dateSelection,
+    {},
+    data.timestamp,
+    data.id || data.eventID
+  );
 
   return (
     <Tooltip title={t('View Trace')}>
@@ -460,7 +483,8 @@ function getEventsRequest(
   limit?: number,
   cursor?: string,
   referrer?: string,
-  mepSetting?: MEPState | null
+  mepSetting?: MEPState | null,
+  queryExtras?: DiscoverQueryExtras
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
@@ -471,6 +495,7 @@ function getEventsRequest(
     cursor,
     referrer,
     ...getDashboardsMEPQueryParams(isMEPEnabled),
+    ...queryExtras,
   };
 
   if (query.orderby) {
@@ -501,6 +526,7 @@ function getEventsSeriesRequest(
   queryIndex: number,
   organization: Organization,
   pageFilters: PageFilters,
+  onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
@@ -508,7 +534,11 @@ function getEventsSeriesRequest(
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period: statsPeriod},
+    '1m'
+  );
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   let requestData;
@@ -589,7 +619,11 @@ function getEventsSeriesRequest(
     }
   }
 
-  if (shouldUseOnDemandMetrics(organization, widget)) {
+  if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, true),
+    };
     return doOnDemandMetricsRequest(api, requestData);
   }
 
@@ -610,12 +644,16 @@ async function doOnDemandMetricsRequest(
 
     const response = await doEventsRequest<false>(api, {
       ...requestData,
-      useOnDemandMetrics: true,
+      queryExtras: {
+        ...requestData.queryExtras,
+        useOnDemandMetrics: true,
+        onDemandType: 'dynamic_query',
+      },
       dataset: 'metricsEnhanced',
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
-    response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
+    response[0] = {...response[0]};
 
     return [response[0], response[1], response[2]];
   } catch (err) {
@@ -637,3 +675,21 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
   }
   return true;
 }
+
+const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
+  return organization.features.includes('performance-discover-widget-split-ui');
+};
+
+const getQueryExtraForSplittingDiscover = (
+  widget: Widget,
+  organization: Organization,
+  useOnDemandMetrics: boolean
+) => {
+  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+    return {};
+  }
+  if (widget.id) {
+    return {dashboardWidgetId: widget.id};
+  }
+  return {};
+};

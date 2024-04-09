@@ -1,14 +1,14 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -17,7 +17,7 @@ describe('OrganizationCrumb', function () {
   const {organization, project, routerContext, routerProps} = initializeOrg();
   const organizations = [
     organization,
-    Organization({
+    OrganizationFixture({
       id: '234',
       slug: 'org-slug2',
     }),
@@ -156,7 +156,7 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
     const orgs = [
       organization,
-      Organization({
+      OrganizationFixture({
         id: '234',
         slug: 'acme',
         features: ['customer-domains'],

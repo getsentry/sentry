@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenTest(TestCase):
     @cached_property
     def path(self):
@@ -42,7 +42,7 @@ class OAuthTokenTest(TestCase):
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -161,7 +161,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
         )
         resp = self.client.post(
             self.path,
@@ -337,7 +337,7 @@ class OAuthTokenCodeTest(TestCase):
             assert data["id_token"].count(".") == 2
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenRefreshTokenTest(TestCase):
     @cached_property
     def path(self):

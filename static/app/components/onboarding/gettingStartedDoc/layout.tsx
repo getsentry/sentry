@@ -1,4 +1,5 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -6,8 +7,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {NextStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {NextStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';

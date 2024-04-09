@@ -70,7 +70,7 @@ def send_sms(body, to, from_=None):
         data={"To": phone_number, "From": options.get("sms.twilio-number"), "Body": body},
     )
     if not rv.ok:
-        logging.exception(
+        logging.error(
             "Failed to send text message to %s: (%s) %s", phone_number, rv.status_code, rv.content
         )
         return False
