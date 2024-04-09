@@ -3,6 +3,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
@@ -33,7 +35,7 @@ def _ensure_action_uuid(action: dict[Any, Any]) -> None:
     action[_ACTION_UUID_KEY] = str(uuid4())
 
 
-def add_uuid_to_all_rule_actions(apps, schema_editor) -> None:
+def add_uuid_to_all_rule_actions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     """
     Backfill all rule actions with an uuid.
     If the rule's data does not have any actions, simply move on and do not update.

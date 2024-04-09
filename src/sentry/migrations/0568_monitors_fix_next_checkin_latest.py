@@ -3,13 +3,15 @@
 from datetime import timedelta
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 from django.db.models import F
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-def fix_next_checkin_latest(apps, schema_editor):
+def fix_next_checkin_latest(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     MonitorEnvironment = apps.get_model("sentry", "MonitorEnvironment")
     query = MonitorEnvironment.objects.select_related("monitor").filter(
         next_checkin=F("next_checkin_latest")
