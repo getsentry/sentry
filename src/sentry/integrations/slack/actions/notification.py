@@ -5,7 +5,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 from sentry import features
-from sentry.api.serializers.rest_framework import ACTION_UUID_KEY
+from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
