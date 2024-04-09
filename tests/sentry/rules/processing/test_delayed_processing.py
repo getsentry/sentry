@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+from sentry.db import models
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
@@ -8,8 +9,11 @@ from sentry.testutils.cases import TestCase
 
 
 class ProcessDelayedAlertConditionsTest(TestCase):
-    def get_rulegroup_event_mapping_from_input(self, proj_model, proj_id_map):
-        proj_id = proj_id_map.popitem()[1]
+    def get_rulegroup_event_mapping_from_input(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ):
+        # There will only be one event per rulegroup
+        proj_id = field.popitem()[1]
         return self.buffer_mapping[proj_id]
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute")
