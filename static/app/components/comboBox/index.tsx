@@ -59,6 +59,7 @@ function ComboBox<Value extends string>({
   disabled,
   isLoading,
   sizeLimitMessage,
+  menuTrigger = 'focus',
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -68,7 +69,6 @@ function ComboBox<Value extends string>({
   const sizingRef = useRef<HTMLDivElement>(null);
 
   const state = useComboBoxState({
-    menuTrigger: 'focus',
     // Mapping our disabled prop to react-aria's isDisabled
     isDisabled: disabled,
     ...props,
@@ -123,6 +123,14 @@ function ComboBox<Value extends string>({
     shouldCloseOnBlur: true,
   });
 
+  // The menu opens after selecting an item but the input stais focused
+  // This ensures the user can open the menu again by clicking on the input
+  const handleInputClick = useCallback(() => {
+    if (!state.isOpen && menuTrigger === 'focus') {
+      state.open();
+    }
+  }, [state, menuTrigger]);
+
   return (
     <SelectContext.Provider
       value={{
@@ -133,6 +141,7 @@ function ComboBox<Value extends string>({
       <ControlWrapper className={className}>
         <StyledInput
           {...inputProps}
+          onClick={handleInputClick}
           placeholder={placeholder}
           ref={mergeRefs([inputRef, triggerProps.ref])}
           size={size}
