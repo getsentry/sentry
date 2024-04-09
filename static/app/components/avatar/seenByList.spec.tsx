@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SeenByList from 'sentry/components/seenByList';
+import SeenByList from 'sentry/components/avatar/seenByList';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('SeenByList', function () {

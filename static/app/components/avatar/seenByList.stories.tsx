@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
+import SeenByList from 'sentry/components/avatar/seenByList';
 import Placeholder from 'sentry/components/placeholder';
-import SeenByList from 'sentry/components/seenByList';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
