@@ -61,6 +61,24 @@ describe('SampleTable', function () {
       await expectNever(() => container.getByText('No results found for your query'));
       expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
+
+    it('should show span IDs by default', async () => {
+      const container = render(
+        <SampleTable
+          groupId="groupId123"
+          transactionMethod="GET"
+          transactionName="/endpoint"
+        />
+      );
+
+      await waitFor(() =>
+        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
+
+      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
+        'Span ID'
+      );
+    });
   });
 
   describe('When there is missing data', () => {
