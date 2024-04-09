@@ -321,8 +321,8 @@ export function getFormattedContextData({
         ...getKnownDeviceContextData({data: contextValue, event, meta}),
         ...getUnknownDeviceContextData({data: contextValue, meta}),
       ];
-    case 'memory_info':
-    case 'Memory Info':
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
       return [
         ...getKnownMemoryInfoContextData({data: contextValue, event, meta}),
         ...getUnknownMemoryInfoContextData({data: contextValue, meta}),
@@ -362,8 +362,8 @@ export function getFormattedContextData({
         ...getKnownTraceContextData({data: contextValue, event, meta, organization}),
         ...getUnknownTraceContextData({data: contextValue, meta}),
       ];
-    case 'threadpool_info':
-    case 'ThreadPool Info':
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
       return [
         ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
         ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
