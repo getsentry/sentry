@@ -437,7 +437,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         interval = parse_stats_period(request.GET.get("interval", "1h"))
         return int(3600 if interval is None else interval.total_seconds())
 
-    def _metrics_queries_plan_from_request(self, request: Request) -> Sequence[MQLQuery]:
+    def _mql_queries_from_request(self, request: Request) -> Sequence[MQLQuery]:
         """
         Extracts the metrics queries plan from the request payload.
         """
@@ -474,7 +474,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
-            metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+            mql_queries = self._mql_queries_from_request(request)
 
             metrics.incr(
                 key="ddm.metrics_api.query",
@@ -486,7 +486,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             )
 
             results = run_queries(
-                metrics_queries_plan=metrics_queries_plan,
+                mql_queries=mql_queries,
                 start=start,
                 end=end,
                 interval=interval,
