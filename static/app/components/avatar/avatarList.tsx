@@ -36,7 +36,8 @@ function AvatarList({
   // Reverse the order since css flex-reverse is used to display the avatars
   const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
   const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
-  const numCollapsedAvatars = users.length - visibleUserAvatars.length;
+  const numCollapsedAvatars =
+    users.length + teams.length - (visibleUserAvatars.length + visibleTeamAvatars.length);
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
