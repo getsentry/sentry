@@ -61,31 +61,7 @@ use function \\Sentry\\metrics;
 
 // Add 4 to a counter named 'hits'
 metrics()->increment('hits', 4);
-metrics()->flush();
-
-// We recommend registering the flush call in a shutdown function
-register_shutdown_function(static fn () => metrics()->flush());
-
-// Or call flush in a Terminable Middleware
-
-use Closure;
-use Illuminate\\Http\\Request;
-use Symfony\\Component\\HttpFoundation\\Response;
-
-use function \\Sentry\\metrics;
-
-class SentryMetricsMiddleware
-{
-		public function handle(Request $request, Closure $next): Response
-    {
-        return $next($request);
-    }
-
-    public function terminate(Request $request, Response $response): void
-    {
-        metrics()->flush();
-    }
-}`;
+`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -188,7 +164,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersionLaravel:4.0.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
+        'You need a minimum version [codeVersionLaravel:4.2.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
         {
           codeVersionLaravel: <code />,
           codeVersion: <code />,
