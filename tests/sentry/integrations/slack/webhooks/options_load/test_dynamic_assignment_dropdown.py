@@ -100,6 +100,7 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert len(resp.data["option_groups"][0]["options"]) == 3
         assert len(resp.data["option_groups"][1]["options"]) == 3
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_no_flag(self):
         self.group = self.create_group(project=self.project)
         self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": self.group.id})

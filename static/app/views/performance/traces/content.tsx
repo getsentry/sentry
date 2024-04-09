@@ -8,18 +8,20 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
 
+import {fields} from './data';
+import {TraceRow} from './traceRow';
 import {TracesSearchBar} from './tracesSearchBar';
-import {TracesSpansTable} from './tracesSpansTable';
 
-const DEFAULT_PER_PAGE = 50;
+const DEFAULT_PER_PAGE = 20;
 
 export function Content() {
   const location = useLocation();
@@ -55,30 +57,34 @@ export function Content() {
 
   const filters = useMemo(() => new MutableSearch(query ?? '').filters, [query]);
 
-  const fields = useMemo(() => {
-    // TODO: make this dynamic
-    return [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.ID,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.SPAN_OP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.TRANSACTION_OP,
-      SpanIndexedField.TRANSACTION,
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.SPAN_SELF_TIME,
-      SpanIndexedField.TIMESTAMP,
-    ];
-  }, []);
-
-  const spans = useIndexedSpans({
+  const spansQuery = useIndexedSpans({
     fields,
     filters,
     limit,
     sorts: [],
     referrer: 'api.trace-explorer.table',
   });
+
+  const traces = useMemo(() => {
+    const data = (spansQuery.data ?? []).reduce((acc, span) => {
+      const traceId = span.trace;
+      if (!defined(traceId)) {
+        // TODO: warn missing trace id
+        return acc;
+      }
+
+      let spansList = acc.get(traceId);
+      if (!defined(spansList)) {
+        spansList = [];
+        acc.set(traceId, spansList);
+      }
+
+      spansList.push(span);
+      return acc;
+    }, new Map());
+
+    return Array.from(data);
+  }, [spansQuery.data]);
 
   return (
     <LayoutMain fullWidth>
@@ -88,13 +94,10 @@ export function Content() {
         <DatePageFilter />
       </PageFilterBar>
       <TracesSearchBar query={query} handleSearch={handleSearch} />
-      <TracesSpansTable
-        fields={fields}
-        isLoading={spans.isLoading}
-        data={spans.data ?? []}
-        pageLinks={spans.pageLinks}
-        handleCursor={handleCursor}
-      />
+      {traces.map(([traceId, spans]) => (
+        <TraceRow key={traceId} traceId={traceId} spans={spans} />
+      ))}
+      <StyledPagination pageLinks={spansQuery.pageLinks} onCursor={handleCursor} />
     </LayoutMain>
   );
 }
@@ -103,4 +106,8 @@ const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0px;
 `;
