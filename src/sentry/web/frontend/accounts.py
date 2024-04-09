@@ -116,6 +116,7 @@ def relocate_reclaim(request, user_id):
     """
     Ask to receive a new "claim this user" email.
     """
+    from sentry import ratelimits as ratelimiter
 
     extra = {
         "ip_address": request.META["REMOTE_ADDR"],
@@ -125,6 +126,19 @@ def relocate_reclaim(request, user_id):
     if request.method != "POST":
         logger.warning("reclaim.error", extra=extra)
         return render_to_response(get_template("relocate", "error"), {}, request)
+
+    if ratelimiter.backend.is_limited(
+        "accounts:reclaim:{}".format(extra["ip_address"]),
+        limit=5,
+        window=60,  # 5 per minute should be enough for anyone
+    ):
+        logger.warning("reclaim.rate-limited", extra=extra)
+
+        return HttpResponse(
+            "You have made too many password recovery attempts. Please try again later.",
+            content_type="text/plain",
+            status=429,
+        )
 
     # Verify that the user is unclaimed. If they are already claimed, tell the requester that this
     # is the case, since of course claiming this account would be impossible.

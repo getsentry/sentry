@@ -7,7 +7,7 @@
 
 {% block auth_main %}
 	<h3>{% trans "Claim Account" %}</h3>
-	<p>{% blocktrans %}This link has expired. Request a new account claiming email to set your account
+	<p>{% blocktrans %}This link has expired. Request a new claim account email to set your account
 	  password and claim your account.{% endblocktrans %}</p>
   <form method="POST" action="{% url 'sentry-account-relocate-reclaim' user_id %}">
     <fieldset class="form-actions">
