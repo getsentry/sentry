@@ -15,7 +15,7 @@ from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_s
 
 class ProviderMixin:
     auth_provider: str | None = None
-    logger: logging.Logger | None = None
+    logger = logging.getLogger(__name__)
 
     def link_auth(self, user, organization, data):
         usa = usersocialauth_service.get_one_or_none(
@@ -140,7 +140,6 @@ class ProviderMixin:
             context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
             status = 400
         else:
-            if self.logger:
-                self.logger.exception(str(e))
+            self.logger.exception(str(e))
             status = 500
         return Response(context, status=status)
