@@ -109,7 +109,6 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
-        # Synchronously publish a replay-viewed event.
         message = viewed_event(project.id, replay_id, request.user.id)
         publish_replay_event(message, is_async=False)
 
