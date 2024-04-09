@@ -65,6 +65,7 @@ class ReplaySelectorResponseData(TypedDict, total=False):
     dom_element: str
     element: ElementResponseType
     project_id: str
+    component_name: str
 
 
 class ReplaySelectorResponse(TypedDict):
@@ -253,6 +254,7 @@ def query_selector_dataset(
                 Column("click_testid"),
                 Column("click_aria_label"),
                 Column("click_title"),
+                Column("click_component_name"),
                 Function("sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"),
                 Function("sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"),
             ],
@@ -285,6 +287,7 @@ def query_selector_dataset(
                 Column("click_testid"),
                 Column("click_aria_label"),
                 Column("click_title"),
+                Column("click_component_name"),
             ],
             granularity=Granularity(3600),
             **query_options,
@@ -335,6 +338,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "title": row["click_title"],
             },
             "project_id": row["project_id"],
+            "component_name": row["click_component_name"],
         }
         for row in response
     ]
