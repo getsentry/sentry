@@ -4,7 +4,7 @@ import abc
 import contextlib
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -170,6 +170,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
+        """
+        Queries Snuba for a unique condition for a single group.
+        """
         query_result = self.query_hook(event, start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
@@ -183,8 +186,36 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        """ """
-        raise NotImplementedError  # subclass must implement
+        """
+        Abstract method that specifies how to query Snuba for a single group
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    def batch_query(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Queries Snuba for a unique condition for multiple groups.
+        """
+        batch_query_result = self.batch_query_hook(group_ids, start, end, environment_id)
+        metrics.incr(
+            "rules.conditions.queried_snuba",
+            tags={
+                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
+                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
+            },
+        )
+        return batch_query_result
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Abstract method that specifies how to query Snuba for multiple groups
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
 
     def get_rate(self, event: GroupEvent, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]

@@ -182,7 +182,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })
@@ -213,7 +213,7 @@ describe('GroupReplays', () => {
               queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
-              statsPeriod: '14d',
+              statsPeriod: '90d',
             }),
           })
         );
@@ -516,7 +516,7 @@ describe('GroupReplays', () => {
             returnIds: true,
             data_source: 'discover',
             query: `issue.id:[${mockGroup.id}]`,
-            statsPeriod: '14d',
+            statsPeriod: '90d',
             project: -1,
           },
         })
@@ -589,7 +589,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })
