@@ -5,7 +5,6 @@ import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
 from random import randrange
-from typing import Any
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -20,6 +19,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.event_frequency import GenericConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
@@ -38,7 +38,9 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     return None
 
 
-def is_condition_slow(condition: Mapping[str, str]) -> bool:
+def is_condition_slow(
+    condition: GenericConditionData,
+) -> bool:
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
             return True
@@ -138,7 +140,7 @@ class RuleProcessor:
         return rule_statuses
 
     def condition_matches(
-        self, condition: dict[str, Any], state: EventState, rule: Rule
+        self, condition: GenericConditionData, state: EventState, rule: Rule
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
@@ -156,15 +158,6 @@ class RuleProcessor:
             _with_transaction=False,
         )
         return passes
-
-    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
-        rule_cls = rules.get(condition["id"])
-        if rule_cls is None:
-            self.logger.warning("Unregistered condition or filter %r", condition["id"])
-            return None
-
-        rule_type: str = rule_cls.rule_type
-        return rule_type
 
     def get_state(self) -> EventState:
         return EventState(
@@ -196,7 +189,6 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -213,13 +205,8 @@ class RuleProcessor:
 
         state = self.get_state()
 
-        condition_list = []
-        filter_list = []
-        for rule_cond in rule_condition_list:
-            if self.get_rule_type(rule_cond) == "condition/event":
-                condition_list.append(rule_cond)
-            else:
-                filter_list.append(rule_cond)
+        condition_list = rule.conditions
+        filter_list = rule.filters
 
         # Sort `condition_list` so that most expensive conditions run last.
         condition_list.sort(key=lambda condition: is_condition_slow(condition))
@@ -230,7 +217,7 @@ class RuleProcessor:
         ):
             if not predicate_list:
                 continue
-            predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
+            predicate_iter = [self.condition_matches(f, state, rule) for f in predicate_list]  # type: ignore[attr-defined]
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):

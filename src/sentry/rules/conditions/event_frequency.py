@@ -6,7 +6,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django import forms
 from django.core.cache import cache
@@ -49,6 +49,36 @@ comparison_types = {
     COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
     COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
 }
+
+
+class GenericConditionData(TypedDict):
+    """
+    The base typed dict for all condition data representing EventFrequency issue
+    alert rule conditions
+    """
+
+    # The ID of the condition class
+    id: str
+    # Either the count or percentage.
+    value: int
+    # The interval to compare the value against such as 5m, 1h, 3w, etc.
+    # e.g. # of issues is more than {value} in {interval}.
+    interval: str
+
+
+class CountComparisonConditionData(GenericConditionData):
+    # NOTE: Some of tne earlier alert rules were created without the comparisonType
+    # field, although modern rules will always have it.
+    # Specifies the comparison type. Should be set to COMPARISON_TYPE_COUNT.
+    comparisonType: NotRequired[str]
+
+
+class PercentComparisonConditionData(GenericConditionData):
+    # Specifies the comparison type. Should be set to COMPARISON_TYPE_PERCENT.
+    comparisonType: str
+    # The previous interval to compare the curr interval against.
+    # e.g. # of issues is 50% higher in {interval} compared to {comparisonInterval}
+    comparisonInterval: str
 
 
 class EventFrequencyForm(forms.Form):
@@ -96,7 +126,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        data: CountComparisonConditionData | PercentComparisonConditionData,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
         self.form_fields = {
             "value": {"type": "number", "placeholder": 100},
@@ -112,7 +147,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             },
         }
 
-        super().__init__(*args, **kwargs)
+        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc]
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None

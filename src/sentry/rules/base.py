@@ -3,18 +3,20 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from collections.abc import Callable, Sequence
-from typing import Any, ClassVar
+from collections.abc import Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
+
+if TYPE_CHECKING:
+    from sentry.models.rule import Rule
 
 """
 Rules apply either before an event gets stored, or immediately after.
@@ -60,7 +62,7 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: dict[str, Any] | None = None,
+        data: Mapping[str, Any] | None = None,
         rule: Rule | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
