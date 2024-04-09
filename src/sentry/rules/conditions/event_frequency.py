@@ -24,6 +24,7 @@ from sentry.types.condition_activity import (
     round_to_five_minute,
 )
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
 standard_intervals = {
@@ -49,6 +50,7 @@ comparison_types = {
     COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
     COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
 }
+SNUBA_LIMIT = 10000
 
 
 class EventFrequencyForm(forms.Form):
@@ -277,6 +279,26 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             referrer_suffix="alert_event_frequency",
         )
         return sums[event.group_id]
+
+    def batch_query_hook(
+        self, group_ids: list[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_sums = []  # maybe a default dict instead?
+        for group_id_chunk in chunked(group_ids, SNUBA_LIMIT):
+            sums: Mapping[int, int] = self.tsdb.get_sums(
+                model=get_issue_tsdb_group_model(group_id_chunk[0].issue_category),
+                keys=group_id_chunk,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+                jitter_value=group_id_chunk[0].group_id,
+                tenant_ids={"organization_id": group_id_chunk[0].project.organization_id},
+                referrer_suffix="alert_event_frequency",
+            )
+            batch_sums.append(sums)
+
+        return batch_sums
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "count", "roundedTime"
