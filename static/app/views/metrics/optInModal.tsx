@@ -99,7 +99,7 @@ function OptInModal({closeModal}: ModalRenderProps) {
       </ButtonGroup>
       <Note>
         {t(
-          'Metrics is currently supported in the following SDKs, with more coming soon: JavaScript, Node.js, Python, PHP, Ruby, Rust, Java, React Native, Unity, .NET.'
+          'Metrics is currently supported in the following SDKs, with more coming soon: JavaScript, Node.js, Python, PHP, Laravel, Symfony, Ruby, Rust, Java, React Native, Unity & .NET.'
         )}
       </Note>
     </Content>
@@ -148,7 +148,6 @@ const ButtonGroup = styled('div')`
 `;
 
 const Note = styled('div')`
-  text-align: center;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   margin-top: ${space(2)};
