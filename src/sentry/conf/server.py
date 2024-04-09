@@ -406,8 +406,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
-    "sentry.utils.suspect_resolutions.apps.Config",
-    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -792,8 +790,6 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
     "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
-    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
@@ -925,8 +921,6 @@ CELERY_QUEUES_REGION = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
-    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
-    Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
@@ -2026,8 +2020,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
-    # Enable suspect resolutions feature
-    "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
