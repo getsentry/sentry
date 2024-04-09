@@ -83,8 +83,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             filter=dict(user_ids=viewed_by_ids),
             as_user=serialize_generic_user(request.user),
         )
-        for user in serialized_users:
-            user["type"] = "user"
+        serialized_users = [_normalize_user(user) for user in serialized_users]
 
         return Response({"data": {"id": replay_id, "viewed_by": serialized_users}}, status=200)
 
@@ -115,3 +114,42 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         publish_replay_event(message, is_async=False)
 
         return Response(status=204)
+
+
+def _normalize_user(user: dict[str, Any]) -> dict[str, Any]:
+    """Return a normalized user dictionary.
+
+    The viewed-by resource is expected to return a subset of the user_service's
+    response output.
+    """
+    return {
+        "avatar": {
+            "avatarType": user["avatar"]["avatarType"],
+            "avatarUuid": user["avatar"]["avatarUuid"],
+            "avatarUrl": user["avatar"]["avatarUrl"],
+        },
+        "avatarUrl": user["avatarUrl"],
+        "dateJoined": user["dateJoined"],
+        "email": user["email"],
+        "emails": [
+            {
+                "id": email["id"],
+                "email": email["email"],
+                "is_verified": email["is_verified"],
+            }
+            for email in user["emails"]
+        ],
+        "experiments": user["experiments"],
+        "has2fa": user["has2fa"],
+        "hasPasswordAuth": user["hasPasswordAuth"],
+        "id": user["id"],
+        "isActive": user["isActive"],
+        "isManaged": user["isManaged"],
+        "isStaff": user["isStaff"],
+        "isSuperuser": user["isSuperuser"],
+        "lastActive": user["lastActive"],
+        "lastLogin": user["lastLogin"],
+        "name": user["name"],
+        "type": "user",
+        "username": user["username"],
+    }

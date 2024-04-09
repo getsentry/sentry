@@ -50,6 +50,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
 
             # Assert the viewed_by_user value matches the blueprint.
             viewed_by_user = response.data["data"]["viewed_by"][0]
+            assert len(viewed_by_user) == 18
             assert "avatarUrl" in viewed_by_user
             assert "dateJoined" in viewed_by_user
             assert "email" in viewed_by_user
