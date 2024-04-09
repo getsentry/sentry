@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
@@ -25,7 +26,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.endpoints.base import (
     ProjectMonitorPermission,
-    get_monitor_by_org_slug,
+    get_monitor_by_org_id_or_slug,
     try_checkin_lookup,
 )
 from sentry.monitors.models import Monitor, MonitorCheckIn
@@ -60,9 +61,9 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str,
+        monitor_slug: str | int,
         checkin_id: str,
-        organization_slug: str | None = None,
+        organization_slug: str | int | None = None,
         *args,
         **kwargs,
     ):
@@ -94,8 +95,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
             if organization_slug:
                 try:
                     # Try lookup by slug first. This requires organization context.
-                    organization = Organization.objects.get_from_cache(slug=organization_slug)
-                    monitor = get_monitor_by_org_slug(organization, monitor_slug)
+                    if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                        organization = Organization.objects.get_from_cache(id=organization_slug)
+                    else:
+                        organization = Organization.objects.get_from_cache(slug=organization_slug)
+
+                    monitor = get_monitor_by_org_id_or_slug(organization, monitor_slug)
                 except (Organization.DoesNotExist, Monitor.DoesNotExist):
                     pass
 
@@ -132,7 +137,14 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
 
         # When looking up via GUID we do not check the organization slug,
         # validate that the slug matches the org of the monitors project
-        if organization_slug and project.organization.slug != organization_slug:
+
+        # We only raise if the organization_slug was set and it doesn't match.
+        # We don't check the api.id-or-slug-enabled option here because slug and id are unique
+        if (
+            organization_slug
+            and project.organization.slug != organization_slug
+            and project.organization.id != organization_slug
+        ):
             raise ResourceDoesNotExist
 
         # Check project permission. Required for Token style authentication
