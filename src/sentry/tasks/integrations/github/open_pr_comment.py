@@ -193,6 +193,7 @@ def safe_for_comment(
     filtered_pr_files = []
 
     patch_parsers = PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     for file in pr_files:
         filename = file["filename"]
@@ -274,6 +275,7 @@ def get_top_5_issues_by_count_for_file(
         return []
 
     patch_parsers = PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
@@ -450,6 +452,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     top_issues_per_file = []
 
     patch_parsers = PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     file_extensions = set()
     # fetch issues related to the files
