@@ -708,18 +708,6 @@ def post_process_group(
         if should_update_escalating_metrics(event, is_transaction_event):
             _update_escalating_metrics(event)
 
-        try:
-            if not event.project.flags.has_high_priority_alerts:
-                from sentry.tasks.check_new_issue_threshold_met import check_new_issue_threshold_met
-
-                check_new_issue_threshold_met.delay(event.project)
-        except Exception as e:
-            logger.warning(
-                "Failed to check new issue threshold met",
-                repr(e),
-                extra={"project_id": event.project_id},
-            )
-
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())
         }
@@ -1450,6 +1438,35 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
+def check_has_high_priority_alerts(job: PostProcessJob) -> None:
+    """
+    Determine if we should fire a task to check if the new issue
+    threshold has been met to enable high priority alerts.
+    """
+    try:
+        event = job["event"]
+        if event.project.flags.has_high_priority_alerts:
+            return
+
+        from sentry.tasks.check_new_issue_threshold_met import (
+            CACHE_KEY,
+            check_new_issue_threshold_met,
+        )
+
+        # If the new issue volume has already been checked today, don't recalculate regardless of the value
+        threshold_met = cache.get(CACHE_KEY(event.project_id))
+        if threshold_met is not None:
+            return
+
+        check_new_issue_threshold_met.delay(event.project)
+    except Exception as e:
+        logger.warning(
+            "Failed to check new issue threshold met",
+            repr(e),
+            extra={"project_id": event.project_id},
+        )
+
+
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
@@ -1541,6 +1558,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        check_has_high_priority_alerts,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,
