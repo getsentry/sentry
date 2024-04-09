@@ -8,12 +8,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -118,7 +117,9 @@ class ProjectEndpoint(Endpoint):
         **kwargs,
     ):
         try:
-            if options.get("api.id-or-slug-enabled"):
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization_slug)
+            ):
                 project = (
                     Project.objects.filter(
                         organization__slug__id_or_slug=organization_slug,
@@ -139,7 +140,9 @@ class ProjectEndpoint(Endpoint):
             try:
                 # Project may have been renamed
                 redirect = ProjectRedirect.objects.select_related("project")
-                if options.get("api.id-or-slug-enabled"):
+                if id_or_slug_path_params_enabled(
+                    self.convert_args.__qualname__, str(organization_slug)
+                ):
                     redirect = redirect.get(
                         organization__id=organization_slug,
                         redirect_slug__id_or_slug=project_slug,

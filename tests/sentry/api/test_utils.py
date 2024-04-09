@@ -277,7 +277,7 @@ class IdOrSlugPathParamsEnabledTest(TestCase):
 
     @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
     @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
-    def test_ea_org_and_endpointoption_enabled(self):
+    def test_ea_org_and_endpoint_option_enabled(self):
         assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
         assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
         assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args", "not-sentry")

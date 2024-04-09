@@ -4,11 +4,11 @@ import logging
 
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -53,7 +53,12 @@ class GroupEndpoint(Endpoint):
         # `issue_id` keyword argument.
         if organization_slug:
             try:
-                if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                if (
+                    id_or_slug_path_params_enabled(
+                        self.convert_args.__qualname__, str(organization_slug)
+                    )
+                    and str(organization_slug).isnumeric()
+                ):
                     organization = Organization.objects.get_from_cache(id=organization_slug)
                 else:
                     organization = Organization.objects.get_from_cache(slug=organization_slug)
