@@ -14,7 +14,7 @@ export type FeedbackEventParameters = {
 export type FeedbackEventKey = keyof FeedbackEventParameters;
 
 export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
-  'feedback.feedback-item-rendered': 'Loaded and rendered a feedback items',
+  'feedback.feedback-item-rendered': 'Loaded and rendered a feedback item',
   'feedback.index-setup-viewed': 'Viewed Feedback Onboarding Setup',
   'feedback.list-item-selected': 'Selected Item in Feedback List',
   'feedback.details-integration-issue-clicked':
