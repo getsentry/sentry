@@ -11,6 +11,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -22,6 +23,8 @@ type Props = {
 function AlertHeader({router, activeTab}: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const api = useApi();
+
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -39,6 +42,16 @@ function AlertHeader({router, activeTab}: Props) {
     </li>
   );
 
+  const test = async () => {
+    await api.requestPromise('/api/0/organizations/sentry/project-templates/', {
+      method: 'POST',
+      data: {
+        name: 'API Template',
+        organization_id: 1,
+      },
+    });
+  };
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -54,6 +67,10 @@ function AlertHeader({router, activeTab}: Props) {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
+          <Button href="#" onClick={test}>
+            {t('CLICK HERE')}
+          </Button>
+
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
