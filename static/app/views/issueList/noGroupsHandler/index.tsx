@@ -12,6 +12,12 @@ import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
+const updatedEmptyStatePlatforms = [
+  'python-django',
+  'node',
+  'javascript-nextjs',
+  'android',
+];
 type Props = {
   api: Client;
   groupIds: string[];
@@ -117,12 +123,13 @@ class NoGroupsHandler extends Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const hasUpdatedEmptyState = organization.features.includes(
-      'issue-stream-empty-state'
-    );
+    const hasUpdatedEmptyState =
+      organization.features.includes('issue-stream-empty-state') &&
+      project?.platform &&
+      updatedEmptyStatePlatforms.includes(project.platform);
 
     const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
-    const UpdatedEmptyState = lazy(() => import('sentry/components/emptyStatePoc'));
+    const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>

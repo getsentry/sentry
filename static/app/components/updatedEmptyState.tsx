@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -8,7 +7,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -79,8 +77,10 @@ setTimeout(() => {
     configureCode: dsn => `# settings.py
 import sentry_sdk
 
-sentry_sdk.init(dsn="${dsn}}",
-enable_tracing=True)`,
+sentry_sdk.init(
+  dsn="${dsn}",
+  enable_tracing=True
+)`,
     verify: t(
       'Add this intentional error to your application to test that everything is working right away.'
     ),
@@ -102,17 +102,6 @@ urlpatterns = [
     installCode: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i android',
   },
 };
-
-function WaitingForEvent() {
-  return (
-    <Fragment>
-      <StatusWrapper>
-        <WaitingIndicator />
-        <WaitingText>Waiting for first event</WaitingText>
-      </StatusWrapper>
-    </Fragment>
-  );
-}
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
@@ -156,20 +145,39 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   return (
     <div>
       <HeaderWrapper>
-        <Title>Get Started with Sentry Issues</Title>
-        <Description>Your code sleuth eagerly awaits its first mission.</Description>
+        <Title>{t('Get Started with Sentry Issues')}</Title>
+        <Description>
+          {t('Your code sleuth eagerly awaits its first mission.')}
+        </Description>
         <Image src={waitingForEventImg} />
       </HeaderWrapper>
       <Divider />
       <Body>
         <Setup>
+          <BodyTitle>{t('Set up Sentry SDK')}</BodyTitle>
           <GuidedSteps>
             <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
               <div>
                 <div>
                   {install}
-                  <CodeSnippet>{installCode}</CodeSnippet>
-                  {!verify && <WaitingForEvent />}
+                  <StyledCodeSnippet>{installCode}</StyledCodeSnippet>
+                  {!verify && (
+                    <FirstEventIndicator
+                      organization={organization}
+                      project={project}
+                      eventType="error"
+                    >
+                      {({indicator, firstEventButton}) => (
+                        <div>
+                          <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                          <StyledButtonBar gap={1}>
+                            <GuidedSteps.BackButton size="md" />
+                            {firstEventButton}
+                          </StyledButtonBar>
+                        </div>
+                      )}
+                    </FirstEventIndicator>
+                  )}
                 </div>
                 <GuidedSteps.BackButton size="md" />
                 <GuidedSteps.NextButton size="md" />
@@ -178,12 +186,14 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             {configure ? (
               <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
                 <div>
-                  <div>
+                  <Configure>
                     {configure}
                     {configureCode && (
-                      <CodeSnippet language={language}>{configureCode(dsn)}</CodeSnippet>
+                      <StyledCodeSnippet language={language}>
+                        {configureCode(dsn)}
+                      </StyledCodeSnippet>
                     )}
-                  </div>
+                  </Configure>
                   <GuidedSteps.BackButton size="md" />
                   <GuidedSteps.NextButton size="md" />
                 </div>
@@ -197,7 +207,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   <div>
                     {sourcemaps}
                     {sourcemapsCode && (
-                      <CodeSnippet language={language}>{sourcemapsCode}</CodeSnippet>
+                      <StyledCodeSnippet language={language}>
+                        {sourcemapsCode}
+                      </StyledCodeSnippet>
                     )}
                   </div>
                   <GuidedSteps.BackButton size="md" />
@@ -212,7 +224,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 <div>
                   {verify}
                   {verifyCode && (
-                    <CodeSnippet language={language}>{verifyCode}</CodeSnippet>
+                    <StyledCodeSnippet language={language}>
+                      {verifyCode}
+                    </StyledCodeSnippet>
                   )}
                   <FirstEventIndicator
                     organization={organization}
@@ -277,8 +291,8 @@ const BodyTitle = styled('div')`
 
 const Setup = styled('div')`
   padding: ${space(4)};
-  flex-basis: 100%;
-  width: 50%;
+  flex: 1 1 0;
+  width: 0;
 
   &:after {
     content: '';
@@ -292,13 +306,17 @@ const Setup = styled('div')`
 
 const Preview = styled('div')`
   padding: ${space(4)};
-  flex-basis: 100%;
-  width: 50%;
+  flex: 1 1 0;
+  width: 0;
 `;
 
 const Body = styled('div')`
   display: flex;
   flex-direction: row;
+  width: 100%;
+  h4 {
+    margin-bottom: 0;
+  }
 `;
 
 const Image = styled('img')`
@@ -331,27 +349,21 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const StatusWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  align-items: center;
-  margin-top: ${space(1)};
-`;
-
-const WaitingIndicator = styled(motion.div)`
-  margin: 0 6px;
-  ${pulsingIndicatorStyles};
-`;
-
-const WaitingText = styled('div')`
-  color: ${p => p.theme.pink300};
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   display: flex;
 `;
 
 const IndicatorWrapper = styled('div')`
-  width: 30%;
+  width: 300px;
+  max-width: 100%;
+  margin-bottom: ${space(1)};
+`;
+
+const Configure = styled('div')`
+  max-width: 85%;
+`;
+
+const StyledCodeSnippet = styled(CodeSnippet)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
 `;

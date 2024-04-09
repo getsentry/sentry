@@ -1240,6 +1240,8 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
+    const hasUpdatedEmptyState =
+      organization.features.includes('issue-stream-empty-state') && groupIds.length === 0;
 
     return (
       <Layout.Page>
@@ -1261,20 +1263,22 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              <IssueListActions
-                selection={selection}
-                query={query}
-                queryCount={modifiedQueryCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onActionTaken={this.onActionTaken}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-                sort={this.getSort()}
-                onSortChange={this.onSortChange}
-              />
+              {!hasUpdatedEmptyState && (
+                <IssueListActions
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onActionTaken={this.onActionTaken}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
+                />
+              )}
               <PanelBody>
                 <ProcessingIssueList
                   organization={organization}
