@@ -236,7 +236,7 @@ export class VirtualizedViewManager {
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
-    this.onWheelZoom = this.onWheelZoom.bind(this);
+    this.onWheel = this.onWheel.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
@@ -402,7 +402,7 @@ export class VirtualizedViewManager {
     }
 
     if (column === 'span_list' && ref) {
-      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
     }
   }
 
@@ -482,9 +482,9 @@ export class VirtualizedViewManager {
     if (column === 'span_list') {
       const element = this.columns[column].column_refs[index];
       if (ref === undefined && element) {
-        element.removeEventListener('wheel', this.onWheelZoom);
+        element.removeEventListener('wheel', this.onWheel);
       } else if (ref) {
-        ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+        ref.addEventListener('wheel', this.onWheel, {passive: false});
       }
     }
 
@@ -500,7 +500,7 @@ export class VirtualizedViewManager {
     if (!ref) {
       const element = this.indicators[index]?.ref;
       if (element) {
-        element.removeEventListener('wheel', this.onWheelZoom);
+        element.removeEventListener('wheel', this.onWheel);
       }
       this.indicators[index] = undefined;
     } else {
@@ -513,7 +513,7 @@ export class VirtualizedViewManager {
         this.indicator_label_measurer.enqueueMeasure(indicator, label);
       }
 
-      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
       ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
         indicator.start
       )}px)`;
@@ -535,7 +535,7 @@ export class VirtualizedViewManager {
     return [this.trace_view.x + left_view, 0];
   }
 
-  onWheelZoom(event: WheelEvent) {
+  onWheel(event: WheelEvent) {
     if (event.metaKey) {
       event.preventDefault();
       if (!this.onWheelEndRaf) {
@@ -571,21 +571,21 @@ export class VirtualizedViewManager {
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
-      const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
 
-      if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+      // Holding shift key allows for horizontal scrolling
+      const distance = event.shiftKey ? event.deltaY : event.deltaX;
+
+      if (Math.abs(distance) !== 0) {
         event.preventDefault();
       }
 
-      if (scrollingHorizontally) {
-        const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
-        const view_delta = physical_delta_pct * this.trace_view.width;
+      const physical_delta_pct = distance / this.trace_physical_space.width;
+      const view_delta = physical_delta_pct * this.trace_view.width;
 
-        this.setTraceView({
-          x: this.trace_view.x + view_delta,
-        });
-        this.draw();
-      }
+      this.setTraceView({
+        x: this.trace_view.x + view_delta,
+      });
+      this.draw();
     }
   }
 
@@ -805,8 +805,11 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
-    if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+    // Holding shift key allows for horizontal scrolling
+    const distance = event.shiftKey ? event.deltaY : event.deltaX;
+
+    if (Math.abs(distance) !== 0) {
+      // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
       return;
@@ -820,7 +823,7 @@ export class VirtualizedViewManager {
     this.enqueueOnScrollEndOutOfBoundsCheck();
 
     const newTransform = this.clampRowTransform(
-      this.columns.list.translate[0] - event.deltaX
+      this.columns.list.translate[0] - distance
     );
 
     if (newTransform === this.columns.list.translate[0]) {
