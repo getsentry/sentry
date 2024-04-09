@@ -23,6 +23,7 @@ import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -59,6 +60,13 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
+
+  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
+    undefined,
+    [],
+
+    SAMPLE_HOVER_DEBOUNCE
+  );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
@@ -148,8 +156,15 @@ export function HTTPSamplesPanel() {
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     samplesData,
-    domainTransactionMetrics?.[0]?.['avg(span.self_time)']
+    domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
+    highlightedSpanId
   );
+
+  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
+    return samplesData.find(
+      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
+    );
+  };
 
   const handleClose = () => {
     router.replace({
@@ -286,6 +301,17 @@ export function HTTPSamplesPanel() {
                     },
                   ]}
                   scatterPlot={sampledSpanDataSeries}
+                  onHighlight={highlights => {
+                    const firstHighlight = highlights[0];
+
+                    if (!firstHighlight) {
+                      setHighlightedSpanId(undefined);
+                      return;
+                    }
+
+                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    setHighlightedSpanId(sample?.span_id);
+                  }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />
@@ -295,6 +321,9 @@ export function HTTPSamplesPanel() {
                 <SpanSamplesTable
                   data={samplesData}
                   isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  highlightedSpanId={highlightedSpanId}
+                  onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                  onSampleMouseOut={() => setHighlightedSpanId(undefined)}
                   error={samplesDataError}
                   // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
                   meta={{
@@ -341,6 +370,8 @@ export function HTTPSamplesPanel() {
     </PageAlertProvider>
   );
 }
+
+const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};

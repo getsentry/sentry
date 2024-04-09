@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -19,6 +20,7 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 type ColumnKeys =
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.ID
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.RESPONSE_CODE;
 
@@ -48,10 +50,21 @@ interface Props {
   data: Row[];
   isLoading: boolean;
   error?: Error | null;
+  highlightedSpanId?: string;
   meta?: EventsMetaType;
+  onSampleMouseOut?: ComponentProps<typeof GridEditable>['onRowMouseOut'];
+  onSampleMouseOver?: ComponentProps<typeof GridEditable>['onRowMouseOver'];
 }
 
-export function SpanSamplesTable({data, isLoading, error, meta}: Props) {
+export function SpanSamplesTable({
+  data,
+  isLoading,
+  error,
+  meta,
+  onSampleMouseOver,
+  onSampleMouseOut,
+  highlightedSpanId,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -72,6 +85,9 @@ export function SpanSamplesTable({data, isLoading, error, meta}: Props) {
         renderBodyCell: (column, row) =>
           renderBodyCell(column, row, meta, location, organization),
       }}
+      highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
+      onRowMouseOver={onSampleMouseOver}
+      onRowMouseOut={onSampleMouseOut}
       location={location}
     />
   );
