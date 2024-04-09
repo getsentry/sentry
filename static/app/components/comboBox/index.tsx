@@ -115,6 +115,7 @@ function ComboBox<Value extends string>({
     position: 'bottom-start',
     offset: [0, 8],
     isDismissable: true,
+    isKeyboardDismissDisabled: true,
     onInteractOutside: () => {
       state.close();
       inputRef.current?.blur();
@@ -168,16 +169,6 @@ function ComboBox<Value extends string>({
     </SelectContext.Provider>
   );
 }
-
-const getOptionTextValue = (option: ComboBoxOption<string>) => {
-  if (option.textValue) {
-    return option.textValue;
-  }
-  if (typeof option.label === 'string') {
-    return option.label;
-  }
-  return '';
-};
 
 /**
  * Component that allows users to select an option from a dropdown list
@@ -237,15 +228,16 @@ function ControlledComboBox<Value extends string>({
         props.onSelectionChange(key);
       }
 
-      if (props.onChange) {
-        const flatItems = items.flatMap(item =>
-          'options' in item ? item.options : [item]
-        );
-        const selectedOption = flatItems.find(item => item.key === key);
-        if (selectedOption) {
+      const flatItems = items.flatMap(item =>
+        'options' in item ? item.options : [item]
+      );
+      const selectedOption = flatItems.find(item => item.key === key);
+      if (selectedOption) {
+        if (props.onChange) {
           props.onChange(omit(selectedOption, 'key'));
-          setInputValue(selectedOption.label);
         }
+
+        setInputValue(selectedOption.label);
       }
     },
     [items, props]
@@ -292,11 +284,7 @@ function ControlledComboBox<Value extends string>({
               return (
                 <Section key={item.key} title={item.label}>
                   {item.options.map(option => (
-                    <Item
-                      {...option}
-                      key={option.key}
-                      textValue={getOptionTextValue(option)}
-                    >
+                    <Item {...option} key={option.key} textValue={option.label}>
                       {item.label}
                     </Item>
                   ))}
@@ -304,7 +292,7 @@ function ControlledComboBox<Value extends string>({
               );
             }
             return (
-              <Item {...item} key={item.key} textValue={getOptionTextValue(item)}>
+              <Item {...item} key={item.key} textValue={item.label}>
                 {item.label}
               </Item>
             );
