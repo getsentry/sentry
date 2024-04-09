@@ -9,7 +9,6 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -52,9 +51,6 @@ function GroupListBody({
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
-  const {projects} = useProjects();
-
-  const project = projects.find(p => p.id === selectedProjectIds[0].toString());
 
   if (loading) {
     return <LoadingIndicator hideMessage />;
@@ -64,7 +60,7 @@ function GroupListBody({
     return <LoadingError message={error} onRetry={refetchGroups} />;
   }
 
-  if (!groupIds.length || !project?.firstEvent) {
+  if (!groupIds.length) {
     return (
       <NoGroupsHandler
         api={api}

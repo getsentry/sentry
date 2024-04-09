@@ -10,7 +10,8 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
@@ -18,7 +19,7 @@ type GuidedStepInfo = {
   install: string;
   installCode: string;
   configure?: string;
-  configureCode?: string;
+  configureCode?: (dsn: string) => string;
   sourcemaps?: string;
   sourcemapsCode?: string;
   verify?: string;
@@ -38,11 +39,12 @@ const GuidedStepsMap: Partial<Record<PlatformKey, GuidedStepInfo>> = {
     configure: t(
       "Initialize Sentry as early as possible in your application's lifecycle"
     ),
-    configureCode: `// You can also use ESM 'import * as Sentry from "@sentry/node"' instead of 'require'
+    configureCode:
+      dsn => `// You can also use ESM 'import * as Sentry from "@sentry/node"' instead of 'require'
 const Sentry = require("@sentry/node");
 
 Sentry.init({
-  dsn: "http://5f97ad6946bfd6086d8d289e9325e3fb@localhost:8000/22",
+  dsn: "${dsn}",
   // Performance Monitoring
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });`,
@@ -74,10 +76,10 @@ setTimeout(() => {
     configure: t(
       'If you have the django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
     ),
-    configureCode: `# settings.py
+    configureCode: dsn => `# settings.py
 import sentry_sdk
 
-sentry_sdk.init(dsn="http://dc21aeced16ec1aaee075661e7a063f0@localhost:8000/18",
+sentry_sdk.init(dsn="${dsn}}",
 enable_tracing=True)`,
     verify: t(
       'Add this intentional error to your application to test that everything is working right away.'
@@ -115,10 +117,30 @@ function WaitingForEvent() {
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
   const platformGuidedSteps = project?.platform ? GuidedStepsMap[project.platform] : null;
-  if (!platformGuidedSteps || !project) {
+
+  const {
+    data: projectKeys,
+    isError: projectKeysIsError,
+    isLoading: projectKeysIsLoading,
+  } = useApiQuery<ProjectKey[]>(
+    [`/projects/${organization.slug}/${project?.slug}/keys/`],
+    {
+      staleTime: Infinity,
+      enabled: !!project,
+    }
+  );
+
+  if (
+    !platformGuidedSteps ||
+    !project ||
+    projectKeysIsError ||
+    projectKeysIsLoading ||
+    !projectKeys
+  ) {
     return null;
   }
 
+  const dsn = projectKeys[0].dsn.public;
   const language = project?.platform === 'node' ? 'javascript' : 'python';
 
   const {
@@ -159,7 +181,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   <div>
                     {configure}
                     {configureCode && (
-                      <CodeSnippet language={language}>{configureCode}</CodeSnippet>
+                      <CodeSnippet language={language}>{configureCode(dsn)}</CodeSnippet>
                     )}
                   </div>
                   <GuidedSteps.BackButton size="md" />

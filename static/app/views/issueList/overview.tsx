@@ -67,7 +67,7 @@ import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
-// import IssueListActions from './actions';
+import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
@@ -1261,7 +1261,7 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              {/* <IssueListActions
+              <IssueListActions
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
@@ -1274,7 +1274,7 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
-              /> */}
+              />
               <PanelBody>
                 <ProcessingIssueList
                   organization={organization}

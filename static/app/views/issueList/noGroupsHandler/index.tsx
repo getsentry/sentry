@@ -113,21 +113,27 @@ class NoGroupsHandler extends Component<Props, State> {
   }
 
   renderAwaitingEvents(projects: State['firstEventProjects']) {
-    // const {organization, groupIds} = this.props;
+    const {organization, groupIds} = this.props;
     const project = projects && projects.length > 0 ? projects[0] : undefined;
-    // const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+    const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    // const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
+    const hasUpdatedEmptyState = organization.features.includes(
+      'issue-stream-empty-state'
+    );
+
+    const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
     const UpdatedEmptyState = lazy(() => import('sentry/components/emptyStatePoc'));
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        {/* <WaitingForEvents
-          org={organization}
-          project={project}
-          sampleIssueId={sampleIssueId}
-        /> */}
-        <UpdatedEmptyState project={project} />
+        {!hasUpdatedEmptyState && (
+          <WaitingForEvents
+            org={organization}
+            project={project}
+            sampleIssueId={sampleIssueId}
+          />
+        )}
+        {hasUpdatedEmptyState && <UpdatedEmptyState project={project} />}
       </Suspense>
     );
   }
