@@ -1364,6 +1364,40 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"transaction": "foo", "any(span.description)": "a"},
         ]
 
+    def test_count_op(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.submit.celery"},
+        )
+
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.task.celery"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_op(queue.submit.celery)",
+                    "count_op(queue.task.celery)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -1431,3 +1465,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class(self):
         super().test_device_class()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_op(self):
+        super().test_count_op()

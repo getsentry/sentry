@@ -531,6 +531,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="string",
                     redundant_grouping=True,
                 ),
+                fields.MetricsFunction(
+                    "count_op",
+                    required_args=[
+                        SnQLStringArg(
+                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
+                        ),
+                    ],
+                    snql_distribution=self._resolve_count_op,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -951,6 +961,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
                 conditional_aggregate,
             ],
+            alias,
+        )
+
+    def _resolve_count_op(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("span.op"),
+                    self.builder.resolve_tag_value(args["op"]),
+                ],
+            ),
             alias,
         )
 
