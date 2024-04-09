@@ -414,39 +414,6 @@ function ProviderNonMemo({
         }
       }
 
-      // check if this is a video replay and if we can use the video replayer
-      if (isVideoReplay && videoEvents && startTimestampMs) {
-        const inst = new VideoReplayer(videoEvents, {
-          videoApiPrefix: `/api/0/projects/${
-            organization.slug
-          }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
-          root,
-          start: startTimestampMs,
-          onFinished: setReplayFinished,
-          onLoaded: event => {
-            const {videoHeight, videoWidth} = event.target;
-            if (!videoHeight || !videoWidth) {
-              return;
-            }
-            setDimensions({
-              height: videoHeight,
-              width: videoWidth,
-            });
-          },
-          onBuffer: buffering => {
-            setVideoBuffering(buffering);
-          },
-          clipWindow,
-        });
-        // `.current` is marked as readonly, but it's safe to set the value from
-        // inside a `useEffect` hook.
-        // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-        // @ts-expect-error
-        replayerRef.current = inst;
-        applyInitialOffset();
-        return;
-      }
-
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
@@ -493,13 +460,6 @@ function ProviderNonMemo({
       theme.purple200,
       startTimeOffsetMs,
       autoStart,
-      clipWindow,
-      isVideoReplay,
-      organization.slug,
-      startTimestampMs,
-      videoEvents,
-      projectSlug,
-      replay,
     ]
   );
 
@@ -534,6 +494,7 @@ function ProviderNonMemo({
         onBuffer: buffering => {
           setVideoBuffering(buffering);
         },
+        clipWindow,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -559,6 +520,7 @@ function ProviderNonMemo({
       setReplayFinished,
       startTimestampMs,
       startTimeOffsetMs,
+      clipWindow,
     ]
   );
 
