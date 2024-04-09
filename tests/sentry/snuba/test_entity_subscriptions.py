@@ -21,7 +21,6 @@ from sentry.snuba.entity_subscription import (
     MetricsSetsEntitySubscription,
     PerformanceMetricsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
-    SessionsEntitySubscription,
     get_entity_key_from_snuba_query,
     get_entity_subscription,
     get_entity_subscription_from_snuba_query,
@@ -88,47 +87,6 @@ class EntitySubscriptionTestCase(TestCase):
         for entity in entities:
             with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: timestamp"):
                 entity.build_query_builder("timestamp:-24h", [self.project.id], None)
-
-    def test_get_entity_subscriptions_for_sessions_dataset(self) -> None:
-        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        entity_subscription = get_entity_subscription(
-            query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
-            aggregate=aggregate,
-            time_window=3600,
-            extra_fields={"org_id": self.organization.id},
-        )
-        assert isinstance(entity_subscription, SessionsEntitySubscription)
-        assert entity_subscription.aggregate == aggregate
-        assert entity_subscription.get_entity_extra_params() == {
-            "organization": self.organization.id
-        }
-        assert entity_subscription.dataset == Dataset.Sessions
-        snql_query = entity_subscription.build_query_builder(
-            "", [self.project.id], None
-        ).get_snql_query()
-        snql_query.query.select.sort(key=lambda q: q.function)
-        assert snql_query.query.select == [
-            Function(
-                function="identity", parameters=[Column(name="sessions")], alias="_total_count"
-            ),
-            Function(
-                function="if",
-                parameters=[
-                    Function(function="greater", parameters=[Column(name="sessions"), 0]),
-                    Function(
-                        function="divide",
-                        parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
-                    ),
-                    None,
-                ],
-                alias="_crash_rate_alert_aggregate",
-            ),
-        ]
-        assert snql_query.query.where == [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
