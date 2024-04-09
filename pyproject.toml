@@ -620,6 +620,7 @@ module = [
     "sentry.buffer.redis",
     "sentry.eventstore.reprocessing.redis",
     "sentry.issues.related.*",
+    "sentry.lang.java.processing",
     "sentry.nodestore.base",
     "sentry.nodestore.bigtable.backend",
     "sentry.nodestore.django.backend",
