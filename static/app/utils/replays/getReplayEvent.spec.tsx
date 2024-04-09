@@ -50,7 +50,7 @@ describe('getNextReplayFrame', () => {
     expect(result).toEqual(frames[1]);
   });
 
-  it('should return the next crumb when the the list is not sorted', () => {
+  it('should return the next crumb when the list is not sorted', () => {
     const [one, two, three, four, five] = frames;
     const result = getNextReplayFrame({
       frames: [one, four, five, three, two],

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -60,7 +59,7 @@ function AutofixResultContent({autofixData, onRetry}: Props) {
 
   return (
     <Content>
-      <AutofixDiff fix={autofixData.fix} />
+      <AutofixDiff diff={autofixData.fix.diff ?? []} />
       <PreviewContent>
         <PrefixText>
           {tct('Pull request #[prNumber] created in [repository]', {
@@ -75,19 +74,14 @@ function AutofixResultContent({autofixData, onRetry}: Props) {
         <PrTitle>{autofixData.fix.title}</PrTitle>
       </PreviewContent>
       <Actions>
-        <ButtonBar gap={1}>
-          <Button size="xs" onClick={onRetry}>
-            {t('Try Again')}
-          </Button>
-          <LinkButton
-            size="xs"
-            icon={<IconOpen size="xs" />}
-            href={autofixData.fix.pr_url}
-            external
-          >
-            {t('View Pull Request')}
-          </LinkButton>
-        </ButtonBar>
+        <LinkButton
+          size="xs"
+          icon={<IconOpen size="xs" />}
+          href={autofixData.fix.pr_url}
+          external
+        >
+          {t('View Pull Request')}
+        </LinkButton>
       </Actions>
     </Content>
   );
@@ -108,7 +102,7 @@ export function AutofixResult({autofixData, onRetry}: Props) {
 
 const ResultPanel = styled(Panel)`
   padding: ${space(2)};
-  margin: 0;
+  margin: ${space(2)} 0 0 0;
 `;
 
 const PreviewContent = styled('div')`

@@ -119,6 +119,7 @@ def mock_expected_response(
         "count_errors": kwargs.pop("count_errors", 0),
         "count_warnings": kwargs.pop("count_warnings", 0),
         "count_infos": kwargs.pop("count_infos", 0),
+        "has_viewed": kwargs.pop("has_viewed", False),
     }
 
 
@@ -248,6 +249,31 @@ def mock_replay_click(
                     }
                 ).encode()
             )
+        ),
+    }
+
+
+def mock_replay_viewed(
+    timestamp: float,
+    project_id: str,
+    replay_id: str,
+    viewed_by_id: int,
+    retention_days: int = 30,
+) -> dict[str, Any]:
+    return {
+        "type": "replay_event",
+        "start_time": int(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": retention_days,
+        "payload": list(
+            json.dumps(
+                {
+                    "type": "replay_viewed",
+                    "timestamp": timestamp,
+                    "viewed_by_id": viewed_by_id,
+                }
+            ).encode()
         ),
     }
 
