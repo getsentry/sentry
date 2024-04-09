@@ -245,6 +245,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
+@sentry_sdk.tracing.trace
 def schedule_invalidate_project_config(
     *,
     trigger,

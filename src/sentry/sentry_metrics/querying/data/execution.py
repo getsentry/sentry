@@ -791,6 +791,12 @@ class QueryExecutor:
             value=self._number_of_executed_queries,
         )
 
+        for query_result in self._query_results:
+            if not isinstance(query_result, QueryResult):
+                raise MetricsQueryExecutionError(
+                    "Not all queries were executed in the execution loop"
+                )
+
         return cast(Sequence[QueryResult], self._query_results)
 
     def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
