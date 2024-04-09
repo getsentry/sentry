@@ -16,15 +16,16 @@ import type {ObjectStatus} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import MonitorEnvironmentLabel from 'sentry/views/monitors/components/overviewTimeline/monitorEnvironmentLabel';
-import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
-import type {CheckInTimelineProps} from './checkInTimeline';
-import {CheckInTimeline} from './checkInTimeline';
-import {TimelinePlaceholder} from './timelinePlaceholder';
-import type {MonitorBucket} from './types';
+import {StatusToggleButton} from '../statusToggleButton';
+import {CheckInPlaceholder} from '../timeline/checkInPlaceholder';
+import type {CheckInTimelineProps} from '../timeline/checkInTimeline';
+import {CheckInTimeline} from '../timeline/checkInTimeline';
+import type {MonitorBucket} from '../timeline/types';
+
+import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
@@ -41,7 +42,7 @@ interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
 
-export function TimelineTableRow({
+export function OverviewRow({
   monitor,
   bucketedData,
   singleMonitorView,
@@ -189,7 +190,7 @@ export function TimelineTableRow({
           return (
             <TimelineEnvOuterContainer key={name}>
               {!bucketedData ? (
-                <TimelinePlaceholder />
+                <CheckInPlaceholder />
               ) : (
                 <TimelineEnvContainer>
                   <CheckInTimeline

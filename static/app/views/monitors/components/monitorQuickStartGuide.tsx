@@ -173,7 +173,7 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
         orgSlug={org.slug}
         orgId={org.id}
         projectId={monitor.project.id}
-        publicKey={projectKeys?.[0].public}
+        cronsUrl={projectKeys?.[0].dsn.crons}
         dsnKey={projectKeys?.[0].dsn.public}
       />
     </Container>
