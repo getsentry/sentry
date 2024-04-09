@@ -1,6 +1,5 @@
-import type {ClipWindow} from 'sentry/utils/replays/replayReader';
 import {Timer} from 'sentry/utils/replays/timer';
-import type {VideoEvent} from 'sentry/utils/replays/types';
+import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
@@ -112,7 +111,8 @@ export class VideoReplayer {
         this.stopReplay();
       });
     } else {
-      // Initially load the first segment so that users are not staring at a
+      // Otherwise, if there's no clip window set, we should
+      // load the first segment by default so that users are not staring at a
       // blank replay. This initially caused some issues
       // (https://github.com/getsentry/sentry/pull/67911), but the problem was
       // due to the logic around our timers and the assumption that we were

@@ -22,6 +22,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
+  ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
   MemoryFrame,
@@ -41,11 +42,6 @@ import {
   isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
-
-export interface ClipWindow {
-  endTimestampMs: number;
-  startTimestampMs: number;
-}
 
 interface ReplayReaderParams {
   /**
@@ -241,6 +237,10 @@ export default class ReplayReader {
 
     this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
+    // For video replays, we need to bypass setting the global offset (_startOffsetMs)
+    // because it messes with the playback time by causing it
+    // to become negative sometimes. Instead we pass a clip window directly into
+    // the video player, which runs on an external timer
     if (this.isVideoReplay()) {
       this._clipWindow = {
         startTimestampMs: clipStartTimestampMs,
@@ -357,8 +357,9 @@ export default class ReplayReader {
   getStartOffsetMs = () => this._startOffsetMs;
 
   getStartTimestampMs = () => {
-    // For video replays we bypass setting the global startOffsetMs
-    // But we still need that value here
+    // For video replays we bypass setting the global _startOffsetMs
+    // because it messes with the player time by causing it to
+    // be negative in some cases, but we still need that calculated value here
     const start =
       this.isVideoReplay() && this._clipWindow
         ? this._clipWindow?.startTimestampMs - this._replayRecord.started_at.getTime()
