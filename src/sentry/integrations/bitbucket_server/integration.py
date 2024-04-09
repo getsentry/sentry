@@ -243,8 +243,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
         return BitbucketServerClient(
             integration=self.model,
-            identity_id=self.org_integration.default_auth_id,
-            org_integration_id=self.org_integration.id,
+            identity=self.default_identity,
         )
 
     @property

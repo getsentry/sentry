@@ -86,6 +86,7 @@ export type ProjectKey = {
   dateCreated: string;
   dsn: {
     cdn: string;
+    crons: string;
     csp: string;
     minidump: string;
     public: string;

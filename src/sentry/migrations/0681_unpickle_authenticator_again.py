@@ -16,7 +16,7 @@ def _backfill_authenticator(apps, schema_editor):
 
 class Migration(CheckedMigration):
     # data migration: must be run out of band
-    is_dangerous = True
+    is_post_deployment = True
 
     # data migration: run outside of a transaction
     atomic = False
