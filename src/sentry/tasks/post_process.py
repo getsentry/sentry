@@ -1449,16 +1449,21 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
             return
 
         from sentry.tasks.check_new_issue_threshold_met import (
-            CACHE_KEY,
             check_new_issue_threshold_met,
+            new_issue_threshold_key,
         )
 
         # If the new issue volume has already been checked today, don't recalculate regardless of the value
-        threshold_met = cache.get(CACHE_KEY(event.project_id))
+        project_key = new_issue_threshold_key(event.project_id)
+        threshold_met = cache.get(project_key)
         if threshold_met is not None:
             return
 
-        check_new_issue_threshold_met.delay(event.project)
+        lock = locks.get(project_key, duration=10)
+        with lock.acquire():
+            check_new_issue_threshold_met.delay(event.project)
+    except UnableToAcquireLock:
+        pass
     except Exception as e:
         logger.warning(
             "Failed to check new issue threshold met",

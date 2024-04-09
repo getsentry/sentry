@@ -9,7 +9,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.cache import cache
 
 NEW_ISSUE_WEEKLY_THRESHOLD = 10
-CACHE_KEY = lambda project_id: f"issues.priority.calculate_new_issue_threshold:{project_id}"
+new_issue_threshold_key = (
+    lambda project_id: f"issues.priority.calculate_new_issue_threshold:{project_id}"
+)
 
 
 def calculate_threshold_met(project_id: int) -> bool:
@@ -68,7 +70,7 @@ def check_new_issue_threshold_met(project: Project) -> None:
     if project.flags.has_high_priority_alerts:
         return
 
-    project_key = CACHE_KEY(project.id)
+    project_key = new_issue_threshold_key(project.id)
     threshold_met = cache.get(project_key)
     # If the threshold has already been calculated today, don't recalculate regardless of the value
     if threshold_met is not None:
