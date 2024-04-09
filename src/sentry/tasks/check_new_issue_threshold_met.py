@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.utils import timezone
 
 from sentry.models.group import Group
@@ -76,8 +76,7 @@ def check_new_issue_threshold_met(project: Project) -> None:
 
     threshold_met = calculate_threshold_met(project.id)
     if threshold_met:
-        project.flags.has_high_priority_alerts = True
-        project.save()
+        project.update(flags=F("flags").bitor(Project.flags.has_high_priority_alerts))
 
     # Add the key to cache for 24 hours
     cache.set(project_key, True, 60 * 60 * 24)

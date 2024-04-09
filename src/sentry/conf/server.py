@@ -942,7 +942,7 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("check_new_issue_threshold_met", "check_new_issue_threshold_met"),
+    Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
 ]
 
 from celery.schedules import crontab
