@@ -3,22 +3,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
-import {TraceType} from '../traceDetails/newTraceDetailsContent';
-
+import {TraceType} from '../../traceDetails/newTraceDetailsContent';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from './guards';
+} from '../guards';
+
 import {
   NoDataNode,
   ParentAutogroupNode,
@@ -61,9 +61,12 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     description: '',
     start_timestamp: 0,
     timestamp: 10,
-    event: makeEvent(),
+    data: {},
+    trace_id: '',
+    childTransaction: undefined,
+    event: makeEvent() as EventTransaction,
     ...overrides,
-  } as TraceTree.Span;
+  };
 }
 
 function makeTraceError(

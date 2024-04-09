@@ -54,6 +54,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
   });
+
   const router = RouterFixture({
     ...additionalRouter,
     params: {

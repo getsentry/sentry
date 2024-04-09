@@ -5,17 +5,20 @@ import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type MissingInstrumentationNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type MissingInstrumentationNode,
+} from '../../traceModels/traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
 export function MissingInstrumentationNodeDetails({
   node,
   onParentClick,
-  scrollToNode,
+  onTabScrollToNode,
 }: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const theme = useTheme();
   const parentTransaction = node.parent_transaction;
@@ -34,7 +37,7 @@ export function MissingInstrumentationNodeDetails({
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

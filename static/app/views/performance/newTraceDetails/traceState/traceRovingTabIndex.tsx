@@ -1,41 +1,55 @@
-import type {TraceTree, TraceTreeNode} from './traceTree';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export interface RovingTabIndexState {
+import type {TraceTree, TraceTreeNode} from '../traceModels/traceTree';
+
+export interface TraceRovingTabIndexState {
   index: number | null;
   items: number | null;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
 }
 
-export type RovingTabIndexAction =
+export type TraceRovingTabIndexAction =
   | {
       index: number | null;
       items: number;
       node: TraceTreeNode<TraceTree.NodeValue> | null;
-      type: 'initialize';
+      type: 'initialize roving reducer';
     }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set index'}
-  | {type: 'clear index'};
+  | {
+      action_source: 'click' | 'keyboard' | 'load';
+      index: number;
+      node: TraceTreeNode<TraceTree.NodeValue>;
+      type: 'set roving index';
+    }
+  | {type: 'clear'}
+  | {type: 'clear roving index'}
+  | {items: number; type: 'set roving count'};
 
 export type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
 
-export function rovingTabIndexReducer(
-  state: RovingTabIndexState,
-  action: RovingTabIndexAction
-): RovingTabIndexState {
+export function traceRovingTabIndexReducer(
+  state: TraceRovingTabIndexState,
+  action: TraceRovingTabIndexAction
+): TraceRovingTabIndexState {
   switch (action.type) {
-    case 'initialize': {
+    case 'initialize roving reducer': {
       return {index: action.index, items: action.items, node: action.node};
     }
-    case 'set index':
+    case 'set roving count': {
+      return {...state, items: action.items};
+    }
+    case 'set roving index':
       return {...state, node: action.node, index: action.index};
-    case 'clear index':
+    case 'clear roving index':
+    case 'clear':
       return {...state, index: null, node: null};
     default:
-      throw new Error('Invalid action');
+      traceReducerExhaustiveActionCheck(action);
+      return state;
   }
 }
 
-export function getRovingIndexActionFromEvent(
+export function getRovingIndexActionFromDOMEvent(
   event: React.KeyboardEvent
 ): RovingTabIndexUserActions | null {
   // @TODO it would be trivial to extend this and support

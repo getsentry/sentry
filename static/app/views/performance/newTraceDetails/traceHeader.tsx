@@ -24,8 +24,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import type {TraceTree} from './traceModels/traceTree';
 import {isTraceNode} from './guards';
-import type {TraceTree} from './traceTree';
 
 function TraceHeaderEmptyTrace() {
   return (
@@ -102,7 +102,7 @@ export function TraceHeader({
     traceNode.performance_issues.size || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
 
-  const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
+  const replay_id = rootEventResults?.data?.contexts?.replay?.replay_id;
   const showLoadingIndicator =
     (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
     metaResults.isLoading;

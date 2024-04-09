@@ -1,10 +1,10 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, type Event} from 'sentry/types';
-import {evaluateTokenForTraceNode} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import {
   type TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {evaluateTokenForTraceNode} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 
 import grammar from './traceSearch.pegjs';
 
