@@ -79,7 +79,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         if viewed_by_ids == []:
             return Response({"data": {"viewed_by": []}}, status=200)
 
-        # Note: this will filter out any non-existent user ids returned by Snuba
+        # Note: in the rare/error case where Snuba returns non-existent user ids, this fx will filter them out.
         serialized_users = user_service.serialize_many(
             filter=dict(user_ids=viewed_by_ids),
             as_user=serialize_generic_user(request.user),
