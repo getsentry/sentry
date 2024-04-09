@@ -17,7 +17,7 @@ type Props = {
     state: StateDescription;
   };
   event: Event;
-  meta: Record<string, any>;
+  meta?: Record<string, any>;
 };
 
 function getStateTitle(name: string, type?: string) {
@@ -38,14 +38,14 @@ export function getKnownStateContextData({
       subject: getStateTitle(t('State'), data.state.type),
       // TODO(TS): Objects cannot be rendered to dom
       value: data.state.value as string,
-      meta: meta.state?.value?.[''],
+      meta: meta?.state?.value?.[''],
     },
   ];
 }
 
 export function getUnknownStateContextData({
   data,
-  meta,
+  meta = {},
 }: Pick<Props, 'data' | 'meta'>): KeyValueListData {
   return Object.entries(data)
     .filter(([key]) => !['type', 'title', 'state'].includes(key))
