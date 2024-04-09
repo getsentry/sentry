@@ -3,15 +3,13 @@ from __future__ import annotations
 import concurrent.futures as cf
 from typing import Any
 
-from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.usecases.events import archive_event
+from sentry.replays.usecases.events import archive_event, publish_replay_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.pubsub import KafkaPublisher
 
 
 @instrumented_task(
@@ -24,8 +22,7 @@ from sentry.utils.pubsub import KafkaPublisher
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
-    publisher = initialize_replays_publisher(is_async=False)
-    archive_replay(publisher, project_id, replay_id)
+    archive_replay(project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
 
@@ -74,10 +71,10 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment_model.delete()
 
 
-def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -> None:
+def archive_replay(project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
     message = archive_event(project_id, replay_id)
 
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
-    publisher.publish("ingest-replay-events", message)
+    publish_replay_event(message, is_async=False)
