@@ -204,11 +204,13 @@ export default function MonitorCreateForm() {
           {() => {
             const scheduleType = form.current.getValue('config.scheduleType');
             const cronSchedule = form.current.getValue('config.schedule');
+            const timezone = form.current.getValue('config.timezone');
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
 
             const schedule = {
               scheduleType,
+              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
