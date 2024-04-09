@@ -58,7 +58,9 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             try:
                 client.send_card(channel, card)
             except SoftTimeLimitExceeded as e:
-                logger.error(f"Failed to send MS Teams notification due to time limit exceeded: {e}")
+                logger.error(
+                    f"Failed to send MS Teams notification due to time limit exceeded: {e}"
+                )
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel, rule, notification_uuid)
 
