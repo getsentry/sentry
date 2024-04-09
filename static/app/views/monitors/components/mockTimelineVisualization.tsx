@@ -21,6 +21,7 @@ interface ScheduleConfig {
   intervalFrequency?: FieldValue;
   intervalUnit?: FieldValue;
   scheduleType?: FieldValue;
+  timezone?: FieldValue;
 }
 
 const NUM_SAMPLE_TICKS = 9;
@@ -38,13 +39,16 @@ interface Props {
 }
 
 export function MockTimelineVisualization({schedule}: Props) {
-  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = schedule;
+  const {scheduleType, cronSchedule, timezone, intervalFrequency, intervalUnit} =
+    schedule;
+
   const organization = useOrganization();
   const {form} = useContext(FormContext);
 
   const query = {
     num_ticks: NUM_SAMPLE_TICKS,
     schedule_type: scheduleType,
+    timezone,
     schedule:
       scheduleType === 'interval' ? [intervalFrequency, intervalUnit] : cronSchedule,
   };
