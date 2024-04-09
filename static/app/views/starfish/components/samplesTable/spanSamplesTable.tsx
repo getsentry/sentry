@@ -109,9 +109,21 @@ export function SpanSamplesTable({
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug({
+              id: row['transaction.id'],
+              project: row.project,
+            }),
+            organization,
+            location,
+            eventView: EventView.fromLocation(location),
+            dataRow: {
+              id: row['transaction.id'],
+              trace: row.transaction?.trace,
+              timestamp: row.timestamp,
+            },
+            spanId: row.span_id,
+          })}
         >
           {row['transaction.id'].slice(0, 8)}
         </Link>
