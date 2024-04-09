@@ -7,23 +7,29 @@ import {
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export type TraceSearchAction =
   | {query: string | undefined; type: 'set query'}
+  | {type: 'go to first match'}
+  | {type: 'go to last match'}
   | {type: 'go to next match'}
   | {type: 'go to previous match'}
   | {
-      node: TraceTreeNode<TraceTree.NodeValue>;
       resultIndex: number;
       resultIteratorIndex: number;
-      type: 'set iterator index';
+      type: 'set search iterator index';
     }
-  | {type: 'clear node'}
-  | {type: 'clear iterator index'}
+  | {type: 'clear'}
+  | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
       node: TraceTreeNode<TraceTree.NodeValue> | null;
+      previousNode: {
+        resultIndex: number | undefined;
+        resultIteratorIndex: number | undefined;
+      } | null;
       results: ReadonlyArray<TraceResult>;
       resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
       type: 'set results';
@@ -63,6 +69,28 @@ export function traceSearchReducer(
         resultIndex: null,
         resultsLookup: new Map(),
         status: undefined,
+      };
+    }
+    case 'go to first match': {
+      if (!state.results || state.results.length === 0) {
+        return state;
+      }
+      return {
+        ...state,
+        node: state.results[0].value,
+        resultIteratorIndex: 0,
+        resultIndex: state.results[0].index,
+      };
+    }
+    case 'go to last match': {
+      if (!state.results || state.results.length === 0) {
+        return state;
+      }
+      return {
+        ...state,
+        resultIteratorIndex: state.results.length - 1,
+        resultIndex: state.results[state.results.length - 1].index,
+        node: state.results[state.results.length - 1].value,
       };
     }
     case 'go to next match': {
@@ -124,8 +152,8 @@ export function traceSearchReducer(
         ...state,
         status: [performance.now(), 'success'],
         results: action.results,
-        node: action.node,
         resultIteratorIndex: action.resultIteratorIndex ?? null,
+        node: action.node ?? null,
         resultIndex: action.resultIndex ?? null,
         resultsLookup: action.resultsLookup,
       };
@@ -135,32 +163,33 @@ export function traceSearchReducer(
         ...state,
         status: [performance.now(), 'loading'],
         query: action.query,
-        node: null,
-        resultIteratorIndex: null,
-        resultIndex: null,
-        resultsLookup: new Map(),
       };
     }
 
-    case 'set iterator index': {
+    case 'set search iterator index': {
       return {
         ...state,
+        node: state.results?.[action.resultIteratorIndex]?.value ?? null,
         resultIteratorIndex: action.resultIteratorIndex,
         resultIndex: action.resultIndex,
-        node: action.node,
       };
     }
 
-    case 'clear iterator index': {
-      return {...state, resultIteratorIndex: null, resultIndex: null, node: null};
-    }
+    case 'clear search iterator index':
+      return {
+        ...state,
+        resultIteratorIndex: null,
+        resultIndex: null,
+        node: null,
+      };
 
-    case 'clear node': {
-      return {...state, node: null};
+    case 'clear': {
+      return {...state, node: null, resultIteratorIndex: null, resultIndex: null};
     }
 
     default: {
-      throw new Error('Invalid trace search reducer action');
+      traceReducerExhaustiveActionCheck(action);
+      return state;
     }
   }
 }
@@ -183,7 +212,7 @@ export function searchInTraceTree(
   ) => void
 ): {id: number | null} {
   const raf: {id: number | null} = {id: 0};
-  let previousNodeResult: {
+  let previousNodeSearchResult: {
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
@@ -196,7 +225,6 @@ export function searchInTraceTree(
 
   function search() {
     const ts = performance.now();
-
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i];
 
@@ -205,11 +233,12 @@ export function searchInTraceTree(
         resultLookup.set(node, matchCount);
 
         if (previousNode === node) {
-          previousNodeResult = {
+          previousNodeSearchResult = {
             resultIndex: i,
             resultIteratorIndex: matchCount,
           };
         }
+
         matchCount++;
       }
       i++;
@@ -220,7 +249,7 @@ export function searchInTraceTree(
     }
 
     if (i === count) {
-      cb([results, resultLookup, previousNodeResult]);
+      cb([results, resultLookup, previousNodeSearchResult]);
       raf.id = null;
     }
   }

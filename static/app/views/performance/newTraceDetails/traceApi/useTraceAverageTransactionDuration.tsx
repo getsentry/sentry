@@ -5,7 +5,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import type {TraceTree, TraceTreeNode} from './traceTree';
+import type {TraceTree, TraceTreeNode} from '../traceModels/traceTree';
 
 type Props = {
   location: Location;

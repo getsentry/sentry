@@ -77,6 +77,28 @@ class Emitter<R extends React.Reducer<any, any>> {
   }
 }
 
+function update<R extends React.Reducer<any, any>>(
+  state: ReducerState<R>,
+  actions: ReducerAction<R>[],
+  reducer: R,
+  emitter: Emitter<R>
+) {
+  if (!actions.length) {
+    return state;
+  }
+
+  let start = state;
+  while (actions.length > 0) {
+    const next = actions.shift()!;
+    emitter.emit('before action', start, next);
+    const nextState = reducer(start, next);
+    emitter.emit('before next state', start, nextState, next);
+    start = nextState;
+  }
+
+  return start;
+}
+
 export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   reducer: R,
   initialState: ReducerState<R>,
@@ -87,25 +109,38 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
     initialState ?? (initializer?.(initialState) as ReducerState<R>)
   );
 
-  const reducerRef = useRef(reducer);
-  reducerRef.current = reducer;
-
-  // Store state reference in ref so that the callback can be stable
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const reducerRef = useRef(reducer);
+  reducerRef.current = reducer;
+
+  const actionQueue = useRef<ReducerAction<R>[]>([]);
+  const updatesRef = useRef<number | null>(null);
+
   const wrappedDispatch = useCallback(
-    (action: ReducerAction<R>) => {
+    (a: ReducerAction<R>) => {
       // @TODO it is possible for a dispatched action to throw an error
       // and break the reducer. We should probably catch it, I'm just not sure
       // what would be the best mechanism to handle it. If we opt to rethrow,
       // we are likely going to have to rethrow async and lose stack traces...
-      emitter.emit('before action', stateRef.current, action);
-      const nextState = reducerRef.current(stateRef.current, action);
-      emitter.emit('before next state', stateRef.current, nextState, action);
-      setState(nextState);
+      actionQueue.current.push(a);
+
+      if (updatesRef.current !== null) {
+        window.cancelAnimationFrame(updatesRef.current);
+      }
+
+      window.requestAnimationFrame(() => {
+        setState(s => {
+          const next = update(s, actionQueue.current, reducerRef.current, emitter);
+          stateRef.current = next;
+          return next;
+        });
+      });
     },
-    [emitter]
+    // Emitter is stable and can be ignored
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   return [state, wrappedDispatch, emitter];
