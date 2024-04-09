@@ -1189,12 +1189,18 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                     "sample_event": True,
                 },
             )
+
+        # Skip running grouping for "transaction" events:
+        primary_hash = (
+            None if job["data"].get("type") == "transaction" else job["event"].get_primary_hash()
+        )
+
         eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            primary_hash=job["event"].get_primary_hash(),
+            primary_hash=primary_hash,
             received_timestamp=job["received_timestamp"],
             # We are choosing to skip consuming the event back
             # in the eventstream if it's flagged as raw.
