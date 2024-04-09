@@ -66,6 +66,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
+            request_user_id=request.user.id,
             organization=project.organization,
         )
         if not viewed_by_ids_response:
@@ -74,7 +75,6 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
         # query + serialize the User objects from postgres.
         response: ReplayViewedByResponse = generate_viewed_by_response(
-            replay_id=replay_id,
             viewed_by_ids=viewed_by_ids,
             request_user=request.user,
         )

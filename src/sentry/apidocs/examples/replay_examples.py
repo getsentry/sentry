@@ -203,7 +203,6 @@ class ReplayExamples:
         OpenApiExample(
             "Get list of users who have viewed a replay",
             value={
-                "id": "81220fbf68494b30a5129ceb4cc5937d",
                 "viewed_by": [
                     {
                         "id": "884411",

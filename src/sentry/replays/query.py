@@ -107,6 +107,7 @@ def query_replay_viewed_by_ids(
     replay_id: str,
     start: datetime,
     end: datetime,
+    request_user_id: int | None,
     organization: Organization | None = None,
 ) -> list[dict[str, Any]]:
     """Query unique user ids who viewed a given replay."""
@@ -122,6 +123,7 @@ def query_replay_viewed_by_ids(
             project_ids=project_ids,
             period_start=start,
             period_end=end,
+            request_user_id=request_user_id,
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.viewed_by_query",

@@ -81,7 +81,6 @@ class ReplayDetailsResponse(TypedDict, total=False):
 
 @extend_schema_serializer()
 class ReplayViewedByResponse(TypedDict):
-    id: str
     viewed_by: dict[str, Any]  # a good reference is api.serializers.UserSerializerResponse
     # However, it's not a perfect match, since the date fields are ISO strings.
 
@@ -290,7 +289,6 @@ def extract_click_fields(
 
 
 def generate_viewed_by_response(
-    replay_id: str,
     viewed_by_ids: list[int],
     request_user: User,
 ) -> ReplayViewedByResponse:
@@ -303,6 +301,5 @@ def generate_viewed_by_response(
     )
 
     return {
-        "id": replay_id,
         "viewed_by": serialized_users,
     }
