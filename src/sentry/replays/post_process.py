@@ -76,12 +76,6 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@extend_schema_serializer()
-class ReplayViewedByResponse(TypedDict):
-    viewed_by: list[dict[str, Any]]  # a good reference is api.serializers.UserSerializerResponse
-    # However, it's not a perfect match, since the date fields are ISO strings.
-
-
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:

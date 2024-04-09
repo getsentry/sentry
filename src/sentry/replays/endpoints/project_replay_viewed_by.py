@@ -1,5 +1,5 @@
 import uuid
-from typing import Any
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -10,28 +10,30 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NO_CONTENT,
-    RESPONSE_NOT_FOUND,
-)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
-from sentry.replays.post_process import ReplayViewedByResponse
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
+class ReplayViewedByResponsePayload(TypedDict):
+    viewed_by: list[dict[str, Any]]
+
+
+class ReplayViewedByResponse(TypedDict):
+    data: ReplayViewedByResponsePayload
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
-    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
 
     @extend_schema(
         operation_id="Get list of user who have viewed a replay",
@@ -88,19 +90,8 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
         return Response({"data": {"viewed_by": serialized_users}}, status=200)
 
-    @extend_schema(
-        operation_id="Post that the requesting user has viewed a replay",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, ReplayParams.REPLAY_ID],
-        responses={
-            204: RESPONSE_NO_CONTENT,
-            400: RESPONSE_BAD_REQUEST,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=None,
-    )
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Record a replay-viewed event."""
+        """Create a replay-viewed event."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
