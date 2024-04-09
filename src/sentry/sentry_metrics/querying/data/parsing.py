@@ -80,7 +80,9 @@ class QueryParser:
                 .add_visitor(
                     QueryConditionsCompositeVisitor(
                         LatestReleaseTransformationVisitor(self._projects)
-                    ).add_visitor(ProjectToProjectIDTransformationVisitor(self._projects))
-                ).get()
+                    )
+                )
+                .add_visitor(ProjectToProjectIDTransformationVisitor(self._projects))
+                .get()
             )
             yield query_expression, formula_definition.order, formula_definition.limit
