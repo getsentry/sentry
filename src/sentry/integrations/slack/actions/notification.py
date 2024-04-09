@@ -5,6 +5,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 from sentry import features
+from sentry.api.serializers.rest_framework import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
@@ -133,7 +134,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
             rule_id = rule_to_use.id if rule_to_use else None
-            rule_action_uuid = self.data.get("uuid", None)
+            rule_action_uuid = self.data.get(ACTION_UUID_KEY, None)
             if not rule_action_uuid:
                 # We are logging because this should never happen, all actions should have an uuid
                 # We can monitor for this, and create an alert if this ever appears
