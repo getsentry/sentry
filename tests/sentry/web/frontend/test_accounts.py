@@ -1,13 +1,17 @@
+from datetime import timedelta
 from functools import cached_property
 from unittest.mock import call, patch
 
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.accounts import recover_confirm
 
@@ -25,6 +29,9 @@ class TestAccounts(TestCase):
         return reverse(
             "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
         )
+
+    def relocation_reclaim_path(self, user_id):
+        return reverse("sentry-account-relocate-reclaim", kwargs={"user_id": user_id})
 
     def test_get_renders_form(self):
         resp = self.client.get(self.path)
@@ -118,9 +125,27 @@ class TestAccounts(TestCase):
         header_name = "Referrer-Policy"
 
         assert resp.has_header(header_name)
-        assert resp.templates[0].name == ("sentry/account/relocate/confirm.html")
         assert resp.status_code == 200
         assert resp[header_name] == "strict-origin-when-cross-origin"
+        self.assertTemplateUsed("sentry/account/relocate/confirm.html")
+
+    def test_relocate_expired_lost_password_hash(self):
+        user = self.create_user()
+        lost_password = LostPasswordHash.objects.create(
+            user=user, date_added=timezone.now() - timedelta(hours=2)
+        )
+        assert not lost_password.is_valid()
+
+        resp = self.client.get(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp.status_code == 200
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        self.assertTemplateUsed("sentry/account/relocate/failure.html")
 
     @patch("sentry.signals.terms_accepted.send_robust")
     def test_relocate_recovery_post_multiple_orgs(self, terms_accepted_signal_mock):
@@ -148,7 +173,7 @@ class TestAccounts(TestCase):
 
         user.refresh_from_db()
         assert resp.has_header(header_name)
-        assert resp.templates[0].name == ("sentry/emails/password-changed.txt")
+        self.assertTemplateUsed("sentry/emails/password-changed.txt")
         assert not user.is_unclaimed
         assert user.username == new_username
         assert user.password != old_password
@@ -200,7 +225,7 @@ class TestAccounts(TestCase):
 
         user.refresh_from_db()
         assert resp.has_header(header_name)
-        assert resp.templates[0].name == ("sentry/emails/password-changed.txt")
+        self.assertTemplateUsed("sentry/emails/password-changed.txt")
         assert not user.is_unclaimed
         assert user.username == new_username
         assert user.password != old_password
@@ -267,12 +292,89 @@ class TestAccounts(TestCase):
 
                 user.refresh_from_db()
                 assert resp.has_header(header_name)
-                assert resp.templates[0].name == ("sentry/account/relocate/failure.html")
+                self.assertTemplateUsed("sentry/account/relocate/failure.html")
                 assert user.is_unclaimed
                 assert user.username != new_username
                 assert user.password == old_password
                 assert resp.status_code == 200
                 assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    def test_relocate_reclaim_success(self):
+        user = self.create_user(email="member@example.com", is_unclaimed=True)
+        lost_password = LostPasswordHash.objects.create(user=user)
+        org = self.create_organization(name="test-org")
+        self.create_member(user=user, organization=org, role="member", teams=[])
+
+        with BurstTaskRunner() as burst:
+            resp = self.client.post(
+                self.relocation_reclaim_path(lost_password.user_id),
+            )
+
+            # Sends the async email.
+            burst()
+
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0].to == ["member@example.com"]
+            assert "Set Username and Password" in mail.outbox[0].subject
+            assert "test-org" in mail.outbox[0].body
+            assert "Claim Account" in mail.outbox[0].body
+            assert f"/relocation/confirm/{user.id}/{lost_password.hash}/" in mail.outbox[0].body
+
+            header_name = "Referrer-Policy"
+
+            assert resp.has_header(header_name)
+            assert resp.status_code == 200
+            assert resp[header_name] == "strict-origin-when-cross-origin"
+            self.assertTemplateUsed("sentry/account/relocate/sent.html")
+
+    def test_relocate_reclaim_user_not_found(self):
+        user = self.create_user(email="member@example.com", is_unclaimed=True)
+        lost_password = LostPasswordHash.objects.create(user=user)
+        org = self.create_organization(name="test-org")
+        self.create_member(user=user, organization=org, role="member", teams=[])
+
+        resp = self.client.post(
+            self.relocation_reclaim_path(lost_password.user_id + 12345),
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp.status_code == 200
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        self.assertTemplateUsed("sentry/account/relocate/error.html")
+
+    def test_relocate_reclaim_already_claimed(self):
+        user = self.create_user(email="member@example.com", is_unclaimed=False)
+        lost_password = LostPasswordHash.objects.create(user=user)
+        org = self.create_organization(name="test-org")
+        self.create_member(user=user, organization=org, role="member", teams=[])
+
+        resp = self.client.post(
+            self.relocation_reclaim_path(lost_password.user_id),
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp.status_code == 200
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        self.assertTemplateUsed("sentry/account/relocate/claimed.html")
+
+    def test_relocate_reclaim_user_not_in_any_orgs(self):
+        user = self.create_user(email="member@example.com", is_unclaimed=True)
+        lost_password = LostPasswordHash.objects.create(user=user)
+
+        resp = self.client.post(
+            self.relocation_reclaim_path(lost_password.user_id),
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp.status_code == 200
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        self.assertTemplateUsed("sentry/account/relocate/error.html")
 
     def test_confirm_email(self):
         self.login_as(self.user)

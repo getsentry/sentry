@@ -11,12 +11,15 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.api.utils import (
+    get_date_range_from_params,
+    id_or_slug_path_params_enabled,
+    is_member_disabled_from_limit,
+)
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -251,7 +254,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if not organization_slug:
             raise ResourceDoesNotExist
 
-        if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+        if (
+            id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
+            and str(organization_slug).isnumeric()
+        ):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
@@ -547,7 +553,12 @@ class OrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            if (
+                id_or_slug_path_params_enabled(
+                    self.convert_args.__qualname__, str(organization_slug)
+                )
+                and str(organization_slug).isnumeric()
+            ):
                 organization = Organization.objects.get_from_cache(id=organization_slug)
             else:
                 organization = Organization.objects.get_from_cache(slug=organization_slug)
