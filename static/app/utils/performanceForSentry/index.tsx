@@ -6,7 +6,7 @@ import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
-  timestampInSeconds,
+  timestampWithMS,
 } from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -38,7 +38,7 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
   try {
     const transaction = getPerformanceTransaction();
     if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
-      const now = timestampInSeconds();
+      const now = timestampWithMS();
       transaction.startChild({
         description: `<${id}>`,
         op: `ui.react.${phase}`,
