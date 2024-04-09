@@ -5,6 +5,7 @@ from django.test import override_settings
 from sentry.models.group import Group
 from sentry.tasks.process_buffer import (
     buffer_incr,
+    get_process_lock,
     process_incr,
     process_pending,
     process_pending_batch,
@@ -45,6 +46,21 @@ class ProcessPendingBatchTest(TestCase):
         process_pending_batch(partition=1)
         assert len(mock_process_pending_batch.mock_calls) == 2
         mock_process_pending_batch.assert_any_call(partition=1)
+
+    @mock.patch("sentry.buffer.backend.process_batch")
+    def test_process_pending_batch_locked_out(self, mock_process_pending_batch):
+        with mock.patch("sentry.buffer.redis.RedisBuffer.process_batch"), self.assertLogs(
+            "sentry.tasks.process_buffer", level="WARNING"
+        ) as logger:
+            lock = get_process_lock("process_pending_batch", None)
+            with lock.acquire():
+                process_pending_batch()
+                self.assertEqual(len(logger.output), 1)
+                assert len(mock_process_pending_batch.mock_calls) == 0
+
+        with self.assertNoLogs("sentry.tasks.process_buffer", level="WARNING"):
+            process_pending_batch()
+            assert len(mock_process_pending_batch.mock_calls) == 1
 
 
 class BufferIncrTest(TestCase):
