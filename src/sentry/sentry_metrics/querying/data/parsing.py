@@ -11,6 +11,7 @@ from sentry.sentry_metrics.querying.types import QueryExpression, QueryOrder
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
     LatestReleaseTransformationVisitor,
+    ProjectToProjectIDTransformationVisitor,
     QueryConditionsCompositeVisitor,
     QueryValidationV2Visitor,
     VisitableQueryExpression,
@@ -79,7 +80,7 @@ class QueryParser:
                 .add_visitor(
                     QueryConditionsCompositeVisitor(
                         LatestReleaseTransformationVisitor(self._projects)
-                    )
+                    ).add_visitor(ProjectToProjectIDTransformationVisitor(self._projects))
                 ).get()
             )
             yield query_expression, formula_definition.order, formula_definition.limit
