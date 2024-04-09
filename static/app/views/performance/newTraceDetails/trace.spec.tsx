@@ -681,25 +681,25 @@ describe('trace view', () => {
       expect(rows[1]).toHaveFocus();
     });
 
-    //   it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-    //     Object.defineProperty(window, 'location', {
-    //       value: {
-    //         search: '?search=dead&node=txn-5',
-    //       },
-    //     });
-    //     const {container} = await pageloadTestSetup();
-    //     const searchInput = await screen.findByPlaceholderText('Search in trace');
-    //     expect(searchInput).toHaveValue('dead');
+    it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '?search=dead&node=txn-5',
+        },
+      });
+      const {container} = await pageloadTestSetup();
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      expect(searchInput).toHaveValue('dead');
 
-    //     await waitFor(() => {
-    //       expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-    //         'no results'
-    //       );
-    //     });
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          'no results'
+        );
+      });
 
-    //     const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-    //     expect(rows[6]).toHaveFocus();
-    //   });
+      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(rows[6]).toHaveFocus();
+    });
   });
 
   describe('keyboard navigation', () => {
