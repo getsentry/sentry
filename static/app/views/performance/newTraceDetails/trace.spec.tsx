@@ -1012,7 +1012,9 @@ describe('trace view', () => {
       fireEvent.change(searchInput, {target: {value: 'transaction-op-10'}});
       await searchToUpdate();
 
-      assertHighlightedRowAtIndex(container, 11);
+      await waitFor(() => {
+        assertHighlightedRowAtIndex(container, 11);
+      });
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
       const {container} = await searchTestSetup();
