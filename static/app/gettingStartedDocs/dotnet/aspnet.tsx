@@ -36,15 +36,7 @@ Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
   '3.34.0'
 )}`;
 
-const getInstallProfilingSnippet = () => `
-Install-Package Sentry.Profiling`;
-
-enum DotNetPlatform {
-  WINDOWS_LINUX_MACOS,
-  IOS_MACCATALYST,
-}
-
-const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
+const getConfigureSnippet = (params: Params) => `
 using System;
 using System.Configuration;
 using System.Web.Mvc;
@@ -72,24 +64,6 @@ public class MvcApplication : HttpApplication
             // of transactions for performance monitoring.
             // We recommend adjusting this value in production
             o.TracesSampleRate = 1.0;`
-                : ''
-            }${
-              params.isProfilingSelected
-                ? `
-            // Sample rate for profiling, applied on top of othe TracesSampleRate,
-            // e.g. 0.2 means we want to profile 20 % of the captured transactions.
-            // We recommend adjusting this value in production.
-            o.ProfilesSampleRate = 1.0;${
-              platform !== DotNetPlatform.IOS_MACCATALYST
-                ? `
-            // Requires NuGet package: Sentry.Profiling
-            // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
-            o.AddIntegration(new ProfilingIntegration(
-                // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
-                TimeSpan.FromMilliseconds(500)
-            ));`
-                : ''
-            }`
                 : ''
             }
             // If you are using EF (and installed the NuGet package):
@@ -138,25 +112,6 @@ const onboarding: OnboardingConfig = {
           description: t('Using Entity Framework 6?'),
           code: getInstallSnippetEntityFramework(params),
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                description: tct(
-                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                  {
-                    sentryProfilingPackage: <code />,
-                  }
-                ),
-                language: 'shell',
-                code: getInstallProfilingSnippet(),
-              },
-              {
-                description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
-                ),
-              },
-            ]
-          : []),
       ],
       additionalInfo: (
         <AlertWithoutMarginBottom type="info">
@@ -179,27 +134,10 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        params.isProfilingSelected
-          ? {
-              code: [
-                {
-                  language: 'csharp',
-                  label: 'Windows/Linux/macOS',
-                  value: 'Windows/Linux/macOS',
-                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS_LINUX_MACOS),
-                },
-                {
-                  language: 'csharp',
-                  label: 'iOS/Mac Catalyst',
-                  value: 'ios/macCatalyst',
-                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
-                },
-              ],
-            }
-          : {
-              language: 'csharp',
-              code: getConfigureSnippet(params),
-            },
+        {
+          language: 'csharp',
+          code: getConfigureSnippet(params),
+        },
       ],
     },
   ],

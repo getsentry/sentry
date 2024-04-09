@@ -42,14 +42,10 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
             // Tells which project in Sentry to send events to:
             options.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;${
-              params.isPerformanceSelected
-                ? `
+            options.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;`
-                : ''
-            }
+            options.TracesSampleRate = 1.0;
             // If you installed Sentry.Xamarin.Forms:
             options.AddXamarinFormsIntegration();
         });`;
@@ -63,14 +59,10 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
         {
             options.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;${
-              params.isPerformanceSelected
-                ? `
+            options.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;`
-                : ''
-            }
+            options.TracesSampleRate = 1.0;
             options.AddXamarinFormsIntegration();
         });`;
 
@@ -193,7 +185,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t('To verify your set up, you can capture a message with the SDK:'),
@@ -207,41 +199,37 @@ const onboarding: OnboardingConfig = {
         'You might need to open the app again for the crash report to be sent to the server.'
       ),
     },
-    ...(params.isPerformanceSelected
-      ? [
-          {
-            title: t('Performance Monitoring'),
-            description: t(
-              'You can measure the performance of your code by capturing transactions and spans.'
-            ),
-            configurations: [
-              {
-                language: 'csharp',
-                code: getPerformanceInstrumentationSnippet(),
-              },
-            ],
-            additionalInfo: tct(
-              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
-                ),
-              }
-            ),
-          },
-          {
-            title: t('Documentation'),
-            description: tct(
-              "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete Xamarin Forms docs].",
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/xamarin/" />
-                ),
-              }
-            ),
-          },
-        ]
-      : []),
+    {
+      title: t('Performance Monitoring'),
+      description: t(
+        'You can measure the performance of your code by capturing transactions and spans.'
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getPerformanceInstrumentationSnippet(),
+        },
+      ],
+      additionalInfo: tct(
+        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+          ),
+        }
+      ),
+    },
+    {
+      title: t('Documentation'),
+      description: tct(
+        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete Xamarin Forms docs].",
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/xamarin/" />
+          ),
+        }
+      ),
+    },
     {
       title: t('Limitations'),
       description: t(
