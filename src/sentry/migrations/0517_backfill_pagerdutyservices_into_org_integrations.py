@@ -1,10 +1,14 @@
+from typing import Any
+
 from django.db import ProgrammingError, migrations, router, transaction
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
 
 
-def as_dict(pds):
+def as_dict(pds: Any) -> dict[str, Any]:  # Any: model does not exist any more!
     return dict(
         integration_id=pds.integration_id,
         integration_key=pds.integration_key,
@@ -13,7 +17,7 @@ def as_dict(pds):
     )
 
 
-def backfill_pagerdutyservices(apps, schema_editor):
+def backfill_pagerdutyservices(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     PagerDutyService = apps.get_model("sentry", "PagerDutyService")
     OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
     try:
