@@ -11,8 +11,14 @@ bootstrap \
 develop \
 install-js-dev \
 install-py-dev \
-apply-migrations:
-	@devenv sync
+apply-migrations: devenv-sync
+	@true
+
+# This is to ensure devenv sync's only called once if the above
+# aliases are combined e.g. `make install-js-dev install-py-dev`
+.PHONY: devenv-sync
+devenv-sync:
+	devenv sync
 
 clean \
 drop-db \
