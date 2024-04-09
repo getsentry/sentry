@@ -285,7 +285,11 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
-    (query: string, activeNode: TraceTreeNode<TraceTree.NodeValue> | null) => {
+    (
+      query: string,
+      activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
+      behavior: 'track result' | 'persist'
+    ) => {
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
@@ -294,15 +298,29 @@ function TraceViewContent(props: TraceViewContentProps) {
         tree,
         query,
         activeNode,
-        ([matches, lookup, activeNodePosition]) => {
-          if (activeNodePosition) {
+        ([matches, lookup, activeNodeSearchResult]) => {
+          // If the previous node is still in the results set, we want to keep it
+          if (activeNodeSearchResult) {
             traceDispatch({
               type: 'set results',
               results: matches,
               resultsLookup: lookup,
-              resultIteratorIndex: activeNodePosition?.resultIteratorIndex,
-              resultIndex: activeNodePosition?.resultIndex,
-              previousNode: activeNodePosition,
+              resultIteratorIndex: activeNodeSearchResult?.resultIteratorIndex,
+              resultIndex: activeNodeSearchResult?.resultIndex,
+              previousNode: activeNodeSearchResult,
+              node: activeNode,
+            });
+            return;
+          }
+
+          if (activeNode && behavior === 'persist') {
+            traceDispatch({
+              type: 'set results',
+              results: matches,
+              resultsLookup: lookup,
+              resultIteratorIndex: undefined,
+              resultIndex: undefined,
+              previousNode: activeNodeSearchResult,
               node: activeNode,
             });
             return;
@@ -319,7 +337,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultsLookup: lookup,
             resultIteratorIndex: resultIteratorIndex,
             resultIndex: resultIndex,
-            previousNode: activeNodePosition,
+            previousNode: activeNodeSearchResult,
             node,
           });
         }
@@ -517,7 +535,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       }
 
       if (traceStateRef.current.search.query) {
-        onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo);
+        onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo, 'persist');
       }
     },
     [setRowAsFocused, traceDispatch, onTraceSearch, scrollRowIntoView, viewManager]
@@ -530,7 +548,11 @@ function TraceViewContent(props: TraceViewContentProps) {
     >['before action'] = (state, action) => {
       const query = action.type === 'set query' ? action.query : undefined;
       if (action.type === 'set query' && query) {
-        onTraceSearch(query, state.rovingTabIndex.node ?? state.search.node);
+        onTraceSearch(
+          query,
+          state.rovingTabIndex.node ?? state.search.node,
+          'track result'
+        );
       }
     };
 

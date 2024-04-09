@@ -126,7 +126,11 @@ interface TraceProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     index: number | null
   ) => void;
-  onTraceSearch: (query: string, node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTraceSearch: (
+    query: string,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    behavior: 'track result' | 'persist'
+  ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
   scrollQueueRef: React.MutableRefObject<{
@@ -277,7 +281,7 @@ export function Trace({
           // If a query exists, we want to reapply the search after zooming in
           // so that new nodes are also highlighted if they match a query
           if (traceStateRef.current.search.query) {
-            onTraceSearch(traceStateRef.current.search.query, node);
+            onTraceSearch(traceStateRef.current.search.query, node, 'persist');
           }
 
           treePromiseStatusRef.current!.set(node, 'success');
@@ -303,7 +307,7 @@ export function Trace({
       if (traceStateRef.current.search.query) {
         // If a query exists, we want to reapply the search after expanding
         // so that new nodes are also highlighted if they match a query
-        onTraceSearch(traceStateRef.current.search.query, node);
+        onTraceSearch(traceStateRef.current.search.query, node, 'persist');
       }
     },
     [onTraceSearch]

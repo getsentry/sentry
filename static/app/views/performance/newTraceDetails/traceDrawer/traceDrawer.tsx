@@ -671,7 +671,7 @@ const Tab = styled('li')`
       opacity: 1;
     }
   }
-  &[aria-selected='true']:hover {
+  &[aria-selected='true'] {
     border-bottom: 2px solid ${p => p.theme.blue400};
   }
 `;

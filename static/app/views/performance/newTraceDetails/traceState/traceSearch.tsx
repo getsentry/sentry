@@ -212,7 +212,7 @@ export function searchInTraceTree(
   ) => void
 ): {id: number | null} {
   const raf: {id: number | null} = {id: 0};
-  let previousNodeResult: {
+  let previousNodeSearchResult: {
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
@@ -233,11 +233,12 @@ export function searchInTraceTree(
         resultLookup.set(node, matchCount);
 
         if (previousNode === node) {
-          previousNodeResult = {
+          previousNodeSearchResult = {
             resultIndex: i,
             resultIteratorIndex: matchCount,
           };
         }
+
         matchCount++;
       }
       i++;
@@ -248,7 +249,7 @@ export function searchInTraceTree(
     }
 
     if (i === count) {
-      cb([results, resultLookup, previousNodeResult]);
+      cb([results, resultLookup, previousNodeSearchResult]);
       raf.id = null;
     }
   }
