@@ -16,10 +16,14 @@ import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -27,7 +31,7 @@ import {TraceDrawerComponents} from './styles';
 export function ErrorNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
   const location = useLocation();
@@ -66,22 +70,19 @@ export function ErrorNodeDetails({
           >
             <IconFire size="md" />
           </TraceDrawerComponents.IconBorder>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value.title}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event_id}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
           <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
           </Button>

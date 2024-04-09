@@ -85,11 +85,7 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: [
-        'starfish-browser-webvitals',
-        'performance-database-view',
-        'starfish-browser-webvitals-replace-fid-with-inp',
-      ],
+      features: ['starfish-browser-webvitals', 'performance-database-view'],
     });
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
@@ -134,11 +130,7 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: [
-        'starfish-browser-webvitals',
-        'performance-database-view',
-        'starfish-browser-webvitals-replace-fid-with-inp',
-      ],
+      features: ['starfish-browser-webvitals', 'performance-database-view'],
     });
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
