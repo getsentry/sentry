@@ -25,6 +25,7 @@ from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
@@ -411,6 +412,12 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     # check org option
     org_id = pull_request.organization_id
+    try:
+        Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        logger.exception("github.open_pr_comment.org_missing")
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        return
 
     # check PR repo exists to get repo name
     try:
