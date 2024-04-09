@@ -148,6 +148,8 @@ def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict
             _merge_jvm_frame_and_android_method(f, m)
         # Otherwise, it's an additional method returned, we add it to the inline frames.
         else:
+            # We copy the frame triggering the inline ones so we only have to
+            # look at this field later one to construct a stack trace.
             if "inline_frames" not in m:
                 m["inline_frames"] = [m.copy()]
             im: dict = {}
