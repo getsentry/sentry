@@ -19,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
@@ -133,6 +134,15 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
+        activations = AlertRuleActivations.objects.filter(alert_rule__in=item_list)
+        serialized_activations = serialize(list(activations), **kwargs)
+        # TODO: paginate / truncate activations to most recent
+        for activation, serialized in zip(activations, serialized_activations):
+            alert_rule_activations = result[alert_rules[activation.alert_rule_id]].setdefault(
+                "activations", []
+            )
+            alert_rule_activations.append(serialized)
+
         alert_rule_projects = set()
         for alert_rule in alert_rules.values():
             try:
@@ -234,6 +244,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
+
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
@@ -261,7 +272,7 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
-            "activations": obj.activations.all(),
+            "activations": attrs.get("activations", None),
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

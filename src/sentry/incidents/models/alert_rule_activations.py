@@ -82,6 +82,9 @@ class AlertRuleActivations(Model):
         return bool(self.finished_at)
 
     def get_triggers(self):
+        """
+        Alert Rule triggers represent the thresholds required to trigger an activation
+        """
         return self.alert_rule.alertruletrigger_set.get()
 
     def get_window(self):
