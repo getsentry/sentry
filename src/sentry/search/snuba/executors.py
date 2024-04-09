@@ -1263,6 +1263,25 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ],
         )
 
+    def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "toUInt64",
+                            [Function("max", [Column("timestamp", joined_entity)])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias="score",
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1278,31 +1297,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "assigned_to": get_assigned,
     }
 
-    last_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-        alias="score",
-    )
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
-    sort_defs = {
-        "date": last_seen_aggregation,
-        "new": first_seen,
-        "freq": times_seen_aggregation,
-        "user": Function("uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"),
-    }
+    def get_sort_defs(self, entity):
+        return {
+            "date": self.get_last_seen_aggregation(entity),
+            "new": self.first_seen,
+            "freq": self.times_seen_aggregation,
+            "user": Function("uniq", [Column("tags[sentry:user]", entity)], "user_count"),
+        }
 
     sort_strategies = {
         "new": "g.group_first_seen",
@@ -1401,7 +1405,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     )
                 )
 
-            sort_func = self.sort_defs[sort_by]
+            sort_func = self.get_sort_defs(joined_entity)[sort_by]
 
             having = []
             if cursor is not None:
