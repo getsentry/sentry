@@ -72,7 +72,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 
 @pytest.mark.snuba_ci
-class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
+class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):
@@ -263,6 +263,42 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
                 project_id=self.project.id,
                 timestamp=timestamp,
             )
+
+    def test_batch_query(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "production",
+                "timestamp": iso_format(before_now(days=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "production",
+                "timestamp": iso_format(before_now(hours=12)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        perf_event = self.create_performance_issue(
+            tags=[["foo", "guux"], ["sentry:release", "releaseme"]],
+            fingerprint="group-3",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        )
+        start = before_now(days=2)
+        end = before_now(seconds=1)
+
+        condition_inst = self.rule_cls(event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event.group.id, event2.group.id, perf_event.group_id],
+            start=start,
+            end=end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {event.group.id: 0, event2.group.id: 0, perf_event.group_id: 0}
 
 
 class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):

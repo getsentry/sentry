@@ -179,7 +179,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         Queries Snuba for a unique condition for a single group.
         """
         query_result = self.query_hook(event, start, end, environment_id)
-        # query_result2 = self.batch_query_hook([event.group.id], start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
             tags={
@@ -286,7 +285,12 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
     def get_sums(
         self, model: int, groups: list[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
+    ) -> dict[int, int] | None:
+        if not len(groups):
+            return None
+
+        group = groups[0]
+
         sums: Mapping[int, int] = self.tsdb.get_sums(
             model=get_issue_tsdb_group_model(model),
             keys=[group.id for group in groups],
@@ -294,8 +298,8 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=groups[0].id,
-            tenant_ids={"organization_id": groups[0].project.organization_id},
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
             referrer_suffix="alert_event_frequency",
         )
         return sums
