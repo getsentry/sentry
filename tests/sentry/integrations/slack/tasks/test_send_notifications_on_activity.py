@@ -4,35 +4,52 @@ from sentry.integrations.slack.tasks.send_notifications_on_activity import (
     activity_created_receiver,
     send_activity_notifications,
 )
+from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.types.activity import ActivityType
 
 
 class TestActivityCreatedReceiver(TestCase):
-    def test_ignores_uncreated_events(self) -> None:
-        mock_send_activity_notifications = mock.MagicMock()
+    def setUp(self) -> None:
+        self.mock_send_activity_notifications = mock.MagicMock()
         mock_method = mock.MagicMock()
-        mock_send_activity_notifications.apply_async = mock_method
+        self.mock_send_activity_notifications.apply_async = mock_method
+
+    def test_ignores_uncreated_events(self) -> None:
         with mock.patch(
             "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications",
-            mock_send_activity_notifications,
+            self.mock_send_activity_notifications,
         ):
             activity_created_receiver({}, False)
-            mock_send_activity_notifications.apply_async.assert_not_called()
+            self.mock_send_activity_notifications.apply_async.assert_not_called()
 
     def test_calls_async_function(self) -> None:
-        mock_send_activity_notifications = mock.MagicMock()
-        mock_method = mock.MagicMock()
-        mock_send_activity_notifications.apply_async = mock_method
         with mock.patch(
             "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications",
-            mock_send_activity_notifications,
+            self.mock_send_activity_notifications,
         ):
             mock_activity = mock.MagicMock()
             mock_activity.id = 123
             activity_created_receiver(mock_activity, True)
-            mock_send_activity_notifications.apply_async.assert_called_with(
+            self.mock_send_activity_notifications.apply_async.assert_called_with(
                 kwargs={"activity_id": mock_activity.id}
+            )
+
+    def test_receiver_signal(self) -> None:
+        with mock.patch(
+            "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications",
+            self.mock_send_activity_notifications,
+        ):
+            new_activity = Activity.objects.create(
+                project=self.project,
+                group=self.group,
+                type=ActivityType.NOTE.value,
+                data={},
+                user_id=self.user.id,
+            )
+            self.mock_send_activity_notifications.apply_async.assert_called_with(
+                kwargs={"activity_id": new_activity.id}
             )
 
 
