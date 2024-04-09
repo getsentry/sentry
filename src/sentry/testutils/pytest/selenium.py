@@ -148,40 +148,43 @@ class Browser:
             self.wait_until(selector)
             return self.driver.find_elements(by=By.CSS_SELECTOR, value=selector)
 
-    def element_exists(self, selector):
+    def element_exists(self, selector=None, xpath=None):
         """
         Check if an element exists on the page. This method will *not* wait for the element.
         """
         try:
-            self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
+            if xpath is not None:
+                self.driver.find_element(by=By.XPATH, value=xpath)
+            else:
+                self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
         except NoSuchElementException:
             return False
         return True
 
-    def element_exists_by_test_id(self, selector):
+    def element_exists_by_test_id(self, test_id):
         """
         Check if an element exists on the page using a data-test-id attribute.
         This method will not wait for the element.
         """
-        return self.element_exists('[data-test-id="%s"]' % (selector))
+        return self.element_exists('[data-test-id="%s"]' % (test_id))
 
-    def element_exists_by_aria_label(self, selector):
+    def element_exists_by_aria_label(self, label):
         """
         Check if an element exists on the page using the aria-label attribute.
         This method will not wait for the element.
         """
-        return self.element_exists('[aria-label="%s"]' % (selector))
+        return self.element_exists('[aria-label="%s"]' % (label))
 
     def click(self, selector=None, xpath=None):
         self.element(selector, xpath=xpath).click()
 
-    def click_when_visible(self, selector=None, timeout=3):
+    def click_when_visible(self, selector=None, xpath=None, timeout=3):
         """
         Waits until ``selector`` is available to be clicked before attempting to click
         """
-        if selector:
-            self.wait_until_clickable(selector, timeout)
-            self.click(selector)
+        if selector or xpath:
+            self.wait_until_clickable(selector, xpath, timeout)
+            self.click(selector, xpath)
         else:
             raise ValueError
 
@@ -202,7 +205,7 @@ class Browser:
 
         return self
 
-    def wait_until_clickable(self, selector=None, timeout=10):
+    def wait_until_clickable(self, selector=None, xpath=None, timeout=10):
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
@@ -210,6 +213,8 @@ class Browser:
         wait = WebDriverWait(self.driver, timeout)
         if selector:
             wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+        elif xpath:
+            wait.until(expected_conditions.element_to_be_clickable((By.XPATH, xpath)))
         else:
             raise ValueError
 
@@ -232,10 +237,10 @@ class Browser:
 
         return self
 
-    def wait_until_test_id(self, selector):
-        return self.wait_until('[data-test-id="%s"]' % (selector))
+    def wait_until_test_id(self, test_id):
+        return self.wait_until('[data-test-id="%s"]' % (test_id))
 
-    def wait_until_not(self, selector=None, title=None, timeout=10):
+    def wait_until_not(self, selector=None, xpath=None, title=None, timeout=10):
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
@@ -245,10 +250,12 @@ class Browser:
             wait.until_not(
                 expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
             )
+        elif xpath:
+            wait.until_not(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
             wait.until_not(expected_conditions.title_is(title))
         else:
-            raise
+            raise ValueError
 
         return self
 
