@@ -192,7 +192,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "name": self.resolution_strategy_key,
                 "label": "Resolve",
                 "type": "select",
-                "default": "resolve",
+                "placeholder": "Resolve",
                 "choices": [
                     ("resolve", "Resolve"),
                     ("resolve_current_release", "Resolve in Current Release"),

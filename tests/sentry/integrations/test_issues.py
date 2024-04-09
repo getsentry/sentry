@@ -182,6 +182,79 @@ class IssueSyncIntegration(TestCase):
                 "inNextRelease": True,
             }
 
+    def test_sync_status_resolve_in_next_release_with_semver(self):
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="app@1.2.4"
+        )
+        release2 = Release.objects.create(
+            organization_id=self.project.organization_id, version="app@1.2.3"
+        )
+        release.add_project(self.project)
+        release2.add_project(self.project)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        self.create_group_release(group=group, release=release)
+        self.create_group_release(group=group, release=release2)
+
+        assert group.status == GroupStatus.UNRESOLVED
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="example", external_id="123456")
+            integration.add_organization(group.organization, self.user)
+
+            for oi in OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                        "resolution_strategy": "resolve_next_release",
+                    }
+                )
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        installation = integration.get_installation(group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
+
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            installation.sync_status_inbound(
+                external_issue.key,
+                {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
+            )
+
+            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            activity = Activity.objects.get(
+                group_id=group.id,
+                type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            )
+            assert GroupResolution.objects.filter(
+                group=group,
+                current_release_version=release.version,
+                release=release2,
+                type=GroupResolution.Type.in_next_release,
+            ).exists()
+            assert activity.data == {
+                "integration_id": integration.id,
+                "provider": integration.get_provider().name,
+                "provider_key": integration.get_provider().key,
+                "inNextRelease": True,
+                "current_release_version": "app@1.2.4",
+            }
+
     def test_sync_status_resolve_in_current_release_with_releases(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
