@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from collections.abc import Callable, Generator, Mapping, Sequence
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 import pydantic
 
@@ -34,8 +34,8 @@ class RegionCachingService(RpcService):
         pass
 
 
-# TODO add _R | None typedef
 _R = TypeVar("_R", bound=pydantic.BaseModel)
+_OptionalR = Union[_R, None]
 
 
 class SiloCacheBackedCallable(Generic[_R]):
@@ -45,14 +45,14 @@ class SiloCacheBackedCallable(Generic[_R]):
     type_: type[_R]
 
     def __init__(
-        self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _R | None], t: type[_R]
+        self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _OptionalR], t: type[_R]
     ):
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
         self.type_ = t
 
-    def __call__(self, args: int) -> _R | None:
+    def __call__(self, args: int) -> _OptionalR:
         if (
             SiloMode.get_current_mode() != self.silo_mode
             and SiloMode.get_current_mode() != SiloMode.MONOLITH
@@ -65,7 +65,7 @@ class SiloCacheBackedCallable(Generic[_R]):
 
     def resolve_from(
         self, i: int, values: Mapping[str, int | str]
-    ) -> Generator[None, None, _R | None]:
+    ) -> Generator[None, None, _OptionalR]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
         key = self.key_from(i)
@@ -84,7 +84,7 @@ class SiloCacheBackedCallable(Generic[_R]):
             _consume_generator(_set_cache(key, r.json(), version))
         return r
 
-    def get_many(self, ids: Sequence[int]) -> list[_R | None]:
+    def get_many(self, ids: Sequence[int]) -> list[_OptionalR]:
         from .impl import _consume_generator, _get_cache
 
         keys = [self.key_from(i) for i in ids]
@@ -94,8 +94,8 @@ class SiloCacheBackedCallable(Generic[_R]):
 
 def back_with_silo_cache(
     base_key: str, silo_mode: SiloMode, t: type[_R]
-) -> Callable[[Callable[[int], _R | None]], "SiloCacheBackedCallable[_R]"]:
-    def wrapper(cb: Callable[[int], _R | None]) -> "SiloCacheBackedCallable[_R]":
+) -> Callable[[Callable[[int], _OptionalR]], "SiloCacheBackedCallable[_R]"]:
+    def wrapper(cb: Callable[[int], _OptionalR]) -> "SiloCacheBackedCallable[_R]":
         return SiloCacheBackedCallable(base_key, silo_mode, cb, t)
 
     return wrapper
