@@ -5,7 +5,7 @@ from snuba_sdk.mql.mql import InvalidMQLQueryError, parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data.query import MQLQuery
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression, QueryOrder
 from sentry.sentry_metrics.querying.visitors import (
@@ -21,18 +21,18 @@ from sentry.utils import metrics
 
 class QueryParser:
     """
-    Represents a parser which is responsible for generating queries given a MetricsQueriesPlan.
+    Represents a parser which is responsible for generating queries given a list of MQLQuery(s).
     """
 
     def __init__(
         self,
         projects: Sequence[Project],
         environments: Sequence[Environment],
-        metrics_queries_plan: MetricsQueriesPlan,
+        mql_queries: Sequence[MQLQuery],
     ):
         self._projects = projects
         self._environments = environments
-        self._metrics_queries_plan = metrics_queries_plan
+        self._mql_queries = mql_queries
 
     def _parse_mql(self, mql: str) -> VisitableQueryExpression:
         """
@@ -69,9 +69,11 @@ class QueryParser:
         Returns:
             A generator which can be used to obtain a query to execute and its details.
         """
-        for formula_definition in self._metrics_queries_plan.get_replaced_formulas():
+        for mql_query in self._mql_queries:
+            compiled_mql_query = mql_query.compile()
+
             query_expression = (
-                self._parse_mql(formula_definition.mql)
+                self._parse_mql(compiled_mql_query.mql)
                 # We validate the query.
                 .add_visitor(QueryValidationV2Visitor())
                 # We inject the environment filter in each timeseries.
@@ -85,4 +87,4 @@ class QueryParser:
                 .add_visitor(ProjectToProjectIDTransformationVisitor(self._projects))
                 .get()
             )
-            yield query_expression, formula_definition.order, formula_definition.limit
+            yield query_expression, compiled_mql_query.order, compiled_mql_query.limit
