@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import {getConfigFromTimeRange} from '../utils/getConfigFromTimeRange';
+
 import {useMonitorDates} from './useMonitorDates';
-import {getConfigFromTimeRange} from './utils';
 
 interface Options {
   /**

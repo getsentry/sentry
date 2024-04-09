@@ -464,6 +464,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Extract spans only from a random fraction of transactions.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.span-extraction.sample-rate",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # React concurrent renderer
 register(
     "frontend.react-concurrent-renderer-enabled",
@@ -1816,6 +1825,12 @@ register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUT
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# === Nodestore related runtime options ===
+
+register(
+    "nodestore.set-subkeys.enable-set-cache-item", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # === Backpressure related runtime options ===
 

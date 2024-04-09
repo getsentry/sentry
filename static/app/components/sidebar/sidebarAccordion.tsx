@@ -2,7 +2,7 @@ import {Children, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {IconChevron} from 'sentry/icons';
+import {Chevron} from 'sentry/components/chevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -62,11 +62,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
               aria-label={expanded ? t('Collapse') : t('Expand')}
               sidebarCollapsed={sidebarCollapsed}
             >
-              <IconChevron
-                size="xs"
-                direction={expanded ? 'up' : 'down'}
-                role="presentation"
-              />
+              <Chevron direction={expanded ? 'up' : 'down'} role="presentation" />
             </SidebarAccordionExpandButton>
           }
         />
