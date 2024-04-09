@@ -14,6 +14,7 @@ from sentry.utils.samples import load_data
 MOCK_SNUBA_RESPONSE = {
     "data": [
         {
+            "trace_id": "a" * 32,
             "transaction_id": "80fe542aea4945ffbe612646987ee449",
             "count": 71,
             "spans": [
@@ -80,6 +81,7 @@ MOCK_SNUBA_RESPONSE = {
             ],
         },
         {
+            "trace_id": "b" * 32,
             "transaction_id": "86b21833d1854d9b811000b91e7fccfa",
             "count": 71,
             "spans": [
@@ -440,11 +442,45 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                     ("80fe542aea4945ffbe612646987ee449", "root_1"),
                     ("86b21833d1854d9b811000b91e7fccfa", "root_2"),
                 }
+                assert data[root_fingerprint]["sample_spans"] == [
+                    {
+                        "transaction": "80fe542aea4945ffbe612646987ee449",
+                        "timestamp": 1694625139.1,
+                        "span": "root_1",
+                        "trace": "a" * 32,
+                    },
+                    {
+                        "transaction": "86b21833d1854d9b811000b91e7fccfa",
+                        "timestamp": 1694625159.1,
+                        "span": "root_2",
+                        "trace": "b" * 32,
+                    },
+                ]
             else:
                 assert data[root_fingerprint]["samples"] == {
-                    (self.root_event_1.event_id, self.span_ids_event_1["A"]),
-                    (self.root_event_2.event_id, self.span_ids_event_2["A"]),
+                    (
+                        self.root_event_1.event_id,
+                        self.span_ids_event_1["A"],
+                    ),
+                    (
+                        self.root_event_2.event_id,
+                        self.span_ids_event_2["A"],
+                    ),
                 }
+                assert data[root_fingerprint]["sample_spans"] == [
+                    {
+                        "transaction": self.root_event_1.event_id,
+                        "timestamp": self.root_event_1.data["start_timestamp"],
+                        "span": self.span_ids_event_1["A"],
+                        "trace": self.root_event_1.data["contexts"]["trace"]["trace_id"],
+                    },
+                    {
+                        "transaction": self.root_event_2.event_id,
+                        "timestamp": self.root_event_2.data["start_timestamp"],
+                        "span": self.span_ids_event_2["A"],
+                        "trace": self.root_event_2.data["contexts"]["trace"]["trace_id"],
+                    },
+                ]
 
             fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
             assert data[fingerprint]["description"] == "connect"
