@@ -101,7 +101,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           mri: metricsQuery.mri,
           type: parsedMri.type,
           unit: parsedMri.unit,
-          operations: getOpsForMRI(metricsQuery.mri, meta),
+          operations: [],
         },
         ...result,
       ];
