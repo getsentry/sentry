@@ -80,6 +80,9 @@ describe('SampleTable', function () {
       expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
         'Span ID'
       );
+      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+        'span-id123'
+      );
     });
 
     it('should show transaction IDs instead of span IDs when in columnOrder', async () => {
@@ -114,6 +117,9 @@ describe('SampleTable', function () {
 
       expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
         'Event ID'
+      );
+      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+        'transaction-id123'.slice(0, 8)
       );
     });
   });
