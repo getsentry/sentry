@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -16,6 +17,8 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+logger = logging.getLogger(__name__)
 
 
 def get_resolutions_and_activity_data_for_groups(
@@ -123,7 +126,11 @@ def get_resolutions_and_activity_data_for_groups(
                             # If it gets here, it means we don't know the upcoming
                             # release yet because it does not exist, and so we should
                             # fall back to our current model
-                            ...
+                            logger.info(
+                                "get_resolutions_and_activity_data_for_groups.next_release_not_found",
+                                extra={"group_id": group.id},
+                            )
+
                 resolutions_by_group_id[group.id] = resolution_params
 
     return resolutions_by_group_id, activity_type, activity_data
@@ -155,7 +162,7 @@ def sync_status_inbound(
         return
 
     installation = integration.get_installation(organization_id=organization_id)
-    config = installation.get_config_data()
+    config = installation.org_integration.config
 
     try:
         # This makes an API call.
