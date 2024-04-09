@@ -1013,7 +1013,7 @@ describe('trace view', () => {
       await searchToUpdate();
 
       await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 11);
+        assertHighlightedRowAtIndex(container, 9);
       });
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
