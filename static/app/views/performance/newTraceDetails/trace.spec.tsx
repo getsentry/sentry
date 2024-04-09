@@ -398,6 +398,8 @@ async function simpleTestSetup() {
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
+
+// @ts-expect-error ignore this line
 // eslint-disable-next-line
 const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
@@ -415,6 +417,7 @@ const scrollToEnd = (): Promise<void> => {
   });
 };
 
+// @ts-expect-error ignore this line
 // eslint-disable-next-line
 function printVirtualizedList(container: HTMLElement) {
   const stdout: string[] = [];
@@ -446,6 +449,7 @@ function printVirtualizedList(container: HTMLElement) {
   console.log(stdout.join('\n'));
 }
 
+// @ts-expect-error ignore this line
 // eslint-disable-next-line
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
