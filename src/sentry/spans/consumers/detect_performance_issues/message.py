@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from typing import Any
 
+from sentry import options
 from sentry.event_manager import (
     Job,
     ProjectsMapping,
@@ -223,6 +224,8 @@ def process_segment(spans: list[dict[str, Any]]):
     # Updates group type and fingerprint of all performance problems
     # so they don't double write occurrences as we test.
     _update_occurrence_group_type(jobs, projects)
-    _send_occurrence_to_platform(jobs, projects)
+
+    if options.get("standalone-spans.send-occurrence-to-platform.enable"):
+        _send_occurrence_to_platform(jobs, projects)
 
     return jobs
