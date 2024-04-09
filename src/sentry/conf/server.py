@@ -1619,8 +1619,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-issue-sync": True,
     # Allow tenant type installations through issue alert actions
     "organizations:integrations-msteams-tenant": False,
-    # Enable comments of related issues on open PRs for beta languages
-    "organizations:integrations-open-pr-comment-beta-langs": False,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
