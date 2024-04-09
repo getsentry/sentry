@@ -971,6 +971,7 @@ describe('Modals -> WidgetViewerModal', function () {
           pageLinks:
             '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
         });
+        await act(tick);
         expect(eventsMock).not.toHaveBeenCalled();
         await userEvent.click(await screen.findByLabelText('Next'));
         await waitFor(() => {
