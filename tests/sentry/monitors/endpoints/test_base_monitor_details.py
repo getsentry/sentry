@@ -723,7 +723,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
 
         def dummy_assign(monitor):
-            assert monitor.slug == new_slug
+            assert monitor.slug == old_slug
             return Outcome.ACCEPTED
 
         assign_monitor_seat.side_effect = dummy_assign
@@ -743,9 +743,6 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
         update_call_args = update_monitor_slug.call_args
         assert update_call_args[0] == (old_slug, new_slug, monitor.project_id)
-
-        assign_call_args = assign_monitor_seat.call_args
-        assert assign_call_args[0][0].slug == new_slug
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")

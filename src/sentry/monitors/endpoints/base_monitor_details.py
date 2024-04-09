@@ -112,8 +112,22 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
 
-        old_slug = monitor.slug
-        old_status = monitor.status
+        # Attempt to assign a monitor seat
+        if params["status"] == ObjectStatus.ACTIVE and monitor.status != ObjectStatus.ACTIVE:
+            outcome = quotas.backend.assign_monitor_seat(monitor)
+            # The MonitorValidator checks if a seat assignment is available.
+            # This protects against a race condition
+            if outcome != Outcome.ACCEPTED:
+                raise ParameterValidationError("Failed to enable monitor, please try again")
+
+        # Attempt to unassign the monitor seat
+        if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
+            quotas.backend.disable_monitor_seat(monitor)
+
+        # Update monitor slug in billing
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
+
         if params:
             monitor.update(**params)
             self.create_audit_entry(
@@ -123,22 +137,6 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=monitor.get_audit_log_data(),
             )
-
-        # Update monitor slug
-        if "slug" in result:
-            quotas.backend.update_monitor_slug(old_slug, params["slug"], monitor.project_id)
-
-        # Attempt to assign a monitor seat
-        if params["status"] == ObjectStatus.ACTIVE and old_status != ObjectStatus.ACTIVE:
-            outcome = quotas.backend.assign_monitor_seat(monitor)
-            # The MonitorValidator checks if a seat assignment is availble.
-            # This protects against a race condition
-            if outcome != Outcome.ACCEPTED:
-                raise ParameterValidationError("Failed to enable monitor, please try again")
-
-        # Attempt to unassign the monitor seat
-        if params["status"] == ObjectStatus.DISABLED and old_status != ObjectStatus.DISABLED:
-            quotas.backend.disable_monitor_seat(monitor)
 
         # Update alert rule after in case slug or name changed
         if "alert_rule" in result:
