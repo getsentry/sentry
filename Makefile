@@ -11,8 +11,7 @@ bootstrap \
 develop \
 install-js-dev \
 install-py-dev \
-apply-migrations: devenv-sync
-	@true
+apply-migrations: devenv-sync ;
 
 # This is to ensure devenv sync's only called once if the above
 # aliases are combined e.g. `make install-js-dev install-py-dev`

@@ -70,7 +70,7 @@ def main(context: dict[str, str]) -> int:
     reporoot = context["reporoot"]
 
     # don't want this to be accidentally run from getsentry
-    assert repo == "sentry"
+    assert repo == "sentry", repo
 
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
