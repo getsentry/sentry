@@ -17,7 +17,7 @@ import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import marked from 'sentry/utils/marked';
+import {limitedMarked} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -182,7 +182,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : (
           <Content
             dangerouslySetInnerHTML={{
-              __html: marked(data.suggestion, {
+              __html: limitedMarked(data.suggestion, {
                 gfm: true,
                 breaks: true,
               }),

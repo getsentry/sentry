@@ -297,8 +297,19 @@ const WEB_VITALS = [
 ].map(n => n.replace('measurements.', ''));
 
 const MOBILE_VITALS = [
-  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.APP_START_COLD,
+  MobileVital.APP_START_WARM,
   MobileVital.TIME_TO_INITIAL_DISPLAY,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.FRAMES_TOTAL,
+  MobileVital.FRAMES_SLOW,
+  MobileVital.FRAMES_FROZEN,
+  MobileVital.FRAMES_SLOW_RATE,
+  MobileVital.FRAMES_FROZEN_RATE,
+  MobileVital.STALL_COUNT,
+  MobileVital.STALL_TOTAL_TIME,
+  MobileVital.STALL_LONGEST_TIME,
+  MobileVital.STALL_PERCENTAGE,
 ].map(n => n.replace('measurements.', ''));
 
 const WEB_VITALS_LOOKUP = new Set<string>(WEB_VITALS);

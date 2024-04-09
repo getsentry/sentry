@@ -155,7 +155,7 @@ export function HTTPLandingPage() {
 
                 <ModuleLayout.Third>
                   <DurationChart
-                    series={durationData[`avg(span.self_time)`]}
+                    series={[durationData[`avg(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />

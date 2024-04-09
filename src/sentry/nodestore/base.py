@@ -8,7 +8,8 @@ import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
-from sentry.utils import json
+from sentry import options
+from sentry.utils import json, metrics
 from sentry.utils.services import Service
 
 # Cache an instance of the encoder we want to use
@@ -138,6 +139,7 @@ class NodeStorage(local, Service):
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
+                    metrics.incr("nodestore.get", tags={"cache": "hit"})
                     span.set_tag("origin", "from_cache")
                     span.set_tag("found", bool(item_from_cache))
                     return item_from_cache
@@ -153,6 +155,7 @@ class NodeStorage(local, Service):
             if bytes_data:
                 span.set_tag("bytes.size", len(bytes_data))
             span.set_tag("found", bool(rv))
+            metrics.incr("nodestore.get", tags={"cache": "miss", "found": bool(rv)})
 
             return rv
 
@@ -222,6 +225,7 @@ class NodeStorage(local, Service):
         """
         >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")
         """
+        metrics.distribution("nodestore.set_bytes", len(data))
         return self._set_bytes(item_id, data, ttl)
 
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
@@ -236,6 +240,7 @@ class NodeStorage(local, Service):
         """
         return self.set_subkeys(item_id, {None: data}, ttl=ttl)
 
+    @sentry_sdk.tracing.trace
     def set_subkeys(
         self, item_id: str, data: dict[str | None, dict[str, str]], ttl: timedelta | None = None
     ) -> None:
@@ -252,14 +257,11 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        with sentry_sdk.start_span(op="nodestore", description="set_subkeys") as span:
-            sentry_sdk.set_tag("nodestore.set_subkeys", True)
-            span.set_tag("node_id", item_id)
-            span.set_data("subkeys_count", len(data))
-            cache_item = data.get(None)
-            bytes_data = self._encode(data)
-            self._set_bytes(item_id, bytes_data, ttl=ttl)
-            # set cache only after encoding and write to nodestore has succeeded
+        cache_item = data.get(None)
+        bytes_data = self._encode(data)
+        self.set_bytes(item_id, bytes_data, ttl=ttl)
+        # set cache only after encoding and write to nodestore has succeeded
+        if options.get("nodestore.set-subkeys.enable-set-cache-item"):
             self._set_cache_item(item_id, cache_item)
 
     def cleanup(self, cutoff_timestamp: datetime) -> None:

@@ -14,9 +14,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -43,13 +41,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
-  const filteredSortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const filteredSortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     sortName,
@@ -61,6 +54,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     {
       fields: [
         'id',
+        'trace',
         'user.display',
         'transaction',
         'measurements.lcp',
@@ -112,6 +106,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
       ? (data.data.map(
           row => ({
             id: row.id?.toString(),
+            trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
