@@ -9,12 +9,21 @@ import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {
   TraceReducerAction,
   TraceReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState';
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 
 interface TraceSearchInputProps {
+  onTraceSearch: (
+    query: string,
+    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    behavior: 'track result' | 'persist'
+  ) => void;
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
 }
@@ -32,6 +41,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   traceStateRef.current = props.trace_state;
 
   const trace_dispatch = props.trace_dispatch;
+  const onTraceSearch = props.onTraceSearch;
 
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
@@ -70,8 +80,13 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       }
 
       trace_dispatch({type: 'set query', query: event.target.value});
+      onTraceSearch(
+        event.target.value,
+        traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node,
+        'track result'
+      );
     },
-    [trace_dispatch]
+    [trace_dispatch, onTraceSearch]
   );
 
   const onSearchClear = useCallback(() => {

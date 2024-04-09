@@ -326,8 +326,6 @@ function TraceViewContent(props: TraceViewContentProps) {
             return;
           }
 
-          // @TODO: If previous node is not in the results set, this will fail
-          // and we will jump focus to the first row, which we do not want to do.
           const resultIndex: number | undefined = matches?.[0]?.index;
           const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
           const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
@@ -498,6 +496,18 @@ function TraceViewContent(props: TraceViewContentProps) {
             null,
             0
           );
+
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+            traceDispatch({
+              type: 'set search iterator index',
+              resultIndex: maybeNode.index,
+              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
+                maybeNode.node
+              )!,
+            });
+          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+            traceDispatch({type: 'clear search iterator index'});
+          }
         }
       });
     },
@@ -543,38 +553,21 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
-    const beforeTraceAction: DispatchingReducerMiddleware<
-      typeof TraceReducer
-    >['before action'] = (state, action) => {
-      const query = action.type === 'set query' ? action.query : undefined;
-      if (action.type === 'set query' && query) {
-        onTraceSearch(
-          query,
-          state.rovingTabIndex.node ?? state.search.node,
-          'track result'
-        );
-      }
-    };
-
     const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
       typeof TraceReducer
     >['before next state'] = (prevState, nextState, action) => {
-      // If eithef of the focused nodes that the user had clicked on is changing
-      // as a result of a user action that is not a click, scroll that row into view
+      // This effect is responsible fo syncing the keyboard interactions with the search results,
+      // we observe the changes to the roving tab index and search results and react by syncing the state.
       const {node: nextRovingNode, index: nextRovingTabIndex} = nextState.rovingTabIndex;
       const {resultIndex: nextSearchResultIndex} = nextState.search;
-
-      // Some actions are dispatched without knowing the next state, for example
-      // roving index changes on keydown and searh iterator changes. When that happens,
-      // we want to sync react to these actions before the next state is updated.
       if (
+        nextRovingNode &&
         action.type === 'set roving index' &&
         action.action_source !== 'click' &&
-        nextRovingNode &&
         typeof nextRovingTabIndex === 'number' &&
         prevState.rovingTabIndex.node !== nextRovingNode
       ) {
-        // When the roving tabIndex updatesm mark the node as focused and sync search results
+        // When the roving tabIndex updates mark the node as focused and sync search results
         setRowAsFocused(
           nextRovingNode,
           null,
@@ -612,11 +605,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       }
     };
 
-    traceStateEmitter.on('before action', beforeTraceAction);
     traceStateEmitter.on('before next state', beforeTraceNextStateDispatch);
 
     return () => {
-      traceStateEmitter.off('before action', beforeTraceAction);
       traceStateEmitter.off('before next state', beforeTraceNextStateDispatch);
     };
   }, [
@@ -697,7 +688,11 @@ function TraceViewContent(props: TraceViewContentProps) {
           traceID={props.traceSlug}
         />
         <TraceToolbar>
-          <TraceSearchInput trace_dispatch={traceDispatch} trace_state={traceState} />
+          <TraceSearchInput
+            trace_state={traceState}
+            trace_dispatch={traceDispatch}
+            onTraceSearch={onTraceSearch}
+          />
           <TraceResetZoomButton viewManager={viewManager} />
         </TraceToolbar>
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
