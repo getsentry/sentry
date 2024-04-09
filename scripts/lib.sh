@@ -67,7 +67,10 @@ setup-git() {
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
 
+    test -x .venv/bin/pre-commit || devenv sync
+
     .venv/bin/pre-commit install --install-hooks
+    .venv/bin/pre-commit install --install-hooks --hook-type pre-push --overwrite
 }
 
 node-version-check() {

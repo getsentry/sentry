@@ -19,18 +19,13 @@ apply-migrations: devenv-sync ;
 devenv-sync:
 	devenv sync
 
+build-platform-assets \
 clean \
 drop-db \
 create-db \
 reset-db \
 setup-git \
 node-version-check :
-	@./scripts/do.sh $@
-
-build-platform-assets \
-direnv-help \
-upgrade-pip \
-setup-git-config :
 	@./scripts/do.sh $@
 
 build-js-po: node-version-check

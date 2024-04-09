@@ -18,7 +18,7 @@ fi
 
 if ! [[ "$VIRTUAL_ENV" -ef "${HERE}/../.venv" ]]; then
     echo "
-Your virtualenv isn't activated. You need to successfully run 'direnv allow'.
+Your sentry virtualenv isn't activated. You need to successfully run 'direnv allow'.
 "
     exit 1
 fi
