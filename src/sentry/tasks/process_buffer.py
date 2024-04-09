@@ -10,7 +10,7 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
-def get_process_lock(lock_name: str, partition: str = None):
+def get_process_lock(lock_name: str, partition: str | None = None):
     from sentry.locks import locks
 
     if partition is None:
