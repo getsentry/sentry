@@ -828,7 +828,7 @@ function RenderRow(props: {
             <strong className="TraceEmDash"> — </strong>
             <span className="TraceDescription" title={props.node.value.description}>
               {!props.node.value.description
-                ? 'unknown'
+                ? props.node.value.span_id ?? 'unknown'
                 : props.node.value.description.length > 100
                   ? props.node.value.description.slice(0, 100).trim() + '\u2026'
                   : props.node.value.description}
