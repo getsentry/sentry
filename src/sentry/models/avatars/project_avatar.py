@@ -18,7 +18,9 @@ class ProjectAvatar(AvatarBase):
 
     FILE_TYPE = "avatar.file"
 
-    project = FlexibleForeignKey("sentry.Project", unique=True, related_name="avatar")
+    project = FlexibleForeignKey(
+        "sentry.Project", unique=True, related_name="avatar", db_constraint=False
+    )
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
     class Meta:
