@@ -40,7 +40,7 @@ const getInstallProfilingSnippetCoreCli = () => `
 dotnet add package Sentry.Profiling`;
 
 enum DotNetPlatform {
-  WINDOWS_LINUX_MACOS,
+  WINDOWS,
   IOS_MACCATALYST,
 }
 
@@ -189,10 +189,27 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows',
+                  value: 'Windows',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],
