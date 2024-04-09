@@ -210,7 +210,9 @@ def _bulk_cache_query_key(project: Project) -> str:
 
 def _get_bulk_cached_query(project: Project) -> dict[str, Any]:
     query_bulk_cache_key = _bulk_cache_query_key(project)
-    return cache.get(query_bulk_cache_key, None)
+    cache_result = cache.get(query_bulk_cache_key, None)
+    sentry_sdk.set_tag("on_demand_metrics.query_cache", cache_result is None)
+    return cache_result
 
 
 def _set_bulk_cached_query(project: Project, query_cache: dict[str, Any]) -> None:
