@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,6 +39,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -130,6 +132,7 @@ export function HTTPSamplesPanel() {
     data: samplesData,
     isFetching: isSamplesDataFetching,
     error: samplesDataError,
+    refetch: refetchSpanSamples,
   } = useSpanSamples({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
@@ -142,6 +145,11 @@ export function HTTPSamplesPanel() {
     enabled: query.panel === 'duration' && durationAxisMax > 0,
     referrer: 'api.starfish.http-module-samples-panel-samples',
   });
+
+  const sampledSpanDataSeries = useSampleScatterPlotSeries(
+    samplesData,
+    domainTransactionMetrics?.[0]?.['avg(span.self_time)']
+  );
 
   const handleClose = () => {
     router.replace({
@@ -271,10 +279,13 @@ export function HTTPSamplesPanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <DurationChart
-                  series={{
-                    ...durationData[`avg(span.self_time)`],
-                    markLine: AverageValueMarkLine(),
-                  }}
+                  series={[
+                    {
+                      ...durationData[`avg(span.self_time)`],
+                      markLine: AverageValueMarkLine(),
+                    },
+                  ]}
+                  scatterPlot={sampledSpanDataSeries}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />
@@ -319,6 +330,12 @@ export function HTTPSamplesPanel() {
               />
             </ModuleLayout.Full>
           )}
+
+          <ModuleLayout.Full>
+            <Button onClick={() => refetchSpanSamples()}>
+              {t('Try Different Samples')}
+            </Button>
+          </ModuleLayout.Full>
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>

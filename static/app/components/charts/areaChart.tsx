@@ -1,4 +1,6 @@
+import Color from 'color';
 import type {LineSeriesOption} from 'echarts';
+import {graphic} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
@@ -28,12 +30,24 @@ export function transformToAreaSeries({
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
         color: colors?.[i],
-        opacity: 1,
-        width: 0.4,
+        opacity: 0.8,
+        width: 1,
       },
+      // areaStyle: {
+      //   color: colors?.[i],
+      //   opacity: 1.0,
+      // },
       areaStyle: {
-        color: colors?.[i],
-        opacity: 1.0,
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
+          {
+            offset: 0,
+            color: Color(colors?.[i]).alpha(0.2).rgb().string(),
+          },
+          {
+            offset: 1,
+            color: Color(colors?.[i]).alpha(0).rgb().string(),
+          },
+        ]),
       },
       // Define the z level so that the series remain stacked in the correct order
       // even after operations like hiding / highlighting series

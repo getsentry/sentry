@@ -1334,6 +1334,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             == "epm_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
         )
 
+    def test_any_function(self):
+        for char in "abc":
+            for transaction in ["foo", "bar"]:
+                self.store_span_metric(
+                    1,
+                    internal_metric=constants.SELF_TIME_LIGHT,
+                    timestamp=self.six_min_ago,
+                    tags={"span.description": char, "transaction": transaction},
+                )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "any(span.description)",
+                ],
+                "query": "",
+                "orderby": ["transaction"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"transaction": "bar", "any(span.description)": "a"},
+            {"transaction": "foo", "any(span.description)": "a"},
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
