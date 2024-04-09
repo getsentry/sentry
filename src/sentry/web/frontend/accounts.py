@@ -112,6 +112,70 @@ def recover(request):
 
 @set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_function
+def relocate_reclaim(request, user_id):
+    """
+    Ask to receive a new "claim this user" email.
+    """
+    from sentry import ratelimits as ratelimiter
+
+    extra = {
+        "ip_address": request.META["REMOTE_ADDR"],
+        "user_agent": request.META.get("HTTP_USER_AGENT"),
+        "user_id": user_id,
+    }
+    if request.method != "POST":
+        logger.warning("reclaim.error", extra=extra)
+        return render_to_response(get_template("relocate", "error"), {}, request)
+
+    if ratelimiter.backend.is_limited(
+        "accounts:reclaim:{}".format(extra["ip_address"]),
+        limit=5,
+        window=60,  # 5 per minute should be enough for anyone
+    ):
+        logger.warning("reclaim.rate-limited", extra=extra)
+
+        return HttpResponse(
+            "You have made too many password recovery attempts. Please try again later.",
+            content_type="text/plain",
+            status=429,
+        )
+
+    # Verify that the user is unclaimed. If they are already claimed, tell the requester that this
+    # is the case, since of course claiming this account would be impossible.
+    user = User.objects.filter(id=user_id).first()
+    if user is None:
+        logger.warning("reclaim.user_not_found", extra=extra)
+        return render_to_response(get_template("relocate", "error"), {}, request)
+    if not user.is_unclaimed:
+        logger.warning("reclaim.already_claimed", extra=extra)
+        return render_to_response(get_template("relocate", "claimed"), {}, request)
+
+    # Get all orgs for user. We'll need this info to properly compose the new relocation email.
+    org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+        "organization_id", flat=True
+    )
+    org_slugs = list(
+        OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
+            "slug", flat=True
+        )
+    )
+    if len(org_slugs) == 0:
+        logger.warning("reclaim.error", extra=extra)
+        return render_to_response(get_template("relocate", "error"), {}, request)
+
+    # Make a new `LostPasswordHash`, and send the "this user has been relocated ..." email again.
+    password_hash = lost_password_hash_service.get_or_create(user_id=user_id)
+    LostPasswordHash.send_relocate_account_email(user, password_hash.hash, org_slugs)
+    extra["passwordhash_id"] = password_hash.id
+    extra["org_slugs"] = org_slugs
+
+    # Let the user know that we've sent them a new email.
+    logger.info("recover.sent", extra=extra)
+    return render_to_response(get_template("relocate", "sent"), {}, request)
+
+
+@set_referrer_policy("strict-origin-when-cross-origin")
+@control_silo_function
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -120,7 +184,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
             raise LostPasswordHash.DoesNotExist
         user = password_hash.user
     except LostPasswordHash.DoesNotExist:
-        return render_to_response(get_template(mode, "failure"), {}, request)
+        return render_to_response(get_template(mode, "failure"), {"user_id": user_id}, request)
 
     # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
     form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm

@@ -16,7 +16,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {
   TRACE_MEASUREMENT_LOOKUP,
   type TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface TraceVitalsProps {
   trace: TraceTree;

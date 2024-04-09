@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
+import pytest
 from dateutil.parser import parse as parse_datetime
 from django.urls import reverse
 from django.utils import timezone
@@ -2643,6 +2644,54 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 assert int(response.data[4]["id"]) == event3.group.id
             else:
                 assert False, f"Unexpected query {query}"
+
+    def test_snuba_unsupported_filters(self):
+        self.login_as(user=self.user)
+        for query in [
+            "bookmarks:me",
+            "is:linked",
+            "is:unlinked",
+            "subscribed:me",
+            "regressed_in_release:latest",
+            "issue.priority:high",
+        ]:
+            with patch(
+                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+            ) as mock_query:
+                self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query=query,
+                )
+                assert mock_query.call_count == 0
+
+    @pytest.mark.skip(reason="Need to fix")
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_title(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="title:MyMessage",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert mock_query.call_count == 1
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

@@ -8,6 +8,7 @@ from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
@@ -28,6 +29,7 @@ from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
@@ -669,13 +671,24 @@ def augment_transactions_with_spans(
 
     # If we're querying over 100 span ids, lets split the query into 3
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
+
+    # The max query size according to snuba/clickhouse docs is 256KiB, or about 256 thousand characters
+    # Each span id maps to being 20 characters; 16 characters turned back into a number maxes out at 20
+    # which at 10k transaction span ids, and even another 10k error span ids (which would only happen if there's no
+    # crossover) that's 20k * 20 = 400k bytes, with 3 queries that should be 133,333 bytes  which shouldn't be anywhere
+    # near the 256KiB max even with the other parts of the query.
+    # Experimentally (running queries in snuba admin) we've found the max query size is actually 131,535 bytes or
+    # 128.45KiB. Taking that into account, (131,535-10,000(for projects etc))/20 = 6000, means that we can fit at most
+    # 6000 span ids per query, Adding a bit of a buffer, if the query is for more than 12,500 spans we'll do 4 chunks
+    # instead of 3
     if len(query_spans) > 100:
         list_spans = list(query_spans)
-        chunks = [
-            list_spans[: len(list_spans) // 3],
-            list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
-            list_spans[len(list_spans) // 3 * 2 :],
-        ]
+        if len(query_spans) < 12_500:
+            total_chunks = 3
+        else:
+            total_chunks = 4
+        sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
+        chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
         results = bulk_snql_query(
             [query.get_snql_query() for query in queries],
@@ -742,6 +755,20 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+        """The trace endpoint always wants to get all projects regardless of what's passed into the API
+
+        This is because a trace can span any number of projects in an organization. But we still want to
+        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
+        which is what would be sent if we wanted all projects"""
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(

@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -49,22 +49,22 @@ import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceAverageTransactionDuration} from '../../useTraceAverageTransactionDuration';
+import {useTraceAverageTransactionDuration} from '../../traceApi/useTraceAverageTransactionDuration';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -136,7 +136,7 @@ function BreadCrumbsSection({
     }, 100);
   }, [showBreadCrumbs, breadCrumbsContainerRef]);
 
-  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries.find(
+  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
     (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
   );
 
@@ -179,7 +179,7 @@ function ReplaySection({
 }) {
   const replayId = getReplayIdFromEvent(event);
   const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+    event && 'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
@@ -212,7 +212,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 export function TransactionNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
@@ -229,7 +229,7 @@ export function TransactionNodeDetails({
 
   const avgDurationInSeconds: number = useMemo(() => {
     return (
-      Number(averageDurationQueryResult?.data[0]?.['avg(transaction.duration)']) / 1000
+      Number(averageDurationQueryResult?.data?.[0]?.['avg(transaction.duration)']) / 1000
     );
   }, [averageDurationQueryResult]);
 
@@ -237,20 +237,10 @@ export function TransactionNodeDetails({
     data: event,
     isError,
     isLoading,
-  } = useApiQuery<EventTransaction>(
-    [
-      `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!node,
-    }
-  );
+  } = useTransaction({
+    node,
+    organization,
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -292,22 +282,19 @@ export function TransactionNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value['transaction.op']}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event_id}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
           <Button
             size="xs"
             icon={<IconOpen />}
@@ -327,6 +314,9 @@ export function TransactionNodeDetails({
             <TraceDrawerComponents.Duration
               duration={durationInSeconds}
               baseline={avgDurationInSeconds}
+              baseDescription={
+                'Average duration for this transaction over the last 24 hours'
+              }
             />
           </Row>
           {parentTransaction ? (

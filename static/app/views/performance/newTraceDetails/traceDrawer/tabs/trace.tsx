@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {Tag} from 'sentry/actionCreators/events';
+import type {EventTransaction} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
@@ -11,16 +12,18 @@ import type {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import Tags from 'sentry/views/discover/tags';
+import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
 
 import {isTraceNode} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
 import {IssueList} from '../details/issues/issues';
 
 type TraceDetailsProps = {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
-  organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  tagsQueryResults: UseApiQueryResult<Tag[], RequestError>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
@@ -28,6 +31,7 @@ type TraceDetailsProps = {
 
 export function TraceDetails(props: TraceDetailsProps) {
   const location = useLocation();
+  const organization = useOrganization();
   const issues = useMemo(() => {
     if (!props.node) {
       return [];
@@ -48,12 +52,14 @@ export function TraceDetails(props: TraceDetailsProps) {
 
   return (
     <Fragment>
-      <IssueList issues={issues} node={props.node} organization={props.organization} />
+      {props.tree.type === 'trace' ? <TraceWarnings type={props.tree.shape} /> : null}
+      <IssueList issues={issues} node={props.node} organization={organization} />
       {rootEvent ? (
         <Tags
+          tagsQueryResults={props.tagsQueryResults}
           generateUrl={(key: string, value: string) => {
             const url = props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
+              organization.slug,
               false
             );
             url.query = generateQueryWithTag(url.query, {
@@ -64,7 +70,7 @@ export function TraceDetails(props: TraceDetailsProps) {
           }}
           totalValues={props.tree.eventsCount}
           eventView={props.traceEventView}
-          organization={props.organization}
+          organization={organization}
           location={location}
         />
       ) : null}

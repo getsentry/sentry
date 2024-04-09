@@ -646,21 +646,16 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with (
-            mock.patch(
-                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-                side_effect=send_issue_occurrence_to_eventstream,
-            ) as mock_eventstream,
-            mock.patch(
-                "sentry.event_manager.detect_performance_problems",
-                side_effect=detect_performance_problems_interceptor,
-            ),
-            mock.patch.object(
-                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-            ),
-            override_options(
-                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-            ),
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch(
+            "sentry.event_manager.detect_performance_problems",
+            side_effect=detect_performance_problems_interceptor,
+        ), mock.patch.object(
+            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+        ), override_options(
+            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -1290,14 +1285,6 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def bulk_store_sessions(self, sessions):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
-            ).status_code
-            == 200
-        )
-
     def build_session(self, **kwargs):
         session = {
             "session_id": str(uuid4()),
@@ -1324,9 +1311,6 @@ class SnubaTestCase(BaseTestCase):
             kwargs[key] = getattr(val, attr, val)
         session.update(kwargs)
         return session
-
-    def store_session(self, session):
-        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -2856,15 +2840,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
-        assert "N+1 Query" in attachment["text"]
+        assert attachment["title"] == "N+1 Query"
         assert (
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in attachment["blocks"][1]["text"]["text"]
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
-        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
-        notification_uuid = self.get_notification_uuid(title_link)
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
-            attachment["blocks"][-2]["elements"][0]["text"]
+            attachment["footer"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
