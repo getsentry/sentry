@@ -5,6 +5,8 @@ from collections.abc import Callable, Mapping
 from copy import deepcopy
 from typing import Any
 
+from pydantic import BaseModel
+
 
 class EvaluationContext:
     """
@@ -41,11 +43,21 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
 
-# A function that mutates the given evaluation context
+# A function that generates a new slice of evaluation context data as a dictionary.
 EvaluationContextTransformer = Callable[[dict[str, Any]], dict[str, Any]]
 
 
-class ContextBuilder:
+class ContextBuilder(BaseModel):
+    """
+    Used to build an EvaluationContext instance for use in Flagpole.
+    This class aggregates a list of context transformers, each of which are
+    responsible for generating a slice of context data.
+
+    This class is meant to be used with Flagpole's `Feature` class
+    >>> from flagpole import 'ContextBuilder'
+    >>> builder = ContextBuilder().add_context_transformer(lambda _dict: dict(foo="bar"))
+    """
+
     context_transformers: list[EvaluationContextTransformer] = []
 
     def add_context_transformer(

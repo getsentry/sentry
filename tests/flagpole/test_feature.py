@@ -2,19 +2,22 @@ from datetime import datetime, timezone
 
 import pytest
 
-from flagpole import Feature, InvalidFeatureFlagConfiguration
+from flagpole import ContextBuilder, Feature, InvalidFeatureFlagConfiguration
 from flagpole.operators import OperatorKind
 
 
 class TestParseFeatureConfig:
+    def get_is_true_context_builder(self, is_true_value: bool):
+        return ContextBuilder().add_context_transformer(lambda _data: dict(is_true=is_true_value))
+
     def test_valid_without_created_at(self):
-        feature = Feature.parse_feature_config_json("foo", '{"owner": "test", "segments":[]}')
+        feature = Feature.from_feature_config_json("foo", '{"owner": "test", "segments":[]}')
         assert feature.name == "foo"
         assert isinstance(feature.created_at, datetime)
         assert feature.segments == []
 
     def test_feature_with_empty_segments(self):
-        feature = Feature.parse_feature_config_json(
+        feature = Feature.from_feature_config_json(
             "foobar",
             """
             {
@@ -31,7 +34,7 @@ class TestParseFeatureConfig:
         assert feature.segments == []
 
     def test_valid_with_all_nesting(self):
-        feature = Feature.parse_feature_config_json(
+        feature = Feature.from_feature_config_json(
             "foobar",
             """
             {
@@ -67,14 +70,65 @@ class TestParseFeatureConfig:
 
     def test_invalid_json(self):
         with pytest.raises(InvalidFeatureFlagConfiguration):
-            Feature.parse_feature_config_json("foobar", "{")
+            Feature.from_feature_config_json("foobar", "{")
 
     def test_empty_string_name(self):
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
-            Feature.parse_feature_config_json("", '{"segments":[]}')
+            Feature.from_feature_config_json("", '{"segments":[]}')
         assert "Provided JSON is not a valid feature" in str(exception)
 
     def test_missing_segments(self):
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
-            Feature.parse_feature_config_json("foo", "{}")
+            Feature.from_feature_config_json("foo", "{}")
         assert "Provided JSON is not a valid feature" in str(exception)
+
+    def test_enabled_feature(self):
+        feature = Feature.from_feature_config_json(
+            "foo",
+            """
+            {
+                "owner": "test-user",
+                "segments": [{
+                    "name": "always_pass_segment",
+                    "rollout": 100,
+                    "conditions": [{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": {
+                            "kind": "equals",
+                            "value": true
+                        }
+                    }]
+                }]
+            }
+            """,
+            self.get_is_true_context_builder(is_true_value=True),
+        )
+
+        assert feature.match(context_data=dict())
+
+    def test_disabled_feature(self):
+        feature = Feature.from_feature_config_json(
+            "foo",
+            """
+            {
+                "owner": "test-user",
+                "enabled": false,
+                "segments": [{
+                    "name": "always_pass_segment",
+                    "rollout": 100,
+                    "conditions": [{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": {
+                            "kind": "equals",
+                            "value": true
+                        }
+                    }]
+                }]
+            }
+            """,
+            self.get_is_true_context_builder(is_true_value=True),
+        )
+
+        assert not feature.match(context_data=dict())

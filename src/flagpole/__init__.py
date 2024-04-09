@@ -63,11 +63,12 @@ grant a feature.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, constr
 
 from flagpole.conditions import Condition
-from flagpole.evaluation_context import EvaluationContext
+from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 from sentry.utils import json
 
 
@@ -96,14 +97,22 @@ class Feature(BaseModel):
     name: constr(min_length=1, to_lower=True)  # type:ignore[valid-type]
     owner: constr(min_length=1)  # type:ignore[valid-type]
     segments: list[Segment]
+    """A list of segments to evaluate against the provided data"""
     enabled: bool = True
+    """Defines whether or not the feature is enabled."""
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
+    context_builder: ContextBuilder = Field(default_factory=ContextBuilder)
+    """Used to generate an EvaluationContext whenever this feature is checked"""
 
-    def match(self, context: EvaluationContext) -> bool:
-        for segment in self.segments:
-            if segment.match(context):
-                return True
+    def match(self, context_data: dict[str, Any]) -> bool:
+        context = self.context_builder.build(context_data)
+
+        if self.enabled:
+            for segment in self.segments:
+                if segment.match(context):
+                    return True
+
         return False
 
     def dump_schema_to_file(self, file_path: str) -> None:
@@ -111,22 +120,34 @@ class Feature(BaseModel):
             file.write(self.schema_json())
 
     @classmethod
-    def parse_feature_config_json(cls, name: str, config_json: str) -> Feature:
-        config_data_dict: dict | None = None
+    def from_feature_dictionary(
+        cls, name: str, config_dict: dict[str, Any], context_builder: ContextBuilder | None
+    ) -> Feature:
         try:
-            config_data_dict = json.loads(config_json)
-        except json.JSONDecodeError:
-            pass
-
-        if not isinstance(config_data_dict, dict):
-            raise InvalidFeatureFlagConfiguration("Invalid feature json provided")
-
-        try:
-            feature = cls(name=name, **config_data_dict)
+            feature = cls(name=name, **config_dict)
         except ValidationError as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
 
+        if context_builder is not None:
+            feature.context_builder = context_builder
+
         return feature
+
+    @classmethod
+    def from_feature_config_json(
+        cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
+    ) -> Feature:
+        try:
+            config_data_dict = json.loads(config_json)
+        except json.JSONDecodeError as decode_error:
+            raise InvalidFeatureFlagConfiguration("Invalid feature json provided") from decode_error
+
+        if not isinstance(config_data_dict, dict):
+            raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
+
+        return cls.from_feature_dictionary(
+            name=name, config_dict=config_data_dict, context_builder=context_builder
+        )
 
 
 __all__ = ["Feature", "InvalidFeatureFlagConfiguration"]

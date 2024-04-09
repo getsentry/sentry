@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Annotated, Any, Literal, TypeVar
 
-from pydantic import BaseModel, Field, StrictInt, StrictStr
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 
 
 def get_type_name(value: Any):
@@ -142,7 +142,7 @@ class NotContainsOperator(Operator):
 
 class EqualsOperator(Operator):
     kind: Literal[OperatorKind.EQUALS] = OperatorKind.EQUALS
-    value: StrictInt | StrictStr | list[StrictInt] | list[StrictStr]
+    value: StrictInt | StrictStr | StrictBool | list[StrictInt] | list[StrictStr]
 
     def match(self, condition_property: Any, segment_name: str):
         return evaluate_equals(
