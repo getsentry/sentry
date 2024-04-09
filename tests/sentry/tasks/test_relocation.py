@@ -98,6 +98,17 @@ class FakeCloudBuildClient:
 class RelocationTaskTestCase(TestCase):
     def setUp(self):
         super().setUp()
+
+        # Create a collision with the org slug we'll be requesting.
+        self.requested_org_slug = "testing"
+        self.existing_org_owner = self.create_user(
+            email="existing_org_owner@example.com",
+            is_superuser=False,
+            is_staff=False,
+            is_active=True,
+        )
+        self.existing_org = self.create_organization(name=self.requested_org_slug)
+
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
@@ -1859,11 +1870,20 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                 printer=Printer(),
             )
 
-        self.imported_users = ControlImportChunkReplica.objects.get(
-            import_uuid=self.uuid, model="sentry.user"
+        self.imported_orgs = sorted(
+            RegionImportChunk.objects.get(
+                import_uuid=self.uuid, model="sentry.organization"
+            ).inserted_identifiers.values()
         )
-
-        assert len(self.imported_users.inserted_map) == 2
+        assert len(self.imported_orgs) == 1
+        assert (
+            len(
+                ControlImportChunkReplica.objects.get(
+                    import_uuid=self.uuid, model="sentry.user"
+                ).inserted_map
+            )
+            == 2
+        )
 
     def test_success(
         self,
@@ -1881,8 +1901,8 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                 mock_relocation_email.call_args_list[0][0][0].username,
                 mock_relocation_email.call_args_list[1][0][0].username,
             ]
-            assert mock_relocation_email.call_args_list[0][0][2] == ["testing"]
-            assert mock_relocation_email.call_args_list[1][0][2] == ["testing"]
+            assert sorted(mock_relocation_email.call_args_list[0][0][2]) == self.imported_orgs
+            assert sorted(mock_relocation_email.call_args_list[1][0][2]) == self.imported_orgs
             assert "admin@example.com" in email_targets
             assert "member@example.com" in email_targets
 
@@ -1969,6 +1989,18 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.NOTIFYING_USERS.name
         self.relocation.save()
 
+        RegionImportChunk.objects.create(
+            import_uuid=self.relocation.uuid,
+            model="sentry.organization",
+            min_ordinal=0,
+            max_ordinal=0,
+            min_source_pk=1,
+            max_source_pk=1,
+            inserted_map={1: 1234},
+            inserted_identifiers={1: "testing-ab"},
+        )
+        self.imported_orgs = ["testing-ab"]
+
     def test_success_admin_assisted_relocation(
         self,
         completed_mock: Mock,
@@ -1980,6 +2012,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(
             to=[self.owner.email, self.superuser.email]
         )
@@ -2002,6 +2035,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(to=[self.owner.email])
 
         assert completed_mock.call_count == 1

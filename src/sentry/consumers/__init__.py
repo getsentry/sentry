@@ -96,7 +96,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["serial", "parallel"]),
-            default="serial",
+            default="parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -108,7 +108,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--max-batch-time", "max_batch_time"],
             type=int,
-            default=10,
+            default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
     ]
