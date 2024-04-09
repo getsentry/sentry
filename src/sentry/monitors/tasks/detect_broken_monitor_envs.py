@@ -116,7 +116,7 @@ def build_open_incidents_queryset():
     name="sentry.monitors.tasks.detect_broken_monitor_envs",
     max_retries=0,
     time_limit=15 * 60,
-    soft_time_limit=10 * 60,
+    soft_time_limit=15 * 60,
     record_timing=True,
 )
 def detect_broken_monitor_envs():
