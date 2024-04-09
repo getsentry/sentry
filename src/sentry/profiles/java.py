@@ -141,7 +141,7 @@ def _merge_jvm_frame_and_android_method(f: dict, m: dict) -> None:
 
 
 def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
-    for f in reversed(frames):
+    for f in frames:
         m = methods[f["index"]]
         # Update the method if it's the first time we see it.
         if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
