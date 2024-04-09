@@ -165,7 +165,7 @@ def relocate_reclaim(request, user_id):
 
     # Make a new `LostPasswordHash`, and send the "this user has been relocated ..." email again.
     password_hash = lost_password_hash_service.get_or_create(user_id=user_id)
-    LostPasswordHash.send_relocate_account_email(user.email, password_hash.hash, org_slugs)
+    LostPasswordHash.send_relocate_account_email(user, password_hash.hash, org_slugs)
     extra["passwordhash_id"] = password_hash.id
     extra["org_slugs"] = org_slugs
 
