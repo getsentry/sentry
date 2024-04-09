@@ -381,7 +381,7 @@ export function getFormattedContextData({
         ...getUnknownProfileContextData({data: contextValue, meta}),
       ];
     default:
-      return getDefaultContextData({data: contextValue});
+      return getDefaultContextData(contextValue);
   }
 }
 
