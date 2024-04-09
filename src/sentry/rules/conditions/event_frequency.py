@@ -4,6 +4,7 @@ import abc
 import contextlib
 import logging
 import re
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -15,6 +16,8 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
@@ -176,6 +179,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         Queries Snuba for a unique condition for a single group.
         """
         query_result = self.query_hook(event, start, end, environment_id)
+        # query_result2 = self.batch_query_hook([event.group.id], start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
             tags={
@@ -280,24 +284,37 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
+    def get_sums(
+        self, model: int, groups: list[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        sums: Mapping[int, int] = self.tsdb.get_sums(
+            model=get_issue_tsdb_group_model(model),
+            keys=[group.id for group in groups],
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=groups[0].id,
+            tenant_ids={"organization_id": groups[0].project.organization_id},
+            referrer_suffix="alert_event_frequency",
+        )
+        return sums
+
     def batch_query_hook(
         self, group_ids: list[int], start: datetime, end: datetime, environment_id: str
     ) -> dict[int, int]:
-        batch_sums = []  # maybe a default dict instead?
-        for group_id_chunk in chunked(group_ids, SNUBA_LIMIT):
-            sums: Mapping[int, int] = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(group_id_chunk[0].issue_category),
-                keys=group_id_chunk,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-                use_cache=True,
-                jitter_value=group_id_chunk[0].group_id,
-                tenant_ids={"organization_id": group_id_chunk[0].project.organization_id},
-                referrer_suffix="alert_event_frequency",
-            )
-            batch_sums.append(sums)
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
 
+        for group_chunk in chunked(error_issues, SNUBA_LIMIT):
+            error_sums = self.get_sums(GroupCategory.ERROR, group_chunk, start, end, environment_id)
+            batch_sums.update(error_sums)
+
+        for group_chunk in chunked(generic_issues, SNUBA_LIMIT):
+            generic_sums = self.get_sums("", group_chunk, start, end, environment_id)
+            batch_sums.update(generic_sums)
         return batch_sums
 
     def get_preview_aggregate(self) -> tuple[str, str]:
