@@ -83,8 +83,10 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             filter=dict(user_ids=viewed_by_ids),
             as_user=serialize_generic_user(request.user),
         )
+        for user in serialized_users:
+            user["type"] = "user"
 
-        return Response({"data": {"id": "replay_id", "viewed_by": serialized_users}}, status=200)
+        return Response({"data": {"id": replay_id, "viewed_by": serialized_users}}, status=200)
 
     @extend_schema(
         operation_id="Post that the requesting user has viewed a replay",
