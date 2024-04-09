@@ -73,6 +73,9 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "integrations:bitbucket",
 )
 
+MAX_BLOCK_TEXT_LENGTH = 256
+USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+
 
 def get_approx_start_time(group: Group):
     event = group.get_recommended_event_for_environments()
@@ -661,7 +664,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
             if text:
-                blocks.append(self.get_markdown_quote_block(text))
+                if self.group.issue_category == GroupCategory.FEEDBACK:
+                    max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
+                else:
+                    max_block_text_length = MAX_BLOCK_TEXT_LENGTH
+
+                blocks.append(self.get_markdown_quote_block(text, max_block_text_length))
 
         # build up actions text
         if self.actions and self.identity and not action_text:
