@@ -18,7 +18,7 @@ from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 )
 def test_compile_mql_query(formula, queries, expected_formula):
     sub_queries = {name: MQLQuery(query) for name, query in queries.items()}
-    compiled_query = MQLQuery(formula, **sub_queries).compile()
+    compiled_query = MQLQuery(formula, **sub_queries).compile()  # type: ignore[arg-type]
     assert compiled_query.mql == expected_formula
 
 

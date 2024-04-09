@@ -26,7 +26,9 @@ class MQLQuery:
     query = MQLQuery("$query_1 / $query_2", order=QueryOrder.ASC, query_1=query_1, query_2=query_2)
     """
 
-    def __init__(self, mql: str, order: QueryOrder | None = None, limit: int = None, **sub_queries):
+    def __init__(
+        self, mql: str, order: QueryOrder | None = None, limit: int | None = None, **sub_queries
+    ):
         self.mql = mql
         self.order = order
         self.limit = limit
