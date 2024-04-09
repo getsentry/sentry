@@ -5,6 +5,7 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
+import dateutil.parser
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers.models.user import UserSerializerResponse
@@ -294,7 +295,6 @@ def generate_viewed_by_response(
     request_user: User,
 ) -> ReplayViewedByResponse:
     """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
-    global user_serializer
 
     # TODO: what happens if a viewed_by_id is invalid or unauthorized?
     # what happens if viewed_by_ids is empty?
@@ -304,6 +304,17 @@ def generate_viewed_by_response(
         filter=dict(user_ids=viewed_by_ids),
         as_user=serialize_generic_user(request_user),  # as_user checks we have auth for these users
     )
+
+    for user_dict in serialized_users:
+        for field in ["dateJoined", "lastLogin", "lastActive"]:
+            date = user_dict.get(field)
+            if isinstance(date, str):
+                try:
+                    # TODO: should the endpoint return datetimes or date strings?
+                    user_dict[field] = dateutil.parser.parse(date)
+                except Exception:
+                    # TODO:
+                    pass
 
     return {
         "id": replay_id,
