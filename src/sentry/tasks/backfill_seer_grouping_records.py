@@ -123,7 +123,7 @@ def backfill_seer_grouping_records(project: Project) -> int:
                 redis_client.set(
                     f"{LAST_PROCESSED_REDIS_KEY}", group_id_batch[-1], ex=60 * 60 * 24 * 7
                 )
-                groups = Group.objects.filter(id__in=group_id_batch)
+                groups = Group.objects.filter(project_id=project_id, id__in=group_id_batch)
                 for group in groups:
                     if group.data.get("metadata"):
                         group.data["metadata"].update({"has_embeddings_record_v1": True})
