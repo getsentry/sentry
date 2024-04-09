@@ -5,6 +5,7 @@ from unittest import mock
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.consumers.process.test_factory import build_mock_span
 
 
@@ -60,6 +61,11 @@ class TestSpansTask(TestCase):
 
         assert job["performance_problems"][0].type == PerformanceStreamedSpansGroupTypeExperimental
 
+    @override_options(
+        {
+            "standalone-spans.send-occurrence-to-platform.enable": True,
+        }
+    )
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_sends_occurrence_to_platform(self, mock_eventstream):
         spans = self.generate_n_plus_one_spans()
