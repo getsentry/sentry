@@ -21,8 +21,10 @@ export default function FeedbackItemLoader() {
   useSentryAppComponentsData({projectId: projectSlug});
 
   useEffect(() => {
-    trackAnalytics('feedback.feedback-item-rendered', {organization});
-  }, [organization]);
+    if (issueData) {
+      trackAnalytics('feedback.feedback-item-rendered', {organization});
+    }
+  }, [organization, issueData]);
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
