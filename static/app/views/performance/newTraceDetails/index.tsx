@@ -313,7 +313,6 @@ function TraceViewContent(props: TraceViewContentProps) {
           const resultIndex: number | undefined = matches?.[0]?.index;
           const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
           const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
-
           traceDispatch({
             type: 'set results',
             results: matches,

@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceSearch/virtualizedViewManager';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {
   isMissingInstrumentationNode,

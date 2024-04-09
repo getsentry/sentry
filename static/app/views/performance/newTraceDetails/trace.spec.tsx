@@ -677,7 +677,7 @@ describe('trace view', () => {
       expect(rows[6]).toHaveFocus();
     });
 
-    it('if search on load does not match anything, it does not steal focus', async () => {
+    it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
       Object.defineProperty(window, 'location', {
         value: {
           search: '?search=dead&node=txn-5',
