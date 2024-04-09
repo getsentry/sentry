@@ -27,5 +27,5 @@ const SizingWindow = styled(NegativeSpaceContainer)<StyleProps>`
       `}
 `;
 
-export type Props = ComponentProps<typeof SizingWindow>;
+export type SizingWindowProps = ComponentProps<typeof SizingWindow>;
 export default SizingWindow;
