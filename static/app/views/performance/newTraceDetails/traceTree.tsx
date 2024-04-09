@@ -256,8 +256,13 @@ export function makeTraceNodeBarColor(
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isSpanNode(node)) {
-    // Android creates TCP connection spans which are noisy and not useful in most cases
-    if (node.value.op === 'http.client' && node.value.origin === 'auto.http.okhttp') {
+    // Android creates TCP connection spans which are noisy and not useful in most cases.
+    // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
+    if (
+      node.value.op === 'http.client' &&
+      node.value.origin === 'auto.http.okhttp' &&
+      !node.value.childTransaction
+    ) {
       return true;
     }
   }

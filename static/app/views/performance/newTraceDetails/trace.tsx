@@ -1990,6 +1990,8 @@ const TraceStylingWrapper = styled('div')`
     right: 0;
     top: 0;
     transform: translateX(calc(var(--translate-x) * 1px));
+    z-index: 10;
+    pointer-events: none;
   }
 
   .TraceIndicator {
