@@ -52,10 +52,7 @@ export function SpanNodeDetails({
           <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event.eventID}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug ? (

@@ -147,6 +147,12 @@ export declare namespace TraceTree {
     | ChildrenAutogroup
     | null;
 
+  type Node =
+    | TraceTreeNode<NodeValue>
+    | ParentAutogroupNode
+    | SiblingAutogroupNode
+    | MissingInstrumentationNode;
+
   type NodePath =
     `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}-${string}`;
 
@@ -1270,10 +1276,10 @@ export class TraceTree {
   }
 }
 
-export class TraceTreeNode<T extends TraceTree.NodeValue> {
+export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
-  parent: TraceTreeNode<TraceTree.NodeValue> | null = null;
+  parent: TraceTreeNode | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
@@ -1291,17 +1297,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   private unit: 'milliseconds' = 'milliseconds';
   private _depth: number | undefined;
-  private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
-  private _spanChildren: TraceTreeNode<
-    TraceTree.Span | TraceTree.MissingInstrumentationSpan
-  >[] = [];
+  private _children: TraceTreeNode[] = [];
+  private _spanChildren: TraceTreeNode[] = [];
   private _connectors: number[] | undefined = undefined;
 
-  constructor(
-    parent: TraceTreeNode<TraceTree.NodeValue> | null,
-    value: T,
-    metadata: TraceTree.Metadata
-  ) {
+  constructor(parent: TraceTreeNode | null, value: T, metadata: TraceTree.Metadata) {
     this.parent = parent ?? null;
     this.value = value;
     this.metadata = metadata;
@@ -1529,7 +1529,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
    * we either store span children separately or transaction children separately. A better design
    * would have been to create an invisible meta node that always points to the correct children.
    */
-  get children(): TraceTreeNode<TraceTree.NodeValue>[] {
+  get children(): TraceTreeNode[] {
     if (isAutogroupedNode(this)) {
       return this._children;
     }
@@ -1545,14 +1545,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this._children;
   }
 
-  set children(children: TraceTreeNode<TraceTree.NodeValue>[]) {
+  set children(children: TraceTreeNode[]) {
     this._children = children;
   }
 
-  get spanChildren(): (
-    | TraceTreeNode<TraceTree.Span | TraceTree.MissingInstrumentationSpan>
-    | NoDataNode
-  )[] {
+  get spanChildren(): (TraceTreeNode | NoDataNode)[] {
     return this._spanChildren;
   }
 

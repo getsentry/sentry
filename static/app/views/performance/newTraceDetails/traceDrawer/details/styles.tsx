@@ -9,6 +9,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {
+  isAutogroupedNode,
+  isSpanNode,
+} from 'sentry/views/performance/newTraceDetails/guards';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const DetailContainer = styled('div')`
   display: flex;
@@ -97,24 +105,55 @@ const HeaderContainer = styled(Title)`
   width: 100%;
 `;
 
-function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
-  const query = useMemo(() => {
-    return {...qs.parse(location.search), legacy: 1};
-  }, []);
+interface EventDetailsLinkProps {
+  node: TraceTreeNode<TraceTree.NodeValue>;
+}
+
+function EventDetailsLink(props: EventDetailsLinkProps) {
+  const params = useMemo((): {
+    eventId: string | undefined;
+    projectSlug: string | undefined;
+  } => {
+    const eventId = props.node.metadata.event_id;
+    const projectSlug = props.node.metadata.project_slug;
+
+    if (eventId && projectSlug) {
+      return {eventId, projectSlug};
+    }
+
+    if (isSpanNode(props.node) || isAutogroupedNode(props.node)) {
+      const parent = props.node.parent_transaction;
+      if (parent?.metadata.event_id && parent?.metadata.project_slug) {
+        return {
+          eventId: parent.metadata.event_id,
+          projectSlug: parent.metadata.project_slug,
+        };
+      }
+    }
+
+    return {eventId: undefined, projectSlug: undefined};
+  }, [props.node]);
+
+  const locationDescriptor = useMemo(() => {
+    const query = {...qs.parse(location.search), legacy: 1};
+
+    return {
+      query: query,
+      pathname: `/performance/${params.projectSlug}:${params.eventId}/`,
+      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
+    };
+  }, [params.eventId, params.projectSlug, props.node]);
 
   return (
     <LinkButton
-      disabled={!props.eventId || !props.projectSlug}
+      disabled={!params.eventId || !params.projectSlug}
       title={
-        !props.eventId || !props.projectSlug
+        !params.eventId || !params.projectSlug
           ? t('Event ID or Project Slug missing')
           : undefined
       }
       size="xs"
-      to={{
-        pathname: `/performance/${props.projectSlug}:${props.eventId}/`,
-        query: query,
-      }}
+      to={locationDescriptor}
     >
       {t('View Event Details')}
     </LinkButton>
