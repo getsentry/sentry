@@ -482,7 +482,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/unmerge.py                                @getsentry/issues
 /src/sentry/search/snuba/                                   @getsentry/issues
 /static/app/views/issueList                                 @getsentry/issues
-/static/app/views/issueList                                 @getsentry/issues
 /static/app/views/issueDetails/                             @getsentry/issues
 /static/app/views/organizationStats/teamInsights/           @getsentry/issues
 /static/app/views/projects/                                 @getsentry/issues
