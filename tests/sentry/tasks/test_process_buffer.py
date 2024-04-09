@@ -49,9 +49,7 @@ class ProcessPendingBatchTest(TestCase):
 
     @mock.patch("sentry.buffer.backend.process_batch")
     def test_process_pending_batch_locked_out(self, mock_process_pending_batch):
-        with mock.patch("sentry.buffer.redis.RedisBuffer.process_batch"), self.assertLogs(
-            "sentry.tasks.process_buffer", level="WARNING"
-        ) as logger:
+        with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
             lock = get_process_lock("process_pending_batch", None)
             with lock.acquire():
                 process_pending_batch()
