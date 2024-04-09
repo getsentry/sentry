@@ -1,5 +1,6 @@
 from django.db import migrations
 
+
 class Migration(migrations.Migration):
     dependencies = [
         (\"sentry\", \"0673_add_env_muted_to_broken_detection\"),
