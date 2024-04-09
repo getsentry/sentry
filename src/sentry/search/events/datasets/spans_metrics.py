@@ -177,7 +177,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                         fields.MetricArg(
                             "if_col",
-                            allowed_columns=["release"],
+                            allowed_columns=["release", "span.op"],
                         ),
                         fields.SnQLStringArg(
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True

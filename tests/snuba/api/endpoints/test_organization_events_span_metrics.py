@@ -914,10 +914,19 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
             tags={"release": "bar"},
         )
+        self.store_span_metric(
+            300,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.op": "queue.task.celery"},
+        )
 
         response = self.do_request(
             {
-                "field": ["avg_if(span.self_time, release, foo)"],
+                "field": [
+                    "avg_if(span.self_time, release, foo)",
+                    "avg_if(span.self_time, span.op, queue.task.celery)",
+                ],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -930,9 +939,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert len(data) == 1
         assert data[0]["avg_if(span.self_time, release, foo)"] == 150
+        assert data[0]["avg_if(span.self_time, span.op, queue.task.celery)"] == 300
 
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
+        assert meta["fields"]["avg_if(span.self_time, span.op, queue.task.celery)"] == "duration"
 
     def test_device_class(self):
         self.store_span_metric(
