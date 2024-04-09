@@ -18,6 +18,7 @@ type Props = {
   enabled?: boolean;
   limit?: number;
   query?: string;
+  shouldEscapeFilters?: boolean;
   sortName?: string;
   transaction?: string | null;
   webVital?: WebVitals | 'total';
@@ -31,6 +32,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   enabled = true,
   webVital = 'total',
   query,
+  shouldEscapeFilters = true,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -43,7 +45,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     ...(query ? [query] : []),
   ]);
   if (transaction) {
-    search.addFilterValue('transaction', transaction);
+    search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

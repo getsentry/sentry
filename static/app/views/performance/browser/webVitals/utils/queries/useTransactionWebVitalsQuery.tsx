@@ -7,6 +7,7 @@ type Props = {
   enabled?: boolean;
   limit?: number;
   query?: string;
+  shouldEscapeFilters?: boolean;
   sortName?: string;
   transaction?: string | null;
   webVital?: WebVitals | 'total';
@@ -20,6 +21,7 @@ export const useTransactionWebVitalsQuery = ({
   webVital,
   enabled,
   query,
+  shouldEscapeFilters = true,
 }: Props) => {
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
     limit,
@@ -29,6 +31,7 @@ export const useTransactionWebVitalsQuery = ({
     enabled,
     webVital,
     query,
+    shouldEscapeFilters,
   });
   return storedScoresResult;
 };
