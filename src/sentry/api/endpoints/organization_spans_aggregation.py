@@ -48,6 +48,7 @@ class EventSpans(TypedDict):
 class SpanSample(TypedDict):
     transaction: str | None
     trace: str | None
+    timestamp: int
     span: str
 
 
@@ -158,6 +159,7 @@ class BaseAggregateSpans:
                     SpanSample(
                         {
                             "transaction": self.current_transaction,
+                            "timestamp": start_timestamp / 1000,
                             "span": span_tree["span_id"],
                             "trace": self.current_trace,
                         }
@@ -169,6 +171,7 @@ class BaseAggregateSpans:
                 SpanSample(
                     {
                         "transaction": self.current_transaction,
+                        "timestamp": start_timestamp / 1000,
                         "span": span_tree["span_id"],
                         "trace": self.current_trace,
                     }
@@ -265,6 +268,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
 
             self.current_transaction = event["event_id"]
             self.current_trace = event["contexts"]["trace"]["trace_id"]
+
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,
@@ -366,7 +370,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 builder = SpansIndexedQueryBuilder(
                     dataset=Dataset.SpansIndexed,
                     params=params,
-                    selected_columns=["transaction_id", "trace_id", "count()"],
+                    selected_columns=["transaction_id", "trace_id", "count()", "any(timestamp)"],
                     query=query,
                     limit=100,
                 )

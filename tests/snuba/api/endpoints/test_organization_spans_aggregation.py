@@ -445,11 +445,13 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                 assert data[root_fingerprint]["sample_spans"] == [
                     {
                         "transaction": "80fe542aea4945ffbe612646987ee449",
+                        "timestamp": 1694625139.1,
                         "span": "root_1",
                         "trace": "a" * 32,
                     },
                     {
                         "transaction": "86b21833d1854d9b811000b91e7fccfa",
+                        "timestamp": 1694625159.1,
                         "span": "root_2",
                         "trace": "b" * 32,
                     },
@@ -468,11 +470,13 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                 assert data[root_fingerprint]["sample_spans"] == [
                     {
                         "transaction": self.root_event_1.event_id,
+                        "timestamp": self.root_event_1.data["start_timestamp"],
                         "span": self.span_ids_event_1["A"],
                         "trace": self.root_event_1.data["contexts"]["trace"]["trace_id"],
                     },
                     {
                         "transaction": self.root_event_2.event_id,
+                        "timestamp": self.root_event_2.data["start_timestamp"],
                         "span": self.span_ids_event_2["A"],
                         "trace": self.root_event_2.data["contexts"]["trace"]["trace_id"],
                     },
