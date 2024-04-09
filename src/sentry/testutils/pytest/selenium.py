@@ -148,12 +148,15 @@ class Browser:
             self.wait_until(selector)
             return self.driver.find_elements(by=By.CSS_SELECTOR, value=selector)
 
-    def element_exists(self, selector):
+    def element_exists(self, selector=None, xpath=None):
         """
         Check if an element exists on the page. This method will *not* wait for the element.
         """
         try:
-            self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
+            if xpath is not None:
+                self.driver.find_element(by=By.XPATH, value=xpath)
+            else:
+                self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
         except NoSuchElementException:
             return False
         return True
