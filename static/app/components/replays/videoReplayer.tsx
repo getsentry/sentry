@@ -50,10 +50,10 @@ export class VideoReplayer {
   private _isPlaying: boolean = false;
   private _listeners: RemoveListener[] = [];
   /**
-   * _videos is a dict that maps attachment index to the video element.
+   * Maps attachment index to the video element.
    * Video elements in this dict are preloaded and ready to be played.
    */
-  private _videos: WeakMap<any, HTMLVideoElement>;
+  private _videos: Map<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
   public config: VideoReplayerConfig = {
@@ -84,7 +84,7 @@ export class VideoReplayer {
       onLoaded,
       onBuffer,
     };
-    this._videos = new WeakMap<any, HTMLVideoElement>();
+    this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
 
     this.wrapper = document.createElement('div');
@@ -125,7 +125,7 @@ export class VideoReplayer {
   public destroy() {
     this._listeners.forEach(listener => listener());
     this._trackList = [];
-    this._videos = new WeakMap<any, HTMLVideoElement>();
+    this._videos = new Map<any, HTMLVideoElement>();
     this._timer.stop();
     this.wrapper.remove();
   }
@@ -331,8 +331,8 @@ export class VideoReplayer {
       const dictIndex = index + l;
 
       // Might be some videos we've already loaded before
-      if (!this._videos[dictIndex]) {
-        this._videos[dictIndex] = this.createVideo(attachment, dictIndex);
+      if (!this._videos.get(dictIndex)) {
+        this._videos.set(dictIndex, this.createVideo(attachment, dictIndex));
       }
     });
   }
@@ -379,7 +379,7 @@ export class VideoReplayer {
       return undefined;
     }
 
-    return this._videos[index];
+    return this._videos.get(index);
   }
 
   /**
