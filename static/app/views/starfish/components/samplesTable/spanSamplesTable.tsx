@@ -106,6 +106,18 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+    if (column.key === 'transaction_id') {
+      return (
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`
+          )}
+        >
+          {row['transaction.id'].slice(0, 8)}
+        </Link>
+      );
+    }
+
     if (column.key === 'span_id') {
       return (
         <Link
