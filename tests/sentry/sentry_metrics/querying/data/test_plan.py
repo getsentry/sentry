@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.sentry_metrics.querying.data import MetricsQueriesPlanBuilder
+from sentry.sentry_metrics.querying.data import MQLQuery
 
 
 @pytest.mark.parametrize(
@@ -16,12 +16,6 @@ from sentry.sentry_metrics.querying.data import MetricsQueriesPlanBuilder
     ],
 )
 def test_get_replaced_formulas(formula, queries, expected_formula):
-    builder = MetricsQueriesPlanBuilder()
-    for query_name, query in queries.items():
-        builder.declare_query(query_name, query)
-
-    builder.apply_formula(formula)
-
-    replaced_formulas = builder.build().get_replaced_formulas()
-    assert len(replaced_formulas) == 1
-    assert replaced_formulas[0].mql == expected_formula
+    sub_queries = {name: MQLQuery(query) for name, query in queries.items()}
+    compiled_query = MQLQuery(formula, **sub_queries).compile()
+    assert compiled_query.mql == expected_formula
