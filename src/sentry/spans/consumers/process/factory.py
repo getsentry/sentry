@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -68,12 +67,13 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        if random.random() < 0.005:
-            sentry_sdk.set_context("payload", {"value": str(payload_value)})
-            txn.set_tag("has_payload", True)
+        with txn.start_child(op="deserialize"):
+            span = _deserialize_span(payload_value)
 
-        span = _deserialize_span(payload_value)
-        segment_id = span["segment_id"]
+        segment_id = span.get("segment_id", None)
+        if segment_id is None:
+            return None
+
         trace_id = span["trace_id"]
 
         txn.set_tag("trace.id", trace_id)
@@ -123,7 +123,6 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             if len(keys) > 0:
                 payload_context["sample_key"] = keys[0]
 
-            sample_span = None
             total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
@@ -133,15 +132,9 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
 
                     for segment in segments:
                         total_spans_read += len(segment)
-                        if len(segment) > 0:
-                            sample_span = segment[0]
                         produce_segment_to_kafka(segment)
 
             metrics.incr("process_spans.spans.read.count", total_spans_read)
-            if sample_span and random.random() < 0.01:
-                txn.set_tag("has_payload", True)
-                payload_context["sample_span"] = str(sample_span)
-
             sentry_sdk.set_context("payload", payload_context)
 
 
