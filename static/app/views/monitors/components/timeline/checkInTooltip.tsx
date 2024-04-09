@@ -7,19 +7,17 @@ import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  JobTickData,
-  TimeWindowConfig,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
+
+import type {JobTickData, TimeWindowConfig} from './types';
 
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
   timeWindowConfig: TimeWindowConfig;
 }
 
-export function JobTickTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
+export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
   const {startTs, endTs, envMapping} = jobTick;
   const {dateLabelFormat} = timeWindowConfig;
   const capturedEnvs = Object.keys(envMapping);

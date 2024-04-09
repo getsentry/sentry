@@ -265,7 +265,7 @@ def mock_replay_click(
 
 
 def mock_replay_viewed(
-    timestamp: float | int,
+    timestamp: float,
     project_id: str,
     replay_id: str,
     viewed_by_id: int,
@@ -278,15 +278,13 @@ def mock_replay_viewed(
         "project_id": project_id,
         "retention_days": retention_days,
         "payload": list(
-            bytes(
-                json.dumps(
-                    {
-                        "type": "replay_viewed",
-                        "timestamp": timestamp,
-                        "viewed_by_id": viewed_by_id,
-                    }
-                ).encode()
-            )
+            json.dumps(
+                {
+                    "type": "replay_viewed",
+                    "timestamp": timestamp,
+                    "viewed_by_id": viewed_by_id,
+                }
+            ).encode()
         ),
     }
 
