@@ -533,10 +533,6 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    if dataset == Dataset.Sessions and features.has(
-        "organizations:alert-crash-free-metrics", organization, actor=user
-    ):
-        dataset = Dataset.Metrics
 
     actor = None
     if owner and not isinstance(owner, Actor):
