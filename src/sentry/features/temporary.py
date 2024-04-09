@@ -87,7 +87,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:integrations-msteams-tenant", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:integrations-open-pr-comment-beta-langs", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:investigation-bias", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
