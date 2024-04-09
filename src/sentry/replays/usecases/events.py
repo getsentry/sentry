@@ -35,7 +35,7 @@ def viewed_event(project_id: int, replay_id: str, viewed_by_id: int) -> str:
         replay_id=replay_id,
         event={
             "type": "replay_viewed",
-            "timestmap": time.time(),
+            "timestamp": time.time(),
             "viewed_by_id": viewed_by_id,
         },
     )
@@ -50,7 +50,7 @@ def _replay_event(project_id: int, replay_id: str, event: dict[str, Any]) -> str
             "project_id": project_id,
             "segment_id": None,
             "retention_days": 90,
-            "payload": list(bytes(json.dumps(event).encode())),
+            "payload": list(json.dumps(event).encode()),
         }
     )
 
