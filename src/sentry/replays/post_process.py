@@ -5,10 +5,8 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
-import dateutil.parser
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.models.user import User
 from sentry.replays.validators import VALID_FIELD_SET
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
@@ -81,10 +79,11 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@extend_schema_serializer
+@extend_schema_serializer()
 class ReplayViewedByResponse(TypedDict):
     id: str
-    viewed_by: list[UserSerializerResponse]
+    viewed_by: dict[str, Any]  # a good reference is api.serializers.UserSerializerResponse
+    # However, it's not a perfect match, since the date fields are ISO strings.
 
 
 def process_raw_response(
@@ -304,17 +303,6 @@ def generate_viewed_by_response(
         filter=dict(user_ids=viewed_by_ids),
         as_user=serialize_generic_user(request_user),  # as_user checks we have auth for these users
     )
-
-    for user_dict in serialized_users:
-        for field in ["dateJoined", "lastLogin", "lastActive"]:
-            date = user_dict.get(field)
-            if isinstance(date, str):
-                try:
-                    # TODO: should the endpoint return datetimes or date strings?
-                    user_dict[field] = dateutil.parser.parse(date)
-                except Exception:
-                    # TODO:
-                    pass
 
     return {
         "id": replay_id,

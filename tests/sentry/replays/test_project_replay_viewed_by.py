@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import patch
 from uuid import uuid4
 
+import dateutil.parser
 from django.urls import reverse
 
 from sentry.replays.testutils import (
@@ -101,11 +102,11 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert user_dict["email"] == self.user.email
             assert user_dict["isActive"] == self.user.is_active
             assert user_dict["isManaged"] == self.user.is_managed
-            assert user_dict["dateJoined"] == self.user.date_joined
-            assert user_dict["lastActive"] == self.user.last_active
+            assert dateutil.parser.parse(user_dict["dateJoined"]) == self.user.date_joined
+            assert dateutil.parser.parse(user_dict["lastActive"]) == self.user.last_active
             assert user_dict["isSuperuser"] == self.user.is_superuser
             assert user_dict["isStaff"] == self.user.is_staff
-            # excluded fields: name, avatarUrl, hasPasswordAuth, isManaged,
+            # excluded fields: name, avatar/avatarUrl, emails, hasPasswordAuth, has2fa, isManaged, lastLogin
 
     def test_get_replay_viewed_by_no_viewers(self):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
