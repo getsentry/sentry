@@ -341,3 +341,8 @@ export interface VideoEvent {
   id: number;
   timestamp: number;
 }
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
+}
