@@ -117,10 +117,7 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
 
   // Column configuration
-  columns: {
-    list: ViewColumn;
-    span_list: ViewColumn;
-  };
+  columns: Record<'list' | 'span_list', ViewColumn>;
 
   constructor(columns: {
     list: Pick<ViewColumn, 'width'>;
@@ -383,6 +380,7 @@ export class VirtualizedViewManager {
         element.removeEventListener('wheel', this.onSyncedScrollbarScroll);
       } else if (ref) {
         const scrollableElement = ref.children[0] as HTMLElement | undefined;
+
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
           this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
@@ -752,7 +750,6 @@ export class VirtualizedViewManager {
     }
 
     this.columns.list.translate[0] = newTransform;
-
     if (this.scrollSyncRaf) {
       window.cancelAnimationFrame(this.scrollSyncRaf);
     }
@@ -933,7 +930,6 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
-
     this.container.style.setProperty(
       '--list-column-width',
       // @ts-expect-error we set a number on purpose
@@ -946,7 +942,6 @@ export class VirtualizedViewManager {
     );
 
     this.row_measurer.on('max', this.onNewMaxRowWidth);
-
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry) {
@@ -963,6 +958,7 @@ export class VirtualizedViewManager {
   recomputeSpanToPxMatrix() {
     const traceViewToSpace = this.trace_space.between(this.trace_view);
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+
     this.span_to_px = mat3.multiply(
       this.span_to_px,
       traceViewToSpace,
@@ -1003,12 +999,7 @@ export class VirtualizedViewManager {
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const scale = space[1] / this.trace_view.width;
-
-    this.span_matrix[0] = Math.max(
-      scale,
-      (1 * this.span_to_px[0]) / this.trace_view.width
-    );
-    this.span_matrix[3] = 1;
+    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / this.trace_view.width);
     this.span_matrix[4] =
       (space[0] - this.to_origin) / this.span_to_px[0] -
       this.trace_view.x / this.span_to_px[0];
