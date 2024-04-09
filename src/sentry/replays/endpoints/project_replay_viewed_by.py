@@ -20,9 +20,11 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
-from sentry.replays.post_process import ReplayViewedByResponse, generate_viewed_by_response
+from sentry.replays.post_process import ReplayViewedByResponse
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @region_silo_endpoint
@@ -73,12 +75,16 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         if not viewed_by_ids_response:
             return Response(status=404)
 
-        # query + serialize the User objects from postgres.
-        response: ReplayViewedByResponse = generate_viewed_by_response(
-            viewed_by_ids=viewed_by_ids_response[0]["viewed_by_ids"],
-            request_user=request.user,
+        viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
+        if viewed_by_ids == []:
+            return Response({"data": {"id": replay_id, "viewed_by": []}}, status=200)
+
+        serialized_users = user_service.serialize_many(
+            filter=dict(user_ids=viewed_by_ids),
+            as_user=serialize_generic_user(request.user),
         )
-        return Response({"data": response}, status=200)
+
+        return Response({"data": {"id": "replay_id", "viewed_by": serialized_users}}, status=200)
 
     @extend_schema(
         operation_id="Post that the requesting user has viewed a replay",

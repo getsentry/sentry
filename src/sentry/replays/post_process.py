@@ -7,10 +7,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.models.user import User
 from sentry.replays.validators import VALID_FIELD_SET
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -286,20 +283,3 @@ def extract_click_fields(
 
     list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
     return list_of_dicts
-
-
-def generate_viewed_by_response(
-    viewed_by_ids: list[int],
-    request_user: User,
-) -> ReplayViewedByResponse:
-    """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
-    if viewed_by_ids == []:
-        return {"viewed_by": []}
-
-    # in case invalid/non-existent viewed_by_ids are returned by Snuba, they will be filtered out here.
-    serialized_users = user_service.serialize_many(
-        filter=dict(user_ids=viewed_by_ids),
-        as_user=serialize_generic_user(request_user),
-    )
-
-    return {"viewed_by": serialized_users}
