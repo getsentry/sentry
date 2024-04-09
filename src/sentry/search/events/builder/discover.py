@@ -55,7 +55,6 @@ from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfi
 from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
 from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
@@ -351,8 +350,6 @@ class BaseQueryBuilder:
             Dataset.IssuePlatform,
         ]:
             self.config = DiscoverDatasetConfig(self)
-        elif self.dataset == Dataset.Sessions:
-            self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
                 # For now, we won't support the metrics layer for spans since it needs some work,
