@@ -91,18 +91,22 @@ export class VideoReplayer {
 
   private createVideo(segmentData: VideoEvent, index: number) {
     const el = document.createElement('video');
-    el.src = `${this._videoApiPrefix}${segmentData.id}/`;
+    const sourceEl = document.createElement('source');
     el.style.display = 'none';
+    sourceEl.setAttribute('type', 'video/mp4');
+    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
     el.setAttribute('playinline', '');
+    el.setAttribute('preload', 'auto');
+    // TODO: Timer needs to also account for playback speed
+    el.setAttribute('playbackRate', `${this.config.speed}`);
+    el.appendChild(sourceEl);
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
+    el.addEventListener('seeking', event => {
+      // Centers the video when seeking
+      this._callbacks.onLoaded(event);
     });
     el.addEventListener('play', event => {
       if (index === this._currentIndex) {
@@ -131,10 +135,6 @@ export class VideoReplayer {
         this._callbacks.onLoaded(event);
       }
     });
-
-    el.preload = 'auto';
-    // TODO: Timer needs to also account for playback speed
-    el.playbackRate = this.config.speed;
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
@@ -324,7 +324,6 @@ export class VideoReplayer {
       this._currentVideo.style.display = 'none';
     }
 
-    // TODO: resize video if it changes orientation
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
