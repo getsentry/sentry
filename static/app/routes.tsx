@@ -1688,7 +1688,12 @@ function buildRoutes() {
         </Route>
         <Route
           path="spansv2/"
-          component={make(() => import('sentry/views/performance/spanSummary/'))}
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanSummary'
+              )
+          )}
         />
       </Route>
       <Route

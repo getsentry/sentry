@@ -35,6 +35,7 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
+import SpanDetailsHeader from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsHeader';
 
 export function SpanSummary() {
   const organization = useOrganization();
@@ -74,6 +75,7 @@ export function SpanSummary() {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
+            <SpanDetailsHeader spanSlug={{group: 'ting', op: 'http'}} totalCount={100} />
           </ModuleLayout.Full>
         </Layout.Main>
       </Layout.Body>
