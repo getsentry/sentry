@@ -1112,7 +1112,7 @@ class FilterTests(ImportTestCase):
             assert not User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
 
-    def test_export_filter_users_shared_email(self):
+    def test_import_filter_users_shared_email(self):
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
