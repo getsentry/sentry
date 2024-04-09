@@ -140,7 +140,7 @@ export class VideoReplayer {
     const handleSeeking = event => {
       // Centers the video when seeking (and video is not playing)
       this._callbacks.onLoaded(event);
-    }
+    };
 
     el.addEventListener('ended', handleEnded);
     el.addEventListener('loadeddata', handleLoadedData);
