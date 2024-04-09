@@ -192,8 +192,8 @@ export function ScreenLoadSampleContainer({
         release={release}
         columnOrder={[
           {
-            key: 'transaction_id',
-            name: t('Event ID'),
+            key: 'span_id',
+            name: t('Span ID'),
             width: COL_WIDTH_UNDEFINED,
           },
           {
