@@ -295,13 +295,10 @@ def generate_viewed_by_response(
 ) -> ReplayViewedByResponse:
     """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
 
-    # TODO: what happens if a viewed_by_id is invalid or unauthorized?
-    # what happens if viewed_by_ids is empty?
-    # -> ask author of serialize_many or trace the code
-
+    # in case invalid/non-existent viewed_by_ids are returned by Snuba, they will be filtered out here.
     serialized_users = user_service.serialize_many(
         filter=dict(user_ids=viewed_by_ids),
-        as_user=serialize_generic_user(request_user),  # as_user checks we have auth for these users
+        as_user=serialize_generic_user(request_user),
     )
 
     return {

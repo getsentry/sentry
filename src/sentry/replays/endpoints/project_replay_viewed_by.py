@@ -37,7 +37,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             ReplayParams.REPLAY_ID,
-        ],  # TODO: use ReplayValidator?
+        ],
         responses={
             200: inline_sentry_response_serializer("GetReplayViewedBy", ReplayViewedByResponse),
             400: RESPONSE_BAD_REQUEST,
@@ -73,7 +73,6 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
 
         # query + serialize the User objects from postgres.
-        # note that invalid/non-existent viewed_by_ids returned from Snuba will be skipped.
         response: ReplayViewedByResponse = generate_viewed_by_response(
             replay_id=replay_id,
             viewed_by_ids=viewed_by_ids,
