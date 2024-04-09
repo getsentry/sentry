@@ -293,6 +293,8 @@ def generate_viewed_by_response(
     request_user: User,
 ) -> ReplayViewedByResponse:
     """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
+    if viewed_by_ids == []:
+        return {"viewed_by": []}
 
     # in case invalid/non-existent viewed_by_ids are returned by Snuba, they will be filtered out here.
     serialized_users = user_service.serialize_many(
@@ -300,6 +302,4 @@ def generate_viewed_by_response(
         as_user=serialize_generic_user(request_user),
     )
 
-    return {
-        "viewed_by": serialized_users,
-    }
+    return {"viewed_by": serialized_users}
