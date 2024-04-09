@@ -246,6 +246,28 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result
 
+    def get_sums(
+        self,
+        keys: list[int],
+        group: GroupEvent,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        sums: Mapping[int, int] = self.tsdb.get_sums(
+            model=get_issue_tsdb_group_model(group.issue_category),
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
+            referrer_suffix=referrer_suffix,
+        )
+        return sums
+
     @property
     def is_guessed_to_be_created_on_project_creation(self) -> bool:
         """
@@ -270,39 +292,37 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(event.group.issue_category),
+        sums: Mapping[int, int] = self.get_sums(
             keys=[event.group_id],
+            group=event.group,
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_frequency",
         )
         return sums[event.group_id]
 
-    def get_sums(
-        self, model: int, groups: list[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int] | None:
-        if not len(groups):
-            return None
-
-        group = groups[0]
-
-        sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(model),
-            keys=[group.id for group in groups],
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-            jitter_value=group.id,
-            tenant_ids={"organization_id": group.project.organization_id},
-            referrer_suffix="alert_event_frequency",
-        )
-        return sums
+    def get_chunked_sums(
+        self,
+        groups: list[Group],
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        for group_chunk in chunked(groups, SNUBA_LIMIT):
+            keys = [group.id for group in groups]
+            error_sums = self.get_sums(
+                keys=keys,
+                group=groups[0],
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
+            )
+            batch_sums.update(error_sums)
+        return batch_sums
 
     def batch_query_hook(
         self, group_ids: list[int], start: datetime, end: datetime, environment_id: str
@@ -312,13 +332,26 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
         generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
 
-        for group_chunk in chunked(error_issues, SNUBA_LIMIT):
-            error_sums = self.get_sums(GroupCategory.ERROR, group_chunk, start, end, environment_id)
+        if error_issues:
+            error_sums = self.get_chunked_sums(
+                groups=error_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
+            )
             batch_sums.update(error_sums)
 
-        for group_chunk in chunked(generic_issues, SNUBA_LIMIT):
-            generic_sums = self.get_sums("", group_chunk, start, end, environment_id)
+        if generic_issues:
+            generic_sums = self.get_chunked_sums(
+                groups=generic_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
+            )
             batch_sums.update(generic_sums)
+
         return batch_sums
 
     def get_preview_aggregate(self) -> tuple[str, str]:
@@ -440,16 +473,12 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 percent_intervals[self.get_option("interval")][1].total_seconds() // 60
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
-
-            issue_count = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(event.group.issue_category),
+            issue_count = self.get_sums(
                 keys=[event.group_id],
+                group=event.group,
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                use_cache=True,
-                jitter_value=event.group_id,
-                tenant_ids={"organization_id": event.group.project.organization_id},
                 referrer_suffix="alert_event_frequency_percent",
             )[event.group_id]
             if issue_count > avg_sessions_in_interval:
