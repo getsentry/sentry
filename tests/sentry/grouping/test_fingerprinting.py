@@ -10,7 +10,7 @@ from tests.sentry.grouping import with_fingerprint_input
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
-def test_basic_parsing(insta_snapshot: Any) -> None:
+def test_basic_parsing(insta_snapshot: object) -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -124,7 +124,7 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     }
 
 
-def test_discover_field_parsing(insta_snapshot: Any) -> None:
+def test_discover_field_parsing(insta_snapshot: object) -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config

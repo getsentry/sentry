@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import inspect
 import logging
 from collections.abc import Generator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -70,7 +72,7 @@ class InvalidFingerprintingConfig(Exception):
 
 
 class EventAccess:
-    def __init__(self, event: dict[str, Any]) -> None:
+    def __init__(self, event: dict[str, object]) -> None:
         self.event = event
         self._exceptions = None
         self._frames = None
@@ -117,7 +119,7 @@ class EventAccess:
                 )
         return self._exceptions
 
-    def _push_frame(self, frame: dict[str, Any]) -> None:
+    def _push_frame(self, frame: dict[str, object]) -> None:
         platform = frame.get("platform") or self.event.get("platform")
         func = get_function_name_for_frame(frame, platform)
         self._frames.append(
@@ -131,7 +133,7 @@ class EventAccess:
             }
         )
 
-    def get_frames(self) -> list[dict[str, Any]]:
+    def get_frames(self) -> list[dict[str, object]]:
         if self._frames is None:
             self._frames = []
 
@@ -167,6 +169,101 @@ class EventAccess:
 
     def get_values(self, match_group: str) -> list[dict[str, str]]:
         return getattr(self, "get_" + match_group)()
+
+
+class FingerprintingRules:
+    def __init__(
+        self,
+        rules: Sequence[Rule],
+        changelog: Sequence[object] = None,
+        version: int = None,
+        bases: Sequence[object] | None = None,
+    ) -> None:
+        if version is None:
+            version = VERSION
+        self.version = version
+        self.rules = rules
+        self.changelog = changelog
+        self.bases = bases or []
+
+    def iter_rules(self, include_builtin: bool = True) -> Generator[Rule, None, None]:
+        if self.rules:
+            yield from self.rules
+        if include_builtin:
+            for base in self.bases:
+                base_rules = FINGERPRINTING_BASES.get(base, [])
+                yield from base_rules
+
+    def get_fingerprint_values_for_event(self, event: dict[str, object]) -> None | object:
+        if not (self.bases or self.rules):
+            return
+        access = EventAccess(event)
+        for rule in self.iter_rules():
+            new_values = rule.get_fingerprint_values_for_event_access(access)
+            if new_values is not None:
+                return (rule,) + new_values
+        return None
+
+    @classmethod
+    def _from_config_structure(cls, data: dict[str, object], bases: object = None) -> Any:
+        version = data["version"]
+        if version != VERSION:
+            raise ValueError("Unknown version")
+        return cls(
+            rules=[Rule._from_config_structure(x) for x in data["rules"]],
+            version=version,
+            bases=bases,
+        )
+
+    def _to_config_structure(self, include_builtin: bool = False) -> dict[str, Any]:
+        rules = self.iter_rules(include_builtin=include_builtin)
+
+        return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
+
+    def to_json(self, include_builtin: bool = False) -> dict[str, Any]:
+        return self._to_config_structure(include_builtin=include_builtin)
+
+    @classmethod
+    def from_json(cls, value: dict[str, object], bases: object = None) -> object:
+        try:
+            return cls._from_config_structure(value, bases=bases)
+        except (LookupError, AttributeError, TypeError, ValueError) as e:
+            raise ValueError("invalid fingerprinting config: %s" % e)
+
+    @staticmethod
+    def from_config_string(s: Any, bases: object = None) -> Any:
+        try:
+            tree = fingerprinting_grammar.parse(s)
+        except ParseError as e:
+            context = e.text[e.pos : e.pos + 33]
+            if len(context) == 33:
+                context = context[:-1] + "..."
+            raise InvalidFingerprintingConfig(
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
+            )
+        return FingerprintingVisitor(bases=bases).visit(tree)
+
+
+class BuiltInFingerprintingRules(FingerprintingRules):
+    """
+    A FingerprintingRules object that marks all of its rules as built-in
+    """
+
+    @staticmethod
+    def from_config_string(s: Any, bases: object = None) -> Any:
+        fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
+        for r in fingerprinting_rules.rules:
+            r.is_builtin = True
+        return fingerprinting_rules
+
+    @classmethod
+    def _from_config_structure(
+        cls: object, data: dict[str, object], bases: object = None
+    ) -> Sequence[FingerprintingRules]:
+        fingerprinting_rules = super()._from_config_structure(data, bases=bases)
+        for r in fingerprinting_rules.rules:
+            r.is_builtin = True
+        return fingerprinting_rules
 
 
 MATCHERS = {
@@ -225,7 +322,7 @@ class Match:
             return "release"
         return "frames"
 
-    def matches(self, values: dict[str, Any]) -> None:
+    def matches(self, values: dict[str, object]) -> None:
         rv = self._positive_match(values)
         if self.negated:
             rv = not rv
@@ -242,7 +339,7 @@ class Match:
             return True
         return False
 
-    def _positive_match(self, values: dict[str, Any]) -> bool:
+    def _positive_match(self, values: dict[str, object]) -> bool:
         # path is special in that it tests against two values (abs_path and path)
         if self.key == "path":
             value = values.get("abs_path")
@@ -294,7 +391,7 @@ class Match:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls: Any, obj: Sequence[Any]) -> None:
+    def _from_config_structure(cls: Self, obj: Sequence[object]) -> None:
         key = obj[0]
         if key.startswith("!"):
             key = key[1:]
@@ -317,7 +414,7 @@ class Rule:
         self,
         matchers: Sequence[Match],
         fingerprint: str,
-        attributes: Sequence[Any],
+        attributes: Sequence[object],
         is_builtin: bool = False,
     ) -> None:
         self.matchers = matchers
@@ -327,7 +424,7 @@ class Rule:
 
     def get_fingerprint_values_for_event_access(
         self, event_access: EventAccess
-    ) -> None | tuple[str, Sequence[Any]]:
+    ) -> None | tuple[str, Sequence[object]]:
         by_match_group = {}
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
@@ -354,7 +451,7 @@ class Rule:
         return config_structure
 
     @classmethod
-    def _from_config_structure(cls: Any, obj: dict[str, Any]) -> Any:
+    def _from_config_structure(cls, obj: dict[str, object]) -> Sequence[FingerprintingRules]:
         return cls(
             [Match._from_config_structure(x) for x in obj["matchers"]],
             obj["fingerprint"],
@@ -366,7 +463,7 @@ class Rule:
         return self._to_config_structure()
 
     @classmethod
-    def from_json(cls, json: dict[str, Any]) -> Any:
+    def from_json(cls, json: dict[str, object]) -> dict[str, Any]:
         return cls._from_config_structure(json)
 
     @property
@@ -381,112 +478,19 @@ class Rule:
         ).rstrip()
 
 
-class FingerprintingRules:
-    def __init__(
-        self,
-        rules: Sequence[Rule],
-        changelog: Sequence[Any] = None,
-        version: int = None,
-        bases: Sequence[Any] | None = None,
-    ) -> None:
-        if version is None:
-            version = VERSION
-        self.version = version
-        self.rules = rules
-        self.changelog = changelog
-        self.bases = bases or []
-
-    def iter_rules(self, include_builtin: bool = True) -> Generator[Rule, Any, Any]:
-        if self.rules:
-            yield from self.rules
-        if include_builtin:
-            for base in self.bases:
-                base_rules = FINGERPRINTING_BASES.get(base, [])
-                yield from base_rules
-
-    def get_fingerprint_values_for_event(self, event: dict[str, Any]) -> None | Any:
-        if not (self.bases or self.rules):
-            return
-        access = EventAccess(event)
-        for rule in self.iter_rules():
-            new_values = rule.get_fingerprint_values_for_event_access(access)
-            if new_values is not None:
-                return (rule,) + new_values
-        return None
-
-    @classmethod
-    def _from_config_structure(cls: Any, data: dict[str, Any], bases: Any = None) -> Any:
-        version = data["version"]
-        if version != VERSION:
-            raise ValueError("Unknown version")
-        return cls(
-            rules=[Rule._from_config_structure(x) for x in data["rules"]],
-            version=version,
-            bases=bases,
-        )
-
-    def _to_config_structure(self, include_builtin: bool = False) -> None:
-        rules = self.iter_rules(include_builtin=include_builtin)
-
-        return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
-
-    def to_json(self, include_builtin: bool = False) -> None:
-        return self._to_config_structure(include_builtin=include_builtin)
-
-    @classmethod
-    def from_json(cls, value: dict[str, Any], bases: Any = None) -> Any:
-        try:
-            return cls._from_config_structure(value, bases=bases)
-        except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid fingerprinting config: %s" % e)
-
-    @staticmethod
-    def from_config_string(s: Any, bases: Any = None) -> Any:
-        try:
-            tree = fingerprinting_grammar.parse(s)
-        except ParseError as e:
-            context = e.text[e.pos : e.pos + 33]
-            if len(context) == 33:
-                context = context[:-1] + "..."
-            raise InvalidFingerprintingConfig(
-                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
-            )
-        return FingerprintingVisitor(bases=bases).visit(tree)
-
-
-class BuiltInFingerprintingRules(FingerprintingRules):
-    """
-    A FingerprintingRules object that marks all of its rules as built-in
-    """
-
-    @staticmethod
-    def from_config_string(s: Any, bases: Any = None) -> None:
-        fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
-        for r in fingerprinting_rules.rules:
-            r.is_builtin = True
-        return fingerprinting_rules
-
-    @classmethod
-    def _from_config_structure(
-        cls: Any, data: dict[str, Any], bases: Any = None
-    ) -> Sequence[FingerprintingRules]:
-        fingerprinting_rules = super()._from_config_structure(data, bases=bases)
-        for r in fingerprinting_rules.rules:
-            r.is_builtin = True
-        return fingerprinting_rules
-
-
 class FingerprintingVisitor(NodeVisitor):  # type: ignore[type-arg]
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
-    def __init__(self, bases: Any) -> None:
+    def __init__(self, bases: object) -> None:
         self.bases = bases
 
-    def visit_comment(self, node: Any, _: Sequence[Any]) -> str:
+    def visit_comment(self, node: object, _: Sequence[object]) -> str:
         return node.text
 
-    def visit_fingerprinting_rules(self, _: Any, children: Sequence[Any]) -> FingerprintingRules:
+    def visit_fingerprinting_rules(
+        self, _: object, children: Sequence[object]
+    ) -> FingerprintingRules:
         changelog = []
         rules = []
         in_header = True
@@ -505,29 +509,33 @@ class FingerprintingVisitor(NodeVisitor):  # type: ignore[type-arg]
             bases=self.bases,
         )
 
-    def visit_line(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_line(self, _: object, children: Sequence[tuple[object, object, object]]) -> None:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
             return comment_or_rule_or_empty
 
-    def visit_rule(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_rule(self, _: object, children: Sequence[tuple[object, object, object]]) -> None:
         _, matcher, _, _, _, (fingerprint, attributes) = children
         return Rule(matcher, fingerprint, attributes)
 
-    def visit_matcher(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_matcher(self, _: object, children: Sequence[tuple[object, object, object]]) -> None:
         _, negation, ty, _, argument = children
         return Match(ty, argument, bool(negation))
 
-    def visit_matcher_type(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_matcher_type(
+        self, _: object, children: Sequence[tuple[object, object, object]]
+    ) -> None:
         return children[0]
 
-    def visit_argument(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_argument(self, _: object, children: Sequence[tuple[object, object, object]]) -> None:
         return children[0]
 
     visit_fp_argument = visit_argument
 
-    def visit_fingerprint(self, _: Any, children: Sequence[tuple[Any, Any, Any]]) -> None:
+    def visit_fingerprint(
+        self, _: object, children: Sequence[tuple[object, object, object]]
+    ) -> None:
         fingerprint = []
         attributes = {}
         for item in children:
@@ -538,36 +546,36 @@ class FingerprintingVisitor(NodeVisitor):  # type: ignore[type-arg]
                 fingerprint.append(item)
         return fingerprint, attributes
 
-    def visit_fp_value(self, _: Any, children: Sequence[Any]) -> None:
+    def visit_fp_value(self, _: object, children: Sequence[object]) -> None:
         _, argument, _, _ = children
         return argument
 
-    def visit_fp_attribute(self, _: Any, children: Sequence[Any]) -> None:
+    def visit_fp_attribute(self, _: object, children: Sequence[object]) -> None:
         key, _, value = children
         if key != "title":
             raise InvalidFingerprintingConfig("Unknown attribute '%s'" % key)
         return (key, value)
 
-    def visit_quoted(self, node: Any, _: Sequence[Any]) -> None:
+    def visit_quoted(self, node: object, _: Sequence[object]) -> None:
         return unescape_string(node.text[1:-1])
 
-    def visit_unquoted(self, node: Any, _: Sequence[Any]) -> None:
+    def visit_unquoted(self, node: object, _: Sequence[object]) -> None:
         return node.text
 
     visit_unquoted_no_comma = visit_unquoted
 
-    def generic_visit(self, _: Any, children: Sequence[Any]) -> None:
+    def generic_visit(self, _: object, children: Sequence[object]) -> None:
         return children
 
-    def visit_key(self, node: Any, _: Sequence[Any]) -> None:
+    def visit_key(self, node: object, _: Sequence[object]) -> None:
         return node.text
 
-    def visit_quoted_key(self, node: Any, _: Sequence[Any]) -> None:
+    def visit_quoted_key(self, node: object, _: Sequence[object]) -> None:
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
 
 
-def _load_configs() -> dict[str, Any]:
+def _load_configs() -> dict[str, object]:
     if not CONFIGS_DIR.exists():
         logger.error(
             "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
