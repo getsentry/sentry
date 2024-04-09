@@ -103,6 +103,10 @@ class ProjectKeyTest(TestCase):
                 == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://testserver/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+            )
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
@@ -123,6 +127,10 @@ class ProjectKeyTest(TestCase):
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+            )
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_multiregion(self):
@@ -136,6 +144,10 @@ class ProjectKeyTest(TestCase):
             key.minidump_endpoint == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
         )
         assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+        assert (
+            key.crons_endpoint
+            == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+        )
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_org_subdomain_and_multiregion(self):
@@ -156,6 +168,10 @@ class ProjectKeyTest(TestCase):
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+            )
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")

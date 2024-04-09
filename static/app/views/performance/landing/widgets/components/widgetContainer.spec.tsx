@@ -1192,7 +1192,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // Open context menu
     await userEvent.click(await screen.findByLabelText('More'));
 
-    // Check that the the "User Misery" option is disabled by clicking on it,
+    // Check that the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
     const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
     await userEvent.click(userMiseryOption);
