@@ -470,23 +470,6 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update)
 
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            try:
-                # Temporarily logging results from session updates for comparison with data from metric
-                # updates
-                logger.info(
-                    "subscription_processor.message",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.subscription.snuba_query.dataset,
-                        "snuba_subscription_id": self.subscription.subscription_id,
-                        "result": subscription_update,
-                        "aggregation_value": aggregation_value,
-                    },
-                )
-            except Exception:
-                logger.exception("Failed to log subscription results for session subscription")
-
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
         # TODO: register over/under triggers as alert rule callbacks as well
         invoke_alert_subscription_callback(
