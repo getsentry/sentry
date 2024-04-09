@@ -149,11 +149,6 @@ def transform_spans_to_event_dict(spans):
         "op": sentry_tags.get("transaction.op"),
         "span_id": span["span_id"],
     }
-    event["received"] = span["received"]
-    event["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
-    event["datetime"] = to_datetime(event["timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    event["start_timestamp"] = span["start_timestamp_ms"] / 1000
 
     if (profile_id := span.get("profile_id")) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
@@ -182,6 +177,7 @@ def transform_spans_to_event_dict(spans):
     event["received"] = root_span["received"]
     event["timestamp"] = (root_span["start_timestamp_ms"] + root_span["duration_ms"]) / 1000
     event["start_timestamp"] = root_span["start_timestamp_ms"] / 1000
+    event["datetime"] = to_datetime(event["timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return event
 
