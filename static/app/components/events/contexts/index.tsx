@@ -39,7 +39,7 @@ export function EventContexts({event, group}: Props) {
   }, [usingOtel, sdk]);
 
   if (hasNewTagsUI) {
-    const orderedContext: [string, Record<string, any>][] = [
+    const orderedContext: [string, any][] = [
       ['response', response],
       ['feedback', feedback],
       ['user', user],
@@ -47,17 +47,19 @@ export function EventContexts({event, group}: Props) {
     ];
     // For these context keys, use 'key' as 'type' rather than 'value.type'
     const overrideTypes = new Set(['response', 'feedback', 'user']);
-    const cards = orderedContext.map(([k, v]) => (
-      <ContextCard
-        key={k}
-        type={overrideTypes.has(k) ? k : v?.type ?? ''}
-        alias={k}
-        value={v}
-        event={event}
-        group={group}
-        project={project}
-      />
-    ));
+    const cards = orderedContext
+      .filter(([_k, v]) => !objectIsEmpty(v))
+      .map(([k, v]) => (
+        <ContextCard
+          key={k}
+          type={overrideTypes.has(k) ? k : v?.type ?? ''}
+          alias={k}
+          value={v}
+          event={event}
+          group={group}
+          project={project}
+        />
+      ));
 
     return <ContextDataSection cards={cards} />;
   }

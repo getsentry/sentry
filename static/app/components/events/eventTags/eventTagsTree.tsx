@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {useDimensions} from 'sentry/utils/useDimensions';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -170,8 +170,7 @@ function TagTreeColumns({
 
 function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions<HTMLDivElement>({elementRef: containerRef});
-  const columnCount = width < 700 ? 1 : 2;
+  const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
     <TreeContainer ref={containerRef}>
       <TreeGarden columnCount={columnCount}>
