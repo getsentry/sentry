@@ -49,7 +49,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         examples=ReplayExamples.GET_REPLAY_VIEWED_BY,
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Gets the users who have viewed the given replay. The result is a list of serialized Sentry user objects."""
+        """Return a list of users who have viewed a replay."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
@@ -100,7 +100,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         examples=None,
     )
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Publishes a replay_viewed event with the requesting user's id, for Snuba processing."""
+        """Record a replay-viewed event."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
