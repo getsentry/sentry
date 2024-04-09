@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable, Mapping
 from copy import deepcopy
-from typing import Any
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -43,8 +43,16 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
 
+InputType = TypeVar("InputType")
+OutputType = TypeVar("OutputType", str, int, float, bool)
+
+ValidContextTypes = TypeVar(
+    "ValidContextTypes", str, int, float, bool, list[str], list[int], list[float], list[bool]
+)
+
+EvaluationContextDict = dict[str, ValidContextTypes]
 # A function that generates a new slice of evaluation context data as a dictionary.
-EvaluationContextTransformer = Callable[[dict[str, Any]], dict[str, Any]]
+EvaluationContextTransformer = Callable[[dict[str, Any]], EvaluationContextDict]
 
 
 class ContextBuilder(BaseModel):
@@ -53,12 +61,15 @@ class ContextBuilder(BaseModel):
     This class aggregates a list of context transformers, each of which are
     responsible for generating a slice of context data.
 
-    This class is meant to be used with Flagpole's `Feature` class
-    >>> from flagpole import 'ContextBuilder'
+    This class is meant to be used with Flagpole's `Feature` class:
+    >>> from flagpole import ContextBuilder, Feature
     >>> builder = ContextBuilder().add_context_transformer(lambda _dict: dict(foo="bar"))
+    >>> feature = Feature.from_feature_dictionary(name="foo", feature_dictionary=dict(), context=builder)
+    >>> feature.match(dict())
     """
 
     context_transformers: list[EvaluationContextTransformer] = []
+    exception_handler: Callable[[Exception], Any] | None
 
     def add_context_transformer(
         self, context_transformer: EvaluationContextTransformer
@@ -66,11 +77,30 @@ class ContextBuilder(BaseModel):
         self.context_transformers.append(context_transformer)
         return self
 
+    def add_exception_handler(self, exception_handler: Callable[[Exception], Any]):
+        """
+        Add a custom exception handler to the context builder if you need custom handling
+        if any of the transformer functions raise an exception. This is useful for swallowing
+        or reporting any exceptions that occur while building a context.
+
+        :param exception_handler:
+        """
+        if self.exception_handler is not None:
+            raise Exception("Exception handler is already defined")
+
+        self.exception_handler = exception_handler
+
     def build(self, data: dict[str, Any] | None = None) -> EvaluationContext:
         builder_data: dict[str, Any] = data or dict()
         context_data: dict[str, Any] = dict()
 
         for transformer in self.context_transformers:
-            context_data = {**context_data, **transformer(builder_data)}
+            try:
+                context_data = {**context_data, **transformer(builder_data)}
+            except Exception as e:
+                if self.exception_handler is not None:
+                    self.exception_handler(e)
+                else:
+                    raise
 
         return EvaluationContext(context_data)

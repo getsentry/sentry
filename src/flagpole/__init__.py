@@ -150,4 +150,4 @@ class Feature(BaseModel):
         )
 
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration"]
+__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder"]

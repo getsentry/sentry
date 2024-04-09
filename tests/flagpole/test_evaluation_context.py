@@ -1,6 +1,8 @@
 from typing import Any
 
-from flagpole.evaluation_context import ContextBuilder
+import pytest
+
+from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 
 
 class TestEvaluationContext:
@@ -54,3 +56,23 @@ class TestContextBuilder:
         assert eval_context.get("foo") == "bar"
         assert eval_context.get("baz") == 2
         assert eval_context.get("buzz") == {1, 2, 3}
+
+    def test_with_exception_handler(self):
+        exc_message = "oh noooooo"
+
+        def broken_transformer(_data: dict[str, Any]) -> EvaluationContextDict:
+            raise Exception(exc_message)
+
+        context_builder = ContextBuilder().add_context_transformer(broken_transformer)
+
+        with pytest.raises(Exception) as exc:
+            context_builder.build(dict())
+
+        assert exc.match(exc_message)
+
+        # Ensure builder doesn't raise an exception
+        context_builder.add_exception_handler(lambda _exc: None)
+        context_builder.build(dict())
+
+        with pytest.raises(Exception):
+            context_builder.add_exception_handler(lambda _exc: None)

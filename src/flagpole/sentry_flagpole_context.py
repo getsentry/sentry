@@ -1,6 +1,6 @@
 from typing import Any
 
-from flagpole.evaluation_context import ContextBuilder
+from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
@@ -13,7 +13,7 @@ class InvalidContextDataException(Exception):
 
 
 def organization_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
-    context_data = dict()
+    context_data: EvaluationContextDict = dict()
     org = data.get("organization", None)
     if org is None:
         return context_data
@@ -50,17 +50,17 @@ def project_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
     return context_data
 
 
-def team_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
+def team_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     raise NotImplementedError()
 
 
-def user_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
-    context_data = dict()
+def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+    context_data: EvaluationContextDict = dict()
     user = data.get("actor", None)
     if user is None:
         return context_data
 
-    if not isinstance(user, User) or isinstance(user, RpcUser):
+    if not isinstance(user, User) and not isinstance(user, RpcUser):
         raise InvalidContextDataException("Invalid actor object provided")
 
     if user.is_authenticated:
