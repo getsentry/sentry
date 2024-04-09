@@ -4365,16 +4365,6 @@ array-union@^2.1.0:
   resolved "https://registry.yarnpkg.com/array-union/-/array-union-2.1.0.tgz#b798420adbeb1de828d84acd8a2e23d3efe85e8d"
   integrity sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==
 
-array.prototype.find@^2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/array.prototype.find/-/array.prototype.find-2.2.2.tgz#e862cf891e725d8f2a10e5e42d750629faaabd32"
-  integrity sha512-DRumkfW97iZGOfn+lIXbkVrXL04sfYKX+EfOodo8XboR5sxPDVvOjZTF/rysusa9lmhmSOeD6Vp6RKQP+eP4Tg==
-  dependencies:
-    call-bind "^1.0.2"
-    define-properties "^1.2.0"
-    es-abstract "^1.22.1"
-    es-shim-unscopables "^1.0.0"
-
 array.prototype.findlast@^1.2.4:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/array.prototype.findlast/-/array.prototype.findlast-1.2.5.tgz#3e4fbcb30a15a7f5bf64cf2faae22d139c2e4904"
@@ -6050,15 +6040,6 @@ enhanced-resolve@5.12.0:
     graceful-fs "^4.2.4"
     tapable "^2.2.0"
 
-enhanced-resolve@^0.9.1:
-  version "0.9.1"
-  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-0.9.1.tgz#4d6e689b3725f86090927ccc86cd9f1635b89e2e"
-  integrity sha1-TW5omzcl+GCQknzMhs2fFjW4ni4=
-  dependencies:
-    graceful-fs "^4.1.2"
-    memory-fs "^0.2.0"
-    tapable "^0.1.8"
-
 enhanced-resolve@^5.12.0, enhanced-resolve@^5.15.0:
   version "5.15.0"
   resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.15.0.tgz#1af946c7d93603eb88e9896cee4904dc012e9c35"
@@ -6300,40 +6281,39 @@ escodegen@^2.0.0:
   optionalDependencies:
     source-map "~0.6.1"
 
-eslint-config-sentry-app@2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-2.6.0.tgz#ee98a3c572fc4ed9432a2a543b7d8beb9ea45e40"
-  integrity sha512-M026JD4T393z9fUSN4eCfHX8Y4Lx0iA6s/mmHc6BeggiaH/YxWvOyjWPe31dS2l/vaFdGGlytcd0zjby6fP+Fw==
+eslint-config-sentry-app@2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-2.7.0.tgz#183fb1e9eddfbf66b5912ca468d997c5a8bfd2f3"
+  integrity sha512-ZVGssj3dtBoU8cpTcLJMR5WGN89X1v/u6k6fotUeX9kENPWJsapw4CSEnZ2U+mygRFZqYxU6wRB8mdSRwJho1g==
   dependencies:
     "@emotion/eslint-plugin" "^11.11.0"
     "@typescript-eslint/eslint-plugin" "^7.6.0"
     "@typescript-eslint/parser" "^7.6.0"
-    eslint-config-sentry "^2.6.0"
-    eslint-config-sentry-react "^2.6.0"
+    eslint-config-sentry "^2.7.0"
+    eslint-config-sentry-react "^2.7.0"
     eslint-import-resolver-typescript "^3.6.1"
-    eslint-import-resolver-webpack "^0.13.8"
     eslint-plugin-import "^2.29.1"
     eslint-plugin-jest "^28.2.0"
     eslint-plugin-no-lookahead-lookbehind-regexp "0.1.0"
     eslint-plugin-react "^7.34.1"
-    eslint-plugin-sentry "^2.6.0"
+    eslint-plugin-sentry "^2.7.0"
     eslint-plugin-simple-import-sort "^12.0.0"
 
-eslint-config-sentry-react@^2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-2.6.0.tgz#a29e569d989a551d16c2e6458a252ec87c55f735"
-  integrity sha512-8O1cNlmrU9rs5RPu21N25Xn/kGMzfPaopKiXSBeAG4OLZ4dBcvhXvSUOeHOFVVvYpV6ujzBLJP8LhgEQyQxyNQ==
+eslint-config-sentry-react@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-2.7.0.tgz#e0c78cde67df71dadd28a37c069768a62e8548bd"
+  integrity sha512-oxY0LHIK7aG1bdTf70QsL0LhvtD4UvaZQZQm1jNMhc8tiVZQu+ZOO1/rCMlokCzmbAxtldXMcNwV02aND2rOfA==
   dependencies:
-    eslint-config-sentry "^2.6.0"
+    eslint-config-sentry "^2.7.0"
     eslint-plugin-jest-dom "^5.2.0"
     eslint-plugin-react-hooks "^4.6.0"
     eslint-plugin-testing-library "^6.2.0"
     eslint-plugin-typescript-sort-keys "^3.2.0"
 
-eslint-config-sentry@^2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-2.6.0.tgz#89af53673cfac77cea8a9912feee7de478d5bf0f"
-  integrity sha512-CDtikDksvV5LkWl6tkOYTav6Z4fz/WiGxUZWn0igj25Gev6YyLJ81djkNfUSkp1x3j67xDVEzohS8zDmizfMRQ==
+eslint-config-sentry@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-2.7.0.tgz#818bd04710c06b40eef5339331c76fb432309130"
+  integrity sha512-odY//ASurosevNCHJ6LfXcqrvel5QGClsB5DO0eK0kyot0hv50XiBjS7dde+xU62xhTCFBaquX2jWDEmjeYylQ==
 
 eslint-import-resolver-node@^0.3.9:
   version "0.3.9"
@@ -6356,23 +6336,6 @@ eslint-import-resolver-typescript@^3.6.1:
     get-tsconfig "^4.5.0"
     is-core-module "^2.11.0"
     is-glob "^4.0.3"
-
-eslint-import-resolver-webpack@^0.13.8:
-  version "0.13.8"
-  resolved "https://registry.yarnpkg.com/eslint-import-resolver-webpack/-/eslint-import-resolver-webpack-0.13.8.tgz#5f64d1d653eefa19cdfd0f0165c996b6be7012f9"
-  integrity sha512-Y7WIaXWV+Q21Rz/PJgUxiW/FTBOWmU8NTLdz+nz9mMoiz5vAev/fOaQxwD7qRzTfE3HSm1qsxZ5uRd7eX+VEtA==
-  dependencies:
-    array.prototype.find "^2.2.2"
-    debug "^3.2.7"
-    enhanced-resolve "^0.9.1"
-    find-root "^1.1.0"
-    hasown "^2.0.0"
-    interpret "^1.4.0"
-    is-core-module "^2.13.1"
-    is-regex "^1.1.4"
-    lodash "^4.17.21"
-    resolve "^2.0.0-next.5"
-    semver "^5.7.2"
 
 eslint-module-utils@^2.7.4, eslint-module-utils@^2.8.0:
   version "2.8.0"
@@ -6456,10 +6419,10 @@ eslint-plugin-react@^7.34.1:
     semver "^6.3.1"
     string.prototype.matchall "^4.0.10"
 
-eslint-plugin-sentry@^2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-2.6.0.tgz#1907c09d863319d4cf5d15136bf7fbca7d6b6dd8"
-  integrity sha512-svBqojXw0tWN3IsLHKwk1ypVLpr8QnaGClKFaLodiDdQeLyiyOPBvVsKFW9fa3PN2oUAdkALi3g+szJiBq7oQQ==
+eslint-plugin-sentry@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-2.7.0.tgz#8b5c3dad736d0d760ef621af65d0567d896daad9"
+  integrity sha512-7SJluH5I319mPqH9gFYt5tVCe2VeGpNIfEi/1oCJwOPwEnhIXG3lY06dJxRbG2FJo4yTq7ODaLCdRNrp3F5ZyQ==
   dependencies:
     requireindex "~1.2.0"
 
@@ -7571,11 +7534,6 @@ internal-slot@^1.0.7:
     es-errors "^1.3.0"
     hasown "^2.0.0"
     side-channel "^1.0.4"
-
-interpret@^1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/interpret/-/interpret-1.4.0.tgz#665ab8bc4da27a774a40584e812e3e0fa45b1a1e"
-  integrity sha512-agE4QfB2Lkp9uICn7BAqoscw4SZP9kTE2hxiFI3jBPmXJfdqiahTbUuKGsMoN2GtqL9AxhYioAcVvgsb1HvRbA==
 
 interpret@^3.1.1:
   version "3.1.1"
@@ -8929,11 +8887,6 @@ memoize-one@^5.0.0:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/memoize-one/-/memoize-one-5.1.1.tgz#047b6e3199b508eaec03504de71229b8eb1d75c0"
   integrity sha512-HKeeBpWvqiVJD57ZUAsJNm71eHTykffzcLZVYWiVfQeI1rJtuEaS7hQiEpWfVVk18donPwJEcFKIkCmPJNOhHA==
-
-memory-fs@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/memory-fs/-/memory-fs-0.2.0.tgz#f2bb25368bc121e391c2520de92969caee0a0290"
-  integrity sha1-8rslNovBIeORwlIN6Slpyu4KApA=
 
 meow@^13.1.0:
   version "13.2.0"
@@ -10678,7 +10631,7 @@ selfsigned@^2.1.1:
   dependencies:
     node-forge "^1"
 
-semver@^5.6.0, semver@^5.7.2:
+semver@^5.6.0:
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.2.tgz#48d55db737c3287cd4835e17fa13feace1c41ef8"
   integrity sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==
@@ -11350,11 +11303,6 @@ tapable@2.2.1, tapable@^2.0.0, tapable@^2.1.1, tapable@^2.2.0, tapable@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/tapable/-/tapable-2.2.1.tgz#1967a73ef4060a82f12ab96af86d52fdb76eeca0"
   integrity sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==
-
-tapable@^0.1.8:
-  version "0.1.10"
-  resolved "https://registry.yarnpkg.com/tapable/-/tapable-0.1.10.tgz#29c35707c2b70e50d07482b5d202e8ed446dafd4"
-  integrity sha1-KcNXB8K3DlDQdIK10gLo7URtr9Q=
 
 terminal-link@^2.1.1:
   version "2.1.1"
