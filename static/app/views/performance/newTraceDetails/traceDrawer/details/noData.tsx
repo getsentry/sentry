@@ -5,24 +5,15 @@ import {Button} from 'sentry/components/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeTraceNodeBarColor,
   type NoDataNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-interface NoDataDetailsProps {
-  node: NoDataNode;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}
-
-export function NoDataDetails(props: NoDataDetailsProps) {
+export function NoDataDetails(props: TraceTreeNodeDetailsProps<NoDataNode>) {
   const theme = useTheme();
 
   return (
@@ -38,7 +29,7 @@ export function NoDataDetails(props: NoDataDetailsProps) {
         </TraceDrawerComponents.IconTitleWrapper>
 
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => props.scrollToNode(props.node)}>
+          <Button size="xs" onClick={_e => props.onTabScrollToNode(props.node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

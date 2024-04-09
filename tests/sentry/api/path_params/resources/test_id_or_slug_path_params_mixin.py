@@ -1,16 +1,31 @@
 from typing import Any
 
+from sentry.api.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
+from sentry.api.endpoints.organization_member.team_details import (
+    OrganizationMemberTeamDetailsEndpoint,
+)
+from sentry.api.endpoints.project_team_details import ProjectTeamDetailsEndpoint
+from sentry.incidents.models.incident import Incident, IncidentActivity
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.monitors.models import MonitorCheckIn, MonitorEnvironment
+
 
 class APIIdOrSlugTestMixin:
     slug_mappings: dict[str, Any]
     reverse_slug_mappings: dict[str, Any]
-    incident: Any
-    code_mapping: Any
-    incident_activity: Any
+    incident: Incident
+    code_mapping: RepositoryProjectPathConfig
+    incident_activity: IncidentActivity
+    monitor_checkin: MonitorCheckIn
+    monitor_environment: MonitorEnvironment
 
     @property
-    def no_slugs_in_kwargs_allowlist(self):
-        return {}
+    def no_slugs_in_kwargs_allowlist(self) -> set[Any]:
+        return {
+            OrganizationEventDetailsEndpoint,
+            OrganizationMemberTeamDetailsEndpoint,
+            ProjectTeamDetailsEndpoint,
+        }
 
     def ignore_test(self, *args):
         pass
@@ -109,8 +124,6 @@ class APIIdOrSlugTestMixin:
                 for key in converted_slugs
                 if not key.endswith("_slug")
             )
-
-        # print(converted_slugs, converted_ids, reverse_non_slug_mappings)
 
         if use_id:
             self.assert_ids(

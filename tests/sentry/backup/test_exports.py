@@ -11,11 +11,11 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db import models
 from sentry.models.email import Email
+from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
@@ -30,6 +30,25 @@ from tests.sentry.backup import get_matching_exportable_models
 
 
 class ExportTestCase(BackupTestCase):
+    @staticmethod
+    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
+        return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
+
+    @staticmethod
+    def exists(
+        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
+    ) -> bool:
+        for d in data:
+            if d["model"] == str(get_model_name(model)):
+                field = d["fields"].get(key)
+                if field is None:
+                    continue
+                if value is None:
+                    return True
+                if field == value:
+                    return True
+        return False
+
     def export(
         self,
         tmp_dir,
@@ -135,25 +154,6 @@ class FilteringTests(ExportTestCase):
     Ensures that filtering operations include the correct models.
     """
 
-    @staticmethod
-    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
-        return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
-
-    @staticmethod
-    def exists(
-        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
-    ) -> bool:
-        for d in data:
-            if d["model"] == str(get_model_name(model)):
-                field = d["fields"].get(key)
-                if field is None:
-                    continue
-                if value is None:
-                    return True
-                if field == value:
-                    return True
-        return False
-
     def test_export_filter_users(self):
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
@@ -162,11 +162,10 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserIP`. Because `Email` and `UserEmail` have some automagic going on that
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
             # causes them to be created when a `User` is, we explicitly check to ensure that they
             # are behaving correctly as well.
             assert self.count(data, User) == 1
-            assert self.count(data, UserIP) == 1
             assert self.count(data, UserEmail) == 1
             assert self.count(data, Email) == 1
 
@@ -187,7 +186,6 @@ class FilteringTests(ExportTestCase):
             )
 
             assert self.count(data, User) == 3
-            assert self.count(data, UserIP) == 3
             assert self.count(data, UserEmail) == 3
             assert self.count(data, Email) == 2
 
@@ -231,7 +229,6 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 4
-            assert self.count(data, UserIP) == 4
             assert self.count(data, UserEmail) == 4
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 
@@ -268,7 +265,6 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 5
-            assert self.count(data, UserIP) == 5
             assert self.count(data, UserEmail) == 5
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 
@@ -319,3 +315,36 @@ class FilteringTests(ExportTestCase):
             assert self.count(data, UserRole) == 1
             assert self.count(data, UserRoleUser) == 1
             assert self.count(data, UserPermission) == 1
+
+
+class QueryTests(ExportTestCase):
+    """
+    Some models have custom export logic that requires bespoke testing.
+    """
+
+    def test_export_query_for_option_model(self):
+        # There are a number of options we specifically exclude by name, for various reasons
+        # enumerated in that model's definition file.
+        Option.objects.create(key="sentry:install-id", value='"excluded"')
+        Option.objects.create(key="sentry:latest_version", value='"excluded"')
+        Option.objects.create(key="sentry:last_worker_ping", value='"excluded"')
+        Option.objects.create(key="sentry:last_worker_version", value='"excluded"')
+
+        Option.objects.create(key="sentry:test-unfiltered", value="included")
+        Option.objects.create(key="foo:bar", value='"included"')
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Config,
+            )
+
+            assert self.count(data, Option) == 2
+            assert not self.exists(data, Option, "key", "sentry:install-id")
+            assert not self.exists(data, Option, "key", "sentry:last_version")
+            assert not self.exists(data, Option, "key", "sentry:last_worker_ping")
+            assert not self.exists(data, Option, "key", "sentry:last_worker_version")
+            assert not self.exists(data, Option, "value", '"excluded"')
+            assert self.exists(data, Option, "key", "sentry:test-unfiltered")
+            assert self.exists(data, Option, "key", "foo:bar")
+            assert self.exists(data, Option, "value", '"included"')

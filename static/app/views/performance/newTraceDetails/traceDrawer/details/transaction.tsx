@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -26,6 +26,7 @@ import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -48,18 +49,22 @@ import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import {useTraceAverageTransactionDuration} from '../../traceApi/useTraceAverageTransactionDuration';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -131,7 +136,7 @@ function BreadCrumbsSection({
     }, 100);
   }, [showBreadCrumbs, breadCrumbsContainerRef]);
 
-  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries.find(
+  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
     (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
   );
 
@@ -174,7 +179,7 @@ function ReplaySection({
 }) {
   const replayId = getReplayIdFromEvent(event);
   const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+    event && 'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
@@ -200,44 +205,42 @@ function ReplaySection({
   ) : null;
 }
 
-type TransactionDetailProps = {
-  manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>, force?: boolean) => void;
+const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
+  observerOptions: {rootMargin: '50px'},
 };
 
 export function TransactionNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
-}: TransactionDetailProps) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
+  const {data: averageDurationQueryResult} = useTraceAverageTransactionDuration({
+    node,
+    location,
+    organization,
+  });
+
+  const avgDurationInSeconds: number = useMemo(() => {
+    return (
+      Number(averageDurationQueryResult?.data?.[0]?.['avg(transaction.duration)']) / 1000
+    );
+  }, [averageDurationQueryResult]);
+
   const {
     data: event,
     isError,
     isLoading,
-  } = useApiQuery<EventTransaction>(
-    [
-      `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!node,
-    }
-  );
+  } = useTransaction({
+    node,
+    organization,
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -254,7 +257,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = endTimestamp - startTimestamp;
+  const durationInSeconds = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -279,22 +282,19 @@ export function TransactionNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value['transaction.op']}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node, true)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event_id}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
           <Button
             size="xs"
             icon={<IconOpen />}
@@ -310,6 +310,15 @@ export function TransactionNodeDetails({
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
+          <Row title="Duration">
+            <TraceDrawerComponents.Duration
+              duration={durationInSeconds}
+              baseline={avgDurationInSeconds}
+              baseDescription={
+                'Average duration for this transaction over the last 24 hours'
+              }
+            />
+          </Row>
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
@@ -365,9 +374,6 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">
-            <TraceDrawerComponents.Duration duration={duration} baseline={undefined} />
-          </Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
@@ -436,25 +442,29 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      {organization.features.includes('event-tags-tree-ui') ? (
-        <TagsWrapper>
-          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
-        </TagsWrapper>
-      ) : (
-        <TraceDrawerComponents.Table className="table key-value">
-          <tbody>
-            <Tags
-              enableHiding
-              location={location}
-              organization={organization}
-              tags={event.tags}
-              event={node.value}
-            />
-          </tbody>
-        </TraceDrawerComponents.Table>
-      )}
+      <LazyRender {...LAZY_RENDER_PROPS} containerHeight={200}>
+        {organization.features.includes('event-tags-tree-ui') ? (
+          <TagsWrapper>
+            <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+          </TagsWrapper>
+        ) : (
+          <TraceDrawerComponents.Table className="table key-value">
+            <tbody>
+              <Tags
+                enableHiding
+                location={location}
+                organization={organization}
+                tags={event.tags}
+                event={node.value}
+              />
+            </tbody>
+          </TraceDrawerComponents.Table>
+        )}
+      </LazyRender>
       {project ? <EventEvidence event={event} project={project} /> : null}
-      <ReplaySection event={event} organization={organization} />
+      <LazyRender {...LAZY_RENDER_PROPS} containerHeight={480}>
+        <ReplaySection event={event} organization={organization} />
+      </LazyRender>
       {event.projectSlug ? (
         <Entries
           definedEvent={event}

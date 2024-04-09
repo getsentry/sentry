@@ -10,11 +10,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
@@ -252,7 +252,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
         try:
-            if options.get("api.id-or-slug-enabled"):
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
                 sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_slug)
             else:
                 sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
@@ -270,7 +270,10 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
 class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
-        if options.get("api.id-or-slug-enabled") and str(sentry_app_slug).isnumeric():
+        if (
+            id_or_slug_path_params_enabled(self.convert_args.__qualname__)
+            and str(sentry_app_slug).isnumeric()
+        ):
             sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_slug))
         else:
             sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
@@ -316,11 +319,21 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
-        if is_active_superuser(request):
-            organization = organization_service.get_org_by_slug(slug=organization_slug)
+        extra_args = {}
+        # We need to pass user_id if the user is not a superuser
+        if not is_active_superuser(request):
+            extra_args["user_id"] = request.user.id
+
+        if (
+            id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
+            and str(organization_slug).isnumeric()
+        ):
+            organization = organization_service.get_org_by_id(
+                id=int(organization_slug), **extra_args
+            )
         else:
             organization = organization_service.get_org_by_slug(
-                slug=organization_slug, user_id=request.user.id
+                slug=organization_slug, **extra_args
             )
 
         if organization is None:

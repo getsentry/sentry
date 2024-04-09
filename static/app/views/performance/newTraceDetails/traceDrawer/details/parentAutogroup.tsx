@@ -4,16 +4,14 @@ import {useTheme} from '@emotion/react';
 import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import {
   makeTraceNodeBarColor,
   type ParentAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../../traceTree';
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -22,13 +20,8 @@ export function ParentAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  scrollToNode,
-}: {
-  node: ParentAutogroupNode;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+  onTabScrollToNode,
+}: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
@@ -50,7 +43,7 @@ export function ParentAutogroupNodeDetails({
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>

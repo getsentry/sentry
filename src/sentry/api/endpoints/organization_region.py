@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
@@ -59,9 +60,16 @@ class OrganizationRegionEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
-                slug=organization_slug
-            )
+            # We don't use the lookup since OrganizationMapping uses a BigIntField for organization_id instead of a ForeignKey
+            if (
+                id_or_slug_path_params_enabled(
+                    self.convert_args.__qualname__, str(organization_slug)
+                )
+                and str(organization_slug).isnumeric()
+            ):
+                org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
+            else:
+                org_mapping = OrganizationMapping.objects.get(slug=organization_slug)
         except OrganizationMapping.DoesNotExist:
             raise ResourceDoesNotExist
 

@@ -9,9 +9,10 @@ export const P95_COLOR = CHART_PALETTE[0][0];
 export const AVG_COLOR = CHART_PALETTE[0][0];
 export const ERRORS_COLOR = CHART_PALETTE[5][3];
 
-export const HTTP_RESPONSE_3XX_COLOR = CHART_PALETTE[2][0];
-export const HTTP_RESPONSE_4XX_COLOR = CHART_PALETTE[2][2];
-export const HTTP_RESPONSE_5XX_COLOR = CHART_PALETTE[2][1];
+// TODO: Synchronize with `theme.tsx` or `CHART_PALETTE`
+export const HTTP_RESPONSE_3XX_COLOR = '#F2B712';
+export const HTTP_RESPONSE_4XX_COLOR = '#F58C46';
+export const HTTP_RESPONSE_5XX_COLOR = '#E9626E';
 
 export const COLD_START_COLOR = '#3C74DD';
 export const WARM_START_COLOR = '#3A2D96';

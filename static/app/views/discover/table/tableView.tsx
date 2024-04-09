@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -37,8 +38,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {
-  eventDetailsRouteWithEventView,
   generateEventSlug,
+  generateLinkToEventInTraceView,
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -188,13 +189,14 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const eventIdLink = (
@@ -295,13 +297,14 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const idLink = (
@@ -337,6 +340,9 @@ function TableView(props: TableViewProps) {
         </TransactionLink>
       );
     } else if (columnKey === 'trace') {
+      const timestamp = getTimeStampFromTableDateField(
+        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+      );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
         const target = getTraceDetailsUrl(
@@ -344,7 +350,7 @@ function TableView(props: TableViewProps) {
           String(dataRow.trace),
           dateSelection,
           {},
-          dataRow.timestamp,
+          timestamp,
           dataRow.id
         );
 

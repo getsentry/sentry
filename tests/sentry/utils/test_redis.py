@@ -1,26 +1,20 @@
 from __future__ import annotations
 
-import logging
 from unittest import TestCase, mock
 
 import pytest
 import rb
-from django.utils.functional import SimpleLazyObject
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import imports
 from sentry.utils.redis import (
-    ClusterManager,
-    _RedisCluster,
+    RBClusterManager,
+    RedisClusterManager,
     _shared_pool,
     get_cluster_from_options,
-    logger,
 )
 from sentry.utils.warnings import DeprecatedSettingWarning
-
-# Silence connection warnings
-logger.setLevel(logging.ERROR)
 
 
 def _options_manager():
@@ -38,7 +32,7 @@ class ClusterManagerTestCase(TestCase):
         imports._cache.clear()
 
     def test_get(self):
-        manager = ClusterManager(_options_manager())
+        manager = RBClusterManager(_options_manager())
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")
         assert manager.get("foo").pool_cls is _shared_pool
@@ -47,12 +41,12 @@ class ClusterManagerTestCase(TestCase):
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     def test_specific_cluster(self, RetryingRedisCluster):
-        manager = ClusterManager(_options_manager(), cluster_type=_RedisCluster)
+        manager = RedisClusterManager(_options_manager())
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
         # object to verify it's correct.
 
-        # cluster foo is fine since it's a single node, without specific client_class
+        # cluster foo is fine since it's a single node
         assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[attr-defined]
         # baz works becasue it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[attr-defined]
@@ -62,26 +56,19 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get("bar")
 
-    def test_multiple_retrieval_do_not_setup_lazy_object(self):
-        class TestClusterType:
-            def supports(self, config):
-                return True
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_multiple_retrieval_do_not_setup_lazy_object(self, RetryingRedisCluster):
+        RetryingRedisCluster.side_effect = AssertionError("should not be called")
 
-            def factory(self, **config):
-                def setupfunc():
-                    assert False, "setupfunc should not be called"
-
-                return SimpleLazyObject(setupfunc)
-
-        manager = ClusterManager(_options_manager(), cluster_type=TestClusterType)
-        manager.get("foo")
+        manager = RedisClusterManager(_options_manager())
+        manager.get("baz")
         # repeated retrieval should not trigger call to setupfunc
-        manager.get("foo")
+        manager.get("baz")
 
 
 def test_get_cluster_from_options_cluster_provided():
     backend = mock.sentinel.backend
-    manager = ClusterManager(_options_manager())
+    manager = RBClusterManager(_options_manager())
 
     cluster, options = get_cluster_from_options(
         backend, {"cluster": "foo", "foo": "bar"}, cluster_manager=manager
@@ -95,7 +82,7 @@ def test_get_cluster_from_options_cluster_provided():
 
 def test_get_cluster_from_options_legacy_hosts_option():
     backend = mock.sentinel.backend
-    manager = ClusterManager(_options_manager())
+    manager = RBClusterManager(_options_manager())
 
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         cluster, options = get_cluster_from_options(
@@ -116,7 +103,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
 
 def test_get_cluster_from_options_both_options_invalid():
     backend = mock.sentinel.backend
-    manager = ClusterManager(_options_manager())
+    manager = RBClusterManager(_options_manager())
 
     with pytest.raises(InvalidConfiguration):
         cluster, options = get_cluster_from_options(

@@ -18,7 +18,7 @@ from sentry.models.organization import Organization
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links_control
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -65,12 +65,27 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             disabled=disabled,
         )
 
+        if provider.is_saml and provider.name != "SAML2":
+            # Generic SAML2 provider already includes the certificate field in it's own configure view
+            x509cert = forms.CharField(
+                label="x509 public certificate",
+                widget=forms.Textarea,
+                help_text=_("The SAML certificate for your Identity Provider"),
+                required=False,
+                disabled=disabled,
+            )
+
     initial = {
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
     }
     if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
+
+    if provider.is_saml:
+        initial_idp = auth_provider.config.get("idp", {})
+        certificate = initial_idp.get("x509cert", "")
+        initial["x509cert"] = certificate
 
     form = AuthProviderSettingsForm(
         data=request.POST if request.POST.get("op") == "settings" else None, initial=initial
@@ -124,7 +139,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 next_uri = f"/settings/{organization.slug}/auth/"
                 return self.redirect(next_uri)
             elif op == "reinvite":
-                email_missing_links.delay(organization.id, request.user.id, provider.key)
+                email_missing_links_control.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(request, messages.SUCCESS, OK_REMINDERS_SENT)
 
@@ -152,7 +167,23 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             if form.initial != form.cleaned_data:
                 changed_data = {}
                 for key, value in form.cleaned_data.items():
-                    if form.initial.get(key) != value:
+                    if key == "x509cert":
+                        original_idp = auth_provider.config.get("idp", {})
+                        if original_idp.get("x509cert", "") != value:
+                            auth_provider.config = {
+                                **auth_provider.config,
+                                "idp": {
+                                    **original_idp,
+                                    "x509cert": value,
+                                },
+                            }
+                            auth_service.update_provider_config(
+                                organization_id=organization.id,
+                                auth_provider_id=auth_provider.id,
+                                config=auth_provider.config,
+                            )
+                            changed_data["x509cert"] = f"to {value}"
+                    elif form.initial.get(key) != value:
                         changed_data[key] = f"to {value}"
 
                 self.create_audit_entry(
@@ -213,9 +244,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 return HttpResponseBadRequest()
 
             helper = AuthHelper(
-                request=request,
+                request=request,  # this has all our form data
                 organization=organization,
-                provider_key=provider_key,
+                provider_key=provider_key,  # okta, google, onelogin, etc
                 flow=AuthHelper.FLOW_SETUP_PROVIDER,
             )
 

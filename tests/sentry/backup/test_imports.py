@@ -388,42 +388,6 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.user"
 
     @patch("sentry.models.userip.geo_by_addr")
-    def test_good_regional_user_ip_in_user_scope(self, mock_geo_by_addr):
-        mock_geo_by_addr.return_value = {
-            "country_code": "US",
-            "region": "CA",
-            "subdivision": "San Francisco",
-        }
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
-                models = self.json_of_exhaustive_user_with_minimum_privileges()
-
-                # Modify the UserIP to be in California, USA.
-                for model in models:
-                    if model["model"] == "sentry.userip":
-                        model["fields"]["ip_address"] = "8.8.8.8"
-                json.dump(models, tmp_file)
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserIP.objects.count() == 1
-            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
-
-            # Unlike global scope, this time must be reset.
-            assert UserIP.objects.filter(
-                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
-            ).exists()
-            assert UserIP.objects.filter(
-                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
-            ).exists()
-
-    @patch("sentry.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
             "country_code": "US",
@@ -551,7 +515,7 @@ class SanitizationTests(ImportTestCase):
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
-                    import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+                    import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.userip"
@@ -1119,23 +1083,16 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserIP`. Because `Email` and `UserEmail` have some automagic going on that
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
             # causes them to be created when a `User` is, we explicitly check to ensure that they
             # are behaving correctly as well.
             assert User.objects.count() == 1
-            assert UserIP.objects.count() == 1
             assert UserEmail.objects.count() == 1
             assert Email.objects.count() == 1
 
             assert (
                 ControlImportChunk.objects.filter(
                     model="sentry.user", min_ordinal=1, max_ordinal=1
-                ).count()
-                == 1
-            )
-            assert (
-                ControlImportChunk.objects.filter(
-                    model="sentry.userip", min_ordinal=1, max_ordinal=1
                 ).count()
                 == 1
             )
@@ -1155,7 +1112,7 @@ class FilterTests(ImportTestCase):
             assert not User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
 
-    def test_export_filter_users_shared_email(self):
+    def test_import_filter_users_shared_email(self):
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
@@ -1170,19 +1127,12 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 3
-            assert UserIP.objects.count() == 3
             assert UserEmail.objects.count() == 3
             assert Email.objects.count() == 2  # Lower due to shared emails
 
             assert (
                 ControlImportChunk.objects.filter(
                     model="sentry.user", min_ordinal=1, max_ordinal=3
-                ).count()
-                == 1
-            )
-            assert (
-                ControlImportChunk.objects.filter(
-                    model="sentry.userip", min_ordinal=1, max_ordinal=3
                 ).count()
                 == 1
             )
@@ -1215,7 +1165,6 @@ class FilterTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 0
-            assert UserIP.objects.count() == 0
             assert UserEmail.objects.count() == 0
             assert Email.objects.count() == 0
 
@@ -1251,7 +1200,6 @@ class FilterTests(ImportTestCase):
             assert OrgAuthToken.objects.count() == 1
 
             assert User.objects.count() == 4
-            assert UserIP.objects.count() == 4
             assert UserEmail.objects.count() == 4
             assert Email.objects.count() == 3  # Lower due to `shared@example.com`
 
@@ -1302,7 +1250,6 @@ class FilterTests(ImportTestCase):
             )
 
             assert User.objects.count() == 5
-            assert UserIP.objects.count() == 5
             assert UserEmail.objects.count() == 5
             assert Email.objects.count() == 3  # Lower due to `shared@example.com`
 
@@ -1335,7 +1282,6 @@ class FilterTests(ImportTestCase):
             assert OrgAuthToken.objects.count() == 0
 
             assert User.objects.count() == 0
-            assert UserIP.objects.count() == 0
             assert UserEmail.objects.count() == 0
             assert Email.objects.count() == 0
 
@@ -1853,7 +1799,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_user_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -1872,7 +1818,6 @@ class CollisionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 1
                 assert UserEmail.objects.count() == 1  # Keep only original when merging.
-                assert UserIP.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1
                 assert Email.objects.count() == 2
 
@@ -1890,16 +1835,15 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-                # Incoming `UserEmail`s, `UserPermissions`, and `UserIP`s for imported users are
-                # completely scrubbed when merging is enabled.
+                # Incoming `UserEmail`s and `UserPermissions` for imported users are completely
+                # scrubbed when merging is enabled.
                 assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
-                assert not ControlImportChunk.objects.filter(model="sentry.userip").exists()
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_user_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -1917,7 +1861,6 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
@@ -1945,9 +1888,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(
-        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
-    )
+    @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_organization_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -1970,7 +1911,6 @@ class CollisionTests(ImportTestCase):
 
                 assert User.objects.count() == 1
                 assert UserEmail.objects.count() == 1  # Keep only original when merging.
-                assert UserIP.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
 
@@ -1989,10 +1929,9 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-                # Incoming `UserEmail`s, `UserPermissions`, and `UserIP`s for imported users are
-                # completely dropped when merging is enabled.
+                # Incoming `UserEmail`s, and `UserPermissions` for imported users are completely
+                # dropped when merging is enabled.
                 assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
-                assert not ControlImportChunk.objects.filter(model="sentry.userip").exists()
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             assert Organization.objects.count() == 2
@@ -2022,9 +1961,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(
-        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
-    )
+    @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_organization_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -2047,7 +1984,6 @@ class CollisionTests(ImportTestCase):
                 imported_user = User.objects.get(username__icontains="owner-")
 
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope
                 assert Email.objects.count() == 2
@@ -2103,7 +2039,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_enabled_in_config_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -2124,7 +2060,6 @@ class CollisionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 1
                 assert UserEmail.objects.count() == 1  # Keep only original when merging.
-                assert UserIP.objects.count() == 1  # Keep only original when merging.
                 assert UserPermission.objects.count() == 1  # Keep only original when merging.
                 assert Authenticator.objects.count() == 1
                 assert Email.objects.count() == 2
@@ -2144,16 +2079,15 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-                # Incoming `UserEmail`s, `UserPermissions`, and `UserIP`s for imported users are
-                # completely dropped when merging is enabled.
+                # Incoming `UserEmail`s, and `UserPermissions` for imported users are completely
+                # dropped when merging is enabled.
                 assert not ControlImportChunk.objects.filter(model="sentry.useremail").exists()
-                assert not ControlImportChunk.objects.filter(model="sentry.userip").exists()
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_disabled_in_config_scope(
         self, expected_models: list[type[Model]]
     ):
@@ -2173,7 +2107,6 @@ class CollisionTests(ImportTestCase):
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 2
-                assert UserIP.objects.count() == 2
                 assert UserEmail.objects.count() == 2
                 assert UserPermission.objects.count() == 2
                 assert Authenticator.objects.count() == 1  # Only imported in global scope

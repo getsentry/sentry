@@ -84,7 +84,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -310,13 +310,13 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         assert get_incident_aggregates(incident) == {"count": 4}
 
 
-class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
+class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Sessions
+        self.dataset = Dataset.Metrics
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -334,14 +334,6 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         incident_aggregates = get_incident_aggregates(incident)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
-
-
-class GetCrashRateMetricsIncidentAggregatesTest(
-    GetCrashRateIncidentAggregatesTest, BaseMetricsTestCase
-):
-    def setUp(self):
-        super().setUp()
-        self.dataset = Dataset.Metrics
 
 
 @freeze_time()
@@ -463,10 +455,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
         # TODO: backfill projects so all monitor_types include 'projects' fk
-        for monitor_type, expected_projects in [
-            (None, 0),
-            (AlertRuleMonitorType.CONTINUOUS, 0),
-            (AlertRuleMonitorType.ACTIVATED, 1),
+        for monitor_type in [
+            None,
+            AlertRuleMonitorType.CONTINUOUS,
+            AlertRuleMonitorType.ACTIVATED,
         ]:
             name = "hello"
             query = "level:error"
@@ -513,7 +505,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.threshold_type == threshold_type.value
             assert alert_rule.resolve_threshold == resolve_threshold
             assert alert_rule.threshold_period == threshold_period
-            assert alert_rule.projects.all().count() == expected_projects
+            # We now create an AlertRuleProject for all rule monitor types
+            assert alert_rule.projects.all().count() == 1
 
     def test_create_activated_alert_rule_errors_without_condition(self):
         name = "hello"
@@ -815,6 +808,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
+        assert self.alert_rule.projects.all().count() == 2
+        assert self.alert_rule.projects.all()[0] == updated_projects[0]
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id

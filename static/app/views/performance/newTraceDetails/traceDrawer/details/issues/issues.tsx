@@ -26,7 +26,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {
   isAutogroupedNode,
@@ -44,6 +44,8 @@ type IssueProps = {
 };
 
 const MAX_DISPLAYED_ISSUES_COUNT = 10;
+
+const MIN_ISSUES_TABLE_WIDTH = 600;
 
 function Issue(props: IssueProps) {
   const {
@@ -257,6 +259,10 @@ const GraphHeading = styled(Heading)`
   width: 160px;
   display: flex;
   justify-content: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const UsersHeading = styled(Heading)`
@@ -267,6 +273,7 @@ const UsersHeading = styled(Heading)`
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   border: 1px solid ${p => p.theme.red200};
+  container-type: inline-size;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -305,6 +312,10 @@ const IssueSummaryWrapper = styled('div')`
 const ChartWrapper = styled('div')`
   width: 200px;
   align-self: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const ColumnWrapper = styled('div')`
