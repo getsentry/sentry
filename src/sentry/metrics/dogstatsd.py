@@ -12,13 +12,13 @@ class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
-        # Origin detection is enabled after 0.45 by default.
-        # Disable is since it silently fails.
-        # Ref: https://github.com/DataDog/datadogpy/issues/764
-        statsd._container_id = None
         initialize(**kwargs)
         statsd.disable_telemetry()
         statsd.disable_buffering = False
+        # Origin detection is enabled after 0.45 by default.
+        # Disable it since it silently fails.
+        # Ref: https://github.com/DataDog/datadogpy/issues/764
+        statsd._container_id = None
         super().__init__(prefix=prefix)
 
     def incr(
