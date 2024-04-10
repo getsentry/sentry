@@ -21,14 +21,30 @@ _default_logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
 )
 def send_activity_notifications_to_slack_threads(activity_id):
+    _default_logger.info(
+        "Async task to send activity notifications kicked off", extra={"activity_id": activity_id}
+    )
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
         _default_logger.info("Activity does not exist", extra={"activity_id": activity_id})
         return
 
-    organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
-    if features.has("organizations:slack-thread-issue-alert", organization):
+    organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
+    org_has_ff = features.has("organizations:slack-thread-issue-alert", organization)
+    _default_logger.info(
+        "checking if organization has FF",
+        extra={
+            "organization_id": organization.id,
+            "activity_id": activity_id,
+            "org_has_ff": org_has_ff,
+        },
+    )
+    if org_has_ff:
+        _default_logger.info(
+            "organization has FF, attempting to send notifications",
+            extra={"organization_id": organization.id, "activity_id": activity_id},
+        )
         slack_service = SlackService.default()
         try:
             slack_service.notify_all_threads_for_activity(activity=activity)
@@ -47,12 +63,18 @@ def send_activity_notifications_to_slack_threads(activity_id):
                 sample_rate=1.0,
             )
 
+    _default_logger.info("task completed", extra={"activity_id": activity_id})
+
 
 @receiver(post_save, sender=Activity)
 def activity_created_receiver(instance, created, **kwargs):
     """
     If an activity is created for an issue, this will trigger, and we can kick off an async process
     """
+    _default_logger.info(
+        "activity created, receiver notified",
+        extra={"activity_id": instance.id, "instance_created": created},
+    )
     if not created:
         return
 
