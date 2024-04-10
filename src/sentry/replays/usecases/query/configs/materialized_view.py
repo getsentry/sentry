@@ -268,4 +268,7 @@ def can_materialized_view_select(fields: list[str]) -> bool:
 
 def make_selection(fields: list[str]) -> list[Expression]:
     """Return a selection set from a list of fields."""
-    return [select_config[field] for field in fields or DEFAULT_SELECTION]
+    expressions = []
+    for field in fields or DEFAULT_SELECTION:
+        expressions += select_config[field]
+    return expressions
