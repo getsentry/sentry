@@ -8,7 +8,7 @@ from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies import RunTask
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
@@ -43,20 +43,20 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
-def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
+def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
-        return FILTERED_PAYLOAD
+        return None
 
     try:
         project_id = get_project_id(message.payload.headers)
     except Exception:
         logger.exception("Failed to parse span message header")
-        return FILTERED_PAYLOAD
+        return None
 
     if project_id is None or project_id not in options.get(
         "standalone-spans.process-spans-consumer.project-allowlist"
     ):
-        return FILTERED_PAYLOAD
+        return None
 
     assert isinstance(message.value, BrokerValue)
 
@@ -70,7 +70,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
         segment_id = span.get("segment_id", None)
         if segment_id is None:
-            return FILTERED_PAYLOAD
+            return None
 
         trace_id = span["trace_id"]
 
@@ -89,12 +89,12 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
     )
 
 
-def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
+def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
     try:
         return _process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
-        return FILTERED_PAYLOAD
+        return None
 
 
 def _produce_segment(message: Message[ProduceSegmentContext]):
