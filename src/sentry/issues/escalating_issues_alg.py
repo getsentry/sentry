@@ -55,7 +55,7 @@ def generate_issue_forecast(
     is relative to the data. The CV is then placed into an exponential equation that outputs
     a multiplier inversely related to how high the cv is. The multiplier is bounded between 2 and 5. The
     ceilings for the next week are all the same - which is the maximum number of events in an hour over the
-    past week multiplied by this multiplier. This calculation is to accound for bursty issues or those that
+    past week multiplied by this multiplier. This calculation is to account for bursty issues or those that
     have a very high variance.
     The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
     :param data: Dict of Snuba query results - hourly data over past 7 days
