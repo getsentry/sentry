@@ -242,6 +242,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 function_patterns={
                     r"sentry_*",  # public interface
                     r"sentry__*",  # module level interface
+                    r"Java_io_sentry_android_ndk_*",  # JNI interface
                 },
                 # The native SDK usually has the same path as the application binary.
                 # Therefore, we can't rely on it. We set a fixed path of Sentry for
