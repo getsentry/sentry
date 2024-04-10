@@ -95,7 +95,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["project_id"] == project.id
             assert (
                 response_data["data"][0]["dom_element"]
-                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
+                == 'SignUpForm[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
@@ -107,7 +107,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["tag"] == "div"
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
-            assert response_data["data"][0]["component_name"] == "SignUpForm"
+            assert response_data["data"][0]["element"]["component_name"] == "SignUpForm"
 
     def test_get_replays_no_component_name_and_aria_label(self):
         """Test replays conform to the interchange format."""
@@ -178,7 +178,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
             assert response_data["data"][0]["element"]["aria_label"] == ""
-            assert response_data["data"][0]["component_name"] == ""
+            assert response_data["data"][0]["element"]["component_name"] == ""
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
