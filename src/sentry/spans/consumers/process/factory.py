@@ -97,7 +97,10 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         return None
 
 
-def _produce_segment(message: Message[ProduceSegmentContext]):
+def _produce_segment(message: Message[ProduceSegmentContext | None]):
+    if message.payload is None:
+        return
+
     context = message.payload
 
     if context.should_process_segments:
@@ -130,7 +133,7 @@ def _produce_segment(message: Message[ProduceSegmentContext]):
             sentry_sdk.set_context("payload", payload_context)
 
 
-def produce_segment(message: Message[ProduceSegmentContext]):
+def produce_segment(message: Message[ProduceSegmentContext | None]):
     try:
         _produce_segment(message)
     except Exception:
