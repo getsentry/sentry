@@ -1,11 +1,4 @@
-import {
-  forwardRef as reactForwardRef,
-  Fragment,
-  memo,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {forwardRef as reactForwardRef, memo, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
@@ -141,81 +134,79 @@ function BaseMenuListItem({
   const detailId = useMemo(() => domId('menuitem-details-'), []);
 
   return (
-    <Fragment>
-      <MenuItemWrap
-        role="menuitem"
-        aria-disabled={disabled}
-        aria-labelledby={labelId}
-        aria-describedby={detailId}
-        as={as}
-        ref={mergeRefs([forwardRef, itemRef])}
-        {...props}
-      >
-        <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
-          <InnerWrap
-            isFocused={isFocused}
-            disabled={disabled}
-            priority={priority}
-            size={size}
-            {...innerWrapProps}
-          >
-            <StyledInteractionStateLayer
-              isHovered={isFocused}
-              isPressed={isPressed}
-              higherOpacity={priority !== 'default'}
-            />
-            {leadingItems && (
-              <LeadingItems
-                disabled={disabled}
-                spanFullHeight={leadingItemsSpanFullHeight}
-                size={size}
+    <MenuItemWrap
+      role="menuitem"
+      aria-disabled={disabled}
+      aria-labelledby={labelId}
+      aria-describedby={detailId}
+      as={as}
+      ref={mergeRefs([forwardRef, itemRef])}
+      {...props}
+    >
+      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+        <InnerWrap
+          isFocused={isFocused}
+          disabled={disabled}
+          priority={priority}
+          size={size}
+          {...innerWrapProps}
+        >
+          <StyledInteractionStateLayer
+            isHovered={isFocused}
+            isPressed={isPressed}
+            higherOpacity={priority !== 'default'}
+          />
+          {leadingItems && (
+            <LeadingItems
+              disabled={disabled}
+              spanFullHeight={leadingItemsSpanFullHeight}
+              size={size}
+            >
+              {typeof leadingItems === 'function'
+                ? leadingItems({disabled, isFocused, isSelected})
+                : leadingItems}
+            </LeadingItems>
+          )}
+          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
+            <LabelWrap>
+              <Label
+                id={labelId}
+                data-test-id="menu-list-item-label"
+                aria-hidden="true"
+                {...labelProps}
               >
-                {typeof leadingItems === 'function'
-                  ? leadingItems({disabled, isFocused, isSelected})
-                  : leadingItems}
-              </LeadingItems>
-            )}
-            <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
-              <LabelWrap>
-                <Label
-                  id={labelId}
-                  data-test-id="menu-list-item-label"
-                  aria-hidden="true"
-                  {...labelProps}
-                >
-                  {label}
-                </Label>
-                {!showDetailsInOverlay && details && (
-                  <Details
-                    id={detailId}
-                    disabled={disabled}
-                    priority={priority}
-                    {...detailsProps}
-                  >
-                    {details}
-                  </Details>
-                )}
-                {showDetailsInOverlay && details && isFocused && (
-                  <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
-                    {details}
-                  </DetailsOverlay>
-                )}
-              </LabelWrap>
-              {trailingItems && (
-                <TrailingItems
+                {label}
+              </Label>
+              {!showDetailsInOverlay && details && (
+                <Details
+                  id={detailId}
                   disabled={disabled}
-                  spanFullHeight={trailingItemsSpanFullHeight}
+                  priority={priority}
+                  {...detailsProps}
                 >
-                  {typeof trailingItems === 'function'
-                    ? trailingItems({disabled, isFocused, isSelected})
-                    : trailingItems}
-                </TrailingItems>
+                  {details}
+                </Details>
               )}
-            </ContentWrap>
-          </InnerWrap>
-        </Tooltip>
-      </MenuItemWrap>
-    </Fragment>
+              {showDetailsInOverlay && details && isFocused && (
+                <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
+                  {details}
+                </DetailsOverlay>
+              )}
+            </LabelWrap>
+            {trailingItems && (
+              <TrailingItems
+                disabled={disabled}
+                spanFullHeight={trailingItemsSpanFullHeight}
+              >
+                {typeof trailingItems === 'function'
+                  ? trailingItems({disabled, isFocused, isSelected})
+                  : trailingItems}
+              </TrailingItems>
+            )}
+          </ContentWrap>
+        </InnerWrap>
+      </Tooltip>
+    </MenuItemWrap>
   );
 }
 
