@@ -315,10 +315,9 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         for group_chunk in chunked(groups, SNUBA_LIMIT):
-            keys = [group.id for group in groups]
             group = groups[0]
             sums = self.get_sums(
-                keys=keys,
+                keys=[group.id for group in groups],
                 group=group,
                 model=get_issue_tsdb_group_model(group.issue_category),
                 start=start,
