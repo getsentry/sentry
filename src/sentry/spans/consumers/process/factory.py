@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.strategies import FilterStep, RunTask
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -102,7 +103,7 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
 
 
 def _produce_segment(message: Message[ProduceSegmentContext]):
-    context: ProduceSegmentContext = message.payload
+    context = message.payload
 
     if context.should_process_segments:
         with sentry_sdk.start_transaction(
@@ -135,7 +136,7 @@ def _produce_segment(message: Message[ProduceSegmentContext]):
             sentry_sdk.set_context("payload", payload_context)
 
 
-def produce_segment(message: Message[ProduceSegmentContext | None]):
+def produce_segment(message: Message[ProduceSegmentContext]):
     try:
         _produce_segment(message)
     except Exception:
@@ -165,7 +166,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
 
         next_step = RunTask(function=produce_segment, next_step=CommitOffsets(commit))
-        filter_step = FilterStep(function=lambda msg: bool(msg.payload), next_step=next_step)
+        filter_step = FilterStep(
+            function=lambda msg: bool(msg.payload),
+            next_step=next_step,
+            commit_policy=ONCE_PER_SECOND,
+        )
 
         return RunTaskWithMultiprocessing(
             function=process_message,
