@@ -1,4 +1,5 @@
 import {Button} from 'sentry/components/button';
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -7,12 +8,6 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceKnownData} from './types';
 import {TraceKnownDataType} from './types';
-
-type Output = {
-  subject: string;
-  value: React.ReactNode;
-  actionButton?: React.ReactNode;
-};
 
 type Props = {
   data: TraceKnownData;
@@ -26,7 +21,7 @@ export function getTraceKnownDataDetails({
   event,
   organization,
   type,
-}: Props): Output | undefined {
+}: Props): KnownDataDetails {
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';
@@ -91,19 +86,19 @@ export function getTraceKnownDataDetails({
       }
       const transactionName = eventTag.value;
 
-      const to = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: transactionName,
-        projectID: event.projectID,
-        query: {},
-      });
-
       if (!organization.features.includes('performance-view')) {
         return {
           subject: t('Transaction'),
           value: transactionName,
         };
       }
+
+      const to = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: event.projectID,
+        query: {},
+      });
 
       return {
         subject: t('Transaction'),

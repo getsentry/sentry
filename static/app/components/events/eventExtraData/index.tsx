@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
-import {getKnownData} from '../contexts/utils';
+import {getKnownData, getKnownStructuredData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import type {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
@@ -22,6 +22,19 @@ export const EventExtraData = memo(
 
     if (objectIsEmpty(event.context)) {
       return null;
+    }
+    let contextBlock: React.ReactNode = null;
+    if (defined(event.context)) {
+      const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
+        data: event.context,
+        knownDataTypes: Object.keys(event.context),
+        meta: event._meta?.context,
+        onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
+      });
+      const formattedKnownData = raw
+        ? knownData
+        : getKnownStructuredData(knownData, event._meta?.context);
+      contextBlock = <ContextBlock data={formattedKnownData} raw={raw} />;
     }
 
     return (
@@ -42,18 +55,7 @@ export const EventExtraData = memo(
           </SegmentedControl>
         }
       >
-        {!defined(event.context) ? null : (
-          <ContextBlock
-            data={getKnownData<TEventExtraData, EventExtraDataType>({
-              data: event.context,
-              knownDataTypes: Object.keys(event.context),
-              meta: event._meta?.context,
-              raw,
-              onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
-            })}
-            raw={raw}
-          />
-        )}
+        {contextBlock}
       </EventDataSection>
     );
   },
