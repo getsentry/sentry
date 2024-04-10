@@ -5,7 +5,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Q, prefetch_related_objects
+from django.db.models import F, Max, Q, Window, prefetch_related_objects
+from django.db.models.functions import RowNumber
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry import features
@@ -134,17 +135,17 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
-        # Query for all alert rules once more to get the latest 10 activations
-        # last_10_activations_subquery = AlertRuleActivations.objects.filter(
-        #     alert_rule_id=OuterRef("id")
-        # ).order_by("-date_added")[:10]
-
-        # # Filter alerts by id and annotate with the last 10 activations
-        # alert_rules_with_activations = AlertRule.objects.filter(id__in=alert_rules.keys()).annotate(
-        #     last_activations=list(last_10_activations_subquery)
-        # )
-        # for alert_rule in alert_rules_with_activations:
-        #     result[alert_rule]["activations"] = serialize(alert_rule.last_activations, **kwargs)
+        alert_activations_ranked = AlertRuleActivations.objects.annotate(
+            rank=Window(
+                expression=RowNumber(),
+                partition_by=[F("alert_rule_id")],
+                order_by=F("date_added").desc(),
+            )
+        )
+        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_by_alert_rule_id = defaultdict(list)
+        for activation in activations:
+            activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
 
         # Construct list of all projects associated with each alert rule
         # given both the project fk as well as the snuba query projects relationship
@@ -189,12 +190,8 @@ class AlertRuleSerializer(Serializer):
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
-            # Add the latest 10 activations to the results list
-            activations = AlertRuleActivations.objects.filter(alert_rule=item).order_by(
-                "-date_added"
-            )[:10]
-            serialized = serialize(list(activations), **kwargs)
-            result[item]["activations"] = serialized
+            activations = activations_by_alert_rule_id.get(item.id, [])
+            result[item]["activations"] = serialize(activations, **kwargs)
 
         resolved_actors: dict[str, dict[int | None, int | None]] = {}
         for k, v in ACTOR_TYPES.items():
