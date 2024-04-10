@@ -102,11 +102,14 @@ class Feature(BaseModel):
     """Defines whether or not the feature is enabled."""
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
-    context_builder: ContextBuilder = Field(default_factory=ContextBuilder)
-    """Used to generate an EvaluationContext whenever this feature is checked"""
+    context_builder: ContextBuilder | None = None
+    """Optional builder used to transform passed in data to an EvaluationContext whenever this feature is evaluated."""
 
     def match(self, context_data: dict[str, Any]) -> bool:
-        context = self.context_builder.build(context_data)
+        if self.context_builder is not None:
+            context = self.context_builder.build(context_data)
+        else:
+            context = EvaluationContext(context_data)
 
         if self.enabled:
             for segment in self.segments:

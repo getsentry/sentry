@@ -33,6 +33,8 @@ class TestParseFeatureConfig:
         assert feature.owner == "test-owner"
         assert feature.segments == []
 
+        assert not feature.match(dict())
+
     def test_valid_with_all_nesting(self):
         feature = Feature.from_feature_config_json(
             "foobar",
@@ -42,7 +44,7 @@ class TestParseFeatureConfig:
                 "owner": "test-owner",
                 "segments": [{
                     "name": "segment1",
-                    "rollout": 42,
+                    "rollout": 100,
                     "conditions": [{
                         "name": "condition1",
                         "property": "test_property",
@@ -58,7 +60,7 @@ class TestParseFeatureConfig:
         assert feature.name == "foobar"
         assert len(feature.segments) == 1
         assert feature.segments[0].name == "segment1"
-        assert feature.segments[0].rollout == 42
+        assert feature.segments[0].rollout == 100
         assert len(feature.segments[0].conditions) == 1
 
         condition = feature.segments[0].conditions[0]
@@ -67,6 +69,9 @@ class TestParseFeatureConfig:
         assert condition.operator
         assert condition.operator.kind == OperatorKind.IN
         assert condition.operator.value == ["foobar"]
+
+        assert feature.match(dict(test_property="foobar"))
+        assert not feature.match(dict(test_property="barfoo"))
 
     def test_invalid_json(self):
         with pytest.raises(InvalidFeatureFlagConfiguration):

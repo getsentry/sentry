@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
+
+ValidContextTypes = TypeVar(
+    "ValidContextTypes",
+    bound=str | int | float | bool | list[str] | list[int] | list[float] | list[bool],
+)
+
+EvaluationContextDict = dict[str, ValidContextTypes]
 
 
 class EvaluationContext:
@@ -14,7 +21,7 @@ class EvaluationContext:
     feature conditions.
     """
 
-    def __init__(self, data: Mapping[str, Any]):
+    def __init__(self, data: EvaluationContextDict):
         self.__data = deepcopy(data)
 
     def get(self, key: str) -> Any:
@@ -43,14 +50,6 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
 
-InputType = TypeVar("InputType")
-OutputType = TypeVar("OutputType", str, int, float, bool)
-
-ValidContextTypes = TypeVar(
-    "ValidContextTypes", str, int, float, bool, list[str], list[int], list[float], list[bool]
-)
-
-EvaluationContextDict = dict[str, ValidContextTypes]
 # A function that generates a new slice of evaluation context data as a dictionary.
 EvaluationContextTransformer = Callable[[dict[str, Any]], EvaluationContextDict]
 

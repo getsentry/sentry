@@ -12,7 +12,7 @@ class InvalidContextDataException(Exception):
     pass
 
 
-def organization_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
+def organization_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     org = data.get("organization", None)
     if org is None:
@@ -36,8 +36,8 @@ def organization_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
     return context_data
 
 
-def project_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
-    context_data = dict()
+def project_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+    context_data: EvaluationContextDict = dict()
 
     if (proj := data.get("project", None)) is not None:
         if not isinstance(proj, Project):
@@ -48,10 +48,6 @@ def project_context_transformer(data: dict[str, Any]) -> dict[str, Any]:
         context_data["project_id"] = proj.id
 
     return context_data
-
-
-def team_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
-    raise NotImplementedError()
 
 
 def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
@@ -92,6 +88,5 @@ def get_sentry_flagpole_context_builder():
         ContextBuilder()
         .add_context_transformer(organization_context_transformer)
         .add_context_transformer(project_context_transformer)
-        # .add_context_transformer(team_context_transformer)
         .add_context_transformer(user_context_transformer)
     )
