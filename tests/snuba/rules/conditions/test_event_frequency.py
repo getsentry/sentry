@@ -269,7 +269,7 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
             data={
                 "event_id": "a" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(days=1)),
+                "timestamp": iso_format(before_now(seconds=30)),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -278,18 +278,16 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(hours=12)),
+                "timestamp": iso_format(before_now(seconds=12)),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         )
         perf_event = self.create_performance_issue(
-            tags=[["foo", "guux"], ["sentry:release", "releaseme"]],
-            fingerprint="group-3",
-            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group-3"
         )
-        start = before_now(days=2)
-        end = before_now(seconds=1)
+        start = before_now(minutes=1)
+        end = timezone.now()
 
         condition_inst = self.rule_cls(event.group.project)
         batch_query = condition_inst.batch_query_hook(
@@ -298,7 +296,7 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
             end=end,
             environment_id=self.environment.id,
         )
-        assert batch_query == {event.group.id: 0, event2.group.id: 0, perf_event.group_id: 0}
+        assert batch_query == {event.group.id: 1, event2.group.id: 1, perf_event.group_id: 1}
 
 
 class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):

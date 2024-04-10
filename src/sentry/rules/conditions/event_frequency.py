@@ -313,7 +313,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         batch_sums: dict[int, int] = defaultdict(int)
         for group_chunk in chunked(groups, SNUBA_LIMIT):
             keys = [group.id for group in groups]
-            error_sums = self.get_sums(
+            sums = self.get_sums(
                 keys=keys,
                 group=groups[0],
                 start=start,
@@ -321,7 +321,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 referrer_suffix="alert_event_frequency",
             )
-            batch_sums.update(error_sums)
+            batch_sums.update(sums)
         return batch_sums
 
     def batch_query_hook(
