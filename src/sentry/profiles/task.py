@@ -523,7 +523,7 @@ def run_symbolicate(
                 modules=modules,
                 platform=platform,
             )
-            print(json.dumps(response, indent=4))
+
             if not response:
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_INTERNAL_FAILURE,
