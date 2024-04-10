@@ -103,7 +103,7 @@ const SENTRY_EXPERIMENTAL_SPA =
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const CODECOV_TOKEN = env.CODECOV_TOKEN;
-const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA ?? false;
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
