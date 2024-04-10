@@ -1674,8 +1674,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
-    # Enable Monitors (Crons) view
-    "organizations:monitors": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1997,7 +1995,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
     # Enable setting priority for issues
-    "projects:issue-priority": False,
+    "projects:issue-priority": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
