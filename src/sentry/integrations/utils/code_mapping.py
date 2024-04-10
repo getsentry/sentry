@@ -79,8 +79,9 @@ class FrameFilename:
         if not self.extension:
             raise UnsupportedFrameFilename("It needs an extension.")
 
-        start_at_index = self._get_straight_path_prefix_end_index(frame_file_path)
+        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         self.straight_path_prefix = frame_file_path[:start_at_index]
+        self.normalized_path = frame_file_path[start_at_index:]
         if start_at_index == 0:
             self.root = frame_file_path.split("/")[0]
         else:
@@ -88,19 +89,6 @@ class FrameFilename:
             self.root = frame_file_path[0:slash_index]
 
         self.file_name = frame_file_path.split("/")[-1]
-
-    def _get_straight_path_prefix_end_index(self, file_path: str) -> int:
-        """
-        Get the index where the straight path prefix ends in the file path.
-        This is  used for Node projects where the file path can start with
-        "app:///", "../", or "./"
-        """
-        index = 0
-        for prefix in FILE_PATH_PREFIX_LENGTH:
-            while file_path.startswith(prefix):
-                index += FILE_PATH_PREFIX_LENGTH[prefix]
-                file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
-        return index
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -316,17 +304,14 @@ class CodeMappingTreesHelper:
             return False
 
         src_file_items = src_file.split("/")
-        frame_items = frame_filename.full_path.split("/")
+        frame_items = frame_filename.normalized_path.split("/")
+
         if len(src_file_items) > len(frame_items):  # Mono repos
             return _list_endswith(src_file_items, frame_items)
         elif len(frame_items) > len(src_file_items):  # Absolute paths
-            num_relevant_items = max(1, len(src_file_items) - 1)
-            relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
-            # relevant_path = "/".join(relevant_items)
-            return _list_endswith(src_file_items, relevant_items)
-            # return src_file.endswith(relevant_path)
+            return _list_endswith(frame_items, src_file_items)
         else:  # exact match
-            return src_file == frame_filename.full_path
+            return src_file == frame_filename.normalized_path
 
     def _matches_existing_code_mappings(self, src_file: str) -> bool:
         """Check if the source file is already covered by an existing code mapping"""
@@ -501,6 +486,20 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
+def get_straight_path_prefix_end_index(file_path: str) -> int:
+    """
+    Get the index where the straight path prefix ends in the file path.
+    This is  used for Node projects where the file path can start with
+    "app:///", "../", or "./"
+    """
+    index = 0
+    for prefix in FILE_PATH_PREFIX_LENGTH:
+        while file_path.startswith(prefix):
+            index += FILE_PATH_PREFIX_LENGTH[prefix]
+            file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
+    return index
+
+
 def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
@@ -524,24 +523,27 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
     if stack_path_delim == BACKSLASH:
         stack_path = stack_path.replace(BACKSLASH, SLASH)
+    if (straight_path_idx := get_straight_path_prefix_end_index(stack_path)) > 0:
+        stack_root += stack_path[:straight_path_idx]
+        stack_path = stack_path[straight_path_idx:]
 
-    idx = 0
-    while idx < len(stack_path):
-        if source_path.endswith(overlap := stack_path[idx:]):
+    overlap_to_check: list[str] = stack_path.split(SLASH)
+    stack_root_items: list[str] = []
+
+    while overlap_to_check:
+        if (overlap := SLASH.join(overlap_to_check)) and source_path.endswith(overlap):
             source_root = source_path.rpartition(overlap)[0]
+            stack_root += stack_path_delim.join(stack_root_items)
 
-            if stack_root:  # append trailing slash
+            if stack_root and stack_root[-1] != SLASH:  # append trailing slash
                 stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
-            if stack_path_delim == BACKSLASH:
-                stack_root = stack_root.replace(SLASH, BACKSLASH)
 
             return (stack_root, source_root)
 
         # increase stack root specificity, decrease overlap specifity
-        stack_root += stack_path[idx]
-        idx += 1
+        stack_root_items.append(overlap_to_check.pop(0))
 
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
