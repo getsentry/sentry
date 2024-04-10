@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule_activations import AlertRuleActivationsSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
@@ -41,4 +43,12 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
         end = request.GET.get("end", None)
         if start and end:
             activations = activations.filter(Q(date_added__gte=start) & Q(date_added__lte=end))
-        return Response({"activations": activations}, status=202)
+
+        return self.paginate(
+            request,
+            queryset=activations,
+            order_by="-date_added",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+            default_per_page=25,
+        )
