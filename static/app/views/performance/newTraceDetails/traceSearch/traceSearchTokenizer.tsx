@@ -8,7 +8,7 @@ import type {
 
 import grammar from './traceSearch.pegjs';
 
-interface SearchToken {
+export interface TraceSearchToken {
   key: string;
   type: 'Token';
   value: string | number;
@@ -16,7 +16,7 @@ interface SearchToken {
   operator?: 'gt' | 'ge' | 'lt' | 'le' | 'eq';
 }
 
-type Token = SearchToken;
+type Token = TraceSearchToken;
 
 // typeof can return one of the following string values - we ignore BigInt, Symbol as there
 // is no practical case for them + they are not supported by JSON.

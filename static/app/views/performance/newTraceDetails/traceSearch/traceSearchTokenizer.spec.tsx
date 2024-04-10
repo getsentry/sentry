@@ -44,6 +44,13 @@ function makeSpanNode(span: Partial<RawSpanType>): TraceTreeNode<TraceTree.Span>
 describe('traceSearchTokenizer', () => {
   it('empty value', () => {
     expect(grammar.parse('')).toEqual([]);
+    expect(grammar.parse('key:')).toEqual([
+      {
+        key: 'key',
+        type: 'token',
+        value: '',
+      },
+    ]);
   });
 
   test.each([
@@ -53,29 +60,43 @@ describe('traceSearchTokenizer', () => {
     '  key:  value',
     'key:  value   ',
   ])('parses %s', input => {
-    expect(grammar.parse(input)).toEqual([{type: 'Token', key: 'key', value: 'value'}]);
+    expect(grammar.parse(input)).toEqual([{type: 'token', key: 'key', value: 'value'}]);
   });
 
   describe('grammar', () => {
+    it('empty value', () => {
+      expect(grammar.parse('key:')[0].value).toBe('');
+    });
     it('alphanumeric', () => {
-      expect(grammar.parse('key:1a_-.!$')[0].value).toBe('1a_-.!$');
-    });
-
-    it('integer', () => {
-      // @TODO scientific notation?
-      // @TODO should we evaluate arithmetic expressions?
-      // Support unit suffies (B, KB, MB, GB), (ms, s, m, h, d, w, y)
       expect(grammar.parse('key:1')[0].value).toBe(1);
-      expect(grammar.parse('key:10')[0].value).toBe(10);
-      expect(grammar.parse('key:-10')[0].value).toBe(-10);
+      expect(grammar.parse('key:1.5')[0].value).toBe(1.5);
+      expect(grammar.parse('key:1ma')[0].value).toBe('1ma');
+      expect(grammar.parse('key:1s')[0].value).toBe(1000);
     });
 
-    it('float', () => {
-      expect(grammar.parse('key:.5')[0].value).toBe(0.5);
-      expect(grammar.parse('key:-.5')[0].value).toBe(-0.5);
-      expect(grammar.parse('key:1.000')[0].value).toBe(1.0);
-      expect(grammar.parse('key:1.5')[0].value).toBe(1.5);
-      expect(grammar.parse('key:-1.0')[0].value).toBe(-1.0);
+    describe('numbers', () => {
+      it('integer', () => {
+        // @TODO scientific notation?
+        // @TODO should we evaluate arithmetic expressions?
+        // Support unit suffies (B, KB, MB, GB), (ms, s, m, h, d, w, y)
+        expect(grammar.parse('key:1')[0].value).toBe(1);
+        expect(grammar.parse('key:10')[0].value).toBe(10);
+      });
+
+      it('float', () => {
+        expect(grammar.parse('key:.5')[0].value).toBe(0.5);
+        expect(grammar.parse('key:-.5')[0].value).toBe(-0.5);
+        expect(grammar.parse('key:1.000')[0].value).toBe(1.0);
+        expect(grammar.parse('key:1.5')[0].value).toBe(1.5);
+        expect(grammar.parse('key:-1.0')[0].value).toBe(-1.0);
+      });
+
+      it('scientific notation', () => {
+        expect(grammar.parse('key:1e3')[0].value).toBe(1_000);
+        expect(grammar.parse('key:1e-3')[0].value).toBe(0.001);
+        expect(grammar.parse('key:5e3')[0].value).toBe(5000);
+        expect(grammar.parse('key:5e-3')[0].value).toBe(0.005);
+      });
     });
 
     it('boolean', () => {
@@ -93,8 +114,8 @@ describe('traceSearchTokenizer', () => {
 
     it('multiple expressions', () => {
       expect(grammar.parse('key1:value key2:value')).toEqual([
-        {type: 'Token', key: 'key1', value: 'value'},
-        {type: 'Token', key: 'key2', value: 'value'},
+        {type: 'token', key: 'key1', value: 'value'},
+        {type: 'token', key: 'key2', value: 'value'},
       ]);
     });
 
@@ -108,6 +129,13 @@ describe('traceSearchTokenizer', () => {
 
     it('negation', () => {
       expect(grammar.parse('!key:value')[0].negated).toBe(true);
+    });
+
+    it('duration', () => {
+      expect(grammar.parse('key:1.5s')[0].value).toBe(1.5 * 1e3);
+      expect(grammar.parse('key:1s')[0].value).toBe(1 * 1e3);
+      expect(grammar.parse('key:-10.5ms')[0].value).toBe(-10.5);
+      expect(grammar.parse('key:1.5min')[0].value).toBe(90_000);
     });
   });
 

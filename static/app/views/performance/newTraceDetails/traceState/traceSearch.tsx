@@ -8,6 +8,10 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  evaluateTokenForTraceNode,
+  type TraceSearchToken,
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export type TraceSearchAction =
@@ -199,7 +203,7 @@ type TraceResult = {
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
 
-export function searchInTraceTree(
+function searchInTraceTreeText(
   tree: TraceTree,
   query: string,
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -256,6 +260,83 @@ export function searchInTraceTree(
 
   raf.id = requestAnimationFrame(search);
   return raf;
+}
+
+function searchInTraceTreeTokens(
+  tree: TraceTree,
+  query: TraceSearchToken[],
+  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  cb: (
+    results: [
+      ReadonlyArray<TraceResult>,
+      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
+    ]
+  ) => void
+): {id: number | null} {
+  const raf: {id: number | null} = {id: 0};
+  let previousNodeSearchResult: {
+    resultIndex: number | undefined;
+    resultIteratorIndex: number | undefined;
+  } | null = null;
+  const results: Array<TraceResult> = [];
+  const resultLookup = new Map();
+
+  let i = 0;
+  let matchCount = 0;
+  const count = tree.list.length;
+
+  function search() {
+    const ts = performance.now();
+    while (i < count && performance.now() - ts < 12) {
+      const node = tree.list[i];
+
+      if (searchInTraceSubset(query, node)) {
+        results.push({index: i, value: node});
+        resultLookup.set(node, matchCount);
+
+        if (previousNode === node) {
+          previousNodeSearchResult = {
+            resultIndex: i,
+            resultIteratorIndex: matchCount,
+          };
+        }
+
+        matchCount++;
+      }
+      i++;
+    }
+
+    if (i < count) {
+      raf.id = requestAnimationFrame(search);
+    }
+
+    if (i === count) {
+      cb([results, resultLookup, previousNodeSearchResult]);
+      raf.id = null;
+    }
+  }
+
+  raf.id = requestAnimationFrame(search);
+  return raf;
+}
+
+export function searchInTraceTree(
+  tree: TraceTree,
+  query: string | TraceSearchToken[],
+  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  cb: (
+    results: [
+      ReadonlyArray<TraceResult>,
+      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
+    ]
+  ) => void
+): {id: number | null} {
+  if (typeof query === 'string') {
+    return searchInTraceTreeText(tree, query, previousNode, cb);
+  }
+  return searchInTraceTreeTokens(tree, query, previousNode, cb);
 }
 
 function searchInTraceSubset(

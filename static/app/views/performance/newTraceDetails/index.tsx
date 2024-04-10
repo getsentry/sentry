@@ -40,6 +40,7 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {TraceSearchToken} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
@@ -286,7 +287,7 @@ function TraceViewContent(props: TraceViewContentProps) {
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
     (
-      query: string,
+      query: string | TraceSearchToken[],
       activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
       behavior: 'track result' | 'persist'
     ) => {

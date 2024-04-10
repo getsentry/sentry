@@ -12,6 +12,10 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  type TraceSearchToken,
+  traceSearchTokenizer,
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import type {
   TraceReducerAction,
   TraceReducerState,
@@ -20,7 +24,7 @@ import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/tr
 
 interface TraceSearchInputProps {
   onTraceSearch: (
-    query: string,
+    query: string | TraceSearchToken[],
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     behavior: 'track result' | 'persist'
   ) => void;
@@ -79,9 +83,21 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         return;
       }
 
+      let query: string | TraceSearchToken[] = event.target.value;
       trace_dispatch({type: 'set query', query: event.target.value});
+
+      const use_tokens = true;
+
+      if (use_tokens) {
+        try {
+          query = traceSearchTokenizer(event.target.value);
+        } catch (e) {
+          // ignore
+        }
+      }
+
       onTraceSearch(
-        event.target.value,
+        query,
         traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node,
         'track result'
       );
