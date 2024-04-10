@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
+import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
@@ -74,7 +76,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     color: 'red300',
     description: frame.message,
     tabKey: TabKey.ERRORS,
-    title: defaultTitle(frame),
+    title: <CrumbErrorTitle frame={frame} />,
     icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
@@ -177,7 +179,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'ui.click': frame => ({
     color: 'blue300',
-    description: frame.message ?? '',
+    description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
