@@ -112,6 +112,9 @@ class TestAccounts(TestCase):
 
     def test_relocate_recovery_no_inputs(self):
         user = self.create_user()
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
 
         resp = self.client.post(self.path, {"user": user.email})
         assert resp.status_code == 200
@@ -129,8 +132,14 @@ class TestAccounts(TestCase):
         assert resp[header_name] == "strict-origin-when-cross-origin"
         self.assertTemplateUsed("sentry/account/relocate/confirm.html")
 
+        assert not UserEmail.objects.get(email=user.email).is_verified
+
     def test_relocate_expired_lost_password_hash(self):
         user = self.create_user()
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
+
         lost_password = LostPasswordHash.objects.create(
             user=user, date_added=timezone.now() - timedelta(hours=2)
         )
@@ -147,11 +156,17 @@ class TestAccounts(TestCase):
         assert resp[header_name] == "strict-origin-when-cross-origin"
         self.assertTemplateUsed("sentry/account/relocate/failure.html")
 
+        assert not UserEmail.objects.get(email=user.email).is_verified
+
     @patch("sentry.signals.terms_accepted.send_robust")
     def test_relocate_recovery_post_multiple_orgs(self, terms_accepted_signal_mock):
+        user = self.create_user(email="test@example.com")
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
+
         org1 = self.create_organization()
         org2 = self.create_organization()
-        user = self.create_user(email="test@example.com")
         self.create_member(user=user, organization=org1)
         self.create_member(user=user, organization=org2)
 
@@ -201,10 +216,16 @@ class TestAccounts(TestCase):
             ]
         )
 
+        assert UserEmail.objects.get(email=user.email).is_verified
+
     @patch("sentry.signals.terms_accepted.send_robust")
     def test_relocate_recovery_post(self, terms_accepted_signal_mock):
-        org = self.create_organization()
         user = self.create_user(email="test@example.com")
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
+
+        org = self.create_organization()
         self.create_member(user=user, organization=org)
 
         resp = self.client.post(self.path, {"user": user.email})
@@ -241,8 +262,13 @@ class TestAccounts(TestCase):
             sender=recover_confirm,
         )
 
+        assert UserEmail.objects.get(email=user.email).is_verified
+
     def test_relocate_recovery_unchecked_tos(self):
         user = self.create_user()
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
 
         resp = self.client.post(self.path, {"user": user.email})
         assert resp.status_code == 200
@@ -269,8 +295,13 @@ class TestAccounts(TestCase):
         )
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
+        assert not UserEmail.objects.get(email=user.email).is_verified
+
     def test_relocate_recovery_invalid_password(self):
         user = self.create_user()
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
 
         resp = self.client.post(self.path, {"user": user.email})
         assert resp.status_code == 200
@@ -298,6 +329,8 @@ class TestAccounts(TestCase):
                 assert user.password == old_password
                 assert resp.status_code == 200
                 assert resp[header_name] == "strict-origin-when-cross-origin"
+
+                assert not UserEmail.objects.get(email=user.email).is_verified
 
     def test_relocate_reclaim_success(self):
         user = self.create_user(email="member@example.com", is_unclaimed=True)
