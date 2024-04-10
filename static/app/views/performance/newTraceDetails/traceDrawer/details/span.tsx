@@ -25,7 +25,8 @@ export function SpanNodeDetails({
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
-  const {event, childTransaction, ...span} = node.value;
+  const span = node.value;
+  const {event, childTransaction} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -44,7 +45,7 @@ export function SpanNodeDetails({
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {getSpanOperation(span) + ' - ' + span.description}
+              {getSpanOperation(span) + ' - ' + span.description ?? span.span_id}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
