@@ -79,6 +79,11 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   // if a deserialization of an event is in progress so that it can be skipped if so.
   const preloadQueue = new Set<CanvasEventWithTime>();
   const eventsToPrune: eventWithTime[] = [];
+  // In the case where replay is not started and user seeks, `handler` can be
+  // called before the DOM is fully built. This means that nodes do not yet
+  // exist in DOM mirror. We need to replay these events when `onBuild` is
+  // called.
+  const handleQueue = new Map<number, [CanvasEventWithTime, Replayer][]>();
 
   // This is a pointer to the index of the next event that will need to be
   // preloaded. Most of the time the recording plays sequentially, so we do not
@@ -193,6 +198,51 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     }
   }
 
+  async function processEvent(
+    e: CanvasEventWithTime,
+    {shouldPreload = true, replayer}: {replayer: Replayer; shouldPreload?: boolean}
+  ) {
+    if (shouldPreload) {
+      preload(e);
+    }
+
+    const source = replayer.getMirror().getNode(e.data.id);
+    const target =
+      canvases.get(e.data.id) ||
+      (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
+
+    // No canvas found for id... this isn't reliably reproducible and not
+    // exactly sure why it flakes. Saving as metric to keep an eye on it.
+    if (!target) {
+      Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
+      return;
+    }
+
+    await canvasMutation({
+      event: e,
+      mutation: e.data,
+      target,
+      imageMap,
+      canvasEventMap,
+      errorHandler: (err: unknown) => {
+        if (err instanceof Error) {
+          Sentry.captureException(err);
+        } else {
+          Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
+        }
+      },
+    });
+
+    const img = containers.get(e.data.id);
+    if (img) {
+      img.src = target.toDataURL();
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+    }
+
+    prune(e);
+  }
+
   preload();
 
   return {
@@ -212,69 +262,57 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         (node as HTMLCanvasElement).appendChild(el);
         containers.set(id, el);
       }
+
+      // See comments at definition of `handleQueue`
+      const queue = handleQueue.get(id);
+      handleQueue.set(id, []);
+      while (queue?.length) {
+        const queueItem = queue.shift();
+        if (!queueItem) {
+          return;
+        }
+        const [event, replayer] = queueItem;
+        processEvent(event, {shouldPreload: false, replayer});
+      }
     },
 
     /**
      * Mutate canvas outside of iframe, then export the canvas as an image, and
      * draw inside of the image el inside of replay canvas.
      */
-    handler: async (
-      e: eventWithTime,
-      isSync: boolean,
-      {replayer}: {replayer: Replayer}
-    ) => {
+    handler: (e: eventWithTime, isSync: boolean, {replayer}: {replayer: Replayer}) => {
+      const isCanvas = isCanvasMutationEvent(e);
+
       // isSync = true means it is fast forwarding vs playing
       // nothing to do when fast forwarding since canvas mutations for us are
       // image snapshots and do not depend on past events
-      if (isSync || !isCanvasMutationEvent(e)) {
-        if (isSync) {
-          // Set this to -1 to indicate that we will need to search
-          // `canvasMutationEvents` for starting point of preloading
-          //
-          // Only do this when isSync is true, meaning there was a seek
-          nextPreloadIndex = -1;
+      if (isSync) {
+        // Set this to -1 to indicate that we will need to search
+        // `canvasMutationEvents` for starting point of preloading
+        //
+        // Only do this when isSync is true, meaning there was a seek, since we
+        // don't know where next index is
+        nextPreloadIndex = -1;
+
+        if (isCanvas) {
+          // See comments at definition of `handleQueue`
+          const queue = handleQueue.get(e.data.id) || [];
+          queue.push([e, replayer]);
+          handleQueue.set(e.data.id, queue);
         }
+
         prune(e);
         return;
       }
 
-      preload(e);
+      if (!isCanvas) {
+        // Otherwise, not `isSync` and not canvas, only need to prune
+        prune(e);
 
-      const source = replayer.getMirror().getNode(e.data.id);
-      const target =
-        canvases.get(e.data.id) ||
-        (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
-
-      // No canvas found for id... this isn't reliably reproducible and not
-      // exactly sure why it flakes. Saving as metric to keep an eye on it.
-      if (!target) {
-        Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
         return;
       }
 
-      await canvasMutation({
-        event: e,
-        mutation: e.data,
-        target,
-        imageMap,
-        canvasEventMap,
-        errorHandler: (err: unknown) => {
-          if (err instanceof Error) {
-            Sentry.captureException(err);
-          } else {
-            Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
-          }
-        },
-      });
-
-      const img = containers.get(e.data.id);
-      if (img) {
-        img.src = target.toDataURL();
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '100%';
-      }
-
-      prune(e);
+      processEvent(e, {replayer});
     },
   };
 }
