@@ -49,7 +49,7 @@ export function MetricChartContainer({
           displayType={displayType}
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}
-          enableZoom
+          enableZoom={false}
         />
       </TransitionChart>
     </MetricWidgetChartWrapper>
