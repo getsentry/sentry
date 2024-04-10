@@ -46,7 +46,10 @@ seer_connection_pool = connection_from_url(
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
-seer_staging_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+seer_staging_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+)
 
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
