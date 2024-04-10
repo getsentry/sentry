@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import Any, ClassVar
@@ -303,18 +304,55 @@ class Organization(
             "default_role": self.default_role,
         }
 
-    def get_owners(self) -> Sequence[RpcUser]:
-        owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
-            "user_id", flat=True
-        )
+    @classmethod
+    def get_owners_in_batch(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, Sequence[RpcUser]]:
+        owner_table: dict[int, Sequence[int]] = {}
+        for org in organizations:
+            owner_table[org.id] = org.get_members_with_org_roles(
+                roles=[roles.get_top_dog().id]
+            ).values_list("user_id", flat=True)
 
+        all_owner_ids = set(itertools.chain(*owner_table.values()))
         with in_test_hide_transaction_boundary():
-            return user_service.get_many(filter={"user_ids": list(owners)})
+            all_owner_objs = user_service.get_many(filter=dict(user_ids=list(all_owner_ids)))
+        owner_obj_table = {user.id: user for user in all_owner_objs}
 
-    def get_default_owner(self) -> RpcUser:
-        if not hasattr(self, "_default_owner"):
-            self._default_owner = self.get_owners()[0]
-        return self._default_owner
+        return {
+            org_id: [owner_obj_table[owner_id] for owner_id in owner_ids]
+            for (org_id, owner_ids) in owner_table.items()
+        }
+
+    def get_owners(self) -> Sequence[RpcUser]:
+        batch = self.get_owners_in_batch([self])
+        return batch[self.id]
+
+    @classmethod
+    def get_default_owners_in_batch(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, RpcUser | None]:
+        default_owner_table = [(org, getattr(org, "_default_owner", None)) for org in organizations]
+        default_owners_by_org_id = {
+            org.id: default_owner for (org, default_owner) in default_owner_table
+        }
+
+        orgs_missing_default_owner = [
+            org for (org, default_owner) in default_owner_table if default_owner is None
+        ]
+        if orgs_missing_default_owner:
+            # At least one org needs its owner looked up from an RPC
+            owner_table = cls.get_owners_in_batch(orgs_missing_default_owner)
+            for org in orgs_missing_default_owner:
+                org_owners = owner_table.get(org.id)
+                if org_owners:
+                    default_owners_by_org_id[org.id] = org_owners[0]
+
+        return default_owners_by_org_id
+
+    def get_default_owner(self) -> RpcUser | None:
+        batch = self.get_default_owners_in_batch([self])
+        return batch[self.id]
 
     @property
     def default_owner_id(self):
