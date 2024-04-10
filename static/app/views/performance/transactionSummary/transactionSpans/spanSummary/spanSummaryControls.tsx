@@ -12,9 +12,8 @@ import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 
+import {ZoomKeys} from '../spanDetails/utils';
 import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
-
-import {ZoomKeys} from './utils';
 
 interface SpanDetailsControlsProps {
   eventView: EventView;

@@ -17,18 +17,17 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
-import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
+import SpanChart from '../spanDetails/chart';
+import SpanTable from '../spanDetails/spanDetailsTable';
+import {ZoomKeys} from '../spanDetails/utils';
 import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
-import SpanChart from './chart';
-import SpanDetailsControls from './spanDetailsControls';
-import SpanDetailsHeader from './spanDetailsHeader';
-import SpanTable from './spanDetailsTable';
-import {ZoomKeys} from './utils';
+import SpanSummaryControls from './spanSummaryControls';
+import SpanSummaryHeader from './spanSummaryHeader';
 
 type Props = {
   eventView: EventView;
@@ -39,7 +38,7 @@ type Props = {
   transactionName: string;
 };
 
-export default function SpanDetailsContentWrapper(props: Props) {
+export default function SpanSummaryContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
@@ -52,8 +51,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
   useRouteAnalyticsParams({
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
-
-  return <SpanSummary {...props} />;
 
   return (
     <Fragment>
@@ -124,7 +121,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                       maxExclusiveTime={maxExclusiveTime}
                     >
                       {spanExamplesResults => (
-                        <SpanDetailsContent
+                        <SpanSummaryContent
                           location={location}
                           organization={organization}
                           project={project}
@@ -160,7 +157,7 @@ type ContentProps = {
   transactionName: string;
 };
 
-function SpanDetailsContent(props: ContentProps) {
+function SpanSummaryContent(props: ContentProps) {
   const {
     location,
     organization,
@@ -181,13 +178,13 @@ function SpanDetailsContent(props: ContentProps) {
   return (
     <Fragment>
       <Feature features="performance-span-histogram-view">
-        <SpanDetailsControls
+        <SpanSummaryControls
           organization={organization}
           location={location}
           eventView={eventView}
         />
       </Feature>
-      <SpanDetailsHeader
+      <SpanSummaryHeader
         spanSlug={spanSlug}
         totalCount={totalCount}
         suspectSpan={suspectSpan}

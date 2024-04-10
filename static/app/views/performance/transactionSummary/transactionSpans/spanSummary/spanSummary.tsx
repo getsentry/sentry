@@ -20,14 +20,13 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
+import SpanChart from '../spanDetails/chart';
+import SpanDetailsControls from '../spanDetails/spanDetailsControls';
+import SpanDetailsHeader from '../spanDetails/spanDetailsHeader';
+import SpanTable from '../spanDetails/spanDetailsTable';
+import {ZoomKeys} from '../spanDetails/utils';
 import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
-
-import SpanChart from './chart';
-import SpanDetailsControls from './spanDetailsControls';
-import SpanDetailsHeader from './spanDetailsHeader';
-import SpanTable from './spanDetailsTable';
-import {ZoomKeys} from './utils';
 
 type Props = {
   eventView: EventView;
