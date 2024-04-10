@@ -4159,39 +4159,6 @@
     "table_name": "sentry_projectartifactbundle",
     "uniques": []
   },
-  "sentry.projectavatar": {
-    "dangling": false,
-    "foreign_keys": {
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.projectavatar",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_projectavatar",
-    "uniques": [
-      [
-        "file_id"
-      ],
-      [
-        "ident"
-      ],
-      [
-        "project"
-      ]
-    ]
-  },
   "sentry.projectbookmark": {
     "dangling": false,
     "foreign_keys": {
@@ -5917,39 +5884,6 @@
       [
         "organization",
         "slug"
-      ]
-    ]
-  },
-  "sentry.teamavatar": {
-    "dangling": false,
-    "foreign_keys": {
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
-      "team": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.team",
-        "nullable": false
-      }
-    },
-    "model": "sentry.teamavatar",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_teamavatar",
-    "uniques": [
-      [
-        "file_id"
-      ],
-      [
-        "ident"
-      ],
-      [
-        "team"
       ]
     ]
   },

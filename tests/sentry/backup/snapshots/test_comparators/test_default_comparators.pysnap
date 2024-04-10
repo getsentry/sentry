@@ -1044,12 +1044,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - file_id
-    - project
-  model_name: sentry.projectavatar
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - project
     - user_id
   model_name: sentry.projectbookmark
@@ -1490,12 +1484,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization
   model_name: sentry.team
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - file_id
-    - team
-  model_name: sentry.teamavatar
 - comparators:
   - class: ForeignKeyComparator
     fields:

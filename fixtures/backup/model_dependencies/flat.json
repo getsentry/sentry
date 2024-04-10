@@ -573,10 +573,6 @@
     "sentry.organization",
     "sentry.project"
   ],
-  "sentry.projectavatar": [
-    "sentry.file",
-    "sentry.project"
-  ],
   "sentry.projectbookmark": [
     "sentry.project",
     "sentry.user"
@@ -813,10 +809,6 @@
   ],
   "sentry.team": [
     "sentry.organization"
-  ],
-  "sentry.teamavatar": [
-    "sentry.file",
-    "sentry.team"
   ],
   "sentry.teamkeytransaction": [
     "sentry.organization",
