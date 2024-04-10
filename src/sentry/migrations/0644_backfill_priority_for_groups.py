@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 
 from django.conf import settings
-from django.db import connection, migrations
+from django.db import connection
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 from psycopg2.extras import execute_values

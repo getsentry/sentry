@@ -24,8 +24,8 @@ class PriorityLevel:
 
 
 class BackfillGroupPriority(TestMigrations):
-    migrate_from = "0689_drop_config_from_cron_checkin"
-    migrate_to = "0690_backfill_group_priority_again"
+    migrate_from = "0691_remove_project_team_avatar_model"
+    migrate_to = "0692_backfill_group_priority_again"
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)

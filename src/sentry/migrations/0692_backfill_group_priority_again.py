@@ -164,7 +164,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0689_drop_config_from_cron_checkin"),
+        ("sentry", "0691_remove_project_team_avatar_model"),
     ]
 
     operations = [
