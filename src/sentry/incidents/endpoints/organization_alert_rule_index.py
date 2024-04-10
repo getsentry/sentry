@@ -60,9 +60,9 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
+
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
@@ -403,8 +403,6 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
-    # TODO: add activation count to GET response
-
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
