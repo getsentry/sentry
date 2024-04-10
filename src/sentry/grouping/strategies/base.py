@@ -252,8 +252,8 @@ class Strategy(Generic[ConcreteInterface]):
                     ),
                 )
             else:
-                hash = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash)
+                hash_value = component.get_hash()
+                duplicate_of = mandatory_contributing_hashes.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,
