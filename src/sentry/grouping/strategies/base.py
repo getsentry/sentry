@@ -217,7 +217,7 @@ class Strategy(Generic[ConcreteInterface]):
         prevent_contribution = None
 
         for variant, component in variants.items():
-            is_mandatory = variant[:1] == "!"
+            is_mandatory = variant.startswith("!")
             variant = variant.lstrip("!")
 
             if is_mandatory:
