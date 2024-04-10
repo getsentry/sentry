@@ -132,15 +132,6 @@ describe('useSpanMetricsSeries', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
-    expect(result.current.data).toEqual({
-      'spm()': {
-        data: [
-          {name: '2023-11-13T20:35:00+00:00', value: 7810.2},
-          {name: '2023-11-13T20:40:00+00:00', value: 1216.8},
-        ],
-        seriesName: 'spm()',
-      },
-    });
   });
 
   it('adjusts interval based on the yAxis', async () => {
@@ -187,5 +178,90 @@ describe('useSpanMetricsSeries', () => {
         })
       )
     );
+  });
+
+  it('rolls single-axis responses up into a series', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {
+        data: [
+          [1699907700, [{count: 7810.2}]],
+          [1699908000, [{count: 1216.8}]],
+        ],
+      },
+    });
+
+    const {result, waitFor} = reactHooks.renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['spm()'] as MetricsProperty[],
+        },
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+
+    expect(result.current.data).toEqual({
+      'spm()': {
+        data: [
+          {name: '2023-11-13T20:35:00+00:00', value: 7810.2},
+          {name: '2023-11-13T20:40:00+00:00', value: 1216.8},
+        ],
+        seriesName: 'spm()',
+      },
+    });
+  });
+
+  it('rolls multi-axis responses up into multiple series', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {
+        'http_response_rate(3)': {
+          data: [
+            [1699907700, [{count: 10.1}]],
+            [1699908000, [{count: 11.2}]],
+          ],
+        },
+        'http_response_rate(4)': {
+          data: [
+            [1699907700, [{count: 12.6}]],
+            [1699908000, [{count: 13.8}]],
+          ],
+        },
+      },
+    });
+
+    const {result, waitFor} = reactHooks.renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as MetricsProperty[],
+        },
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+
+    expect(result.current.data).toEqual({
+      'http_response_rate(3)': {
+        data: [
+          {name: '2023-11-13T20:35:00+00:00', value: 10.1},
+          {name: '2023-11-13T20:40:00+00:00', value: 11.2},
+        ],
+        seriesName: 'http_response_rate(3)',
+      },
+      'http_response_rate(4)': {
+        data: [
+          {name: '2023-11-13T20:35:00+00:00', value: 12.6},
+          {name: '2023-11-13T20:40:00+00:00', value: 13.8},
+        ],
+        seriesName: 'http_response_rate(4)',
+      },
+    });
   });
 });
