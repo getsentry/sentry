@@ -2767,7 +2767,7 @@ SENTRY_USE_SPANS_BUFFER = False
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag activates consuming GroupAttribute messages in the development environment
-SENTRY_USE_GROUP_ATTRIBUTES = False
+SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
@@ -2777,9 +2777,6 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
-
-# This flag enables the group attributes consumer
-SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
