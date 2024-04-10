@@ -831,7 +831,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_js_symbolication(self):
+    def test_js_symbolication_set_symbolicated_field(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
         )
