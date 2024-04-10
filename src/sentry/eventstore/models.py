@@ -368,7 +368,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
 
         return CalculatedHashes(
-            hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
+            hashes=flat_hashes,
+            hierarchical_hashes=hierarchical_hashes,
+            tree_labels=tree_labels,
+            variants=[*flat_variants, *hierarchical_variants],
         )
 
     def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
