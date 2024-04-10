@@ -72,6 +72,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     }
   }, [props.trace_state.search.status]);
 
+  const onSearchFocus = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
+  }, [trace_dispatch]);
+
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!event.target.value) {
@@ -118,10 +124,16 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   );
 
   const onNextSearchClick = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
     trace_dispatch({type: 'go to next match'});
   }, [trace_dispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
     trace_dispatch({type: 'go to previous match'});
   }, [trace_dispatch]);
 
@@ -148,6 +160,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         value={props.trace_state.search.query ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">

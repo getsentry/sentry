@@ -24,6 +24,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
@@ -70,9 +71,19 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    return pick(location.query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
+    const {timestamp} = getTraceQueryParams(location.query);
+    const params = pick(location.query, [
+      ...Object.values(PERFORMANCE_URL_PARAM),
+      'cursor',
+    ]);
+
+    if (timestamp) {
+      params.traceTimestamp = timestamp;
+    }
+    return params;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const tagsQueryResults = useApiQuery<Tag[]>(
     [
       `/organizations/${organization.slug}/events-facets/`,
@@ -311,6 +322,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       <ResizeableHandle
         layout={props.trace_state.preferences.layout}
         onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClickResetToDefault}
       />
       <TabsHeightContainer
         layout={props.trace_state.preferences.layout}
