@@ -1,6 +1,9 @@
+from collections.abc import Sequence
+
 from snuba_sdk import Column, Function
 from snuba_sdk.expressions import Expression
 
+from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (
     IntegerScalar,
     IPv4Scalar,
@@ -127,6 +130,28 @@ search_config["user"] = search_config["user.username"]
 search_config["release"] = search_config["releases"]
 search_config["user.ip"] = search_config["user.ip_address"]
 
+
+def can_materialized_view_search(
+    search_filters: Sequence[ParenExpression | SearchFilter | str],
+) -> bool:
+    """Return true if the search is materialized-view eligible."""
+    for search_filter in search_filters:
+        if isinstance(search_filter, str):
+            continue
+        elif isinstance(search_filter, ParenExpression):
+            is_ok = can_materialized_view_search(search_filter.children)
+            if not is_ok:
+                return False
+        else:
+            name = search_filter.key.name
+            if name not in search_config:
+                return False
+
+    # If every search condition is contained within the configuration set we can
+    # use the materialized view.
+    return True
+
+
 #
 # Sort configuration.
 #
@@ -174,6 +199,13 @@ sort_config["sdk"] = sort_config["sdk.name"]
 sort_config["user"] = sort_config["user.username"]
 sort_config["release"] = sort_config["releases"]
 sort_config["user.ip"] = sort_config["user.ip_address"]
+
+
+def can_materialized_view_sort(sort: str) -> bool:
+    """Return true if the sort is materialized-view eligible."""
+    if sort.startswith("-"):
+        sort = sort[1:]
+    return sort in sort_config
 
 
 #
@@ -224,6 +256,14 @@ DEFAULT_SELECTION = [
     "started_at",
     "user",
 ]
+
+
+def can_materialized_view_select(fields: list[str]) -> bool:
+    """Return true if the selection set is materialized-view eligible."""
+    for field in fields:
+        if field not in select_config:
+            return False
+    return True
 
 
 def make_selection(fields: list[str]) -> list[Expression]:
