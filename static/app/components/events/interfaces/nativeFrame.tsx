@@ -472,8 +472,7 @@ const ExpandCell = styled('div')`
 
 const ToggleButton = styled(Button)`
   display: block;
-  width: 16px;
-  height: 16px;
+  color: ${p => p.theme.subText};
 `;
 
 const Registers = styled(Context)`

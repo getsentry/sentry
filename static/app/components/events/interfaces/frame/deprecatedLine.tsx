@@ -225,7 +225,6 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <ToggleContextButton
-        className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
         aria-label={t('Toggle Context')}
@@ -536,11 +535,8 @@ const DefaultLineTagWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-// the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  span:first-child {
-    padding: 3px;
-  }
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLi = styled('li')`
