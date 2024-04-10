@@ -488,14 +488,14 @@ class FingerprintingVisitor(NodeVisitorBase):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
-    def __init__(self, bases: object) -> None:
+    def __init__(self, bases: None | object) -> None:
         self.bases = bases
 
-    def visit_comment(self, node: NodeVisitorBase, _: Sequence[NodeVisitorBase]) -> str:
+    def visit_comment(self, node: NodeVisitorBase, _: Sequence[object]) -> str:
         return node.text
 
     def visit_fingerprinting_rules(
-        self, _: NodeVisitorBase, children: Sequence[NodeVisitorBase]
+        self, _: NodeVisitorBase, children: Sequence[object]
     ) -> FingerprintingRules:
         changelog = []
         rules = []
@@ -515,41 +515,32 @@ class FingerprintingVisitor(NodeVisitorBase):
             bases=self.bases,
         )
 
-    def visit_line(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+    def visit_line(self, _: NodeVisitorBase, children: Sequence[object]) -> None | Rule:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
             return comment_or_rule_or_empty
+        return None
 
-    def visit_rule(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+    def visit_rule(self, _: NodeVisitorBase, children: Sequence[object]) -> Rule:
         _, matcher, _, _, _, (fingerprint, attributes) = children
         return Rule(matcher, fingerprint, attributes)
 
-    def visit_matcher(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+    def visit_matcher(self, _: NodeVisitorBase, children: Sequence[object]) -> Match:
         _, negation, ty, _, argument = children
         return Match(ty, argument, bool(negation))
 
-    def visit_matcher_type(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+    def visit_matcher_type(self, _: NodeVisitorBase, children: Sequence[object]) -> str:
         return children[0]
 
-    def visit_argument(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+    def visit_argument(self, _: NodeVisitorBase, children: Sequence[object]) -> str:
         return children[0]
 
     visit_fp_argument = visit_argument
 
     def visit_fingerprint(
-        self, _: NodeVisitorBase, children: Sequence[tuple[object, object, object]]
-    ) -> None:
+        self, _: NodeVisitorBase, children: Sequence[object]
+    ) -> tuple[list[str], dict[str, str]]:
         fingerprint = []
         attributes = {}
         for item in children:
@@ -560,31 +551,31 @@ class FingerprintingVisitor(NodeVisitorBase):
                 fingerprint.append(item)
         return fingerprint, attributes
 
-    def visit_fp_value(self, _: NodeVisitorBase, children: Sequence[NodeVisitorBase]) -> None:
+    def visit_fp_value(self, _: NodeVisitorBase, children: Sequence[object]) -> str:
         _, argument, _, _ = children
         return argument
 
-    def visit_fp_attribute(self, _: NodeVisitorBase, children: Sequence[NodeVisitorBase]) -> None:
+    def visit_fp_attribute(self, _: NodeVisitorBase, children: Sequence[object]) -> None:
         key, _, value = children
         if key != "title":
             raise InvalidFingerprintingConfig("Unknown attribute '%s'" % key)
         return (key, value)
 
-    def visit_quoted(self, node: NodeVisitorBase, _: Sequence[NodeVisitorBase]) -> None:
+    def visit_quoted(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
         return unescape_string(node.text[1:-1])
 
-    def visit_unquoted(self, node: NodeVisitorBase, _: Sequence[NodeVisitorBase]) -> None:
+    def visit_unquoted(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
         return node.text
 
     visit_unquoted_no_comma = visit_unquoted
 
-    def generic_visit(self, _: NodeVisitorBase, children: Sequence[NodeVisitorBase]) -> None:
+    def generic_visit(self, _: NodeVisitorBase, children: Sequence[object]) -> None:
         return children
 
-    def visit_key(self, node: NodeVisitorBase, _: Sequence[NodeVisitorBase]) -> None:
+    def visit_key(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
         return node.text
 
-    def visit_quoted_key(self, node: NodeVisitorBase, _: Sequence[NodeVisitorBase]) -> None:
+    def visit_quoted_key(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
 
