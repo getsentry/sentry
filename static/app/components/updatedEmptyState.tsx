@@ -72,7 +72,7 @@ setTimeout(() => {
     install: t('Use the following command to install our Python Django SDK'),
     installCode: "pip install --upgrade 'sentry-sdk[django]'",
     configure: t(
-      'If you have the django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
+      'If you have the Django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
     ),
     configureCode: dsn => `# settings.py
 import sentry_sdk
