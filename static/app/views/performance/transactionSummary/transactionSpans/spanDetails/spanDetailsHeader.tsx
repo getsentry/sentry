@@ -6,94 +6,46 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 interface HeaderProps {
   spanSlug: SpanSlug;
   totalCount: number | null;
+  avgDuration: number;
+  totalSelfTime: number;
   suspectSpan?: SuspectSpan;
 }
 
 export default function SpanDetailsHeader(props: HeaderProps) {
   const {spanSlug, suspectSpan, totalCount} = props;
 
-  const {
-    description,
-    frequency,
-    avgOccurrences,
-    p50ExclusiveTime,
-    p75ExclusiveTime,
-    p95ExclusiveTime,
-    p99ExclusiveTime,
-    sumExclusiveTime,
-  } = suspectSpan ?? {};
+  const {description, frequency, sumExclusiveTime} = suspectSpan ?? {};
 
   return (
     <ContentHeader>
       <HeaderInfo data-test-id="header-operation-name">
-        <StyledSectionHeading>{t('Span Operation')}</StyledSectionHeading>
+        <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
-      <HeaderInfo data-test-id="header-percentiles">
-        <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
-        <PercentileHeaderBodyWrapper>
-          <div data-test-id="section-p50">
-            <SectionBody>
-              {defined(p50ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p50ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p50')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p75">
-            <SectionBody>
-              {defined(p75ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p75ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p75')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p95">
-            <SectionBody>
-              {defined(p95ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p95ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p95')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p99">
-            <SectionBody>
-              {defined(p99ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p99ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p99')}</SectionSubtext>
-          </div>
-        </PercentileHeaderBodyWrapper>
-      </HeaderInfo>
-      <HeaderInfo data-test-id="header-frequency">
-        <StyledSectionHeading>{t('Frequency')}</StyledSectionHeading>
+      <HeaderInfo data-test-id="header-percentiles"></HeaderInfo>
+      <HeaderInfo data-test-id="header-avg-duration">
+        <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
         <SectionBody>
           {defined(frequency) && defined(totalCount)
-            ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
+            ? formatMetricUsingUnit(100, 'milliseconds') //formatPercentage(Math.min(frequency, totalCount) / totalCount)
             : '\u2014'}
         </SectionBody>
         <SectionSubtext>
-          {defined(avgOccurrences)
+          {'XX'}
+          {/* {defined(avgOccurrences)
             ? tct('[times] times per event', {times: avgOccurrences.toFixed(2)})
-            : '\u2014'}
+            : '\u2014'} */}
         </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
@@ -144,12 +96,6 @@ const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
 const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const PercentileHeaderBodyWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  gap: ${space(3)};
 `;
 
 export const SpanLabelContainer = styled('div')`

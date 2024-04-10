@@ -29,19 +29,6 @@ export default function SpanDetailsControls({
   eventView,
   location,
 }: SpanDetailsControlsProps) {
-  const query = decodeScalar(location.query.query, '');
-
-  const handleSearchQuery = (searchQuery: string): void => {
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-      },
-    });
-  };
-
   const handleResetView = () => {
     browserHistory.push({
       pathname: location.pathname,
@@ -60,14 +47,6 @@ export default function SpanDetailsControls({
           maxPickableDays={SPAN_RETENTION_DAYS}
         />
       </PageFilterBar>
-      <SearchBar
-        placeholder={t('Filter Transactions')}
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleSearchQuery}
-      />
       <Button onClick={handleResetView} disabled={!isZoomed()}>
         {t('Reset View')}
       </Button>
@@ -75,12 +54,23 @@ export default function SpanDetailsControls({
   );
 }
 
+// const FilterActions = styled('div')`
+//   display: grid;
+//   gap: ${space(2)};
+//   margin-bottom: ${space(2)};
+
+//   @media (min-width: ${p => p.theme.breakpoints.small}) {
+//     grid-template-columns: auto 1fr auto;
+//   }
+// `;
+
 const FilterActions = styled('div')`
-  display: grid;
-  gap: ${space(2)};
+  display: flex;
+  justify-content: space-between;
   margin-bottom: ${space(2)};
+  flex-direction: column;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 1fr auto;
+    flex-direction: row;
   }
 `;
