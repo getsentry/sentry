@@ -172,11 +172,10 @@ class MonitorSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
-        projects = {
-            p["id"]: p
-            for p in serialize(
-                list(Project.objects.filter(id__in=[i.project_id for i in item_list])), user
-            )
+        projects = Project.objects.filter(id__in=[i.project_id for i in item_list])
+        projects_data = {
+            project.id: serialized_project
+            for project, serialized_project in zip(projects, serialize(list(projects), user))
         }
 
         monitor_environments = (
@@ -199,13 +198,13 @@ class MonitorSerializer(Serializer):
             serialized_monitor_environments[monitor_env.monitor_id].append(serialized)
 
         environment_data = {
-            str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
+            item.id: serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
         attrs = {
             item: {
-                "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": environment_data[str(item.id)],
+                "project": projects_data[item.project_id] if item.project_id else None,
+                "environments": environment_data[item.id],
             }
             for item in item_list
         }
