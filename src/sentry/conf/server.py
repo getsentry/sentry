@@ -802,6 +802,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
+    "sentry.integrations.slack.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
