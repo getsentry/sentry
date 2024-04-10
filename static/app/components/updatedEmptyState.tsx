@@ -179,23 +179,27 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                     </FirstEventIndicator>
                   )}
                 </div>
-                <GuidedSteps.BackButton size="md" />
-                <GuidedSteps.NextButton size="md" />
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
               </div>
             </GuidedSteps.Step>
             {configure ? (
               <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
                 <div>
-                  <Configure>
+                  <div>
                     {configure}
                     {configureCode && (
                       <StyledCodeSnippet language={language}>
                         {configureCode(dsn)}
                       </StyledCodeSnippet>
                     )}
-                  </Configure>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
+                  </div>
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
                 </div>
               </GuidedSteps.Step>
             ) : (
@@ -212,8 +216,10 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       </StyledCodeSnippet>
                     )}
                   </div>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
                 </div>
               </GuidedSteps.Step>
             ) : (
@@ -291,8 +297,6 @@ const BodyTitle = styled('div')`
 
 const Setup = styled('div')`
   padding: ${space(4)};
-  flex: 1 1 0;
-  width: 0;
 
   &:after {
     content: '';
@@ -306,14 +310,13 @@ const Setup = styled('div')`
 
 const Preview = styled('div')`
   padding: ${space(4)};
-  flex: 1 1 0;
-  width: 0;
 `;
 
 const Body = styled('div')`
-  display: flex;
-  flex-direction: row;
-  width: 100%;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+
   h4 {
     margin-bottom: 0;
   }
@@ -357,10 +360,6 @@ const IndicatorWrapper = styled('div')`
   width: 300px;
   max-width: 100%;
   margin-bottom: ${space(1)};
-`;
-
-const Configure = styled('div')`
-  max-width: 85%;
 `;
 
 const StyledCodeSnippet = styled(CodeSnippet)`
