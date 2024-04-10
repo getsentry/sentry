@@ -903,7 +903,7 @@ source: tests/sentry/backup/test_comparators.py
     - file_id
     - organization
   model_name: sentry.organization
-  
+
 - comparators:
   - class: DateUpdatedComparator
     fields:
