@@ -121,7 +121,7 @@ class ProjectToProjectIDTransformationVisitor(QueryConditionVisitor[QueryConditi
 
         return condition
 
-    def _extract_project_id(self, project_name: str) -> str:
+    def _extract_project_id(self, project_slug: str) -> str:
         for project in self._projects:
-            if project.slug == project_name:
+            if project.slug == project_slug:
                 return project.id
