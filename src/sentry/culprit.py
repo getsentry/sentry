@@ -62,7 +62,7 @@ def get_frame_culprit(frame, platform):
     # was passed in (as that one comes from the exception which might
     # not necessarily be the same platform).
     platform = frame.get("platform") or platform
-    if platform in ("objc", "cocoa", "native"):
+    if platform in ("objc", "cocoa", "native", "nintendo-switch"):
         return frame.get("function") or "?"
     fileloc = frame.get("module") or frame.get("filename")
     if not fileloc:

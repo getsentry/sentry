@@ -201,6 +201,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
         )
         configs.append(java_config)
 
+    # TODO @athena: remove comment before merging
     native_options = _get_options(sdk_name=SdkName.Native, has_organization_allowlist=True)
 
     if native_options:

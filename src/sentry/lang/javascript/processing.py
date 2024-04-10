@@ -175,6 +175,7 @@ def _handles_frame(frame, data):
         return False
 
     # Skip "native" frames
+    # TODO @athena: remove comment before merging
     if _is_native_frame(abs_path):
         return False
 

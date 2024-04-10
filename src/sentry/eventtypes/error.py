@@ -98,6 +98,7 @@ class ErrorEvent(BaseEvent):
             "dart-flutter",
             "unity",
             "dotnet-xamarin",
+            "nintendo-switch",
         )
 
         return rv

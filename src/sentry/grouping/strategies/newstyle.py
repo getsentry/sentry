@@ -112,7 +112,7 @@ def get_basename(string: str) -> str:
 
 
 def get_package_component(package: str, platform: str | None) -> GroupingComponent:
-    if package is None or platform != "native":
+    if package is None or (platform != "native" and platform != "nintendo-switch"):
         return GroupingComponent(id="package")
 
     package = get_basename(package).lower()
@@ -382,6 +382,7 @@ def frame(
         context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
+    # TODO @athena: delete comment before merging
     if (
         context["discard_native_filename"]
         and get_behavior_family_for_platform(platform) == "native"

@@ -107,6 +107,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     """
     if platform == "csharp":
         return trim_csharp_function_name(function)
+    # TODO @athena: remove this comment before merging
     if get_behavior_family_for_platform(platform) == "native":
         return trim_native_function_name(function, platform, normalize_lambdas=normalize_lambdas)
     return function

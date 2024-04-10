@@ -145,7 +145,7 @@ DESKTOP = [
 
 # TODO: @athena Remove this
 # This is only temporary since we decide the right category. Don't add anything here or your frontend experience will be broken
-TEMPORARY = ["nintendo"]
+TEMPORARY = ["nintendo-switch"]
 
 CATEGORY_LIST = [
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},

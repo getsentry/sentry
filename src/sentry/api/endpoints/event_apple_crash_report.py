@@ -31,6 +31,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
+        # TODO @athena: remove comment before merging
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(
                 {"message": "Only cocoa events can return an apple crash report"}, status=403

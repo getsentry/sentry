@@ -506,6 +506,7 @@ def run_symbolicate(
     if platform in SHOULD_SYMBOLICATE_JS:
         symbolicator_platform = SymbolicatorPlatform.js
     else:
+        # TODO @athena: remove comment before merging
         symbolicator_platform = SymbolicatorPlatform.native
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),

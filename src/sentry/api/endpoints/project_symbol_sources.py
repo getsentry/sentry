@@ -33,6 +33,7 @@ from sentry.utils import json
 
 
 class LayoutSerializer(serializers.Serializer):
+    # TODO @athena: remove comment before merging
     """
     Layout settings for the source. This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.
 

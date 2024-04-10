@@ -225,6 +225,7 @@ def merge_rust_info_frames(event, hint):
         return event
 
     # Update the platform
+    # TODO @athena: Remove the comment before merging
     event["platform"] = "native"
     for frame in stacktrace:
         frame["platform"] = "python"

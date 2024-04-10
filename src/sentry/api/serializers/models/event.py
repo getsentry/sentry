@@ -35,7 +35,9 @@ MAX_SQL_FORMAT_LENGTH = 1500
 
 
 def get_crash_files(events):
-    event_ids = [x.event_id for x in events if x.platform == "native"]
+    event_ids = [
+        x.event_id for x in events if (x.platform == "native" or x.platform == "nintendo-switch")
+    ]
     if event_ids:
         return [
             ea

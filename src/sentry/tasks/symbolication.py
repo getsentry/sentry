@@ -122,6 +122,7 @@ def get_symbolication_platforms(
         platforms.append(SymbolicatorPlatform.jvm)
     if is_js_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.js)
+    # TODO @athena: remove comment before merging
     if get_native_symbolication_function(data, stacktraces) is not None:
         platforms.append(SymbolicatorPlatform.native)
 
@@ -161,6 +162,7 @@ def _do_symbolicate_event(
 
     # Backwards compatibility: If the current platform is JS, we may need to do
     # native afterwards. Otherwise we don't do anything.
+    # TODO @athena: remove comment before merge
     if symbolicate_platforms is None:
         if (
             task_kind.platform == SymbolicatorPlatform.js

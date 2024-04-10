@@ -40,6 +40,7 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
+# TODO @athena: remove this comment before merging
 def _merge_frame(new_frame, symbolicated, platform="native"):
     # il2cpp events which have the "csharp" platform have good (C#) names
     # coming from the SDK, we do not want to override those with bad (mangled) C++ names.

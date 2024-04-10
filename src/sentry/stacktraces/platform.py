@@ -1,4 +1,4 @@
-NATIVE_PLATFORMS = frozenset(("objc", "cocoa", "swift", "native", "c"))
+NATIVE_PLATFORMS = frozenset(("objc", "cocoa", "swift", "native", "c", "nintendo-switch"))
 JAVASCRIPT_PLATFORMS = frozenset(("javascript", "node"))
 
 
