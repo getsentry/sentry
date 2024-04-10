@@ -2,6 +2,7 @@
 
 import logging
 from enum import Enum
+from typing import Any
 
 from django.conf import settings
 from django.db import connection, migrations
@@ -64,7 +65,7 @@ UPDATE_QUERY = """
 REDIS_KEY = "priority_backfill-2.last_processed_id"
 
 
-def _get_priority_level(group_id, level, type_id, substatus):
+def _get_priority_level(group_id: int, level: int, type_id: int, substatus: GroupSubStatus) -> int:
     group_type = get_group_type_by_type_id(type_id)
 
     # Replay and Feedback issues are medium priority
@@ -106,7 +107,7 @@ def _get_priority_level(group_id, level, type_id, substatus):
     return PriorityLevel.MEDIUM
 
 
-def update_group_priority(apps, schema_editor):
+def update_group_priority(apps: Any, schema_editor: Any) -> None:
     Group = apps.get_model("sentry", "Group")
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
