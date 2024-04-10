@@ -376,7 +376,7 @@ class RpcService(abc.ABC):
 def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     """List signatures of all RPC methods in the global registry."""
 
-    from .. import hybrid_cloud as hybrid_cloud_service_pkg
+    from sentry.services import hybrid_cloud as hybrid_cloud_service_pkg
 
     # Forcibly import all service packages to ensure the global registry is fully populated
     for (importer, name, is_pkg) in pkgutil.iter_modules(hybrid_cloud_service_pkg.__path__):
