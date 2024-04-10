@@ -305,41 +305,54 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
+    def get_chunked_sums(
+        self,
+        groups: list[Group],
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        for group_chunk in chunked(groups, SNUBA_LIMIT):
+            group = groups[0]
+            sums = self.get_sums(
+                keys=[group.id for group in groups],
+                group=group,
+                model=get_issue_tsdb_group_model(group.issue_category),
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+            )
+            batch_sums.update(sums)
+        return batch_sums
+
     def batch_query_hook(
         self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
     ) -> dict[int, int]:
-        def get_chunked_sums(
-            groups: list[Group],
-        ) -> dict[int, int]:
-            batch_sums: dict[int, int] = defaultdict(int)
-            for group_chunk in chunked(groups, SNUBA_LIMIT):
-                group = groups[0]
-                sums = self.get_sums(
-                    keys=[group.id for group in groups],
-                    group=group,
-                    model=get_issue_tsdb_group_model(group.issue_category),
-                    start=start,
-                    end=end,
-                    environment_id=environment_id,
-                    referrer_suffix="alert_event_frequency",
-                )
-                batch_sums.update(sums)
-            return batch_sums
-
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
         error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
         generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
 
         if error_issues:
-            error_sums = get_chunked_sums(
+            error_sums = self.get_chunked_sums(
                 groups=error_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
             )
             batch_sums.update(error_sums)
 
         if generic_issues:
-            generic_sums = get_chunked_sums(
+            generic_sums = self.get_chunked_sums(
                 groups=generic_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
             )
             batch_sums.update(generic_sums)
 
