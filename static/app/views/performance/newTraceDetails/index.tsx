@@ -665,8 +665,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     traceDispatch({type: 'clear'});
   }, [tree, traceDispatch]);
 
+  const [clickOutsideRef, setClickOutsideRef] = useState<HTMLElement | null>(null);
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
-  useOnClickOutside(traceGridRef, onOutsideTraceContainerClick);
+
+  useOnClickOutside(clickOutsideRef, onOutsideTraceContainerClick);
 
   return (
     <TraceExternalLayout>
@@ -678,15 +680,15 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceInnerLayout>
-        <TraceHeader
-          tree={tree}
-          rootEventResults={rootEvent}
-          metaResults={props.metaResults}
-          organization={props.organization}
-          traces={props.trace}
-          traceID={props.traceSlug}
-        />
+      <TraceHeader
+        tree={tree}
+        rootEventResults={rootEvent}
+        metaResults={props.metaResults}
+        organization={props.organization}
+        traces={props.trace}
+        traceID={props.traceSlug}
+      />
+      <TraceInnerLayout ref={setClickOutsideRef}>
         <TraceToolbar>
           <TraceSearchInput
             trace_state={traceState}
@@ -758,7 +760,7 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: 0 ${space(2)} 0 ${space(2)};
   background-color: ${p => p.theme.background};
 `;
 
