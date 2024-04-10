@@ -1443,6 +1443,8 @@ def _save_aggregate(
             metrics.timer("event_manager.create_group_transaction") as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
+            # These values will get overridden with whatever happens inside the lock if we do manage
+            # to acquire it, so it should only end up with `wait-for-lock` if we don't
             span.set_tag("outcome", "wait_for_lock")
             metric_tags["outcome"] = "wait_for_lock"
 
@@ -1768,6 +1770,8 @@ def create_group_with_grouphashes(
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
+        # These values will get overridden with whatever happens inside the lock if we do manage to
+        # acquire it, so it should only end up with `wait-for-lock` if we don't
         span.set_tag("outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
