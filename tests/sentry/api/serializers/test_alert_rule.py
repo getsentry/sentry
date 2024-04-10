@@ -142,12 +142,18 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     def test_truncated_activations(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
         for i in range(11):
             self.create_alert_rule_activation(
                 alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
             )
-        result = serialize([alert_rule])
+            if i % 2 == 0:
+                self.create_alert_rule_activation(
+                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                )
+        result = serialize([alert_rule, alert_rule2])
         assert len(result[0]["activations"]) == 10
+        assert len(result[1]["activations"]) == 6
 
     def test_environment(self):
         alert_rule = self.create_alert_rule(environment=self.environment)
