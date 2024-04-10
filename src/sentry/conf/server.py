@@ -802,6 +802,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
+    "sentry.integrations.slack.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1041,7 +1042,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
         # 8:00 PDT, 11:00 EDT, 15:00 UTC
-        "schedule": crontab(minute="0", hour="15", day_of_week="mon-fri"),
+        "schedule": crontab(minute="*/30"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
@@ -2020,6 +2021,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
+    "projects:extract-transaction-from-segment-span": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated

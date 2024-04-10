@@ -112,6 +112,11 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "/apex/com.android.placeholder/liA/yes/yes",
             False,
         ),
+        (
+            "Java_io_sentry_android_ndk_NativeScope_nativeAddBreadcrumb",
+            "/apex/com.android.placeholder/libA/yes/yes",
+            True,
+        ),
     ],
 )
 @decorators
