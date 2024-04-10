@@ -41,7 +41,6 @@ def activity_expression(count_errors, count_urls):
 
 
 expressions: dict[str, Expression] = {
-    "activity": activity_expression(),
     "browser_name": Function("anyIfMerge", parameters=[Column("browser_name")]),
     "browser_version": Function("anyIfMerge", parameters=[Column("browser_version")]),
     "count_dead_clicks": Function("sumMerge", parameters=[Column("count_dead_clicks")]),
