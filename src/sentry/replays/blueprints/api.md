@@ -398,7 +398,7 @@ Retrieve a collection of selectors.
           "alt": "",
           "aria_label": "",
           "class": ["class1", "class2"],
-          "component_name": "SignUpForm",
+          "component_name": "",
           "id": "myid",
           "role": "",
           "tag": "div",

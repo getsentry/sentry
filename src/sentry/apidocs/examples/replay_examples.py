@@ -90,7 +90,24 @@ class ReplayExamples:
                             "title": "",
                         },
                         "project_id": "1",
-                    }
+                    },
+                    {
+                        "count_dead_clicks": 2,
+                        "count_rage_clicks": 1,
+                        "dom_element": "div#myid.class1.class2",
+                        "element": {
+                            "alt": "",
+                            "aria_label": "",
+                            "class": ["class1", "class2"],
+                            "component_name": "",
+                            "id": "myid",
+                            "role": "",
+                            "tag": "div",
+                            "testid": "",
+                            "title": "",
+                        },
+                        "project_id": "1",
+                    },
                 ]
             },
             status_codes=["200"],
