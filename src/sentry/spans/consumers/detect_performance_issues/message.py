@@ -91,32 +91,29 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 
 def transform_spans_to_event_dict(spans):
-    event: dict[str, Any] = {"type": "transaction", "contexts": {}}
     processed_spans: list[dict[str, Any]] = []
+
+    span = spans[0]
+    sentry_tags = span.get("sentry_tags", {})
+
+    event: dict[str, Any] = {"type": "transaction", "contexts": {}}
+    event["event_id"] = span.get("event_id")
+    event["project_id"] = span["project_id"]
+    event["transaction"] = sentry_tags.get("transaction")
+    event["release"] = sentry_tags.get("release")
+    event["environment"] = sentry_tags.get("environment")
+    event["platform"] = sentry_tags.get("platform")
+    event["contexts"]["trace"] = {
+        "trace_id": span["trace_id"],
+        "type": "trace",
+        "op": sentry_tags.get("transaction.op"),
+        "span_id": span["span_id"],
+    }
+    if (profile_id := span.get("profile_id")) is not None:
+        event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
+
     for span in spans:
         sentry_tags = span.get("sentry_tags", {})
-
-        if span["is_segment"] is True:
-            event["event_id"] = span.get("event_id")
-            event["project_id"] = span["project_id"]
-            event["transaction"] = sentry_tags.get("transaction")
-            event["release"] = sentry_tags.get("release")
-            event["environment"] = sentry_tags.get("environment")
-
-            event["platform"] = sentry_tags.get("platform")
-
-            event["contexts"]["trace"] = {
-                "trace_id": span["trace_id"],
-                "type": "trace",
-                "op": sentry_tags.get("transaction.op"),
-                "span_id": span["span_id"],
-            }
-            event["received"] = span["received"]
-            event["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
-            event["start_timestamp"] = span["start_timestamp_ms"] / 1000
-
-            if (profile_id := span.get("profile_id")) is not None:
-                event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
         if (op := sentry_tags.get("op")) is not None:
             span["op"] = op
@@ -134,6 +131,11 @@ def transform_spans_to_event_dict(spans):
     tree, root_span_id = build_tree(processed_spans)
     flattened_spans = flatten_tree(tree, root_span_id)
     event["spans"] = flattened_spans
+
+    root_span = flattened_spans[0]
+    event["received"] = root_span["received"]
+    event["timestamp"] = (root_span["start_timestamp_ms"] + root_span["duration_ms"]) / 1000
+    event["start_timestamp"] = root_span["start_timestamp_ms"] / 1000
 
     return event
 

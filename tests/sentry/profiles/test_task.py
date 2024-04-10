@@ -11,16 +11,21 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
+from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
     _calculate_profile_duration_ms,
     _deobfuscate,
+    _deobfuscate_locally,
+    _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
+    _symbolicate_profile,
 )
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -337,7 +342,7 @@ def test_basic_deobfuscation(project, proguard_file_basic, android_profile):
             },
         }
     )
-    _deobfuscate(android_profile, project)
+    _deobfuscate_locally(android_profile, project, PROGUARD_UUID)
     frames = android_profile["profile"]["methods"]
 
     assert frames[0]["name"] == "getClassContext"
@@ -376,7 +381,7 @@ def test_inline_deobfuscation(project, proguard_file_inline, android_profile):
     )
 
     project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    _deobfuscate(android_profile, project)
+    _deobfuscate_locally(android_profile, project, PROGUARD_INLINE_UUID)
     frames = android_profile["profile"]["methods"]
 
     assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
@@ -706,12 +711,12 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 },
             }
         )
-        with override_options(
-            {
-                "profiling.deobfuscate-using-symbolicator.enable-for-project": [self.project.id],
-            }
-        ):
-            _deobfuscate(android_profile, self.project)
+
+        _deobfuscate_using_symbolicator(
+            self.project,
+            android_profile,
+            PROGUARD_UUID,
+        )
 
         assert android_profile["profile"]["methods"] == [
             {
@@ -731,3 +736,132 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "source_line": 69,
             },
         ]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_inline_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "project_id": self.project.id,
+                "build_id": PROGUARD_INLINE_UUID,
+                "event_id": android_profile["profile_id"],
+                "profile": {
+                    "methods": [
+                        {
+                            "class_name": "e.a.c.a",
+                            "name": "onClick",
+                            "signature": "()V",
+                            "source_file": None,
+                            "source_line": 2,
+                        },
+                        {
+                            "class_name": "io.sentry.sample.MainActivity",
+                            "name": "t",
+                            "signature": "()V",
+                            "source_file": "MainActivity.java",
+                            "source_line": 1,
+                        },
+                    ],
+                },
+            }
+        )
+
+        _deobfuscate_using_symbolicator(
+            self.project,
+            android_profile,
+            PROGUARD_INLINE_UUID,
+        )
+
+        assert android_profile["profile"]["methods"] == [
+            {
+                "class_name": "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4",
+                "data": {
+                    "deobfuscation_status": "deobfuscated",
+                },
+                "name": "onClick",
+                "signature": "()",
+                "source_file": None,
+                "source_line": 2,
+            },
+            {
+                "class_name": "io.sentry.sample.MainActivity",
+                "data": {
+                    "deobfuscation_status": "deobfuscated",
+                },
+                "inline_frames": [
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "onClickHandler",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 40,
+                    },
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "foo",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 44,
+                    },
+                    {
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "data": {
+                            "deobfuscation_status": "deobfuscated",
+                        },
+                        "name": "bar",
+                        "signature": "()",
+                        "source_file": "MainActivity.java",
+                        "source_line": 54,
+                    },
+                ],
+                "name": "onClickHandler",
+                "signature": "()",
+                "source_file": "MainActivity.java",
+                "source_line": 40,
+            },
+        ]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_js_symbolication_set_symbolicated_field(self):
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="nodeprof123"
+        )
+        release.add_project(self.project)
+
+        for file in ["embedded.js", "embedded.js.map"]:
+            with open(get_fixture_path(f"profiles/{file}"), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        js_profile = load_profile("valid_js_profile.json")
+        js_profile.update(
+            {
+                "project_id": self.project.id,
+                "event_id": js_profile["profile_id"],
+                "release": release.version,
+                "debug_meta": {"images": []},
+            }
+        )
+
+        _symbolicate_profile(js_profile, self.project)
+        assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
