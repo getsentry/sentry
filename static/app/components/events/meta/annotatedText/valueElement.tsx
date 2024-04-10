@@ -7,15 +7,16 @@ import {Redaction} from './redaction';
 type Props = {
   value: React.ReactNode;
   meta?: Record<any, any>;
+  withoutBackground?: boolean;
 };
 
 // If you find yourself modifying this component to fix some tooltip bug,
 // consider that `meta` is not properly passed into this component in the
 // first place. It's much more likely that `withMeta` is buggy or improperly
 // used than that this component has a bug.
-export function ValueElement({value, meta}: Props) {
+export function ValueElement({value, meta, withoutBackground = false}: Props) {
   if (!!value && meta) {
-    return <Redaction>{value}</Redaction>;
+    return <Redaction withoutBackground={withoutBackground}>{value}</Redaction>;
   }
 
   if (meta?.err?.length) {
@@ -28,7 +29,7 @@ export function ValueElement({value, meta}: Props) {
 
   if (meta?.rem?.length) {
     return (
-      <Redaction>
+      <Redaction withoutBackground={withoutBackground}>
         <i>{`<${t('redacted')}>`}</i>
       </Redaction>
     );

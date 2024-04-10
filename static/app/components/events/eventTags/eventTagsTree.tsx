@@ -120,7 +120,7 @@ function TagTreeColumns({
   const assembledColumns = useMemo(() => {
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
-      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i + 2], tag),
       {}
     );
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by

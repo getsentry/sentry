@@ -10,9 +10,10 @@ import {ValueElement} from './valueElement';
 type Props = {
   value: React.ReactNode;
   meta?: Record<any, any>;
+  withoutBackground?: boolean;
 };
 
-export function AnnotatedTextValue({value, meta}: Props) {
+export function AnnotatedTextValue({value, meta, withoutBackground = false}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return (
       <ChunksSpan>
@@ -24,7 +25,7 @@ export function AnnotatedTextValue({value, meta}: Props) {
                 title={getTooltipText({rule_id: chunk.rule_id, remark: chunk.remark})}
                 key={index}
               >
-                <Redaction>{chunk.text}</Redaction>
+                <Redaction withoutBackground={withoutBackground}>{chunk.text}</Redaction>
               </Tooltip>
             );
           }
@@ -39,7 +40,7 @@ export function AnnotatedTextValue({value, meta}: Props) {
     return <FilteredAnnotatedTextValue value={value} meta={meta} />;
   }
 
-  return <ValueElement value={value} meta={meta} />;
+  return <ValueElement value={value} meta={meta} withoutBackground={withoutBackground} />;
 }
 
 const ChunksSpan = styled('span')`
