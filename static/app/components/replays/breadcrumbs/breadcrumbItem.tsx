@@ -8,6 +8,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
@@ -80,34 +81,36 @@ function BreadcrumbItem({
         {icon}
       </IconWrapper>
       <CrumbDetails>
-        <TitleContainer>
-          {<Title>{title}</Title>}
-          {onClick ? (
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          ) : null}
-        </TitleContainer>
+        <Flex column>
+          <TitleContainer>
+            {<Title>{title}</Title>}
+            {onClick ? (
+              <TimestampButton
+                startTimestampMs={startTimestampMs}
+                timestampMs={frame.timestampMs}
+              />
+            ) : null}
+          </TitleContainer>
 
-        {typeof description === 'string' ||
-        (description !== undefined && isValidElement(description)) ? (
-          <Description title={description} showOnlyOnOverflow isHoverable>
-            {description}
-          </Description>
-        ) : (
-          <InspectorWrapper>
-            <ObjectInspector
-              data={description}
-              expandPaths={expandPaths}
-              onExpand={onInspectorExpanded}
-              theme={{
-                TREENODE_FONT_SIZE: '0.7rem',
-                ARROW_FONT_SIZE: '0.5rem',
-              }}
-            />
-          </InspectorWrapper>
-        )}
+          {typeof description === 'string' ||
+          (description !== undefined && isValidElement(description)) ? (
+            <Description title={description} showOnlyOnOverflow isHoverable>
+              {description}
+            </Description>
+          ) : (
+            <InspectorWrapper>
+              <ObjectInspector
+                data={description}
+                expandPaths={expandPaths}
+                onExpand={onInspectorExpanded}
+                theme={{
+                  TREENODE_FONT_SIZE: '0.7rem',
+                  ARROW_FONT_SIZE: '0.5rem',
+                }}
+              />
+            </InspectorWrapper>
+          )}
+        </Flex>
 
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
           <div>
@@ -188,7 +191,6 @@ const CrumbIssueWrapper = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.5)};
 `;
 
 const InspectorWrapper = styled('div')`
@@ -199,6 +201,7 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: ${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
@@ -271,7 +274,6 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
 `;
 
 const CodeContainer = styled('div')`
-  margin-top: ${space(0.5)};
   max-height: 400px;
   max-width: 100%;
   overflow: auto;
