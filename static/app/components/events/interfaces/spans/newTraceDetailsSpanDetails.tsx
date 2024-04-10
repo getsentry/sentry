@@ -538,11 +538,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   </Row>
                 ) : null
               )}
-              {unknownKeys.map(key => (
-                <Row title={key} key={key}>
-                  <GeneralSpanDetailsValue value={span[key]} />
-                </Row>
-              ))}
+              {unknownKeys.map(key => {
+                if (key === 'event' || key === 'childTransaction') {
+                  // dont render the entire JSON payload
+                  return null;
+                }
+                return (
+                  <Row title={key} key={key}>
+                    <GeneralSpanDetailsValue value={span[key]} />
+                  </Row>
+                );
+              })}
             </tbody>
           </table>
           {span._metrics_summary ? (
