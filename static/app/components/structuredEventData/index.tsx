@@ -43,17 +43,25 @@ export type StructuredEventDataProps = {
 function AnnotatedValue({
   value,
   withAnnotatedText,
+  withOnlyFormattedText = false,
   meta,
 }: {
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
   value?: React.ReactNode;
+  withOnlyFormattedText?: boolean;
 }) {
   if (!withAnnotatedText || !meta) {
     return <Fragment>{value}</Fragment>;
   }
 
-  return <AnnotatedText value={value} meta={meta?.[''] ?? meta} />;
+  return (
+    <AnnotatedText
+      value={value}
+      meta={meta?.[''] ?? meta}
+      withOnlyFormattedText={withOnlyFormattedText}
+    />
+  );
 }
 
 function LinkHint({value}: {value: string}) {
@@ -74,6 +82,7 @@ export function StructuredData({
   value = null,
   maxDefaultDepth,
   withAnnotatedText,
+  withOnlyFormattedText = false,
   meta,
   objectKey,
 }: {
@@ -85,6 +94,7 @@ export function StructuredData({
   objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
+  withOnlyFormattedText?: boolean;
 }) {
   let i = 0;
 
@@ -116,6 +126,7 @@ export function StructuredData({
             value={nullValue}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
+            withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNull>
       </Wrapper>
@@ -132,6 +143,7 @@ export function StructuredData({
             value={booleanValue}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
+            withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueBoolean>
       </Wrapper>
@@ -146,6 +158,7 @@ export function StructuredData({
             value={value}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
+            withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNumber>
       </Wrapper>
@@ -164,6 +177,7 @@ export function StructuredData({
               value={stringValue}
               meta={meta}
               withAnnotatedText={withAnnotatedText}
+              withOnlyFormattedText={withOnlyFormattedText}
             />
             {'"'}
             <LinkHint value={stringValue} />
@@ -180,6 +194,7 @@ export function StructuredData({
               value={value}
               meta={meta}
               withAnnotatedText={withAnnotatedText}
+              withOnlyFormattedText={withOnlyFormattedText}
             />
           </ValueStrippedString>
         </Wrapper>
@@ -193,6 +208,7 @@ export function StructuredData({
             value={value}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
+            withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueMultiLineString>
       </Wrapper>;
@@ -205,6 +221,7 @@ export function StructuredData({
             value={value}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
+            withOnlyFormattedText={withOnlyFormattedText}
           />
           <LinkHint value={value} />
         </span>

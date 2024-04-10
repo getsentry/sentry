@@ -42,7 +42,8 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
     if (key === 'type') {
       return null;
     }
-    const contextErrors = meta?.[key]?.['']?.err ?? [];
+    const contextMeta = meta?.[key];
+    const contextErrors = contextMeta?.['']?.err ?? [];
     const hasErrors = contextErrors.length > 0;
 
     return (
@@ -51,11 +52,12 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
         <ContextValue hasErrors={hasErrors}>
           <StructuredData
             value={contextValue}
-            withAnnotatedText={false}
             depth={0}
             maxDefaultDepth={0}
-            meta={meta}
+            meta={contextMeta}
             config={{}}
+            withAnnotatedText
+            withOnlyFormattedText
           />
           <AnnotatedTextErrors errors={contextErrors} />
         </ContextValue>
@@ -110,7 +112,7 @@ const ContextSubject = styled('div')`
 
 const ContextValue = styled('div')<{hasErrors: boolean}>`
   grid-column: 2 / 3;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.text)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   font-family: ${p => p.theme.text.familyMono};
   display: flex;
   justify-content: space-between;
