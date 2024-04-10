@@ -22,9 +22,10 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
-  const hasNameOrEmail = name || email;
+  const nameOrEmail = name || email;
   const isSameNameAndEmail = name === email;
-  const user = hasNameOrEmail && isSameNameAndEmail ? name : `${name} <${email}>`;
+
+  const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
   const userNodeRef = useRef<HTMLInputElement>(null);
 
@@ -44,10 +45,10 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   }, []);
 
   const {onClick: handleCopyToClipboard} = useCopyToClipboard({
-    text: user,
+    text: user ?? '',
   });
 
-  if (!hasNameOrEmail) {
+  if (!name && !email) {
     return <strong>{t('Anonymous User')}</strong>;
   }
 
@@ -73,16 +74,18 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
           </Fragment>
         )}
       </Flex>
-      <Tooltip title={t(`Email %s`, user)}>
-        <LinkButton
-          href={`mailto:${email}`}
-          external
-          icon={<IconMail color="gray300" />}
-          aria-label={t(`Email %s`, user)}
-          borderless
-          size="zero"
-        />
-      </Tooltip>
+      {email ? (
+        <Tooltip title={t(`Email %s`, user)}>
+          <LinkButton
+            href={`mailto:${email}`}
+            external
+            icon={<IconMail color="gray300" />}
+            aria-label={t(`Email %s`, user)}
+            borderless
+            size="zero"
+          />
+        </Tooltip>
+      ) : null}
     </Flex>
   );
 }
