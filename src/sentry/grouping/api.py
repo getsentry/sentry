@@ -199,13 +199,13 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(id=None) -> GroupingConfig:
+def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
     """Returns the default grouping config."""
-    if id is None:
+    if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
-        id = DEFAULT_GROUPING_CONFIG
-    return {"id": id, "enhancements": get_default_enhancements(id)}
+        config_id = DEFAULT_GROUPING_CONFIG
+    return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
 
 
 def load_grouping_config(config_dict=None) -> StrategyConfiguration:
