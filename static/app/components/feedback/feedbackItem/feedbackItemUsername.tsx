@@ -75,7 +75,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
         )}
       </Flex>
       {email ? (
-        <Tooltip title={t(`Email %s`, user)}>
+        <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
             href={`mailto:${email}`}
             external
