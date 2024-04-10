@@ -55,7 +55,7 @@ expressions: dict[str, Expression] = {
     "device_name": Function("anyIfMerge", parameters=[Column("device_name")]),
     "dist": Function("anyIfMerge", parameters=[Column("dist")]),
     "duration": Function("anyIfMerge", parameters=[Column("duration")]),
-    "end": Function("maxMerge", parameters=[Column("end")]),
+    "finished_at": Function("maxMerge", parameters=[Column("finished_at")]),
     "environment": Function("anyIfMerge", parameters=[Column("environment")]),
     "id": Column("replay_id"),
     "ip_address_v4": Function("anyMerge", parameters=[Column("ip_address_v4")]),
@@ -66,7 +66,7 @@ expressions: dict[str, Expression] = {
     "release": Function("anyIfMerge", parameters=[Column("release")]),
     "sdk_name": Function("anyIfMerge", parameters=[Column("sdk_name")]),
     "sdk_version": Function("anyIfMerge", parameters=[Column("sdk_version")]),
-    "start": Function("minMerge", parameters=[Column("start")]),
+    "started_at": Function("minMerge", parameters=[Column("started_at")]),
     "user": Function("anyIfMerge", parameters=[Column("user")]),
     "user_id": Function("anyIfMerge", parameters=[Column("user_id")]),
     "user_name": Function("anyIfMerge", parameters=[Column("user_name")]),
@@ -77,7 +77,7 @@ expressions["activity"] = activity_expression(
     expressions["count_errors"], expressions["count_urls"]
 )
 expressions["duration"] = Function(
-    "dateDiff", parameters=["second", expressions["start"], expressions["end"]]
+    "dateDiff", parameters=["second", expressions["started_at"], expressions["finished_at"]]
 )
 
 #
@@ -131,15 +131,13 @@ search_config["release"] = search_config["releases"]
 search_config["user.ip"] = search_config["user.ip_address"]
 
 
-def can_materialized_view_search(
-    search_filters: Sequence[ParenExpression | SearchFilter | str],
-) -> bool:
+def can_search(search_filters: Sequence[ParenExpression | SearchFilter | str]) -> bool:
     """Return true if the search is materialized-view eligible."""
     for search_filter in search_filters:
         if isinstance(search_filter, str):
             continue
         elif isinstance(search_filter, ParenExpression):
-            is_ok = can_materialized_view_search(search_filter.children)
+            is_ok = can_search(search_filter.children)
             if not is_ok:
                 return False
         else:
@@ -183,7 +181,7 @@ sort_config: dict[str, Expression] = {
     "release": expressions["release"],
     "sdk.name": expressions["sdk_name"],
     "sdk.version": expressions["sdk_version"],
-    "started_at": expressions["start"],
+    "started_at": expressions["started_at"],
     "user": expressions["user"],
     "user.id": expressions["user_id"],
     "user.ip_address": expressions["user_ip_address"],
@@ -201,7 +199,7 @@ sort_config["release"] = sort_config["releases"]
 sort_config["user.ip"] = sort_config["user.ip_address"]
 
 
-def can_materialized_view_sort(sort: str) -> bool:
+def can_sort(sort: str) -> bool:
     """Return true if the sort is materialized-view eligible."""
     if sort.startswith("-"):
         sort = sort[1:]
@@ -232,7 +230,7 @@ select_config: dict[str, list[Expression]] = {
     "platform": [expressions["platform"]],
     "release": [expressions["release"]],
     "sdk": [expressions["sdk_name"], expressions["sdk_version"]],
-    "started_at": [expressions["start"]],
+    "started_at": [expressions["started_at"]],
     "user": [
         expressions["user"],
         expressions["user_id"],
@@ -258,7 +256,7 @@ DEFAULT_SELECTION = [
 ]
 
 
-def can_materialized_view_select(fields: list[str]) -> bool:
+def can_select(fields: list[str]) -> bool:
     """Return true if the selection set is materialized-view eligible."""
     for field in fields:
         if field not in select_config:

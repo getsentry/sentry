@@ -126,6 +126,7 @@ def search_filter_to_condition(
 # Leaving it here for now so this is easier to review/remove.
 import dataclasses
 
+from sentry.replays.usecases.query.configs import materialized_view as mv
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -163,10 +164,20 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
+    mv_is_enabled = False
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    if can_scalar_sort and can_scalar_search:
+    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort):
+        query = make_materialized_view_search_query(
+            search_filters=search_filters,
+            sort=sort,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+        )
+        referrer = "replays.query.browse_materialized_view_conditions_subquery"
+    elif can_scalar_sort and can_scalar_search:
         query = make_scalar_search_conditions_query(
             search_filters=search_filters,
             sort=sort,
@@ -220,6 +231,50 @@ def query_using_optimized_search(
     )["data"]
 
     return _make_ordered(replay_ids, results), has_more
+
+
+def make_materialized_view_search_query(
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    sort: str | None,
+    project_ids: list[int],
+    period_start: datetime,
+    period_stop: datetime,
+) -> Query:
+    orderby = handle_ordering(mv.sort_config, sort or "-started_at")
+
+    having: list[Condition] = handle_search_filters(mv.search_config, search_filters)
+    having.append(Condition(Function("minMerge", parameters=[Column("min_segment_id")]), Op.EQ, 0))
+
+    return Query(
+        match=Entity("replays_aggregated"),
+        select=[Column("replay_id")],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("to_hour_timestamp"), Op.LT, period_stop),
+            Condition(Column("to_hour_timestamp"), Op.GTE, period_start),
+        ],
+        having=having,
+        orderby=orderby,
+        groupby=[Column("replay_id")],
+    )
+
+
+def make_materialized_view_query(
+    fields: list[str],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    sort: str | None,
+    project_ids: list[int],
+    period_start: datetime,
+    period_stop: datetime,
+    pagination: Paginators,
+) -> Query:
+    query = make_materialized_view_search_query(
+        search_filters, sort, project_ids, period_start, period_stop
+    )
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
+    query = query.set_select(mv.make_selection(fields))
+    return query
 
 
 def make_scalar_search_conditions_query(
