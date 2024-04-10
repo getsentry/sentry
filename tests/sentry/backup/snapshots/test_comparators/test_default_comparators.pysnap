@@ -1,5 +1,5 @@
 ---
-created: '2024-04-09T17:24:52.523558+00:00'
+created: '2024-04-10T15:02:31.213310+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -24,6 +24,10 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - user_id
   model_name: hybridcloud.apitokenreplica
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: hybridcloud.controlcacheversion
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1614,59 +1618,3 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - user
   model_name: social_auth.usersocialauth
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - environment
-    - organization_id
-    - project_id
-  model_name: feedback.feedback
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - organization_id
-    - organization_slug_reservation_id
-    - user_id
-  model_name: hybridcloud.organizationslugreservationreplica
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - apikey_id
-    - organization
-  model_name: hybridcloud.apikeyreplica
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - apitoken_id
-    - application_id
-    - organization
-    - user_id
-  model_name: hybridcloud.apitokenreplica
-- comparators:
-  - class: ForeignKeyComparator
-    fields: []
-  model_name: hybridcloud.regioncacheversion
-- comparators:
-  - class: ForeignKeyComparator
-    fields: []
-  model_name: hybridcloud.controlcacheversion
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - externalactor_id
-    - integration
-    - organization_id
-    - team_id
-    - user
-  model_name: hybridcloud.externalactorreplica
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - created_by_id
-    - organization
-    - orgauthtoken_id
-  model_name: hybridcloud.orgauthtokenreplica
-- comparators:
-  - class: ForeignKeyComparator
-    fields: []
-  model_name: hybridcloud.webhookpayload
