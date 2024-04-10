@@ -359,7 +359,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
  * Returns the appropriate vertical padding based on the size prop. To be used
  * as top/bottom padding/margin in ContentWrap and LeadingItems.
  */
-export const getVerticalPadding = (size: Props['size']) => {
+const getVerticalPadding = (size: Props['size']) => {
   switch (size) {
     case 'xs':
       return space(0.5);
