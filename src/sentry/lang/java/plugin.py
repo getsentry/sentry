@@ -300,7 +300,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
 
         def frames_differ(a, b):
             return (
-                a.get("lineno") != b.get("lineno")
+                a.get("lineno", 0) != b.get("lineno", 0)
                 or a.get("abs_path") != b.get("abs_path")
                 or a.get("function") != b.get("function")
                 or a.get("filename") != b.get("filename")
