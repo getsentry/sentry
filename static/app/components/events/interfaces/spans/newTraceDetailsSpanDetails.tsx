@@ -371,6 +371,24 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
+              <Row
+                title={
+                  resolvedModule === ModuleName.DB && span.op?.startsWith('db')
+                    ? t('Database Query')
+                    : t('Description')
+                }
+                extra={renderSpanDetailActions()}
+              >
+                {resolvedModule === ModuleName.DB ? (
+                  <SpanDescription
+                    groupId={span.sentry_tags?.group ?? ''}
+                    op={span.op ?? ''}
+                    preliminaryDescription={span.description}
+                  />
+                ) : (
+                  span.description
+                )}
+              </Row>
               <Row title={t('Duration')}>
                 <TraceDrawerComponents.Duration
                   duration={duration}
@@ -451,24 +469,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               )}
               <Row title={t('Status')}>{span.status || ''}</Row>
               <SpanHTTPInfo span={props.span} />
-              <Row
-                title={
-                  resolvedModule === ModuleName.DB && span.op?.startsWith('db')
-                    ? t('Database Query')
-                    : t('Description')
-                }
-                extra={renderSpanDetailActions()}
-              >
-                {resolvedModule === ModuleName.DB ? (
-                  <SpanDescription
-                    groupId={span.sentry_tags?.group ?? ''}
-                    op={span.op ?? ''}
-                    preliminaryDescription={span.description}
-                  />
-                ) : (
-                  span.description
-                )}
-              </Row>
               <Row title={t('Date Range')}>
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
