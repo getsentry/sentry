@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
+from sentry.types.misc import KeyedList
 
 
 class BaseVariant:
@@ -27,6 +28,9 @@ class BaseVariant:
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
+
+
+KeyedVariants = KeyedList[BaseVariant]
 
 
 class ChecksumVariant(BaseVariant):
