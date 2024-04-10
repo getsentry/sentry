@@ -1279,6 +1279,91 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             == "avg_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
         )
 
+    def test_epm_by_timestamp(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={},
+        )
+
+        # More events occur after the timestamp
+        for _ in range(3):
+            self.store_span_metric(
+                3,
+                internal_metric=constants.SELF_TIME_LIGHT,
+                timestamp=self.min_ago,
+                tags={},
+            )
+
+        response = self.do_request(
+            {
+                "field": [
+                    f"epm_by_timestamp(less,{int(self.two_min_ago.timestamp())})",
+                    f"epm_by_timestamp(greater,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0][f"epm_by_timestamp(less,{int(self.two_min_ago.timestamp())})"] < 1.0
+        assert data[0][f"epm_by_timestamp(greater,{int(self.two_min_ago.timestamp())})"] > 1.0
+
+    def test_epm_by_timestamp_invalid_condition(self):
+        response = self.do_request(
+            {
+                "field": [
+                    f"epm_by_timestamp(INVALID_ARG,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "epm_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
+        )
+
+    def test_any_function(self):
+        for char in "abc":
+            for transaction in ["foo", "bar"]:
+                self.store_span_metric(
+                    1,
+                    internal_metric=constants.SELF_TIME_LIGHT,
+                    timestamp=self.six_min_ago,
+                    tags={"span.description": char, "transaction": transaction},
+                )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "any(span.description)",
+                ],
+                "query": "",
+                "orderby": ["transaction"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"transaction": "bar", "any(span.description)": "a"},
+            {"transaction": "foo", "any(span.description)": "a"},
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

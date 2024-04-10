@@ -74,7 +74,6 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
-        assert "intervals" not in response.data
         assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
         assert response.data["meta"] == [
             [
@@ -90,6 +89,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 },
             ]
         ]
+        assert response.data["intervals"] == []
 
     def test_query_with_disabled_org(self):
         with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):

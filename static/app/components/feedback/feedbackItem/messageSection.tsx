@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Role} from 'sentry/components/acl/role';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -37,12 +38,19 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
       </Flex>
       <Blockquote>
         <pre>{feedbackItem.metadata.message}</pre>
+
         {eventData && (
-          <ScreenshotSection
-            event={eventData}
-            organization={organization}
-            projectSlug={feedbackItem.project.slug}
-          />
+          <Role organization={organization} role={organization.attachmentsRole}>
+            {({hasRole}) =>
+              hasRole ? (
+                <ScreenshotSection
+                  event={eventData}
+                  organization={organization}
+                  projectSlug={feedbackItem.project.slug}
+                />
+              ) : null
+            }
+          </Role>
         )}
       </Blockquote>
       <Flex justify="flex-end">
