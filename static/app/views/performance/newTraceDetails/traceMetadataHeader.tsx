@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -54,6 +55,8 @@ export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
           >
             {t('Open in Discover')}
           </DiscoverButton>
+
+          <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
