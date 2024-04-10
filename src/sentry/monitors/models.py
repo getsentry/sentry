@@ -249,6 +249,11 @@ class Monitor(Model):
     Type of monitor. Currently there are only CRON_JOB monitors.
     """
 
+    owner_actor_id = BoundedBigIntegerField(null=True, db_index=True)
+    """
+    The owner of the monitors actor_id.
+    """
+
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     """
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
