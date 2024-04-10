@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -161,31 +161,33 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
                 : ''
           }`}
         </StyledTrailingText>
-        <StyledSearchBarTrailingButton
-          size="zero"
-          borderless
-          icon={<IconChevron size="xs" />}
-          aria-label={t('Next')}
-          disabled={status?.[1] === 'loading'}
-          onClick={onPreviousSearchClick}
-        />
-        <StyledSearchBarTrailingButton
-          size="zero"
-          borderless
-          icon={<IconChevron size="xs" direction="down" />}
-          aria-label={t('Previous')}
-          disabled={status?.[1] === 'loading'}
-          onClick={onNextSearchClick}
-        />
         {props.trace_state.search.query ? (
-          <SearchBarTrailingButton
-            size="zero"
-            borderless
-            disabled={status?.[1] === 'loading'}
-            onClick={onSearchClear}
-            icon={<IconClose size="xs" />}
-            aria-label={t('Clear')}
-          />
+          <Fragment>
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" />}
+              aria-label={t('Next')}
+              disabled={status?.[1] === 'loading'}
+              onClick={onPreviousSearchClick}
+            />
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" direction="down" />}
+              aria-label={t('Previous')}
+              disabled={status?.[1] === 'loading'}
+              onClick={onNextSearchClick}
+            />
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              disabled={status?.[1] === 'loading'}
+              onClick={onSearchClear}
+              icon={<IconClose size="xs" />}
+              aria-label={t('Clear')}
+            />
+          </Fragment>
         ) : null}
       </InputGroup.TrailingItems>
     </StyledSearchBar>
@@ -246,6 +248,13 @@ const StyledSearchIcon = styled(IconSearch)`
 
 const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
   padding: 0;
+
+  &:last-child {
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const StyledTrailingText = styled('span')`
