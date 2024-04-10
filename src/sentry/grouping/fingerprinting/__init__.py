@@ -4,7 +4,7 @@ import inspect
 import logging
 from collections.abc import Generator, Sequence
 from pathlib import Path
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -244,6 +244,12 @@ class FingerprintingRules:
         return FingerprintingVisitor(bases=bases).visit(tree)
 
 
+if TYPE_CHECKING:
+    NodeVisitorBase = NodeVisitor[FingerprintingRules]
+else:
+    NodeVisitorBase = NodeVisitor
+
+
 class BuiltInFingerprintingRules(FingerprintingRules):
     """
     A FingerprintingRules object that marks all of its rules as built-in
@@ -478,7 +484,7 @@ class Rule:
         ).rstrip()
 
 
-class FingerprintingVisitor(NodeVisitor):  # type: ignore[type-arg]
+class FingerprintingVisitor(NodeVisitorBase):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
