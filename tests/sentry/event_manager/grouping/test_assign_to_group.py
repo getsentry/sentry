@@ -218,7 +218,7 @@ def get_results_from_saving_event(
 
         if existing_group_id:
             event_assigned_to_given_existing_group = (
-                new_event.group_id == existing_group_id if existing_group_id else None
+                (new_event.group_id == existing_group_id) if existing_group_id else None
             )
 
         if secondary_hash_calculated:

@@ -20,6 +20,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 
+# TODO This can go away once hierarchical grouping is gone
 def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
     return [] if not calculated_hashes else list(calculated_hashes.hashes)
 

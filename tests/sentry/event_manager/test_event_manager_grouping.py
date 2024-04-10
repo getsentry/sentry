@@ -19,6 +19,9 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
+    """
+    Given a mock metrics function, grab only the calls which record the metric with the given key.
+    """
     return [call for call in mock_fn.call_args_list if call.args[0] == key]
 
 
