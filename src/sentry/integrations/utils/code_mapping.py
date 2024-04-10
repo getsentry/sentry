@@ -322,7 +322,7 @@ class CodeMappingTreesHelper:
             num_relevant_items = max(1, len(src_file_items) - 1)
             relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
             # relevant_path = "/".join(relevant_items)
-            return src_file_items.endswith(relevant_items)
+            return _list_endswith(src_file_items, relevant_items)
             # return src_file.endswith(relevant_path)
         else:  # exact match
             return src_file == frame_filename
