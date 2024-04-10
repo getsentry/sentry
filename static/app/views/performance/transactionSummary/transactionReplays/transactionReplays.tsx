@@ -38,7 +38,7 @@ function TransactionReplays() {
         ...location,
         query: {
           ...location.query,
-          statsPeriod: '14d',
+          statsPeriod: '90d',
         },
       }}
       organization={organization}
