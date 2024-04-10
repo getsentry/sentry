@@ -32,7 +32,7 @@ export function getKnownProfileContextData({
   organization,
   project,
 }: Pick<ProfileContextProps, 'data' | 'meta'> & {
-  organization?: Organization;
+  organization: Organization;
   project?: Project;
 }) {
   return getKnownData<ProfileContext, ProfileContextKey>({
@@ -89,15 +89,15 @@ function getProfileKnownDataDetails({
   type,
 }: {
   data: ProfileContext;
+  organization: Organization;
   type: ProfileContextKey;
-  organization?: Organization;
   project?: Project;
 }) {
   switch (type) {
     case ProfileContextKey.PROFILE_ID: {
       const profileId = data.profile_id || '';
 
-      if (!profileId || !organization) {
+      if (!profileId) {
         return undefined;
       }
 

@@ -305,7 +305,7 @@ export function getFormattedContextData({
   contextType: string;
   contextValue: any;
   event: Event;
-  organization?: Organization;
+  organization: Organization;
   project?: Project;
 }) {
   const meta = getContextMeta(event, contextType);

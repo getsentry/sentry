@@ -38,7 +38,7 @@ export function getKnownTraceContextData({
   meta,
   organization,
 }: Props & {
-  organization?: Organization;
+  organization: Organization;
 }) {
   return getKnownData<TraceKnownData, TraceKnownDataType>({
     data,

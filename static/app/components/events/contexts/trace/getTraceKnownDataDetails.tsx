@@ -17,8 +17,8 @@ type Output = {
 type Props = {
   data: TraceKnownData;
   event: Event;
+  organization: Organization;
   type: TraceKnownDataType;
-  organization?: Organization;
 };
 
 export function getTraceKnownDataDetails({
@@ -35,7 +35,7 @@ export function getTraceKnownDataDetails({
         return undefined;
       }
 
-      if (!organization || !organization.features.includes('discover-basic')) {
+      if (!organization.features.includes('discover-basic')) {
         return {
           subject: t('Trace ID'),
           value: traceId,
@@ -91,7 +91,7 @@ export function getTraceKnownDataDetails({
       }
       const transactionName = eventTag.value;
 
-      if (!organization || !organization.features.includes('performance-view')) {
+      if (!organization.features.includes('performance-view')) {
         return {
           subject: t('Transaction'),
           value: transactionName,
