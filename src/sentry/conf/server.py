@@ -1042,7 +1042,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
         # 8:00 PDT, 11:00 EDT, 15:00 UTC
-        "schedule": crontab(minute="0", hour="15", day_of_week="mon-fri"),
+        "schedule": crontab(minute="*/30"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
@@ -1674,8 +1674,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
-    # Enable Monitors (Crons) view
-    "organizations:monitors": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users

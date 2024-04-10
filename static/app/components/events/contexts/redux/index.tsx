@@ -11,19 +11,22 @@ type Props = {
   meta?: Record<string, any>;
 };
 
+export function getReduxContextData({data}: Pick<Props, 'data'>) {
+  return [
+    {
+      key: 'value',
+      subject: t('Latest State'),
+      // TODO(TS): Objects cannot be rendered to the dom
+      value: JSON.stringify(data),
+    },
+  ];
+}
+
 export function ReduxContext({data}: Props) {
+  const reduxData = getReduxContextData({data});
   return (
     <ClippedBox clipHeight={250}>
-      <ContextBlock
-        data={[
-          {
-            key: 'value',
-            subject: t('Latest State'),
-            // TODO(TS): Objects cannot be rendered to the dom
-            value: data as any,
-          },
-        ]}
-      />
+      <ContextBlock data={reduxData} />
     </ClippedBox>
   );
 }
