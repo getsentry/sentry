@@ -120,7 +120,7 @@ function Step(props: StepProps) {
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-      <div>
+      <StepDetails>
         <StepHeading isActive={isActive}>
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
@@ -128,7 +128,7 @@ function Step(props: StepProps) {
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
-      </div>
+      </StepDetails>
     </StepWrapper>
   );
 }
@@ -249,6 +249,10 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   p {
     margin-bottom: ${space(1)};
   }
+`;
+
+const StepDetails = styled('div')`
+  overflow: hidden;
 `;
 
 GuidedSteps.Step = Step;
