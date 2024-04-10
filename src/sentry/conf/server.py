@@ -2778,6 +2778,9 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flag enables the group attributes consumer
+SENTRY_USE_GROUP_ATTRIBUTES = True
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2966,7 +2969,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
                 # TODO: remove setting
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
+                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
