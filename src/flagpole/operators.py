@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Annotated, Any, Literal, TypeVar
 
-from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
 def get_type_name(value: Any):
@@ -100,9 +100,12 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
     return case_insensitive_set
 
 
+InOperatorValueTypes = list[StrictInt] | list[StrictFloat] | list[StrictStr]
+
+
 class InOperator(Operator):
     kind: Literal[OperatorKind.IN] = OperatorKind.IN
-    value: list[StrictInt] | list[StrictStr]
+    value: InOperatorValueTypes
 
     def match(self, condition_property: Any, segment_name: str):
         return evaluate_in(
@@ -112,7 +115,7 @@ class InOperator(Operator):
 
 class NotInOperator(Operator):
     kind: Literal[OperatorKind.NOT_IN] = OperatorKind.NOT_IN
-    value: list[StrictInt] | list[StrictStr] = Field(default_factory=list)
+    value: InOperatorValueTypes
 
     def match(self, condition_property: Any, segment_name: str):
         return not evaluate_in(
@@ -120,9 +123,12 @@ class NotInOperator(Operator):
         )
 
 
+ContainsOperatorValueTypes = StrictInt | StrictStr | StrictFloat
+
+
 class ContainsOperator(Operator):
     kind: Literal[OperatorKind.CONTAINS] = OperatorKind.CONTAINS
-    value: StrictInt | StrictStr
+    value: StrictInt | StrictStr | StrictFloat
 
     def match(self, condition_property: Any, segment_name: str):
         return evaluate_contains(
@@ -132,7 +138,7 @@ class ContainsOperator(Operator):
 
 class NotContainsOperator(Operator):
     kind: Literal[OperatorKind.NOT_CONTAINS] = OperatorKind.NOT_CONTAINS
-    value: StrictInt | StrictStr
+    value: ContainsOperatorValueTypes
 
     def match(self, condition_property: Any, segment_name: str):
         return not evaluate_contains(
@@ -140,9 +146,20 @@ class NotContainsOperator(Operator):
         )
 
 
+EqualsOperatorValueTypes = (
+    StrictInt
+    | StrictFloat
+    | StrictStr
+    | StrictBool
+    | list[StrictInt]
+    | list[StrictFloat]
+    | list[StrictStr]
+)
+
+
 class EqualsOperator(Operator):
     kind: Literal[OperatorKind.EQUALS] = OperatorKind.EQUALS
-    value: StrictInt | StrictStr | StrictBool | list[StrictInt] | list[StrictStr]
+    value: EqualsOperatorValueTypes
 
     def match(self, condition_property: Any, segment_name: str):
         return evaluate_equals(
@@ -152,7 +169,7 @@ class EqualsOperator(Operator):
 
 class NotEqualsOperator(Operator):
     kind: Literal[OperatorKind.NOT_EQUALS] = OperatorKind.NOT_EQUALS
-    value: StrictInt | StrictStr | list[StrictInt] | list[StrictStr]
+    value: EqualsOperatorValueTypes
 
     def match(self, condition_property: Any, segment_name: str):
         return not evaluate_equals(

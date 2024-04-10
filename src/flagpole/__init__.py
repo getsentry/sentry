@@ -27,9 +27,9 @@ features:
               value: True
 ```
 
-Each feature flag has a list of segments. If the conditions for a segment match
-the evaluation context a feature is granted. Segments can contain multiple conditions
-and all conditions in a segment must match. A segment with multiple conditions looks like:
+Each feature flag has a list of segments, each of which contain a list of conditions.
+If all the conditions for a segment match the evaluation context, a feature is granted.
+A segment with multiple conditions looks like:
 
 ```yaml
 features:
@@ -56,9 +56,8 @@ features:
 Property names are arbitrary and read from an evaluation context
 prepared by the application.
 
-Each segment has one or more operators. All operators in a segment must
-evaluate to true. At least one segment must evaluate to true in order to
-grant a feature.
+Each condition has a single operator. An operator takes a kind (`OperatorKind` enum)
+and a value, the type of which depends on the operator specified.
 """
 from __future__ import annotations
 
@@ -67,30 +66,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, constr
 
-from flagpole.conditions import Condition
+from flagpole.conditions import Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 from sentry.utils import json
 
 
 class InvalidFeatureFlagConfiguration(Exception):
     pass
-
-
-class Segment(BaseModel):
-    name: constr(min_length=1)  # type:ignore[valid-type]
-    conditions: list[Condition]
-    rollout: int | None = 0
-
-    def match(self, context: EvaluationContext) -> bool:
-        for condition in self.conditions:
-            match_condition = condition.match(context, segment_name=self.name)
-            if not match_condition:
-                return False
-        # Apply incremental rollout if available.
-        if self.rollout is not None and self.rollout < 100:
-            return context.id() % 100 <= self.rollout
-
-        return True
 
 
 class Feature(BaseModel):

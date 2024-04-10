@@ -46,7 +46,6 @@ class TestParseFeatureConfig:
                     "name": "segment1",
                     "rollout": 100,
                     "conditions": [{
-                        "name": "condition1",
                         "property": "test_property",
                         "operator": {
                             "kind": "in",
@@ -64,7 +63,6 @@ class TestParseFeatureConfig:
         assert len(feature.segments[0].conditions) == 1
 
         condition = feature.segments[0].conditions[0]
-        assert condition.name == "condition1"
         assert condition.property == "test_property"
         assert condition.operator
         assert condition.operator.kind == OperatorKind.IN

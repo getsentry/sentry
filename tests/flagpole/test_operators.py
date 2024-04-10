@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -9,10 +11,12 @@ from flagpole.operators import (
     NotContainsOperator,
     NotEqualsOperator,
     NotInOperator,
+    Operator,
     OperatorKind,
     create_case_insensitive_set_from_list,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class TestCreateCaseInsensitiveSetFromList(TestCase):
@@ -27,6 +31,33 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
 
     def test_returns_lowercase_string_set(self):
         assert create_case_insensitive_set_from_list(["AbC", "DEF"]) == {"abc", "def"}
+
+
+def assert_valid_types(operator: type[Operator], expected_types: Any):
+    for value in expected_types:
+        operator_dict = dict(value=value)
+        json_operator = json.dumps(operator_dict)
+        try:
+            operator = operator.parse_raw(json_operator)
+        except ValidationError as exc:
+            raise AssertionError(
+                f"Expected value `{value}` to be a valid value for operator '{operator}'"
+            ) from exc
+        assert operator.value == value
+
+
+def assert_invalid_types(operator: type[Operator], invalid_types: Any):
+    for value in invalid_types:
+        json_dict = dict(value=value)
+        operator_json = json.dumps(json_dict)
+        try:
+            operator.parse_raw(operator_json)
+        except ValidationError:
+            continue
+
+        raise AssertionError(
+            f"Expected validation error for value: `{value}` for operator `{operator}`"
+        )
 
 
 class TestInOperators(TestCase):
@@ -86,6 +117,16 @@ class TestInOperators(TestCase):
         with pytest.raises(ConditionTypeMismatchException):
             not_operator.match(condition_property=[], segment_name="test")
 
+    def test_valid_json_and_reparse(self):
+        values = [["foo", "bar"], [1, 2], [1.1, 2.2], []]
+        assert_valid_types(operator=InOperator, expected_types=values)
+        assert_valid_types(operator=NotInOperator, expected_types=values)
+
+    def test_invalid_value_type_parsing(self):
+        values = ["abc", 1, 2.2, True, None, ["a", 1], [True], [[]], [1, 2.2], [1.1, "2.2"]]
+        assert_invalid_types(operator=InOperator, invalid_types=values)
+        assert_invalid_types(operator=NotInOperator, invalid_types=values)
+
 
 class TestContainsOperators(TestCase):
     def test_does_contain(self):
@@ -117,6 +158,21 @@ class TestContainsOperators(TestCase):
         with pytest.raises(ConditionTypeMismatchException):
             not_operator = NotContainsOperator(kind=OperatorKind.NOT_CONTAINS, value=values)
             assert not_operator.match(condition_property="oops", segment_name="test")
+
+    def test_valid_json_parsing_with_types(self):
+        values = [1, 2.2, "abc"]
+        assert_valid_types(operator=ContainsOperator, expected_types=values)
+        assert_valid_types(operator=NotContainsOperator, expected_types=values)
+
+    def test_invalid_value_type_parsing(self):
+        values = [
+            None,
+            [],
+            dict(foo="bar"),
+            [[]],
+        ]
+        assert_invalid_types(operator=ContainsOperator, invalid_types=values)
+        assert_invalid_types(operator=NotContainsOperator, invalid_types=values)
 
 
 class TestEqualsOperators(TestCase):
@@ -154,3 +210,13 @@ class TestEqualsOperators(TestCase):
         not_operator = NotEqualsOperator(kind=OperatorKind.NOT_EQUALS, value=values)
         with pytest.raises(ConditionTypeMismatchException):
             not_operator.match(condition_property="foo", segment_name="test")
+
+    def test_valid_json_parsing_with_types(self):
+        values = [1, 2.2, "abc", True, False, [], ["foo"], [1], [1.1]]
+        assert_valid_types(operator=EqualsOperator, expected_types=values)
+        assert_valid_types(operator=NotEqualsOperator, expected_types=values)
+
+    def test_invalid_value_type_parsing(self):
+        values = [None, dict(foo="bar")]
+        assert_invalid_types(operator=EqualsOperator, invalid_types=values)
+        assert_invalid_types(operator=NotEqualsOperator, invalid_types=values)

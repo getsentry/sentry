@@ -76,7 +76,7 @@ class ContextBuilder(BaseModel):
         self.context_transformers.append(context_transformer)
         return self
 
-    def add_exception_handler(self, exception_handler: Callable[[Exception], Any]):
+    def add_exception_handler(self, exception_handler: Callable[[Exception], None]):
         """
         Add a custom exception handler to the context builder if you need custom handling
         if any of the transformer functions raise an exception. This is useful for swallowing
