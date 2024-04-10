@@ -458,15 +458,13 @@ function Sidebar() {
   );
 
   const monitors = hasOrganization && (
-    <Feature features="monitors" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconTimer />}
-        label={t('Crons')}
-        to={`/organizations/${organization.slug}/crons/`}
-        id="crons"
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconTimer />}
+      label={t('Crons')}
+      to={`/organizations/${organization.slug}/crons/`}
+      id="crons"
+    />
   );
 
   const replays = hasOrganization && (
