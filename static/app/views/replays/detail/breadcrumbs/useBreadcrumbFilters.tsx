@@ -43,6 +43,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   action: 'User Action',
   rageOrMulti: 'Rage & Multi Click',
   rageOrDead: 'Rage & Dead Click',
+  hydrateError: 'Hydration Error',
   lcp: 'LCP',
   click: 'User Click',
   keydown: 'KeyDown',
@@ -65,6 +66,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.focus': 'action',
   'ui.multiClick': 'rageOrMulti',
   'ui.slowClickDetected': 'rageOrDead',
+  'replay.hydrate-error': 'hydrateError',
   'largest-contentful-paint': 'lcp',
   'ui.click': 'click',
   'ui.keyDown': 'keydown',
@@ -73,7 +75,11 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
 };
 
 function typeToLabel(val: string): string {
-  return TYPE_TO_LABEL[val] ?? 'Unknown';
+  if (TYPE_TO_LABEL[val]) {
+    return TYPE_TO_LABEL[val];
+  }
+  Sentry.captureException('Unknown breadcrumb filter type');
+  return 'Unknown';
 }
 
 const FILTERS = {
