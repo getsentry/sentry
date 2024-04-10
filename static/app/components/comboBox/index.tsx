@@ -1,5 +1,4 @@
 import {
-  type Key,
   useCallback,
   useContext,
   useEffect,
@@ -236,7 +235,7 @@ function ControlledComboBox<Value extends string>({
   );
 
   const handleChange = useCallback(
-    (key: Key) => {
+    (key: string | number) => {
       if (props.onSelectionChange) {
         props.onSelectionChange(key);
       }
