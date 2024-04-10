@@ -50,6 +50,7 @@ ElementResponseType = TypedDict(
         "alt": str,
         "aria_label": str,
         "class": list[str],
+        "component_name": str,
         "id": str,
         "role": str,
         "tag": str,
@@ -65,7 +66,6 @@ class ReplaySelectorResponseData(TypedDict, total=False):
     dom_element: str
     element: ElementResponseType
     project_id: str
-    component_name: str
 
 
 class ReplaySelectorResponse(TypedDict):

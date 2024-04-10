@@ -77,11 +77,12 @@ class ReplayExamples:
                     {
                         "count_dead_clicks": 2,
                         "count_rage_clicks": 1,
-                        "dom_element": "div#myid.class1.class2",
+                        "dom_element": "SignUpForm",
                         "element": {
                             "alt": "",
                             "aria_label": "",
                             "class": ["class1", "class2"],
+                            "component_name": "SignUpForm",
                             "id": "myid",
                             "role": "",
                             "tag": "div",
@@ -89,7 +90,6 @@ class ReplayExamples:
                             "title": "",
                         },
                         "project_id": "1",
-                        "component_name": "SignUpForm",
                     }
                 ]
             },
