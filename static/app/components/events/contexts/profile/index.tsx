@@ -16,6 +16,7 @@ import {
   getKnownData,
   getKnownStructuredData,
   getUnknownData,
+  type KnownDataDetails,
 } from '../utils';
 
 const PROFILE_KNOWN_DATA_VALUES = [ProfileContextKey.PROFILE_ID];
@@ -92,7 +93,7 @@ function getProfileKnownDataDetails({
   organization: Organization;
   type: ProfileContextKey;
   project?: Project;
-}) {
+}): KnownDataDetails {
   switch (type) {
     case ProfileContextKey.PROFILE_ID: {
       const profileId = data.profile_id || '';

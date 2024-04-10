@@ -7,7 +7,13 @@ import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import type {Event, KeyValueListData, Organization, Project} from 'sentry/types';
+import type {
+  Event,
+  KeyValueListData,
+  KeyValueListDataItem,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {defined, toTitleCase} from 'sentry/utils';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
@@ -143,6 +149,8 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
+export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
@@ -151,12 +159,7 @@ export function getKnownData<Data, DataType>({
 }: {
   data: Data;
   knownDataTypes: string[];
-  onGetKnownDataDetails: (props: {data: Data; type: DataType}) =>
-    | {
-        subject: string;
-        value?: React.ReactNode;
-      }
-    | undefined;
+  onGetKnownDataDetails: (props: {data: Data; type: DataType}) => KnownDataDetails;
   meta?: Record<any, any>;
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
