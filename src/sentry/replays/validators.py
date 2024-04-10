@@ -31,7 +31,7 @@ VALID_FIELD_SET = (
     "warning_ids",
     "count_warnings",
     "count_infos",
-    "has_viewed"
+    "has_viewed",
 )
 
 
