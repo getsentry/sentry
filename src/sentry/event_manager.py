@@ -570,10 +570,10 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-        _get_or_create_group_environment_many(jobs, projects)
+        _get_or_create_group_environment_many(jobs)
         _get_or_create_release_associated_models(jobs, projects)
         _increment_release_associated_counts_many(jobs, projects)
-        _get_or_create_group_release_many(jobs, projects)
+        _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
 
         UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
@@ -946,7 +946,7 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 
 
 @sentry_sdk.tracing.trace
-def _get_or_create_group_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
 
@@ -1029,7 +1029,7 @@ def _increment_release_associated_counts(
         )
 
 
-def _get_or_create_group_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _get_or_create_group_release_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         _get_or_create_group_release(
             job["environment"], job["release"], job["event"], job["groups"]
@@ -1443,6 +1443,8 @@ def _save_aggregate(
             metrics.timer("event_manager.create_group_transaction") as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
+            # These values will get overridden with whatever happens inside the lock if we do manage
+            # to acquire it, so it should only end up with `wait-for-lock` if we don't
             span.set_tag("outcome", "wait_for_lock")
             metric_tags["outcome"] = "wait_for_lock"
 
@@ -1450,12 +1452,26 @@ def _save_aggregate(
             if root_hierarchical_grouphash is not None:
                 all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
+            # If we're in this branch, we checked our grouphashes and didn't find one with a group
+            # attached. We thus want to create a new group, but we need to guard against another
+            # event with the same hash coming in before we're done here and also thinking it needs
+            # to create a new group. To prevent this, we're using double-checked locking
+            # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+            # hashed) event is also in the process of creating a group and has grabbed the lock
+            # before us, we'll block here until it's done. If not, we've now got the lock and other
+            # identically-hashed events will have to wait for us.
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
+            # Now check again to see if any of our grouphashes have a group. In the first race
+            # condition scenario above, we'll have been blocked long enough for the other event to
+            # have created the group and updated our grouphashes with a group id, which means this
+            # time, we'll find something.
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
@@ -1467,6 +1483,8 @@ def _save_aggregate(
             else:
                 root_hierarchical_grouphash = None
 
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+            # the group.
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
 
@@ -1606,7 +1624,7 @@ def _save_aggregate_new(
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
     # Try looking for an existing group using the current grouping config
-    primary = create_and_seek_grouphashes(job, run_primary_grouping, metric_tags)
+    primary = get_hashes_and_grouphashes(job, run_primary_grouping, metric_tags)
 
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
@@ -1616,7 +1634,7 @@ def _save_aggregate_new(
         result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
-        secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
+        secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
 
         # Now we know for sure whether or not a group already exists, so handle both cases
@@ -1659,7 +1677,7 @@ def _save_aggregate_new(
     return group_info
 
 
-def create_and_seek_grouphashes(
+def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
@@ -1768,6 +1786,8 @@ def create_group_with_grouphashes(
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
+        # These values will get overridden with whatever happens inside the lock if we do manage to
+        # acquire it, so it should only end up with `wait-for-lock` if we don't
         span.set_tag("outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
