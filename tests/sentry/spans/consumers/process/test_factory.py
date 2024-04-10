@@ -13,7 +13,6 @@ from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_topic_definition
 
 
@@ -141,58 +140,63 @@ def test_consumer_pushes_to_redis():
     }
 )
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-@mock.patch.object(SingletonProducer, "produce")
-def test_produces_valid_segment_to_kafka(mock_produce):
+def test_produces_valid_segment_to_kafka():
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = process_spans_strategy().create_with_partitions(
-        commit=mock.Mock(),
-        partitions={},
-    )
+    factory = process_spans_strategy()
+    with mock.patch.object(
+        factory,
+        "producer",
+        new=mock.Mock(),
+    ) as mock_producer:
+        strategy = factory.create_with_partitions(
+            commit=mock.Mock(),
+            partitions={},
+        )
 
-    span_data = build_mock_span(project_id=1, is_segment=True)
-    message1 = build_mock_message(span_data, topic)
+        span_data = build_mock_span(project_id=1, is_segment=True)
+        message1 = build_mock_message(span_data, topic)
 
-    strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    b"key",
-                    message1.value().encode("utf-8"),
-                    [
-                        ("project_id", b"1"),
-                    ],
-                ),
-                partition,
-                1,
-                datetime.now() - timedelta(minutes=3),
+        strategy.submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(
+                        b"key",
+                        message1.value().encode("utf-8"),
+                        [
+                            ("project_id", b"1"),
+                        ],
+                    ),
+                    partition,
+                    1,
+                    datetime.now() - timedelta(minutes=3),
+                )
             )
         )
-    )
 
-    span_data = build_mock_span(project_id=1)
-    message2 = build_mock_message(span_data, topic)
+        span_data = build_mock_span(project_id=1)
+        message2 = build_mock_message(span_data, topic)
 
-    strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    b"key",
-                    message2.value().encode("utf-8"),
-                    [
-                        ("project_id", b"1"),
-                    ],
-                ),
-                partition,
-                1,
-                datetime.now(),
+        strategy.submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(
+                        b"key",
+                        message2.value().encode("utf-8"),
+                        [
+                            ("project_id", b"1"),
+                        ],
+                    ),
+                    partition,
+                    1,
+                    datetime.now(),
+                )
             )
         )
-    )
 
-    mock_produce.assert_called_once()
-    BUFFERED_SEGMENT_SCHEMA.decode(mock_produce.call_args.args[1].value)
-    assert mock_produce.call_args.args[0] == ArroyoTopic("buffered-segments")
+        mock_producer.produce.assert_called_once()
+        BUFFERED_SEGMENT_SCHEMA.decode(mock_producer.produce.call_args.args[1].value)
+        assert mock_producer.produce.call_args.args[0] == ArroyoTopic("buffered-segments")
 
 
 @override_options(

@@ -1,22 +1,27 @@
 import dataclasses
 import logging
 from collections.abc import Mapping
+from functools import partial
 from typing import Any
 
 import sentry_sdk
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies import RunTask
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import BrokerValue, Commit, Message, Partition
+from confluent_kafka import KafkaException
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import RedisSpansBuffer
-from sentry.spans.produce_segment import produce_segment_to_kafka
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
@@ -37,6 +42,11 @@ def get_project_id(headers: Headers) -> int | None:
             return int(v.decode("utf-8"))
 
     return None
+
+
+def prepare_buffered_segment_payload(segments) -> bytes:
+    segment_str = b",".join(segments)
+    return b'{"spans": [' + segment_str + b"]}"
 
 
 def _deserialize_span(value: bytes) -> Mapping[str, Any]:
@@ -97,7 +107,9 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         return None
 
 
-def _produce_segment(message: Message[ProduceSegmentContext | None]):
+def _produce_segment(
+    message: Message[ProduceSegmentContext | None], segments_producer: KafkaProducer, topic: Topic
+):
     if message.payload is None:
         return
 
@@ -119,7 +131,6 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             if len(keys) > 0:
                 payload_context["sample_key"] = keys[0]
 
-            total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
             with txn.start_child(op="process", description="produce_fetched_segments"):
@@ -127,15 +138,25 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
                     for segment in segments:
-                        total_spans_read += len(segment)
-                        produce_segment_to_kafka(segment)
+                        if not len(segment):
+                            continue
 
-            sentry_sdk.set_context("payload", payload_context)
+                        payload_data = prepare_buffered_segment_payload(segment)
+                        payload = KafkaPayload(None, payload_data, [])
+
+                        try:
+                            segments_producer.produce(topic, payload)
+                        except KafkaException:
+                            logger.exception("Failed to produce segment to Kafka")
 
 
-def produce_segment(message: Message[ProduceSegmentContext | None]):
+def produce_segment(
+    message: Message[ProduceSegmentContext | None],
+    segments_producer: KafkaProducer,
+    topic: Topic,
+):
     try:
-        _produce_segment(message)
+        _produce_segment(message, segments_producer, topic)
     except Exception:
         sentry_sdk.capture_exception()
 
@@ -156,13 +177,24 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.output_block_size = output_block_size
         self.__pool = MultiprocessingPool(num_processes)
 
+        cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
+
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        self.topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
 
-        next_step = RunTask(function=produce_segment, next_step=CommitOffsets(commit))
+        produce_function = partial(
+            produce_segment, segments_producer=self.producer, topic=self.topic
+        )
+        next_step = RunTask(function=produce_function, next_step=CommitOffsets(commit))
 
         return RunTaskWithMultiprocessing(
             function=process_message,
@@ -175,4 +207,5 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
     def shutdown(self) -> None:
+        self.producer.close()
         self.__pool.close()
