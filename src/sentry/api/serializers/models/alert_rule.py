@@ -19,7 +19,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
@@ -134,15 +133,6 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
-        activations = AlertRuleActivations.objects.filter(alert_rule__in=item_list)
-        serialized_activations = serialize(list(activations), **kwargs)
-        # TODO: paginate / truncate activations to most recent
-        for activation, serialized in zip(activations, serialized_activations):
-            alert_rule_activations = result[alert_rules[activation.alert_rule_id]].setdefault(
-                "activations", []
-            )
-            alert_rule_activations.append(serialized)
-
         alert_rule_projects = set()
         for alert_rule in alert_rules.values():
             try:
@@ -187,6 +177,11 @@ class AlertRuleSerializer(Serializer):
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+            # Add the latest 10 activations to the results list
+            result[item.id]["activations"] = serialize(
+                item.activations.order_by("-date_added")[:10], **kwargs
+            )
 
         resolved_actors: dict[str, dict[int | None, int | None]] = {}
         for k, v in ACTOR_TYPES.items():
