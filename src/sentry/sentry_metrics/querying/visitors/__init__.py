@@ -7,6 +7,7 @@ from .query_condition import (
 )
 from .query_expression import (
     EnvironmentsInjectionVisitor,
+    GroupByProjectVisitor,
     QueriedMetricsVisitor,
     QueryConditionsCompositeVisitor,
     QueryValidationV2Visitor,
@@ -32,4 +33,5 @@ __all__ = [
     "UsedGroupBysVisitor",
     "UnitsNormalizationVisitor",
     "ProjectToProjectIDTransformationVisitor",
+    "GroupByProjectVisitor",
 ]
