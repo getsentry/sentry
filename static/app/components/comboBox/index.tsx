@@ -352,6 +352,7 @@ const StyledOverlay = styled(Overlay)`
   max-height: 32rem;
   position: absolute;
   min-width: 100%;
+  overflow-y: auto;
 `;
 
 export const EmptyMessage = styled('p')`
