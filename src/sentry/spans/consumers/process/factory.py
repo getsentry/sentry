@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,7 +16,6 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.produce_segment import produce_segment_to_kafka
-from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
@@ -61,19 +59,19 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         return None
 
     assert isinstance(message.value, BrokerValue)
-    metrics.incr("process_spans.spans.received.count")
 
     with sentry_sdk.start_transaction(op="process", name="spans.process.process_message") as txn:
         payload_value = message.payload.value
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        if random.random() < 0.005:
-            sentry_sdk.set_context("payload", {"value": str(payload_value)})
-            txn.set_tag("has_payload", True)
+        with txn.start_child(op="deserialize"):
+            span = _deserialize_span(payload_value)
 
-        span = _deserialize_span(payload_value)
-        segment_id = span["segment_id"]
+        segment_id = span.get("segment_id", None)
+        if segment_id is None:
+            return None
+
         trace_id = span["trace_id"]
 
         txn.set_tag("trace.id", trace_id)
@@ -85,8 +83,6 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         should_process_segments = client.write_span_and_check_processing(
             project_id, segment_id, timestamp, partition, payload_value
         )
-
-        metrics.incr("process_spans.spans.write.count")
 
     return ProduceSegmentContext(
         should_process_segments=should_process_segments, timestamp=timestamp, partition=partition
@@ -105,7 +101,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
     if message.payload is None:
         return
 
-    context: ProduceSegmentContext = message.payload
+    context = message.payload
 
     if context.should_process_segments:
         with sentry_sdk.start_transaction(
@@ -123,7 +119,6 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
             if len(keys) > 0:
                 payload_context["sample_key"] = keys[0]
 
-            sample_span = None
             total_spans_read = 0
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
@@ -133,14 +128,7 @@ def _produce_segment(message: Message[ProduceSegmentContext | None]):
 
                     for segment in segments:
                         total_spans_read += len(segment)
-                        if len(segment) > 0:
-                            sample_span = segment[0]
                         produce_segment_to_kafka(segment)
-
-            metrics.incr("process_spans.spans.read.count", total_spans_read)
-            if sample_span and random.random() < 0.01:
-                txn.set_tag("has_payload", True)
-                payload_context["sample_span"] = str(sample_span)
 
             sentry_sdk.set_context("payload", payload_context)
 
@@ -166,13 +154,14 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.pool = MultiprocessingPool(num_processes)
+        self.__pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+
         next_step = RunTask(function=produce_segment, next_step=CommitOffsets(commit))
 
         return RunTaskWithMultiprocessing(
@@ -180,7 +169,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=next_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
-            pool=self.pool,
+            pool=self.__pool,
             input_block_size=self.input_block_size,
             output_block_size=self.output_block_size,
         )
+
+    def shutdown(self) -> None:
+        self.__pool.close()

@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
 import {
   DomainTransactionsTable,
   isAValidSort,
@@ -171,6 +172,7 @@ export function HTTPDomainSummaryPage() {
           <Layout.Title>
             {project && <ProjectAvatar project={project} size={36} />}
             {domain}
+            <DomainStatusLink domain={domain} />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>

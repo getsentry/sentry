@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -90,18 +89,6 @@ export function SpanSamplesTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  function handleMouseOverBodyCell(row: SpanTableRow) {
-    if (onMouseOverSample) {
-      onMouseOverSample(row);
-    }
-  }
-
-  function handleMouseLeave() {
-    if (onMouseLeaveSample) {
-      onMouseLeaveSample();
-    }
-  }
-
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     if (
       column.key === 'p95_comparison' ||
@@ -119,12 +106,29 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    const shouldHighlight = row.span_id === highlightedSpanId;
-
-    const commonProps = {
-      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
-      onMouseEnter: () => handleMouseOverBodyCell(row),
-    };
+    if (column.key === 'transaction_id') {
+      return (
+        <Link
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug({
+              id: row['transaction.id'],
+              project: row.project,
+            }),
+            organization,
+            location,
+            eventView: EventView.fromLocation(location),
+            dataRow: {
+              id: row['transaction.id'],
+              trace: row.transaction?.trace,
+              timestamp: row.timestamp,
+            },
+            spanId: row.span_id,
+          })}
+        >
+          {row['transaction.id'].slice(0, 8)}
+        </Link>
+      );
+    }
 
     if (column.key === 'span_id') {
       return (
@@ -144,7 +148,6 @@ export function SpanSamplesTable({
             },
             spanId: row.span_id,
           })}
-          {...commonProps}
         >
           {row.span_id}
         </Link>
@@ -155,6 +158,7 @@ export function SpanSamplesTable({
       const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
       return <ResourceSizeCell bytes={size} />;
     }
+
     if (column.key === 'profile_id') {
       return (
         <IconWrapper>
@@ -170,45 +174,43 @@ export function SpanSamplesTable({
               </LinkButton>
             </Tooltip>
           ) : (
-            <div {...commonProps}>(no value)</div>
+            <div>(no value)</div>
           )}
         </IconWrapper>
       );
     }
 
     if (column.key === 'duration') {
-      return (
-        <DurationCell containerProps={commonProps} milliseconds={row['span.self_time']} />
-      );
+      return <DurationCell milliseconds={row['span.self_time']} />;
     }
 
     if (column.key === 'avg_comparison') {
       return (
         <DurationComparisonCell
-          containerProps={commonProps}
           duration={row['span.self_time']}
           compareToDuration={avg}
         />
       );
     }
 
-    return <span {...commonProps}>{row[column.key]}</span>;
+    return <span>{row[column.key]}</span>;
   }
 
   return (
-    <div onMouseLeave={handleMouseLeave}>
-      <GridEditable
-        isLoading={isLoading}
-        data={data}
-        columnOrder={columnOrder ?? DEFAULT_COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location}
-      />
-    </div>
+    <GridEditable
+      isLoading={isLoading}
+      data={data}
+      columnOrder={columnOrder ?? DEFAULT_COLUMN_ORDER}
+      columnSortBy={[]}
+      onRowMouseOver={onMouseOverSample}
+      onRowMouseOut={onMouseLeaveSample}
+      highlightedRowKey={data.findIndex(sample => sample.span_id === highlightedSpanId)}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      location={location}
+    />
   );
 }
 
