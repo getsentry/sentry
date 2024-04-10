@@ -1,13 +1,24 @@
-import {forwardRef as reactForwardRef, memo, useMemo} from 'react';
+import {
+  forwardRef as reactForwardRef,
+  Fragment,
+  memo,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {createPortal} from 'react-dom';
+import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 /**
@@ -56,6 +67,10 @@ export type MenuListItemProps = {
    * Accented text and background (on hover) colors.
    */
   priority?: Priority;
+  /**
+   * Whether to show the details in an overlay when the item is hovered / focused.
+   */
+  showDetailsInOverlay?: boolean;
   /**
    * Determines the item's font sizes and internal paddings.
    */
@@ -115,83 +130,92 @@ function BaseMenuListItem({
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
+  showDetailsInOverlay = false,
   tooltip,
   tooltipOptions = {delay: 500},
   forwardRef,
   ...props
 }: Props) {
+  const itemRef = useRef<HTMLLIElement>(null);
   const labelId = useMemo(() => domId('menuitem-label-'), []);
   const detailId = useMemo(() => domId('menuitem-details-'), []);
 
   return (
-    <MenuItemWrap
-      role="menuitem"
-      aria-disabled={disabled}
-      aria-labelledby={labelId}
-      aria-describedby={detailId}
-      as={as}
-      ref={forwardRef}
-      {...props}
-    >
-      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
-        <InnerWrap
-          isFocused={isFocused}
-          disabled={disabled}
-          priority={priority}
-          size={size}
-          {...innerWrapProps}
-        >
-          <StyledInteractionStateLayer
-            isHovered={isFocused}
-            isPressed={isPressed}
-            higherOpacity={priority !== 'default'}
-          />
-          {leadingItems && (
-            <LeadingItems
-              disabled={disabled}
-              spanFullHeight={leadingItemsSpanFullHeight}
-              size={size}
-            >
-              {typeof leadingItems === 'function'
-                ? leadingItems({disabled, isFocused, isSelected})
-                : leadingItems}
-            </LeadingItems>
-          )}
-          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
-            <LabelWrap>
-              <Label
-                id={labelId}
-                data-test-id="menu-list-item-label"
-                aria-hidden="true"
-                {...labelProps}
-              >
-                {label}
-              </Label>
-              {details && (
-                <Details
-                  id={detailId}
-                  disabled={disabled}
-                  priority={priority}
-                  {...detailsProps}
-                >
-                  {details}
-                </Details>
-              )}
-            </LabelWrap>
-            {trailingItems && (
-              <TrailingItems
+    <Fragment>
+      <MenuItemWrap
+        role="menuitem"
+        aria-disabled={disabled}
+        aria-labelledby={labelId}
+        aria-describedby={detailId}
+        as={as}
+        ref={mergeRefs([forwardRef, itemRef])}
+        {...props}
+      >
+        <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+          <InnerWrap
+            isFocused={isFocused}
+            disabled={disabled}
+            priority={priority}
+            size={size}
+            {...innerWrapProps}
+          >
+            <StyledInteractionStateLayer
+              isHovered={isFocused}
+              isPressed={isPressed}
+              higherOpacity={priority !== 'default'}
+            />
+            {leadingItems && (
+              <LeadingItems
                 disabled={disabled}
-                spanFullHeight={trailingItemsSpanFullHeight}
+                spanFullHeight={leadingItemsSpanFullHeight}
+                size={size}
               >
-                {typeof trailingItems === 'function'
-                  ? trailingItems({disabled, isFocused, isSelected})
-                  : trailingItems}
-              </TrailingItems>
+                {typeof leadingItems === 'function'
+                  ? leadingItems({disabled, isFocused, isSelected})
+                  : leadingItems}
+              </LeadingItems>
             )}
-          </ContentWrap>
-        </InnerWrap>
-      </Tooltip>
-    </MenuItemWrap>
+            <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
+              <LabelWrap>
+                <Label
+                  id={labelId}
+                  data-test-id="menu-list-item-label"
+                  aria-hidden="true"
+                  {...labelProps}
+                >
+                  {label}
+                </Label>
+                {!showDetailsInOverlay && details && (
+                  <Details
+                    id={detailId}
+                    disabled={disabled}
+                    priority={priority}
+                    {...detailsProps}
+                  >
+                    {details}
+                  </Details>
+                )}
+                {showDetailsInOverlay && details && isFocused && (
+                  <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
+                    {details}
+                  </DetailsOverlay>
+                )}
+              </LabelWrap>
+              {trailingItems && (
+                <TrailingItems
+                  disabled={disabled}
+                  spanFullHeight={trailingItemsSpanFullHeight}
+                >
+                  {typeof trailingItems === 'function'
+                    ? trailingItems({disabled, isFocused, isSelected})
+                    : trailingItems}
+                </TrailingItems>
+              )}
+            </ContentWrap>
+          </InnerWrap>
+        </Tooltip>
+      </MenuItemWrap>
+    </Fragment>
   );
 }
 
@@ -202,6 +226,55 @@ const MenuListItem = memo(
 );
 
 export default MenuListItem;
+
+function DetailsOverlay({
+  children,
+  size,
+  id,
+  itemRef,
+}: {
+  children: React.ReactNode;
+  id: string;
+  itemRef: React.RefObject<HTMLLIElement>;
+  size: Props['size'];
+}) {
+  const theme = useTheme();
+  const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
+  const popper = usePopper(itemRef.current, overlayElement, {
+    placement: 'right-start',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 8],
+        },
+      },
+    ],
+  });
+
+  return createPortal(
+    <PositionWrapper
+      {...popper.attributes.popper}
+      ref={setOverlayElement}
+      zIndex={theme.zIndex.tooltip}
+      style={popper.styles.popper}
+    >
+      <StyledOverlay id={id} placement="right-start" size={size}>
+        {children}
+      </StyledOverlay>
+    </PositionWrapper>,
+    document.body
+  );
+}
+
+const StyledOverlay = styled(Overlay)<{
+  size: Props['size'];
+}>`
+  padding: ${p => getVerticalPadding(p.size)} ${space(1)};
+  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+  cursor: auto;
+  user-select: text;
+`;
 
 const MenuItemWrap = styled('li')`
   position: static;
@@ -295,7 +368,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
  * Returns the appropriate vertical padding based on the size prop. To be used
  * as top/bottom padding/margin in ContentWrap and LeadingItems.
  */
-const getVerticalPadding = (size: Props['size']) => {
+export const getVerticalPadding = (size: Props['size']) => {
   switch (size) {
     case 'xs':
       return space(0.5);
