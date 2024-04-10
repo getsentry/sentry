@@ -6,22 +6,23 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 interface HeaderProps {
+  avgDuration: number;
   spanSlug: SpanSlug;
   totalCount: number | null;
+  totalSelfTime: number;
   suspectSpan?: SuspectSpan;
 }
 
-export default function SpanDetailsHeader(props: HeaderProps) {
+export default function SpanSummaryHeader(props: HeaderProps) {
   const {spanSlug, suspectSpan, totalCount} = props;
 
   const {
     description,
     frequency,
-    avgOccurrences,
     p50ExclusiveTime,
     p75ExclusiveTime,
     p95ExclusiveTime,
@@ -32,7 +33,7 @@ export default function SpanDetailsHeader(props: HeaderProps) {
   return (
     <ContentHeader>
       <HeaderInfo data-test-id="header-operation-name">
-        <StyledSectionHeading>{t('Span Operation')}</StyledSectionHeading>
+        <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
@@ -83,17 +84,18 @@ export default function SpanDetailsHeader(props: HeaderProps) {
           </div>
         </PercentileHeaderBodyWrapper>
       </HeaderInfo>
-      <HeaderInfo data-test-id="header-frequency">
-        <StyledSectionHeading>{t('Frequency')}</StyledSectionHeading>
+      <HeaderInfo data-test-id="header-avg-duration">
+        <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
         <SectionBody>
           {defined(frequency) && defined(totalCount)
-            ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
+            ? formatMetricUsingUnit(100, 'milliseconds') // formatPercentage(Math.min(frequency, totalCount) / totalCount)
             : '\u2014'}
         </SectionBody>
         <SectionSubtext>
-          {defined(avgOccurrences)
+          {'XX'}
+          {/* {defined(avgOccurrences)
             ? tct('[times] times per event', {times: avgOccurrences.toFixed(2)})
-            : '\u2014'}
+            : '\u2014'} */}
         </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">

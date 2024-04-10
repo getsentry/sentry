@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -12,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
-import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
 
@@ -24,24 +22,7 @@ interface SpanDetailsControlsProps {
   organization: Organization;
 }
 
-export default function SpanDetailsControls({
-  organization,
-  eventView,
-  location,
-}: SpanDetailsControlsProps) {
-  const query = decodeScalar(location.query.query, '');
-
-  const handleSearchQuery = (searchQuery: string): void => {
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-      },
-    });
-  };
-
+export default function SpanDetailsControls({location}: SpanDetailsControlsProps) {
   const handleResetView = () => {
     browserHistory.push({
       pathname: location.pathname,
@@ -60,14 +41,6 @@ export default function SpanDetailsControls({
           maxPickableDays={SPAN_RETENTION_DAYS}
         />
       </PageFilterBar>
-      <SearchBar
-        placeholder={t('Filter Transactions')}
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleSearchQuery}
-      />
       <Button onClick={handleResetView} disabled={!isZoomed()}>
         {t('Reset View')}
       </Button>
@@ -76,11 +49,12 @@ export default function SpanDetailsControls({
 }
 
 const FilterActions = styled('div')`
-  display: grid;
-  gap: ${space(2)};
+  display: flex;
+  justify-content: space-between;
   margin-bottom: ${space(2)};
+  flex-direction: column;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 1fr auto;
+    flex-direction: row;
   }
 `;
