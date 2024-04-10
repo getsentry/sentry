@@ -311,6 +311,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       <ResizeableHandle
         layout={props.trace_state.preferences.layout}
         onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClickResetToDefault}
       />
       <TabsHeightContainer
         layout={props.trace_state.preferences.layout}
