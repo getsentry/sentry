@@ -33,12 +33,7 @@ class OpenAIProvider(LlmModelBase):
         return response.choices[0].message.content
 
 
-openai_client: OpenAI | None = None
-
-
 def get_openai_client(api_key: str) -> OpenAI:
-    # TODO: can we make this glboal?
-
+    # TODO: make this global?
     openai_client = OpenAI(api_key=api_key)
-
     return openai_client

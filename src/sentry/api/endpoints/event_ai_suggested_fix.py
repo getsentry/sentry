@@ -15,7 +15,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.llm.usecases import LlmUseCase, complete_prompt
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -270,23 +269,23 @@ def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL, stream
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    return complete_prompt(LlmUseCase.SUGGESTED_FIX, prompt, json.dumps(event_info), 0.7, 1000)
+    client = get_openai_client()
 
-    # response = client.chat.completions.create(
-    #     model=model,
-    #     temperature=0.7,
-    #     messages=[
-    #         {"role": "system", "content": prompt},
-    #         {
-    #             "role": "user",
-    #             "content": json.dumps(event_info),
-    #         },
-    #     ],
-    #     stream=stream,
-    # )
-    # if stream:
-    #     return reduce_stream(response)
-    # return response.choices[0].message.content
+    response = client.chat.completions.create(
+        model=model,
+        temperature=0.7,
+        messages=[
+            {"role": "system", "content": prompt},
+            {
+                "role": "user",
+                "content": json.dumps(event_info),
+            },
+        ],
+        stream=stream,
+    )
+    if stream:
+        return reduce_stream(response)
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
