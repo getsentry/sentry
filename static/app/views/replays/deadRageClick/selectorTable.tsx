@@ -116,7 +116,6 @@ export default function SelectorTable({
                 value.fullSelector
               )}"`}
               projectId={value.projectId.toString()}
-              displaySelector={value.displaySelector}
             />
           );
         case 'element':
@@ -166,9 +165,7 @@ export function SelectorLink({
   value,
   selectorQuery,
   projectId,
-  displaySelector,
 }: {
-  displaySelector: string;
   projectId: string;
   selectorQuery: string;
   value: string;
@@ -200,7 +197,7 @@ export function SelectorLink({
             },
           }}
         >
-          <TextOverflow>{displaySelector}</TextOverflow>
+          <TextOverflow>{value}</TextOverflow>
         </Link>
       </WiderHovercard>
     </StyledTextOverflow>
