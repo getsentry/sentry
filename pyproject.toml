@@ -596,6 +596,7 @@ module = [
     "sentry.issues.related.*",
     "sentry.lang.java.processing",
     "sentry.migrations.*",
+    "sentry.llm.*",
     "sentry.nodestore.base",
     "sentry.nodestore.bigtable.backend",
     "sentry.nodestore.django.backend",

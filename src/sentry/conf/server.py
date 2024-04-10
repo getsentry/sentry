@@ -2336,13 +2336,13 @@ SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
-# LLM Base
-SENTRY_LLM = "sentry.llm.stub.StubLLM"
-SENTRY_LLM_OPTIONS: dict[str, str] = {
-    "url": os.getenv("LLM_URL", ""),
-    "model": os.getenv("LLM_MODEL", ""),
-    "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-}
+# # LLM Base
+# SENTRY_LLM = "sentry.llm.stub.StubLLM"
+# SENTRY_LLM_OPTIONS: dict[str, str] = {
+#     "url": os.getenv("LLM_URL", ""),
+#     "model": os.getenv("LLM_MODEL", ""),
+#     "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
+# }
 
 
 # URI Prefixes for generating DSN URLs

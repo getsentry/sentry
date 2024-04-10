@@ -1,18 +1,20 @@
-from sentry.runner import configure
-
-configure()
-from django.conf import settings
 from openai import OpenAI
 
-from sentry.llm.base import LLMBase
+from sentry.llm.providers.base import LlmModelBase
+from sentry.llm.types import UseCaseProviderOptions
 
 
-class OpenAIProvider(LLMBase):
+class OpenAIProvider(LlmModelBase):
     def complete_prompt(
-        self, prompt: str, message: str, temperature: float, max_output_tokens: int
-    ):
-        model = settings.SENTRY_LLM_OPTIONS["model"]
-        client = get_openai_client()
+        self,
+        usecase_options: UseCaseProviderOptions,
+        prompt: str,
+        message: str,
+        temperature: float = 0.7,
+        max_output_tokens: int = 1000,
+    ) -> str | None:
+        model = usecase_options["model"]
+        client = get_openai_client(self.options["openai"]["options"]["api_key"])
 
         response = client.chat.completions.create(
             model=model,
@@ -34,14 +36,9 @@ class OpenAIProvider(LLMBase):
 openai_client: OpenAI | None = None
 
 
-def get_openai_client() -> OpenAI:
-    openai_api_key = settings.SENTRY_LLM_OPTIONS["openai_api_key"]
-    global openai_client
+def get_openai_client(api_key: str) -> OpenAI:
+    # TODO: can we make this glboal?
 
-    if openai_client:
-        return openai_client
-
-    # this will raise if OPENAI_API_KEY is not set
-    openai_client = OpenAI(api_key=openai_api_key)
+    openai_client = OpenAI(api_key=api_key)
 
     return openai_client
