@@ -354,3 +354,12 @@ export function generateOrgSlugUrl(orgSlug) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }
+
+// Takes a URL, and produces an ordered list of subdomains. For example:
+//   getSubDomains(new URL("https://example.com")) => []
+//   getSubDomains(new URL("https://www.example.com")) => ['www']
+//   getSubDomains(new URL("https://foo.bar.example.com")) => ['foo', 'bar']
+export function getSubDomains(url: URL): string[] {
+  const host = url.host;
+  return host.split('.').slice(0, -2);
+}
