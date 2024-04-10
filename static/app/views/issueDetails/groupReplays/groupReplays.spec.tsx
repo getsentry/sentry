@@ -452,9 +452,9 @@ describe('GroupReplays', () => {
       expect(screen.getByText('7 days ago')).toBeInTheDocument();
     });
 
-    it('Should render the replay player', async () => {
+    it('Should render the replay player when replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
-        organizationProps: {features: ['session-replay']},
+        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
       }));
       const mockGroup = GroupFixture();
 
@@ -525,7 +525,7 @@ describe('GroupReplays', () => {
 
     // Test seems to be flaky
     // eslint-disable-next-line jest/no-disabled-tests
-    it('Should switch replays when clicking', async () => {
+    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
         organizationProps: {features: ['session-replay']},
       }));
