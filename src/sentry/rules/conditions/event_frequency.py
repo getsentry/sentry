@@ -249,12 +249,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_sums(
         self,
         keys: list[int],
-        group: GroupEvent,
+        group: Group,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: str,
         referrer_suffix: str,
-    ) -> dict[int, int]:
+    ) -> Mapping[int, int]:
         sums: Mapping[int, int] = self.tsdb.get_sums(
             model=get_issue_tsdb_group_model(group.issue_category),
             keys=keys,
@@ -325,7 +325,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         return batch_sums
 
     def batch_query_hook(
-        self, group_ids: list[int], start: datetime, end: datetime, environment_id: str
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
