@@ -4,7 +4,10 @@ function trimAttribute(elementAttribute, fullAlltribute) {
   return elementAttribute === '' ? '' : fullAlltribute;
 }
 
-export default function constructSelector(element: ReplayClickElement) {
+export default function constructSelector(
+  element: ReplayClickElement,
+  component_name: string
+) {
   const fullAlt = '[alt="' + element.alt + '"]';
   const alt = trimAttribute(element.alt, fullAlt);
 
@@ -32,5 +35,8 @@ export default function constructSelector(element: ReplayClickElement) {
   const fullSelector =
     tag + id + classes + fullRole + fullAriaLabel + fullTestId + fullAlt + fullTitle;
   const selector = tag + id + classes + role + ariaLabel + testId + alt + title;
-  return {fullSelector, selector};
+  const displaySelector = component_name
+    ? [component_name, role + ariaLabel + testId + alt + title].filter(Boolean).join(' ')
+    : selector;
+  return {fullSelector, selector, displaySelector};
 }

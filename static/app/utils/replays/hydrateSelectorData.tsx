@@ -11,13 +11,13 @@ export default function hydratedSelectorData(data, clickType?): DeadRageSelector
           count_rage_clicks: d.count_rage_clicks,
         }),
     dom_element: {
-      fullSelector: constructSelector(d.element).fullSelector,
-      selector: constructSelector(d.element).selector,
+      fullSelector: constructSelector(d.element, d.component_name).fullSelector,
+      selector: constructSelector(d.element, d.component_name).selector,
+      displaySelector: constructSelector(d.element, d.component_name).displaySelector,
       projectId: d.project_id,
     },
     element: d.dom_element.split(/[#.[]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
-    component_name: d.component_name,
   }));
 }
