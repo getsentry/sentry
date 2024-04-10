@@ -1,5 +1,6 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
