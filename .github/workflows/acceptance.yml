@@ -29,6 +29,7 @@ jobs:
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
       backend_all: ${{ steps.changes.outputs.backend_all }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -91,6 +92,8 @@ jobs:
         env:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
         run: |
           yarn build-acceptance
 
