@@ -20,7 +20,10 @@ from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
 )
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
-from sentry.api.endpoints.organization_project_templates import OrganizationProjectTemplatesEndpoint
+from sentry.api.endpoints.organization_project_templates import (
+    OrganizationProjectTemplateDetailEndpoint,
+    OrganizationProjectTemplatesEndpoint,
+)
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
@@ -1626,6 +1629,11 @@ ORGANIZATION_URLS = [
     re_path(
         r"^(?P<organization_slug>[^\/]+)/project-templates/$",
         OrganizationProjectTemplatesEndpoint.as_view(),
+        name="sentry-api-0-organization-project-template",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
+        OrganizationProjectTemplateDetailEndpoint.as_view(),
         name="sentry-api-0-organization-project-template",
     ),
     # Pinned and saved search
