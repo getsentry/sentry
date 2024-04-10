@@ -286,7 +286,7 @@ export function TransactionNodeDetails({
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {node.value['transaction.op']}
+              {node.value['transaction.op'] + ' - ' + node.value.transaction}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
