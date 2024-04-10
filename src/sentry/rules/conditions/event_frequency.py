@@ -21,6 +21,7 @@ from sentry.models.group import Group
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
@@ -250,13 +251,14 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         self,
         keys: list[int],
         group: Group,
+        model: TSDBModel,
         start: datetime,
         end: datetime,
         environment_id: str,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(group.issue_category),
+            model=model,
             keys=keys,
             start=start,
             end=end,
@@ -295,6 +297,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         sums: Mapping[int, int] = self.get_sums(
             keys=[event.group_id],
             group=event.group,
+            model=get_issue_tsdb_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
@@ -313,9 +316,12 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         batch_sums: dict[int, int] = defaultdict(int)
         for group_chunk in chunked(groups, SNUBA_LIMIT):
             keys = [group.id for group in groups]
+            group = groups[0]
+            model = get_issue_tsdb_group_model(group.issue_category)
             sums = self.get_sums(
                 keys=keys,
-                group=groups[0],
+                group=group,
+                model=model,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -476,6 +482,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             issue_count = self.get_sums(
                 keys=[event.group_id],
                 group=event.group,
+                model=get_issue_tsdb_group_model(event.group.issue_category),
                 start=start,
                 end=end,
                 environment_id=environment_id,

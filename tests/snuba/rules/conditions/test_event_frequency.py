@@ -28,6 +28,58 @@ from sentry.utils.samples import load_data
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+class EventFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def test_batch_query(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=30)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(seconds=12),
+            start_timestamp=before_now(seconds=12),
+            fingerprint=[fingerprint],
+        )
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = self.environment.name
+
+        # Store a performance event
+        perf_event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=self.project.id,
+            fingerprint=fingerprint,
+        )
+        start = before_now(minutes=1)
+        end = timezone.now()
+
+        condition_inst = self.rule_cls(event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event.group_id, event2.group_id, perf_event.group_id],
+            start=start,
+            end=end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {event.group_id: 1, event2.group_id: 1, perf_event.group_id: 1}
+
+
 class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
         data["timestamp"] = iso_format(timestamp)
@@ -263,40 +315,6 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
                 project_id=self.project.id,
                 timestamp=timestamp,
             )
-
-    def test_batch_query(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "environment": "production",
-                "timestamp": iso_format(before_now(seconds=30)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "environment": "production",
-                "timestamp": iso_format(before_now(seconds=12)),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        perf_event = self.create_performance_issue(
-            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group-3"
-        )
-        start = before_now(minutes=1)
-        end = timezone.now()
-
-        condition_inst = self.rule_cls(event.group.project)
-        batch_query = condition_inst.batch_query_hook(
-            group_ids=[event.group.id, event2.group.id, perf_event.group_id],
-            start=start,
-            end=end,
-            environment_id=self.environment.id,
-        )
-        assert batch_query == {event.group.id: 1, event2.group.id: 1, perf_event.group_id: 1}
 
 
 class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
