@@ -92,7 +92,7 @@ class EventAccess:
                 self._messages.append({"message": message})
         return self._messages
 
-    def get_log_info(self) -> list[dict[str, str]]:
+    def get_log_info(self) -> list[str]:
         if self._log_info is None:
             log_info = {}
             logger = get_path(self.event, "logger", filter=True)
@@ -224,7 +224,7 @@ class FingerprintingRules:
         return self._to_config_structure(include_builtin=include_builtin)
 
     @classmethod
-    def from_json(cls, value: dict[str, object], bases: object = None) -> object:
+    def from_json(cls, value: dict[str, object], bases: object = None) -> FingerprintingRules:
         try:
             return cls._from_config_structure(value, bases=bases)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
@@ -259,7 +259,7 @@ class BuiltInFingerprintingRules(FingerprintingRules):
     @classmethod
     def _from_config_structure(
         cls: object, data: dict[str, object], bases: object = None
-    ) -> Sequence[FingerprintingRules]:
+    ) -> FingerprintingRules:
         fingerprinting_rules = super()._from_config_structure(data, bases=bases)
         for r in fingerprinting_rules.rules:
             r.is_builtin = True
@@ -401,7 +401,7 @@ class Match:
         return cls(key, obj[1], negated)
 
     @property
-    def text(self) -> list[dict[str, str]]:
+    def text(self) -> str:
         return '{}{}:"{}"'.format(
             self.negated and "!" or "",
             self.key,
@@ -438,7 +438,7 @@ class Rule:
 
         return self.fingerprint, self.attributes
 
-    def _to_config_structure(self) -> list[dict[str, str]]:
+    def _to_config_structure(self) -> dict[str, Any]:
         config_structure = {
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
@@ -451,7 +451,7 @@ class Rule:
         return config_structure
 
     @classmethod
-    def _from_config_structure(cls, obj: dict[str, object]) -> Sequence[FingerprintingRules]:
+    def _from_config_structure(cls, obj: dict[str, object]) -> Rule:
         return cls(
             [Match._from_config_structure(x) for x in obj["matchers"]],
             obj["fingerprint"],
@@ -463,7 +463,7 @@ class Rule:
         return self._to_config_structure()
 
     @classmethod
-    def from_json(cls, json: dict[str, object]) -> dict[str, Any]:
+    def from_json(cls, json: dict[str, object]) -> Rule:
         return cls._from_config_structure(json)
 
     @property
@@ -575,7 +575,7 @@ class FingerprintingVisitor(NodeVisitor):  # type: ignore[type-arg]
         return node.match.groups()[0].lstrip("!")
 
 
-def _load_configs() -> dict[str, object]:
+def _load_configs() -> dict[str, list[Rule]]:
     if not CONFIGS_DIR.exists():
         logger.error(
             "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
