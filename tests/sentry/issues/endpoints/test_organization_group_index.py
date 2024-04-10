@@ -2711,7 +2711,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # create a performance issue
         _, _, group_info = self.store_search_issue(
             self.project.id,
-            None,
+            233,
             [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             user={"email": "myemail@example.com"},
             event_data={
@@ -2720,7 +2720,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
         )
-        perf_group = group_info.group
+
+        # make mypy happy
+        perf_group_id = group_info.group.id if group_info else None
 
         # create an error issue with the same tag
         error_event = self.store_event(
@@ -2741,7 +2743,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
 
-        assert Group.objects.filter(id=perf_group.id).exists()
+        assert Group.objects.filter(id=perf_group_id).exists()
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
@@ -2752,7 +2754,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
-            str(perf_group.id),
+            str(perf_group_id),
             str(error_event.group.id),
         }
         assert mock_query.call_count == 1
