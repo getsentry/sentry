@@ -1,5 +1,5 @@
 import {Timer} from 'sentry/utils/replays/timer';
-import type {VideoEvent} from 'sentry/utils/replays/types';
+import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
@@ -20,6 +20,7 @@ interface VideoReplayerOptions {
   root: RootElem;
   start: number;
   videoApiPrefix: string;
+  clipWindow?: ClipWindow;
 }
 
 interface VideoReplayerConfig {
@@ -33,6 +34,8 @@ interface VideoReplayerConfig {
   speed: number;
 }
 
+type RemoveListener = () => void;
+
 /**
  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
  */
@@ -45,12 +48,14 @@ export class VideoReplayer {
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
   private _isPlaying: boolean = false;
+  private _listeners: RemoveListener[] = [];
   /**
-   * _videos is a dict that maps attachment index to the video element.
+   * Maps attachment index to the video element.
    * Video elements in this dict are preloaded and ready to be played.
    */
-  private _videos: Record<number, HTMLVideoElement>;
+  private _videos: Map<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
+  private _clipDuration: number | undefined;
   public config: VideoReplayerConfig = {
     skipInactive: false,
     speed: 1.0,
@@ -60,7 +65,15 @@ export class VideoReplayer {
 
   constructor(
     attachments: VideoEvent[],
-    {root, start, videoApiPrefix, onBuffer, onFinished, onLoaded}: VideoReplayerOptions
+    {
+      root,
+      start,
+      videoApiPrefix,
+      onBuffer,
+      onFinished,
+      onLoaded,
+      clipWindow,
+    }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
     this._startTimestamp = start;
@@ -71,22 +84,107 @@ export class VideoReplayer {
       onLoaded,
       onBuffer,
     };
-    this._videos = {};
+    this._videos = new Map<any, HTMLVideoElement>();
+    this._clipDuration = undefined;
 
     this.wrapper = document.createElement('div');
     if (root) {
       root.appendChild(this.wrapper);
     }
 
-    // Initially load the first segment so that users are not staring at a
-    // blank replay. This initially caused some issues
-    // (https://github.com/getsentry/sentry/pull/67911), but the problem was
-    // due to the logic around our timers and the assumption that we were
-    // always hiding the video at the previous index, and not the video that
-    // was previously displayed, e.g. when you "restart" a replay.
-    this.loadSegment(0);
-
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
+
+    if (clipWindow) {
+      // Set max duration on the timer
+      this._clipDuration = clipWindow.endTimestampMs - clipWindow.startTimestampMs;
+
+      // If there's a clip window set, load the segment at the clip start
+      const clipStartOffset = clipWindow.startTimestampMs - start;
+      this.loadSegmentAtTime(clipStartOffset);
+
+      // Some logic in `loadSegmentAtTime` depends on the real video start time
+      // So only set the new startTimestamp here
+      this._startTimestamp = clipWindow.startTimestampMs;
+
+      // Tell the timer to stop at the clip end
+      this._timer.addNotificationAtTime(this._clipDuration, () => {
+        this.stopReplay();
+      });
+    } else {
+      // Otherwise, if there's no clip window set, we should
+      // load the first segment by default so that users are not staring at a
+      // blank replay. This initially caused some issues
+      // (https://github.com/getsentry/sentry/pull/67911), but the problem was
+      // due to the logic around our timers and the assumption that we were
+      // always hiding the video at the previous index, and not the video that
+      // was previously displayed, e.g. when you "restart" a replay.
+      this.loadSegment(0);
+    }
+  }
+
+  public destroy() {
+    this._listeners.forEach(listener => listener());
+    this._trackList = [];
+    this._videos = new Map<any, HTMLVideoElement>();
+    this._timer.stop();
+    this.wrapper.remove();
+  }
+
+  private addListeners(el: HTMLVideoElement, index: number): void {
+    const handleEnded = () => this.handleSegmentEnd(index);
+
+    const handleLoadedData = event => {
+      // Used to correctly set the dimensions of the first frame
+      if (index === 0) {
+        this._callbacks.onLoaded(event);
+      }
+
+      // Only call this for current segment as we preload multiple
+      // segments simultaneously
+      if (index === this._currentIndex) {
+        this.setBuffering(false);
+
+        // We want to display the previous segment until next video
+        // is loaded and ready to play and since video is loaded
+        // and ready here, we can show next video and hide the
+        // previous video
+        this.showVideo(el);
+      }
+    };
+
+    const handlePlay = event => {
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded(event);
+      }
+    };
+
+    const handleLoadedMetaData = event => {
+      // Only call this for current segment?
+      if (index === this._currentIndex) {
+        // Theoretically we could have different orientations and they should
+        // only happen in different segments
+        this._callbacks.onLoaded(event);
+      }
+    };
+
+    const handleSeeking = event => {
+      // Centers the video when seeking (and video is not playing)
+      this._callbacks.onLoaded(event);
+    };
+
+    el.addEventListener('ended', handleEnded);
+    el.addEventListener('loadeddata', handleLoadedData);
+    el.addEventListener('play', handlePlay);
+    el.addEventListener('loadedmetadata', handleLoadedMetaData);
+    el.addEventListener('seeking', handleSeeking);
+
+    this._listeners.push(() => {
+      el.removeEventListener('ended', handleEnded);
+      el.removeEventListener('loadeddata', handleLoadedData);
+      el.removeEventListener('play', handlePlay);
+      el.removeEventListener('loadedmetadata', handleLoadedMetaData);
+      el.removeEventListener('seeking', handleSeeking);
+    });
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
@@ -102,41 +200,7 @@ export class VideoReplayer {
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    // TODO: only attach these when needed
-    el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadeddata', event => {
-      // Used to correctly set the dimensions of the first frame
-      if (this._currentIndex === undefined && index === 0) {
-        this._callbacks.onLoaded(event);
-      }
-    });
-    el.addEventListener('play', event => {
-      if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
-      }
-    });
-
-    // Finished loading data, ready to play
-    el.addEventListener('loadeddata', () => {
-      // Only call this for current segment as we preload multiple
-      // segments simultaneously
-      if (index === this._currentIndex) {
-        this.setBuffering(false);
-
-        // We want to display the previous segment until next video
-        // is loaded and ready to play and since video is loaded
-        // and ready here, we can show next video and hide the
-        // previous video
-        this.showVideo(el);
-      }
-    });
-
-    el.addEventListener('loadedmetadata', event => {
-      // Only call this for current segment?
-      if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
-      }
-    });
+    this.addListeners(el, index);
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
@@ -182,6 +246,14 @@ export class VideoReplayer {
   private startReplay(videoOffsetMs: number) {
     this._isPlaying = true;
     this._timer.start(videoOffsetMs);
+
+    // This is used when a replay clip is restarted
+    // Add another stop notification so the timer doesn't run over
+    if (this._clipDuration) {
+      this._timer.addNotificationAtTime(this._clipDuration, () => {
+        this.stopReplay();
+      });
+    }
   }
 
   /**
@@ -259,8 +331,8 @@ export class VideoReplayer {
       const dictIndex = index + l;
 
       // Might be some videos we've already loaded before
-      if (!this._videos[dictIndex]) {
-        this._videos[dictIndex] = this.createVideo(attachment, dictIndex);
+      if (!this._videos.get(dictIndex)) {
+        this._videos.set(dictIndex, this.createVideo(attachment, dictIndex));
       }
     });
   }
@@ -307,7 +379,7 @@ export class VideoReplayer {
       return undefined;
     }
 
-    return this._videos[index];
+    return this._videos.get(index);
   }
 
   /**
@@ -326,7 +398,6 @@ export class VideoReplayer {
       this._currentVideo.style.display = 'none';
     }
 
-    // TODO: resize video if it changes orientation
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the

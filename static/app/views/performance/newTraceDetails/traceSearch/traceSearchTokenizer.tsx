@@ -4,7 +4,8 @@ import type {
   SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
-} from './../traceTree';
+} from '../traceModels/traceTree';
+
 import grammar from './traceSearch.pegjs';
 
 interface SearchToken {

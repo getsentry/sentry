@@ -1,4 +1,12 @@
-import {getKnownData, getUnknownData} from 'sentry/components/events/contexts/utils';
+import {Fragment} from 'react';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from 'sentry/components/events/contexts/utils';
 
 describe('contexts utils', function () {
   describe('getUnknownData', function () {
@@ -22,7 +30,7 @@ describe('contexts utils', function () {
     });
   });
 
-  describe('getKknownData', function () {
+  describe('getKnownData', function () {
     it('filters out known data and transforms into the right way', function () {
       const data = {
         device_app_hash: '2421fae1ac9237a8131e74883e52b0f7034a143f',
@@ -89,7 +97,6 @@ describe('contexts utils', function () {
       const knownData = getKnownData({
         data,
         knownDataTypes,
-        raw: true,
         onGetKnownDataDetails: v => {
           if (v.type === 'device_app_hash') {
             return {
@@ -110,6 +117,48 @@ describe('contexts utils', function () {
           meta: undefined,
         },
       ]);
+    });
+  });
+
+  describe('getKnownStructuredData', function () {
+    it('formats the output from getKnownData into StructuredEventData', function () {
+      const data = {device_app_hash: 'abc'};
+      const knownDataTypes = ['device_app_hash'];
+      const knownData = getKnownData({
+        data,
+        knownDataTypes,
+        onGetKnownDataDetails: v => {
+          if (v.type === 'device_app_hash') {
+            return {
+              subject: 'Device App Hash',
+              value: v.data.device_app_hash,
+            };
+          }
+
+          return undefined;
+        },
+      });
+      const errMeta = {
+        device_app_hash: {
+          '': {
+            err: [
+              [
+                'invalid_data',
+                {
+                  reason: 'bad device',
+                },
+              ],
+            ],
+          },
+        },
+      };
+
+      const knownStructuredData = getKnownStructuredData(knownData, errMeta);
+      expect(knownData[0].key).toEqual(knownStructuredData[0].key);
+      expect(knownData[0].subject).toEqual(knownStructuredData[0].subject);
+      render(<Fragment>{knownStructuredData[0].value as React.ReactNode}</Fragment>);
+      expect(screen.getByText(`${knownData[0].value}`)).toBeInTheDocument();
+      expect(screen.getByTestId('annotated-text-error-icon')).toBeInTheDocument();
     });
   });
 });
