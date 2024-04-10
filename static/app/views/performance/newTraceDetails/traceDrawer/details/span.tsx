@@ -44,7 +44,7 @@ export function SpanNodeDetails({
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {getSpanOperation(span)}
+              {getSpanOperation(span) + ' - ' + span.description}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
