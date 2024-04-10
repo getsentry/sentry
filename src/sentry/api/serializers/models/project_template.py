@@ -11,10 +11,13 @@ class ProjectTemplateSerializer(Serializer):
             "dateCreated": obj.date_added,
         }
 
-        has_options = obj.options
+        ret_val["options"] = {}
 
-        # format options
-        if has_options:
-            ret_val["options"] = {}
+        # This is scary, look around to see if there are better ways to handle this
+        options = obj.options.all()
+
+        if len(options) > 0:
+            for option in options:
+                ret_val["options"][option.key] = option.value
 
         return ret_val

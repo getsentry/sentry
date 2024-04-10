@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -18,12 +19,14 @@ class PostProjectTemplateSerializer(serializers.Serializer):
         return ProjectTemplate.objects.create(**validated_data)
 
 
+@region_silo_endpoint
 class OrganizationProjectTemplatesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
+    # For now, just use the `org:` permissions.
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization) -> Response:
