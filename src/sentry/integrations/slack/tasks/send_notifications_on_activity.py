@@ -16,11 +16,11 @@ _default_logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.tasks.send_activity_notifications",
+    name="sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
     queue="integrations_slack_activity_notify",
     silo_mode=SiloMode.REGION,
 )
-def send_activity_notifications(activity_id):
+def send_activity_notifications_to_slack_threads(activity_id):
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
@@ -57,6 +57,8 @@ def activity_created_receiver(instance, created, **kwargs):
         return
 
     transaction.on_commit(
-        lambda: send_activity_notifications.apply_async(kwargs={"activity_id": instance.id}),
+        lambda: send_activity_notifications_to_slack_threads.apply_async(
+            kwargs={"activity_id": instance.id}
+        ),
         using=router.db_for_read(Activity),
     )
