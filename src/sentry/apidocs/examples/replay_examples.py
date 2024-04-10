@@ -81,7 +81,7 @@ class ReplayExamples:
                         "element": {
                             "alt": "",
                             "aria_label": "",
-                            "class": "classForm",
+                            "class": ["classForm"],
                             "component_name": "SignUpForm",
                             "id": "myform",
                             "role": "",
