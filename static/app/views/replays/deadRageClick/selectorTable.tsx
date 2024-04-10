@@ -116,7 +116,7 @@ export default function SelectorTable({
                 value.fullSelector
               )}"`}
               projectId={value.projectId.toString()}
-              componentName={dataRow.component_name}
+              displaySelector={value.displaySelector}
             />
           );
         case 'element':
@@ -166,9 +166,9 @@ export function SelectorLink({
   value,
   selectorQuery,
   projectId,
-  componentName,
+  displaySelector,
 }: {
-  componentName: string;
+  displaySelector: string;
   projectId: string;
   selectorQuery: string;
   value: string;
@@ -186,9 +186,6 @@ export function SelectorLink({
     </TooltipContainer>
   );
 
-  const roles = value.indexOf('[') !== -1 && value.substring(value.indexOf('['));
-  const displayName = roles ? componentName + t(' ') + roles : componentName;
-
   return (
     <StyledTextOverflow>
       <WiderHovercard position="right" body={hovercardContent}>
@@ -203,7 +200,7 @@ export function SelectorLink({
             },
           }}
         >
-          <TextOverflow>{componentName ? displayName : value}</TextOverflow>
+          <TextOverflow>{displaySelector}</TextOverflow>
         </Link>
       </WiderHovercard>
     </StyledTextOverflow>

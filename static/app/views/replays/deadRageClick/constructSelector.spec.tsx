@@ -13,10 +13,13 @@ describe('constructSelector', () => {
         testid: 'button-test',
         title: 'cool title',
       },
+      component_name: 'TestButton',
       fullSelector:
         'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
       selector:
         'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+      displaySelector:
+        'TestButton [role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
     },
     {
       element: {
@@ -29,8 +32,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: '',
       fullSelector: 'a[role=""][aria=""][data-test-id=""][alt=""][title=""]',
       selector: 'a',
+      displaySelector: 'a',
     },
     {
       element: {
@@ -43,8 +48,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: '',
       fullSelector: 'a.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
       selector: 'a.classA',
+      displaySelector: 'a.classA',
     },
     {
       element: {
@@ -57,8 +64,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: '',
       fullSelector: 'a#ID2.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
       selector: 'a#ID2.classA',
+      displaySelector: 'a#ID2.classA',
     },
     {
       element: {
@@ -71,9 +80,11 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: 'TestButton',
       fullSelector:
         'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""]',
       selector: 'a#ID2.classA.classB',
+      displaySelector: 'TestButton',
     },
     {
       element: {
@@ -86,9 +97,11 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: '',
       fullSelector:
         'a#ID2.classA.classB[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
       selector: 'a#ID2.classA.classB[aria="hello"]',
+      displaySelector: 'a#ID2.classA.classB[aria="hello"]',
     },
     {
       element: {
@@ -101,13 +114,19 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
+      component_name: 'TestHello',
       fullSelector: 'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
       selector: 'a#ID2[aria="hello"]',
+      displaySelector: 'TestHello [aria="hello"]',
     },
   ])(
     'should construct the correct trimmed selector and full selector, for each element in the list',
-    ({element, fullSelector, selector}) => {
-      expect(constructSelector(element)).toStrictEqual({fullSelector, selector});
+    ({element, component_name, fullSelector, selector, displaySelector}) => {
+      expect(constructSelector(element, component_name)).toStrictEqual({
+        fullSelector,
+        selector,
+        displaySelector,
+      });
     }
   );
 });
