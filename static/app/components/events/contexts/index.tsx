@@ -48,7 +48,15 @@ export function EventContexts({event, group}: Props) {
     // For these context keys, use 'key' as 'type' rather than 'value.type'
     const overrideTypes = new Set(['response', 'feedback', 'user']);
     const cards = orderedContext
-      .filter(([_k, v]) => !objectIsEmpty(v))
+      .filter(([_k, v]) => {
+        const contextKeys = Object.keys(v ?? {});
+        const isInvalid =
+          // Empty context
+          contextKeys.length === 0 ||
+          // Empty aside from 'type' key
+          (contextKeys.length === 1 && contextKeys[0] === 'type');
+        return !isInvalid;
+      })
       .map(([k, v]) => (
         <ContextCard
           key={k}
