@@ -2660,7 +2660,7 @@
   dependencies:
     "@react-types/shared" "^3.22.1"
 
-"@react-types/menu@^3.9.7":
+"@react-types/menu@^3.9.6", "@react-types/menu@^3.9.7":
   version "3.9.7"
   resolved "https://registry.yarnpkg.com/@react-types/menu/-/menu-3.9.7.tgz#6276634c473942c44853f1f767592c401d87c059"
   integrity sha512-K6KhloJVoGsqwkdeez72fkNI9dfrmLI/sNrB4XuOKo2crDQ/eyZYWyJmzz8giz/tHME9w774k487rVoefoFh5w==
