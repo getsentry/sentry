@@ -129,6 +129,17 @@ class TestFrameFilename:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename(filepath)
 
+    def test_straight_path_prefix(self):
+        app_path = "app:///utils/something.py"
+        dot_slash_path = "./app/utils/something.py"
+        dot_dot_slash_path = "../../../../../../packages/something.py"
+        combo_path = "app:///../services/something.py"
+
+        assert FrameFilename(app_path).straight_path_prefix == "app:///"
+        assert FrameFilename(dot_slash_path).straight_path_prefix == "./"
+        assert FrameFilename(dot_dot_slash_path).straight_path_prefix == "../../../../../../"
+        assert FrameFilename(combo_path).straight_path_prefix == "app:///../"
+
 
 class TestDerivedCodeMappings(TestCase):
     @pytest.fixture(autouse=True)

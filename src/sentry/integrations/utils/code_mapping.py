@@ -80,6 +80,7 @@ class FrameFilename:
             raise UnsupportedFrameFilename("It needs an extension.")
 
         start_at_index = self._get_straight_path_prefix_end_index(frame_file_path)
+        self.straight_path_prefix = frame_file_path[:start_at_index]
         if start_at_index == 0:
             self.root = frame_file_path.split("/")[0]
         else:
@@ -325,7 +326,7 @@ class CodeMappingTreesHelper:
             return _list_endswith(src_file_items, relevant_items)
             # return src_file.endswith(relevant_path)
         else:  # exact match
-            return src_file == frame_filename
+            return src_file == frame_filename.full_path
 
     def _matches_existing_code_mappings(self, src_file: str) -> bool:
         """Check if the source file is already covered by an existing code mapping"""
