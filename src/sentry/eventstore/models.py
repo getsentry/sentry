@@ -18,6 +18,7 @@ from django.utils.functional import cached_property
 from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.variants import BaseVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -374,7 +375,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             variants=[*flat_variants, *hierarchical_variants],
         )
 
-    def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
+    def get_sorted_grouping_variants(
+        self, force_config: StrategyConfiguration | None = None
+    ) -> tuple[KeyedVariants, KeyedVariants]:
         """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
@@ -382,7 +385,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return sort_grouping_variants(variants)
 
     @staticmethod
-    def _hashes_from_sorted_grouping_variants(variants):
+    def _hashes_from_sorted_grouping_variants(
+        variants: KeyedVariants,
+    ) -> tuple[list[str], list[Any]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         from sentry.grouping.variants import ComponentVariant
@@ -421,7 +426,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self,
         force_config: StrategyConfiguration | GroupingConfig | str | None = None,
         normalize_stacktraces: bool = False,
-    ):
+    ) -> dict[str, BaseVariant]:
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
