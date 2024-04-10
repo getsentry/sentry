@@ -25,7 +25,11 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
+from sentry.api.utils import (
+    generate_organization_url,
+    id_or_slug_path_params_enabled,
+    is_member_disabled_from_limit,
+)
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -252,7 +256,9 @@ class OrganizationMixin:
         self, request: HttpRequest, organization: RpcOrganization, project_slug: str | int
     ) -> Project | None:
         try:
-            if options.get("api.id-or-slug-enabled"):
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization.slug)
+            ):
                 project = Project.objects.get(
                     slug__id_or_slug=project_slug, organization=organization
                 )

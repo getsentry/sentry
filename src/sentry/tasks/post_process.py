@@ -747,12 +747,22 @@ def post_process_group(
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
+            duration = time() - event.data["received"]
             metrics.timing(
                 "events.time-to-post-process",
-                time() - event.data["received"],
+                duration,
                 instance=event.data["platform"],
                 tags=metric_tags,
             )
+
+            # We see occasional metrics being recorded with very old data,
+            # temporarily log some information about these groups to help
+            # investigate.
+            if duration and duration > 604_800:  # 7 days (7*24*60*60)
+                logger.warning(
+                    "tasks.post_process.old_time_to_post_process",
+                    extra={"group_id": group_id, "project_id": project_id, "duration": duration},
+                )
 
 
 def run_post_process_job(job: PostProcessJob):
