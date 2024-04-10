@@ -5,11 +5,11 @@ from uuid import UUID
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -57,7 +57,12 @@ class MonitorEndpoint(Endpoint):
         **kwargs,
     ):
         try:
-            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            if (
+                id_or_slug_path_params_enabled(
+                    self.convert_args.__qualname__, str(organization_slug)
+                )
+                and str(organization_slug).isnumeric()
+            ):
                 organization = Organization.objects.get_from_cache(id=organization_slug)
             else:
                 organization = Organization.objects.get_from_cache(slug=organization_slug)
@@ -121,7 +126,7 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            if options.get("api.id-or-slug-enabled"):
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
                 kwargs["monitor"] = Monitor.objects.get(
                     project_id=kwargs["project"].id, slug__id_or_slug=monitor_slug
                 )
@@ -195,7 +200,9 @@ def get_monitor_by_org_id_or_slug(organization: Organization, monitor_slug: str 
     # end up with multiple monitors here. Since we have no idea which project the user wants,
     # we just get the oldest monitor and use that.
     # This is a temporary measure until we remove these org level endpoints
-    if options.get("api.id-or-slug-enabled"):
+    if id_or_slug_path_params_enabled(
+        ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
+    ):
         monitors = list(
             Monitor.objects.filter(organization_id=organization.id, slug__id_or_slug=monitor_slug)
         )

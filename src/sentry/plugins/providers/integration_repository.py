@@ -129,15 +129,14 @@ class IntegrationRepositoryProvider:
         }
 
         if repo:
-            if self.logger:
-                self.logger.info(
-                    "repository.update",
-                    extra={
-                        "organization_id": organization.id,
-                        "repo_name": result["name"],
-                        "old_provider": repo.provider,
-                    },
-                )
+            self.logger.info(
+                "repository.update",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": result["name"],
+                    "old_provider": repo.provider,
+                },
+            )
             # update from params
             for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
@@ -229,8 +228,7 @@ class IntegrationRepositoryProvider:
         elif isinstance(e, Integration.DoesNotExist):
             return Response({"error_type": "not found", "errors": {"__all__": str(e)}}, status=404)
         else:
-            if self.logger:
-                self.logger.exception(str(e))
+            self.logger.exception(str(e))
             return Response({"error_type": "unknown"}, status=500)
 
     def get_config(self, organization):

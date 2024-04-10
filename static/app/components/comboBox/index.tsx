@@ -1,5 +1,4 @@
 import {
-  type Key,
   useCallback,
   useContext,
   useEffect,
@@ -59,6 +58,7 @@ function ComboBox<Value extends string>({
   disabled,
   isLoading,
   sizeLimitMessage,
+  menuTrigger = 'focus',
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -68,7 +68,6 @@ function ComboBox<Value extends string>({
   const sizingRef = useRef<HTMLDivElement>(null);
 
   const state = useComboBoxState({
-    menuTrigger: 'focus',
     // Mapping our disabled prop to react-aria's isDisabled
     isDisabled: disabled,
     ...props,
@@ -123,6 +122,14 @@ function ComboBox<Value extends string>({
     shouldCloseOnBlur: true,
   });
 
+  // The menu opens after selecting an item but the input stais focused
+  // This ensures the user can open the menu again by clicking on the input
+  const handleInputClick = useCallback(() => {
+    if (!state.isOpen && menuTrigger === 'focus') {
+      state.open();
+    }
+  }, [state, menuTrigger]);
+
   return (
     <SelectContext.Provider
       value={{
@@ -133,6 +140,7 @@ function ComboBox<Value extends string>({
       <ControlWrapper className={className}>
         <StyledInput
           {...inputProps}
+          onClick={handleInputClick}
           placeholder={placeholder}
           ref={mergeRefs([inputRef, triggerProps.ref])}
           size={size}
@@ -154,15 +162,19 @@ function ComboBox<Value extends string>({
                 </MenuHeaderTrailingItems>
               </MenuHeader>
             )}
-            <ListBox
-              {...listBoxProps}
-              ref={listBoxRef}
-              listState={state}
-              keyDownHandler={() => true}
-              size={size}
-              sizeLimitMessage={sizeLimitMessage}
-            />
-            <EmptyMessage>No items found</EmptyMessage>
+            {/* Listbox adds a separator if it is not the first item
+            To avoid this, we wrap it into a div */}
+            <div>
+              <ListBox
+                {...listBoxProps}
+                ref={listBoxRef}
+                listState={state}
+                keyDownHandler={() => true}
+                size={size}
+                sizeLimitMessage={sizeLimitMessage}
+              />
+              <EmptyMessage>No items found</EmptyMessage>
+            </div>
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrapper>
@@ -223,7 +235,7 @@ function ControlledComboBox<Value extends string>({
   );
 
   const handleChange = useCallback(
-    (key: Key) => {
+    (key: string | number) => {
       if (props.onSelectionChange) {
         props.onSelectionChange(key);
       }
@@ -345,7 +357,7 @@ const StyledOverlay = styled(Overlay)`
 export const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
@@ -367,11 +379,6 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
-
-  [data-menu-has-search='true'] > & {
-    padding-bottom: 0;
-    box-shadow: none;
-  }
 
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
