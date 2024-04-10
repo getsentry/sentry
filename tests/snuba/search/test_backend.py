@@ -2602,7 +2602,7 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
         assert set(results) == {self.group1}
 
         # introduce a slight delay so the async future has time to run and log the metric
-        time.sleep(0.10)
+        time.sleep(1)
 
         metrics_incr_called = False
         for call in metrics_incr.call_args_list:
