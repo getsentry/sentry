@@ -29,12 +29,12 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     'DROP TABLE IF EXISTS "sentry_projectavatar"',
-                    reverse_sql="CREATE TABLE sentry_projectavatar (id bigserial)",
+                    reverse_sql="CREATE TABLE sentry_projectavatar (id bigserial, avatar_type smallint, file_id bigint, ident character varying, team_id bigint)",
                     hints={"tables": ["sentry_teamavatar"]},
                 ),
                 migrations.RunSQL(
                     'DROP TABLE IF EXISTS "sentry_teamavatar"',
-                    reverse_sql="CREATE TABLE sentry_teamavatar (id bigserial)",
+                    reverse_sql="CREATE TABLE sentry_teamavatar (id bigserial, avatar_type smallint, file_id bigint, ident character varying, team_id bigint)",
                     hints={"tables": ["sentry_teamavatar"]},
                 ),
             ]
