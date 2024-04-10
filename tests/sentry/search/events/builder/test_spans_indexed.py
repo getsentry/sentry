@@ -99,7 +99,7 @@ def test_span_duration_where(params, condition, op, value):
         pytest.param("span.op:params test", Condition(Column("description"), Op.EQ, "test")),
         pytest.param("testing", Condition(Column("description"), Op.EQ, "testing")),
         pytest.param(
-            "span.description:test1 test2", Condition(Column("description"), Op.EQ, "test")
+            "span.description:test1 test2", Condition(Column("description"), Op.EQ, "test2")
         ),
     ],
 )
