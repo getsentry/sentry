@@ -62,7 +62,6 @@ expressions: dict[str, Expression] = {
     "os_name": Function("anyIfMerge", parameters=[Column("os_name")]),
     "os_version": Function("anyIfMerge", parameters=[Column("os_version")]),
     "platform": Function("anyIfMerge", parameters=[Column("platform")]),
-    "release": Function("anyIfMerge", parameters=[Column("release")]),
     "sdk_name": Function("anyIfMerge", parameters=[Column("sdk_name")]),
     "sdk_version": Function("anyIfMerge", parameters=[Column("sdk_version")]),
     "started_at": Function("minMerge", parameters=[Column("started_at")]),
@@ -110,7 +109,6 @@ search_config: dict[str, FieldProtocol] = {
     "os.name": ExpressionField(expressions["os_name"], parse_str, StringScalar),
     "os.version": ExpressionField(expressions["os_version"], parse_str, StringScalar),
     "platform": ExpressionField(expressions["platform"], parse_str, StringScalar),
-    "release": ExpressionField(expressions["release"], parse_str, StringScalar),
     "sdk.name": ExpressionField(expressions["sdk_name"], parse_str, StringScalar),
     "sdk.version": ExpressionField(expressions["sdk_version"], parse_str, StringScalar),
     "user": ExpressionField(expressions["user"], parse_str, StringScalar),
@@ -126,7 +124,6 @@ search_config["device"] = search_config["device.name"]
 search_config["os"] = search_config["os.name"]
 search_config["sdk"] = search_config["sdk.name"]
 search_config["user"] = search_config["user.username"]
-search_config["release"] = search_config["releases"]
 search_config["user.ip"] = search_config["user.ip_address"]
 
 
@@ -177,14 +174,13 @@ sort_config: dict[str, Expression] = {
     "os.name": expressions["os_name"],
     "os.version": expressions["os_version"],
     "platform": expressions["platform"],
-    "release": expressions["release"],
     "sdk.name": expressions["sdk_name"],
     "sdk.version": expressions["sdk_version"],
     "started_at": expressions["started_at"],
     "user": expressions["user"],
     "user.id": expressions["user_id"],
-    "user.ip_address": expressions["user_ip_address"],
-    "user.username": expressions["user_username"],
+    "user.ip_address": expressions["ip_address_v4"],
+    "user.username": expressions["user_name"],
     "user.email": expressions["user_email"],
 }
 
@@ -194,7 +190,6 @@ sort_config["device"] = sort_config["device.name"]
 sort_config["os"] = sort_config["os.name"]
 sort_config["sdk"] = sort_config["sdk.name"]
 sort_config["user"] = sort_config["user.username"]
-sort_config["release"] = sort_config["releases"]
 sort_config["user.ip"] = sort_config["user.ip_address"]
 
 
@@ -227,14 +222,13 @@ select_config: dict[str, list[Expression]] = {
     "id": [expressions["id"]],
     "os": [expressions["os_name"], expressions["os_version"]],
     "platform": [expressions["platform"]],
-    "release": [expressions["release"]],
     "sdk": [expressions["sdk_name"], expressions["sdk_version"]],
     "started_at": [expressions["started_at"]],
     "user": [
         expressions["user"],
         expressions["user_id"],
-        expressions["user_ip_address"],
-        expressions["user_username"],
+        expressions["ip_address_v4"],
+        expressions["user_name"],
         expressions["user_email"],
     ],
 }

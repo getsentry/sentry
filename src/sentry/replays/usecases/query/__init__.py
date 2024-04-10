@@ -168,7 +168,7 @@ def query_using_optimized_search(
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort):
+    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort or "started_at"):
         query = make_materialized_view_search_query(
             search_filters=search_filters,
             sort=sort,
