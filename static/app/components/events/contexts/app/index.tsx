@@ -30,7 +30,7 @@ export const appKnownDataValues = [
   AppKnownDataType.IN_FOREGROUND,
 ];
 
-const appIgnoredDataValues: string[] = [];
+const appIgnoredDataValues = [];
 
 export function getKnownAppContextData({data, event, meta}: Props) {
   return getKnownData<AppData, AppKnownDataType>({
