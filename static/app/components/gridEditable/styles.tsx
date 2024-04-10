@@ -216,7 +216,9 @@ export const GridBodyCell = styled('td')`
 
   font-size: ${p => p.theme.fontSizeMedium};
 
-  &:first-child {
+  /* Need to select the 2nd child to select the first cell
+     as the first child is the interaction state layer */
+  &:nth-child(2) {
     padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 
@@ -234,8 +236,9 @@ const GridStatusWrapper = styled(GridBodyCell)`
 
 const GridStatusFloat = styled('div')`
   position: absolute;
-  top: 45px;
+  top: 0;
   left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -26,6 +26,7 @@ class SdkName(Enum):
     Cocoa = "cocoa"
     ReactNative = "react-native"
     Java = "java"
+    Native = "native"
 
 
 @dataclass
@@ -199,6 +200,59 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_crash_ignore_functions_matchers=set(),
         )
         configs.append(java_config)
+
+    native_options = _get_options(sdk_name=SdkName.Native, has_organization_allowlist=True)
+
+    if native_options:
+        native_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Native,
+            project_id=native_options["project_id"],
+            sample_rate=native_options["sample_rate"],
+            organization_allowlist=native_options["organization_allowlist"],
+            sdk_names=[
+                "sentry.native",
+                "sentry.native.android",
+                "sentry.native.android.capacitor",
+                "sentry.native.android.flutter",
+                "sentry.native.android.react-native",
+                "sentry.native.android.unity",
+                "sentry.native.android.unreal",
+                "sentry.native.dotnet",
+                "sentry.native.unity",
+                "sentry.native.unreal",
+            ],
+            # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
+            min_sdk_version="0.6.0",
+            system_library_path_patterns={
+                # well known locations for unix paths
+                r"/lib/**",
+                r"/usr/lib/**",
+                r"/usr/local/lib/**",
+                r"/usr/local/Cellar/**",
+                r"linux-gate.so*",
+                # others
+                r"/System/Library/Frameworks/**",  # macOS
+                r"C:/Windows/**",
+                r"/system/**",
+                r"/vendor/**",
+                r"**/libart.so",
+                r"/apex/com.android.*/lib*/**",  # Android
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns={
+                    r"sentry_*",  # public interface
+                    r"sentry__*",  # module level interface
+                    r"Java_io_sentry_android_ndk_*",  # JNI interface
+                },
+                # The native SDK usually has the same path as the application binary.
+                # Therefore, we can't rely on it. We set a fixed path of Sentry for
+                # the SDK frames are so it's not empty.
+                path_patterns=set(),
+                path_replacer=FixedPathReplacer(path="sentry"),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(native_config)
 
     return configs
 
