@@ -47,8 +47,6 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
                 sample_rate=1.0,
             )
 
-    _default_logger.info("task completed", extra={"activity_id": activity_id})
-
 
 @receiver(post_save, sender=Activity)
 def activity_created_receiver(instance, created, **kwargs):
