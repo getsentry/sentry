@@ -5,6 +5,7 @@ import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
@@ -14,7 +15,7 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import {Tag} from 'sentry/components/tag';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
+import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -229,8 +230,9 @@ export class DeprecatedLine extends Component<Props, State> {
         size="zero"
         aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
+        borderless
       >
-        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+        <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
       </ToggleContextButton>
     );
   }
