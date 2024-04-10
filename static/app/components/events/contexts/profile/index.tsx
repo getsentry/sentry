@@ -11,7 +11,13 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {getContextMeta, getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+  type KnownDataDetails,
+} from '../utils';
 
 const PROFILE_KNOWN_DATA_VALUES = [ProfileContextKey.PROFILE_ID];
 
@@ -21,41 +27,57 @@ interface ProfileContextProps {
   meta?: Record<string, any>;
 }
 
+export function getKnownProfileContextData({
+  data,
+  meta,
+  organization,
+  project,
+}: Pick<ProfileContextProps, 'data' | 'meta'> & {
+  organization: Organization;
+  project?: Project;
+}) {
+  return getKnownData<ProfileContext, ProfileContextKey>({
+    data,
+    meta,
+    knownDataTypes: PROFILE_KNOWN_DATA_VALUES,
+    onGetKnownDataDetails: v => getProfileKnownDataDetails({...v, organization, project}),
+  }).map(v => ({
+    ...v,
+    subjectDataTestId: `profile-context-${v.key.toLowerCase()}-value`,
+  }));
+}
+
+export function getUnknownProfileContextData({
+  data,
+  meta,
+}: Pick<ProfileContextProps, 'data' | 'meta'>) {
+  return getUnknownData({
+    allData: data,
+    knownKeys: PROFILE_KNOWN_DATA_VALUES,
+    meta,
+  });
+}
+
 export function ProfileEventContext({event, data, meta: propsMeta}: ProfileContextProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
   const meta = propsMeta ?? getContextMeta(event, 'profile');
 
+  const knownData = getKnownProfileContextData({data, meta, organization, project});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownProfileContextData({data, meta});
+
   return (
     <Feature organization={organization} features="profiling">
       <ErrorBoundary mini>
         <KeyValueList
-          data={getKnownData<ProfileContext, ProfileContextKey>({
-            data,
-            meta,
-            knownDataTypes: PROFILE_KNOWN_DATA_VALUES,
-            onGetKnownDataDetails: v =>
-              getProfileKnownDataDetails({...v, organization, project}),
-          }).map(v => ({
-            ...v,
-            subjectDataTestId: `profile-context-${v.key.toLowerCase()}-value`,
-          }))}
+          data={knownStructuredData}
           shouldSort={false}
           raw={false}
           isContextData
         />
-
-        <KeyValueList
-          data={getUnknownData({
-            allData: data,
-            knownKeys: PROFILE_KNOWN_DATA_VALUES,
-            meta,
-          })}
-          shouldSort={false}
-          raw={false}
-          isContextData
-        />
+        <KeyValueList data={unknownData} shouldSort={false} raw={false} isContextData />
       </ErrorBoundary>
     </Feature>
   );
@@ -71,7 +93,7 @@ function getProfileKnownDataDetails({
   organization: Organization;
   type: ProfileContextKey;
   project?: Project;
-}) {
+}): KnownDataDetails {
   switch (type) {
     case ProfileContextKey.PROFILE_ID: {
       const profileId = data.profile_id || '';
