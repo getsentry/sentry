@@ -859,11 +859,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "project_id": self.project.id,
                 "event_id": js_profile["profile_id"],
                 "release": release.version,
-                "debug_meta": {
-                    "images": [
-
-                    ]
-                },
+                "debug_meta": {"images": []},
             }
         )
 
