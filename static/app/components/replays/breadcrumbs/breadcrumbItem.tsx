@@ -208,7 +208,7 @@ const TitleContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const Title = styled('span')`
+const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
   font-size: ${p => p.theme.fontSizeMedium};
