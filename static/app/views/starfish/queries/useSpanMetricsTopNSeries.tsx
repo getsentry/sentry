@@ -30,7 +30,11 @@ export const useSpanMetricsTopNSeries = <Fields extends MetricsProperty[]>(
     referrer = 'span-metrics-top-n-series',
   } = options;
 
-  // TODO: Forbid multi-axis top-N queries
+  if (yAxis.length > 1) {
+    throw new Error(
+      'Multi-axis top-N queries are not supported by this hook. Try using `useSpansQuery` directly.'
+    );
+  }
 
   const pageFilters = usePageFilters();
 
