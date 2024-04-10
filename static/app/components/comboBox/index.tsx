@@ -163,15 +163,19 @@ function ComboBox<Value extends string>({
                 </MenuHeaderTrailingItems>
               </MenuHeader>
             )}
-            <ListBox
-              {...listBoxProps}
-              ref={listBoxRef}
-              listState={state}
-              keyDownHandler={() => true}
-              size={size}
-              sizeLimitMessage={sizeLimitMessage}
-            />
-            <EmptyMessage>No items found</EmptyMessage>
+            {/* Listbox adds a separator if it is not the first item
+            To avoid this, we wrap it into a div */}
+            <div>
+              <ListBox
+                {...listBoxProps}
+                ref={listBoxRef}
+                listState={state}
+                keyDownHandler={() => true}
+                size={size}
+                sizeLimitMessage={sizeLimitMessage}
+              />
+              <EmptyMessage>No items found</EmptyMessage>
+            </div>
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrapper>
@@ -354,7 +358,7 @@ const StyledOverlay = styled(Overlay)`
 export const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
@@ -376,11 +380,6 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
-
-  [data-menu-has-search='true'] > & {
-    padding-bottom: 0;
-    box-shadow: none;
-  }
 
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
