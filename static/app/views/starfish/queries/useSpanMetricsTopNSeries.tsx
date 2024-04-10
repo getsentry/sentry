@@ -11,16 +11,16 @@ interface SpanMetricTimeseriesRow {
 }
 
 interface UseSpanMetricsSeriesOptions<Fields> {
+  topEvents: number;
   enabled?: boolean;
   fields?: Fields;
   referrer?: string;
   search?: MutableSearch;
-  topEvents?: number;
   yAxis?: Fields;
 }
 
 export const useSpanMetricsTopNSeries = <Fields extends MetricsProperty[]>(
-  options: UseSpanMetricsSeriesOptions<Fields> = {}
+  options: UseSpanMetricsSeriesOptions<Fields> = {topEvents: DEFAULT_EVENT_COUNT}
 ) => {
   const {
     search = undefined,
@@ -74,3 +74,5 @@ export const useSpanMetricsTopNSeries = <Fields extends MetricsProperty[]>(
 
   return {...result, data: seriesByKey as {[key: string]: Series | undefined}};
 };
+
+const DEFAULT_EVENT_COUNT = 5;
