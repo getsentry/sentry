@@ -317,11 +317,10 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         for group_chunk in chunked(groups, SNUBA_LIMIT):
             keys = [group.id for group in groups]
             group = groups[0]
-            model = get_issue_tsdb_group_model(group.issue_category)
             sums = self.get_sums(
                 keys=keys,
                 group=group,
-                model=model,
+                model=get_issue_tsdb_group_model(group.issue_category),
                 start=start,
                 end=end,
                 environment_id=environment_id,
