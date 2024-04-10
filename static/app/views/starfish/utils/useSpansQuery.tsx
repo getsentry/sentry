@@ -181,15 +181,19 @@ function processDiscoverTimeseriesResult(
   if (!result) {
     return undefined;
   }
+
   if (!eventView.yAxis) {
     return [];
   }
+
   let intervals = [] as Interval[];
+
   const singleYAxis =
     eventView.yAxis &&
     (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
   const firstYAxis =
     typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+
   if (result.data) {
     const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
       result,
@@ -201,6 +205,7 @@ function processDiscoverTimeseriesResult(
     }));
     return timeSeriesResult;
   }
+
   Object.keys(result).forEach(key => {
     if (result[key].data) {
       intervals = mergeIntervals(
@@ -223,42 +228,51 @@ function processDiscoverTimeseriesResult(
     ...interval,
     interval: moment(parseInt(interval.interval, 10) * 1000).format(DATE_FORMAT),
   }));
+
   return processed;
 }
 
 function processSingleDiscoverTimeseriesResult(result, key: string, group?: string) {
   const intervals = [] as Interval[];
+
   result.data.forEach(([timestamp, [{count: value}]]) => {
     const existingInterval = intervals.find(
       interval =>
         interval.interval === timestamp && (group ? interval.group === group : true)
     );
+
     if (existingInterval) {
       existingInterval[key] = value;
       return;
     }
+
     intervals.push({
       interval: timestamp,
       [key]: value,
       group,
     });
   });
+
   return intervals;
 }
 
 function mergeIntervals(first: Interval[], second: Interval[]) {
   const target: Interval[] = JSON.parse(JSON.stringify(first));
+
   second.forEach(({interval: timestamp, group, ...rest}) => {
     const existingInterval = target.find(
       interval =>
         interval.interval === timestamp && (group ? interval.group === group : true)
     );
+
     if (existingInterval) {
       Object.keys(rest).forEach(key => {
         existingInterval[key] = rest[key];
       });
+
       return;
     }
+
     target.push({interval: timestamp, group, ...rest});
   });
   return target;
