@@ -50,6 +50,16 @@ class EventFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestC
             },
             project_id=self.project.id,
         )
+        environment2 = self.create_environment(name="staging")
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": environment2.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        )
 
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
         event_data = load_data(
@@ -78,6 +88,14 @@ class EventFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestC
             environment_id=self.environment.id,
         )
         assert batch_query == {event.group_id: 1, event2.group_id: 1, perf_event.group_id: 1}
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event3.group_id],
+            start=start,
+            end=end,
+            environment_id=environment2.id,
+        )
+        assert batch_query == {event3.group_id: 1}
 
 
 class ErrorEventMixin(SnubaTestCase):
