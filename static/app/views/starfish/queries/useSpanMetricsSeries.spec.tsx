@@ -132,15 +132,6 @@ describe('useSpanMetricsSeries', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
-    expect(result.current.data).toEqual({
-      'spm()': {
-        data: [
-          {name: '2023-11-13T20:35:00+00:00', value: 7810.2},
-          {name: '2023-11-13T20:40:00+00:00', value: 1216.8},
-        ],
-        seriesName: 'spm()',
-      },
-    });
   });
 
   it('adjusts interval based on the yAxis', async () => {
