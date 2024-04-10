@@ -15,6 +15,10 @@ class DogStatsdMetricsBackend(MetricsBackend):
         initialize(**kwargs)
         statsd.disable_telemetry()
         statsd.disable_buffering = False
+        # Origin detection is enabled after 0.45 by default.
+        # Disable it since it silently fails.
+        # Ref: https://github.com/DataDog/datadogpy/issues/764
+        statsd._container_id = None
         super().__init__(prefix=prefix)
 
     def incr(
