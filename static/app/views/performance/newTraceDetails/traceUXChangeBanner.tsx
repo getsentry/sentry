@@ -25,7 +25,7 @@ export function TraceUXChangeAlert() {
       }
     >
       {tct(
-        'Events now provide richer context by linking directly inside traces. Read [why] we are doing this and what it enables.',
+        'Get deeper context with the new trace view, which links events directly inside traces. Read [why] we are doing this and how it helps you',
         {
           why: (
             <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
