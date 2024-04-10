@@ -1,21 +1,19 @@
 import functools
 from datetime import UTC, datetime, timedelta
+from time import sleep
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
-import pytest
 from dateutil.parser import parse as parse_datetime
 from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
 from sentry.issues.grouptype import (
-    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
@@ -61,9 +59,10 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-class GroupListTest(APITestCase, SnubaTestCase):
+class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self):
@@ -2672,7 +2671,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 )
                 assert mock_query.call_count == 0
 
-    @pytest.mark.skip(reason="Need to fix")
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
@@ -2690,6 +2688,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
         response = self.get_success_response(
             sort="new",
             useGroupSnubaDataset=1,
@@ -2699,15 +2699,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event1.group.id
         assert mock_query.call_count == 1
 
-    @patch.object(
-        PerformanceRenderBlockingAssetSpanGroupType,
-        "noise_config",
-        new=NoiseConfig(0, timedelta(minutes=1)),
-    )
-    @patch(
-        "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-        side_effect=send_issue_occurrence_to_eventstream,
-    )
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
@@ -2715,32 +2706,28 @@ class GroupListTest(APITestCase, SnubaTestCase):
     )
     @override_options({"issues.group_attributes.send_kafka": True})
     @with_feature("organizations:issue-platform")
-    def test_snuba_perf_issue(self, mock_query, mock_eventstream):
-        time = datetime.now() - timedelta(minutes=1)
+    def test_snuba_perf_issue(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
         # create a performance issue
-        self.store_event(
-            data={
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-                "timestamp": datetime.now().timestamp(),
-                "start_timestamp": time.timestamp(),
-                "event_id": "c" * 32,
-                "user": {"email": "tags@example.com"},
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            None,
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+            user={"email": "myemail@example.com"},
+            event_data={
                 "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
-            project_id=self.project.id,
         )
-        perf_group = mock_eventstream.call_args[0][2].group
+        perf_group = group_info.group
 
         # create an error issue with the same tag
         error_event = self.store_event(
             data={
                 "fingerprint": ["error-issue"],
                 "event_id": "e" * 32,
-                "user": {"email": "tags@example.com"},
+                "user": {"email": "myemail@example.com"},
             },
             project_id=self.project.id,
         )
@@ -2756,10 +2743,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=perf_group.id).exists()
         self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
         response = self.get_success_response(
             sort="new",
             useGroupSnubaDataset=1,
-            query="user.email:tags@example.com",
+            query="user.email:myemail@example.com",
         )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
