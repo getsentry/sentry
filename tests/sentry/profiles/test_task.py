@@ -861,10 +861,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "release": release.version,
                 "debug_meta": {
                     "images": [
-                        {
-                            "type": "sourcemap",
-                            "code_file": "http://example.com/embedded.js",
-                        }
+
                     ]
                 },
             }
