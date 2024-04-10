@@ -1309,7 +1309,6 @@ export class VirtualizedViewManager {
       }
 
       entry.ref.style.opacity = '1';
-      entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
