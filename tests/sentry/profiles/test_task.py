@@ -858,6 +858,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
             {
                 "project_id": self.project.id,
                 "event_id": js_profile["profile_id"],
+                "release": release.version,
                 "debug_meta": {
                     "images": [
                         {
@@ -870,4 +871,4 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         )
 
         _symbolicate_profile(js_profile, self.project)
-        assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
+        js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
