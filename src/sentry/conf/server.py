@@ -2965,9 +2965,8 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                     "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
                 ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
-                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
-                ),
+                # TODO: remove setting
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
