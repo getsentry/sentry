@@ -26,7 +26,13 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
 
   const pageFilters = usePageFilters();
 
-  const eventView = getSeriesEventView(search, pageFilters.selection, yAxis);
+  const eventView = getSeriesEventView(
+    search,
+    undefined,
+    pageFilters.selection,
+    yAxis,
+    undefined
+  );
 
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
