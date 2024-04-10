@@ -200,6 +200,37 @@ jobs:
           type: frontend
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  upload-codecov-bundle-stats:
+    if: needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: upload codecov bundle stats
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        continue-on-error: true
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+
+      - name: Install dependencies
+        id: dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: webpack
+        env:
+          # this is fine to not have for forks, it shouldn't fail
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_ENABLE_BA: true
+        run: |
+          yarn build-production
+
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
