@@ -43,7 +43,7 @@ export type ReplayRecord = {
   /**
    * Whether the currently authenticated user has seen this replay or not.
    */
-  has_seen: boolean;
+  has_viewed: boolean;
   /**
    * The ID of the Replay instance
    */
