@@ -110,6 +110,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         _, _, unit = unit_family_and_unit
         return unit.convert(value)
 
+    # why do we still pipe this through? seems redundant
     def run_query(
         self,
         mql_queries: Sequence[MQLQuery],
@@ -1649,3 +1650,28 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit_family"] == expected_unit_family
             assert meta[0][1]["unit"] == expected_unit
             assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_condition_using_project_name_gets_visited_correctly(self) -> None:
+        mql = self.mql("sum", TransactionMRI.DURATION.value, "project:bar")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(12.0),
+            self.to_reference_unit(9.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)

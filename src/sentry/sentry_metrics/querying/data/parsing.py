@@ -11,6 +11,7 @@ from sentry.sentry_metrics.querying.types import QueryExpression, QueryOrder
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
     LatestReleaseTransformationVisitor,
+    ProjectToProjectIDTransformationVisitor,
     QueryConditionsCompositeVisitor,
     QueryValidationV2Visitor,
     VisitableQueryExpression,
@@ -80,7 +81,8 @@ class QueryParser:
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
                     QueryConditionsCompositeVisitor(
-                        LatestReleaseTransformationVisitor(self._projects)
+                        LatestReleaseTransformationVisitor(self._projects),
+                        ProjectToProjectIDTransformationVisitor(self._projects),
                     )
                 ).get()
             )
