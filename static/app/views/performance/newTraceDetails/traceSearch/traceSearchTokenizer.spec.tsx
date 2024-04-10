@@ -47,7 +47,7 @@ describe('traceSearchTokenizer', () => {
     expect(grammar.parse('key:')).toEqual([
       {
         key: 'key',
-        type: 'token',
+        type: 'key-value',
         value: '',
       },
     ]);
@@ -60,12 +60,20 @@ describe('traceSearchTokenizer', () => {
     '  key:  value',
     'key:  value   ',
   ])('parses %s', input => {
-    expect(grammar.parse(input)).toEqual([{type: 'token', key: 'key', value: 'value'}]);
+    expect(grammar.parse(input)).toEqual([
+      {type: 'key-value', key: 'key', value: 'value'},
+    ]);
   });
 
   describe('grammar', () => {
     it('empty value', () => {
       expect(grammar.parse('key:')[0].value).toBe('');
+    });
+    it('free text', () => {
+      expect(grammar.parse('whatever')[0]).toEqual({
+        type: 'text',
+        value: 'whatever',
+      });
     });
     it('alphanumeric', () => {
       expect(grammar.parse('key:1')[0].value).toBe(1);
@@ -114,8 +122,8 @@ describe('traceSearchTokenizer', () => {
 
     it('multiple expressions', () => {
       expect(grammar.parse('key1:value key2:value')).toEqual([
-        {type: 'token', key: 'key1', value: 'value'},
-        {type: 'token', key: 'key2', value: 'value'},
+        {type: 'key-value', key: 'key1', value: 'value'},
+        {type: 'key-value', key: 'key2', value: 'value'},
       ]);
     });
 

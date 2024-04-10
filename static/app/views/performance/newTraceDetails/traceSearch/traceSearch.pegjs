@@ -75,15 +75,22 @@ search_grammar
         return t
    }
 
-token = search
+token = search_token / free_text_token
 
-search = s:search_key separator vo:value_operator? v:value {
+search_token = s:search_key separator vo:value_operator? v:value {
     return {
-        type: "token",
+        type: "key-value",
         key: s.value,
         value: v,
         ...(s.negated ? {negated: true}: {}),
         ...(vo ? {operator: vo} : {}),
+    }
+}
+
+free_text_token = s:free_text {
+    return {
+        type: "text",
+        value: s,
     }
 }
 

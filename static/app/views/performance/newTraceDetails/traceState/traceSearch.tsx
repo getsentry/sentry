@@ -291,7 +291,14 @@ function searchInTraceTreeTokens(
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i];
 
-      if (searchInTraceSubset(query, node)) {
+      let matched = true;
+      for (const token of query) {
+        if (!evaluateTokenForTraceNode(node, token)) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) {
         results.push({index: i, value: node});
         resultLookup.set(node, matchCount);
 
@@ -301,9 +308,9 @@ function searchInTraceTreeTokens(
             resultIteratorIndex: matchCount,
           };
         }
-
         matchCount++;
       }
+
       i++;
     }
 
