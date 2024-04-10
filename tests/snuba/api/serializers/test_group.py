@@ -46,13 +46,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
 
-    def test_priority_no_ff(self):
-        outside_user = self.create_user()
-        group = self.create_group()
-        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
-        assert "priority" not in result
-        assert "priorityLockedAt" not in result
-
     @with_feature("projects:issue-priority")
     def test_priority_high(self):
         outside_user = self.create_user()
