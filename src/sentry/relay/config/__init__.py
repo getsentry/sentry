@@ -54,6 +54,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
