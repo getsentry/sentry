@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import cached_property
 
 import pytest
@@ -55,8 +56,8 @@ class AlertRuleActivationsListEndpointTest(AlertRuleActivationsBase):
     def test_filter_by_start_end(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
         now = timezone.now()
-        yesterday = now - timezone.timedelta(days=1)
-        last_week = now - timezone.timedelta(days=7)
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
         with freeze_time(last_week):
             old_activation = self.create_alert_rule_activation(
                 alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
@@ -76,8 +77,8 @@ class AlertRuleActivationsListEndpointTest(AlertRuleActivationsBase):
         expected_activations = new_activation + yesterday_activation
 
         params = {
-            "start": now - timezone.timedelta(days=1),
-            "end": now + timezone.timedelta(days=1),
+            "start": now - timedelta(days=1),
+            "end": now + timedelta(days=1),
         }
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id, **params)
