@@ -37,16 +37,15 @@ def generate_token(token_type: AuthTokenType | str | None = AuthTokenType.__empt
 
 
 class PlaintextSecretAlreadyRead(Exception):
-    def __init__(
-        self,
-        message="the secret you are trying to read is read-once and cannot be accessed directly again",
-    ):
-        super().__init__(message)
+    """the secret you are trying to read is read-once and cannot be accessed directly again"""
+
+    pass
 
 
 class NotSupported(Exception):
-    def __init__(self, message="the method you called is not supported by this token type"):
-        super().__init__(message)
+    """the method you called is not supported by this token type"""
+
+    pass
 
 
 class ApiTokenManager(ControlOutboxProducingManager):
