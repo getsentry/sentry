@@ -24,6 +24,7 @@ def wrap_event_response(
         request_user,
         IssueEventSerializer(),
         include_full_release_data=include_full_release_data,
+
     )
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
@@ -44,6 +45,8 @@ def wrap_event_response(
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None
+        if event_data is None:
+            event_data = {}
 
     event_data["nextEventID"] = next_event_id
     event_data["previousEventID"] = prev_event_id
