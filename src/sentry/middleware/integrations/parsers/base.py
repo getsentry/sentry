@@ -203,13 +203,22 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
+            logging.info(
+                "integrations.parser.activate_buckets",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
 
         if not use_buckets:
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
+            logging.info(
+                "integrations.parser.no_bucket_id",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
             return str(integration.id)
+
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
