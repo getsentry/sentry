@@ -183,8 +183,8 @@ class QueryConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that runs a series of `QueryConditionVisitor`(s) on each filters of elements of a `QueryExpression`.
     """
 
-    def __init__(self, *visitors: QueryConditionVisitor):
-        self._visitors = list(visitors)
+    def __init__(self, *visitors: list[QueryConditionVisitor]):
+        self._visitors = visitors
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
         if formula.filters:
