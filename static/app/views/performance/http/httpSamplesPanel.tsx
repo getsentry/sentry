@@ -21,7 +21,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {ResponseCodeCountChart} from 'sentry/views/performance/http/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
@@ -32,6 +32,7 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
   SpanFunction,
@@ -94,11 +95,13 @@ export function HTTPSamplesPanel() {
     transaction: query.transaction,
   };
 
+  const search = MutableSearch.fromQueryObject(filters);
+
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
   } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
+    search,
     fields: [
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -117,7 +120,7 @@ export function HTTPSamplesPanel() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
+    search,
     yAxis: [`avg(span.self_time)`],
     enabled: isPanelOpen && query.panel === 'duration',
     referrer: 'api.starfish.http-module-samples-panel-duration-chart',
@@ -127,9 +130,11 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+  } = useSpanMetricsTopNSeries({
+    search,
+    fields: ['span.status_code', 'count()'],
+    yAxis: ['count()'],
+    topEvents: 5,
     enabled: isPanelOpen && query.panel === 'status',
     referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
   });
@@ -142,7 +147,7 @@ export function HTTPSamplesPanel() {
     error: samplesDataError,
     refetch: refetchSpanSamples,
   } = useSpanSamples({
-    search: MutableSearch.fromQueryObject(filters),
+    search,
     fields: [
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
@@ -339,21 +344,8 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <ModuleLayout.Full>
-              <ResponseRateChart
-                series={[
-                  {
-                    ...responseCodeData[`http_response_rate(3)`],
-                    seriesName: t('3XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(4)`],
-                    seriesName: t('4XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(5)`],
-                    seriesName: t('5XX'),
-                  },
-                ]}
+              <ResponseCodeCountChart
+                series={Object.values(responseCodeData).filter(Boolean)}
                 isLoading={isResponseCodeDataLoading}
                 error={responseCodeError}
               />
