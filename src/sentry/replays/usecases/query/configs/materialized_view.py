@@ -210,6 +210,7 @@ select_config: dict[str, list[Expression]] = {
     ],
 }
 
+# If no fields were given a subset is returned by default.
 DEFAULT_SELECTION = [
     "activity",
     "browser",
@@ -223,3 +224,8 @@ DEFAULT_SELECTION = [
     "started_at",
     "user",
 ]
+
+
+def make_selection(fields: list[str]) -> list[Expression]:
+    """Return a selection set from a list of fields."""
+    return [select_config[field] for field in fields or DEFAULT_SELECTION]
