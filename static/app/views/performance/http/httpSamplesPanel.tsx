@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
+import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
 import {ResponseCodeCountChart} from 'sentry/views/performance/http/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
@@ -54,6 +56,7 @@ export function HTTPSamplesPanel() {
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
       panel: decodePanel,
+      responseCodeClass: decodeResponseCodeClass,
     },
   });
 
@@ -87,6 +90,16 @@ export function HTTPSamplesPanel() {
     });
   };
 
+  const handleResponseCodeClassChange = newResponseCodeClass => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        responseCodeClass: newResponseCodeClass.value,
+      },
+    });
+  };
+
   const isPanelOpen = Boolean(detailKey);
 
   const filters: SpanMetricsQueryFilters = {
@@ -94,6 +107,10 @@ export function HTTPSamplesPanel() {
     'span.domain': query.domain,
     transaction: query.transaction,
   };
+
+  if (query.responseCodeClass) {
+    filters['span.status_code'] = `${query.responseCodeClass}*`;
+  }
 
   const search = MutableSearch.fromQueryObject(filters);
 
@@ -281,18 +298,29 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <SegmentedControl
-              value={query.panel}
-              onChange={handlePanelChange}
-              aria-label={t('Choose breakdown type')}
-            >
-              <SegmentedControl.Item key="duration">
-                {t('By Duration')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="status">
-                {t('By Response Code')}
-              </SegmentedControl.Item>
-            </SegmentedControl>
+            <PanelControls>
+              <SegmentedControl
+                value={query.panel}
+                onChange={handlePanelChange}
+                aria-label={t('Choose breakdown type')}
+              >
+                <SegmentedControl.Item key="duration">
+                  {t('By Duration')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="status">
+                  {t('By Response Code')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
+
+              <CompactSelect
+                value={query.responseCodeClass}
+                options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
+                onChange={handleResponseCodeClassChange}
+                triggerProps={{
+                  prefix: t('Response Code'),
+                }}
+              />
+            </PanelControls>
           </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
@@ -369,6 +397,29 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
+const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
+  {
+    value: '',
+    label: t('All'),
+  },
+  {
+    value: '2',
+    label: t('2XXs'),
+  },
+  {
+    value: '3',
+    label: t('3XXs'),
+  },
+  {
+    value: '4',
+    label: t('4XXs'),
+  },
+  {
+    value: '5',
+    label: t('5XXs'),
+  },
+];
+
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
@@ -395,4 +446,10 @@ const MetricsRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(4)};
+`;
+
+const PanelControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(2)};
 `;
