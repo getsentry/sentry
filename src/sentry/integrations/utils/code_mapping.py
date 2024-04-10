@@ -62,7 +62,7 @@ class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
         self.raw_path = frame_file_path
         if frame_file_path[0] == "/":
-            frame_file_path = frame_file_path.replace("/", "", 1)
+            frame_file_path = frame_file_path[1:]
 
         # Using regexes would be better but this is easier to understand
         if (
@@ -295,19 +295,37 @@ class CodeMappingTreesHelper:
         Tries to see if the stacktrace without the root matches the file from the
         source code. Use existing code mappings to exclude some source files
         """
+
+        # l1 shoudl be longer
+        def _list_endswith(l1: list[str], l2: list[str]) -> bool:
+            if len(l2) > len(l1):
+                l1, l2 = l2, l1
+            l1_idx = len(l1) - 1
+            l2_idx = len(l2) - 1
+
+            while l2_idx >= 0:
+                if l2[l2_idx] != l1[l1_idx]:
+                    return False
+                l1_idx -= 1
+                l2_idx -= 1
+            return True
+
         # Exit early because we should not be processing source files for existing code maps
         if self._matches_existing_code_mappings(src_file):
             return False
 
         src_file_items = src_file.split("/")
         frame_items = frame_filename.full_path.split("/")
-        if len(src_file_items) > len(frame_items):
-            return src_file.endswith(frame_filename.full_path)
-        else:
+        if len(src_file_items) > len(frame_items):  # Mono repos
+            return _list_endswith(src_file_items, frame_items)
+        elif len(frame_items) > len(src_file_items):  # Absolute paths
             num_relevant_items = max(1, len(src_file_items) - 1)
             relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
-            relevant_path = "/".join(relevant_items)
-            return src_file.endswith(relevant_path)
+            # relevant_path = "/".join(relevant_items)
+            return src_file_items.endswith(relevant_items)
+            # return src_file.endswith(relevant_path)
+        else:  # exact match
+            return src_file == frame_filename
 
     def _matches_existing_code_mappings(self, src_file: str) -> bool:
         """Check if the source file is already covered by an existing code mapping"""
