@@ -29,6 +29,7 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
+    KeyedVariants,
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
@@ -279,10 +280,12 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
             event["_fingerprint_info"]["is_builtin"] = True
 
 
-def _get_calculated_grouping_variants_for_event(event, context):
+def _get_calculated_grouping_variants_for_event(
+    event: Event, context: GroupingContext
+) -> dict[str, GroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    per_variant_components: dict[str, list[BaseVariant]] = {}
+    per_variant_components: dict[str, list[GroupingComponent]] = {}
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
@@ -392,7 +395,7 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants):
+def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVariants, KeyedVariants]:
     """Sort a sequence of variants into flat and hierarchical variants"""
 
     flat_variants = []
