@@ -77,7 +77,7 @@ class ReplayExamples:
                     {
                         "count_dead_clicks": 1,
                         "count_rage_clicks": 0,
-                        "dom_element": "SignUpForm",
+                        "dom_element": "SignUpForm#myform",
                         "element": {
                             "alt": "",
                             "aria_label": "",

@@ -95,7 +95,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["project_id"] == project.id
             assert (
                 response_data["data"][0]["dom_element"]
-                == 'SignUpForm[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
+                == 'SignUpForm#myid[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
