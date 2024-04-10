@@ -11,9 +11,8 @@ export default function hydratedSelectorData(data, clickType?): DeadRageSelector
           count_rage_clicks: d.count_rage_clicks,
         }),
     dom_element: {
-      fullSelector: constructSelector(d.element, d.component_name).fullSelector,
-      selector: constructSelector(d.element, d.component_name).selector,
-      displaySelector: constructSelector(d.element, d.component_name).displaySelector,
+      fullSelector: constructSelector(d.element).fullSelector,
+      selector: constructSelector(d.element).selector,
       projectId: d.project_id,
     },
     element: d.dom_element.split(/[#.[]+/)[0],

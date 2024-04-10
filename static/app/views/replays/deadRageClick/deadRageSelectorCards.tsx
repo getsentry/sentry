@@ -149,7 +149,6 @@ function AccordionWidget({
                     clickColor={clickColor}
                     selectorQuery={selectorQuery}
                     id={d.project_id}
-                    displaySelector={d.dom_element.displaySelector}
                   />
                 ),
                 content: () => (
@@ -180,11 +179,9 @@ function AccordionItemHeader({
   selector,
   selectorQuery,
   id,
-  displaySelector,
 }: {
   clickColor: ColorOrAlias;
   count: number;
-  displaySelector: string;
   id: number;
   selector: string;
   selectorQuery: string;
@@ -201,7 +198,6 @@ function AccordionItemHeader({
         value={selector}
         selectorQuery={selectorQuery}
         projectId={id.toString()}
-        displaySelector={displaySelector}
       />
       <RightAlignedCell>
         {clickCount}
