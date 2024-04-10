@@ -802,6 +802,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
+    "sentry.integrations.slack.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -2020,6 +2021,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
+    "projects:extract-transaction-from-segment-span": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
