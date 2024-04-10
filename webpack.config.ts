@@ -766,7 +766,7 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
 }
 
-if (ENABLE_CODECOV_BA) {
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
 
   appConfig.plugins?.push(
