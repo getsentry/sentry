@@ -1606,7 +1606,7 @@ def _save_aggregate_new(
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
     # Try looking for an existing group using the current grouping config
-    primary = create_and_seek_grouphashes(job, run_primary_grouping, metric_tags)
+    primary = get_hashes_and_grouphashes(job, run_primary_grouping, metric_tags)
 
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
@@ -1616,7 +1616,7 @@ def _save_aggregate_new(
         result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
-        secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
+        secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
 
         # Now we know for sure whether or not a group already exists, so handle both cases
@@ -1659,7 +1659,7 @@ def _save_aggregate_new(
     return group_info
 
 
-def create_and_seek_grouphashes(
+def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
