@@ -1452,12 +1452,26 @@ def _save_aggregate(
             if root_hierarchical_grouphash is not None:
                 all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
+            # If we're in this branch, we checked our grouphashes and didn't find one with a group
+            # attached. We thus want to create a new group, but we need to guard against another
+            # event with the same hash coming in before we're done here and also thinking it needs
+            # to create a new group. To prevent this, we're using double-checked locking
+            # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+            # hashed) event is also in the process of creating a group and has grabbed the lock
+            # before us, we'll block here until it's done. If not, we've now got the lock and other
+            # identically-hashed events will have to wait for us.
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
+            # Now check again to see if any of our grouphashes have a group. In the first race
+            # condition scenario above, we'll have been blocked long enough for the other event to
+            # have created the group and updated our grouphashes with a group id, which means this
+            # time, we'll find something.
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
@@ -1469,6 +1483,8 @@ def _save_aggregate(
             else:
                 root_hierarchical_grouphash = None
 
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+            # the group.
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
 
