@@ -98,6 +98,79 @@ class EventFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestC
         assert batch_query == {event3.group_id: 1}
 
 
+class EventUniqueUserFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
+    rule_cls = EventUniqueUserFrequencyCondition
+
+    def test_batch_query_user(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=30)),
+                "fingerprint": ["group-1"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-2"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        environment2 = self.create_environment(name="staging")
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": environment2.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-3"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(seconds=12),
+            start_timestamp=before_now(seconds=12),
+            fingerprint=[fingerprint],
+        )
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = self.environment.name
+
+        # Store a performance event
+        perf_event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=self.project.id,
+            fingerprint=fingerprint,
+        )
+        start = before_now(minutes=1)
+        end = timezone.now()
+
+        condition_inst = self.rule_cls(event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event.group_id, event2.group_id, perf_event.group_id],
+            start=start,
+            end=end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {event.group_id: 1, event2.group_id: 1, perf_event.group_id: 1}
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event3.group_id],
+            start=start,
+            end=end,
+            environment_id=environment2.id,
+        )
+        assert batch_query == {event3.group_id: 1}
+
+
 class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
         data["timestamp"] = iso_format(timestamp)

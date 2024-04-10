@@ -270,6 +270,29 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         )
         return sums
 
+    def get_distinct_counts_totals(
+        self,
+        keys: list[int],
+        group: Group,
+        model: TSDBModel,
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> Mapping[int, int]:
+        totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
+            referrer_suffix=referrer_suffix,
+        )
+        return totals
+
     @property
     def is_guessed_to_be_created_on_project_creation(self) -> bool:
         """
@@ -369,18 +392,69 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(event.group.issue_category),
+        totals: Mapping[int, int] = self.get_distinct_counts_totals(
             keys=[event.group_id],
+            group=event.group,
+            model=get_issue_tsdb_user_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_uniq_user_frequency",
         )
         return totals[event.group_id]
+
+    def get_chunked_totals(
+        self,
+        groups: list[Group],
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        for group_chunk in chunked(groups, SNUBA_LIMIT):
+            group = groups[0]
+            totals = self.get_distinct_counts_totals(
+                keys=[group.id for group in groups],
+                group=group,
+                model=get_issue_tsdb_user_group_model(group.issue_category),
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+            )
+            batch_totals.update(totals)
+        return batch_totals
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
+
+        if error_issues:
+            error_totals = self.get_chunked_totals(
+                groups=error_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(error_totals)
+
+        if generic_issues:
+            generic_totals = self.get_chunked_totals(
+                groups=generic_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(generic_totals)
+
+        return batch_totals
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
