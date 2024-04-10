@@ -225,6 +225,7 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
   'ui.focus',
