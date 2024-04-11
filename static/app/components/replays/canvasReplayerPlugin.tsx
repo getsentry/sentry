@@ -10,6 +10,7 @@ import {
   type ReplayPlugin,
 } from '@sentry-internal/rrweb';
 import type {CanvasArg} from '@sentry-internal/rrweb-types';
+import debounce from 'lodash/debounce';
 
 import {deserializeCanvasArg} from './deserializeCanvasArgs';
 
@@ -83,7 +84,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   // called before the DOM is fully built. This means that nodes do not yet
   // exist in DOM mirror. We need to replay these events when `onBuild` is
   // called.
-  const handleQueue = new Map<number, [CanvasEventWithTime, Replayer][]>();
+  const handleQueue = new Map<number, [CanvasEventWithTime, Replayer]>();
 
   // This is a pointer to the index of the next event that will need to be
   // preloaded. Most of the time the recording plays sequentially, so we do not
@@ -198,13 +199,33 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     }
   }
 
-  async function processEvent(
-    e: CanvasEventWithTime,
-    {shouldPreload = true, replayer}: {replayer: Replayer; shouldPreload?: boolean}
-  ) {
-    if (shouldPreload) {
-      preload(e);
-    }
+  const debouncedProcessQueuedEvents = debounce(
+    function () {
+      Array.from(handleQueue.entries()).forEach(([id, [e, replayer]]) => {
+        processEvent(e, {replayer});
+        handleQueue.delete(id);
+      });
+    },
+    250,
+    {maxWait: 1000}
+  );
+
+  /**
+   * In the case where mirror DOM is built, we only want to process the most
+   * recent sync event, otherwise the playback will look like it's playing if
+   * we process all events.
+   */
+  function processEventSync(e: CanvasEventWithTime, {replayer}: {replayer: Replayer}) {
+    // We want to only process the most recent sync event
+    handleQueue.set(e.data.id, [e, replayer]);
+    debouncedProcessQueuedEvents();
+  }
+
+  /**
+   * Processes canvas mutation events
+   */
+  async function processEvent(e: CanvasEventWithTime, {replayer}: {replayer: Replayer}) {
+    preload(e);
 
     const source = replayer.getMirror().getNode(e.data.id);
     const target =
@@ -213,12 +234,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
     // No canvas found for id... this isn't reliably reproducible and not
     // exactly sure why it flakes. Saving as metric to keep an eye on it.
-    if ((!target || !source) && shouldPreload) {
-      // Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
-      // See comments at definition of `handleQueue`
-      const queue = handleQueue.get(e.data.id) || [];
-      queue.push([e, replayer]);
-      handleQueue.set(e.data.id, [e, replayer]);
+    if (!target) {
+      Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
       return;
     }
 
@@ -269,16 +286,12 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
       // See comments at definition of `handleQueue`
       const queueItem = handleQueue.get(id);
-      // handleQueue.set(id, []);
-      // console.log({id, queue})
-      // while (queue?.length) {
-      //   const queueItem = queue.shift();
+      handleQueue.delete(id);
       if (!queueItem) {
         return;
       }
       const [event, replayer] = queueItem;
-      processEvent(event, {shouldPreload: false, replayer});
-      // }
+      processEvent(event, {replayer});
     },
 
     /**
@@ -300,8 +313,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         nextPreloadIndex = -1;
 
         if (isCanvas) {
-          console.log('isCanvas and isSync', e.data);
-          processEvent(e, {replayer});
+          processEventSync(e, {replayer});
         }
 
         prune(e);
