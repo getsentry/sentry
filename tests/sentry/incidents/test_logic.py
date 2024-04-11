@@ -699,38 +699,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.comparison_delta == comparison_delta * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
-    def test_session_to_metric_alert(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "session alert rule",
-            "",
-            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
-        )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
-
-        with self.feature("organizations:alert-crash-free-metrics"):
-            alert_rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                "session converted alert rule",
-                "",
-                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-                query_type=SnubaQuery.Type.CRASH_RATE,
-                dataset=Dataset.Sessions,
-            )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
-
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
             self.organization,
@@ -1036,28 +1004,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         update_alert_rule(self.alert_rule, comparison_delta=None)
         assert self.alert_rule.comparison_delta is None
         assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-
-    def test_session_to_metric_alert(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "session alert rule",
-            "",
-            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
-        )
-        alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
-
-        with self.feature("organizations:alert-crash-free-metrics"):
-            alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
