@@ -19,6 +19,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
@@ -72,9 +73,7 @@ export function PagePerformanceTable() {
     sort = {...sort, field: 'p75(measurements.inp)'};
   }
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({
-      transaction: query,
-    });
+    useProjectWebVitalsScoresQuery();
 
   const {
     data,
@@ -82,8 +81,9 @@ export function PagePerformanceTable() {
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({
     limit: MAX_ROWS,
-    transaction: query,
+    transaction: `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
+    shouldEscapeFilters: false,
   });
 
   const scoreCount = projectScoresData?.data?.[0]?.[
@@ -284,7 +284,7 @@ export function PagePerformanceTable() {
       ...location,
       query: {
         ...location.query,
-        query: newQuery === '' ? undefined : `*${newQuery}*`,
+        query: newQuery === '' ? undefined : newQuery,
         cursor: undefined,
       },
     });
@@ -296,6 +296,7 @@ export function PagePerformanceTable() {
         <StyledSearchBar
           placeholder={t('Search for more Pages')}
           onSearch={handleSearch}
+          defaultQuery={query}
         />
         <StyledPagination
           pageLinks={pageLinks}

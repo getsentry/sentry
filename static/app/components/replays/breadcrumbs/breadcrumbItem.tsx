@@ -1,5 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {Fragment, isValidElement, memo} from 'react';
+import {isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -8,21 +8,18 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ClickFrame, ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isClickFrame, isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
@@ -84,47 +81,36 @@ function BreadcrumbItem({
         {icon}
       </IconWrapper>
       <CrumbDetails>
-        <TitleContainer>
-          {isErrorFrame(frame) ? (
-            <CrumbErrorTitle frame={frame} />
-          ) : (
-            <Title>{title}</Title>
-          )}
-          {onClick ? (
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          ) : null}
-        </TitleContainer>
-
-        {typeof description === 'string' ||
-        (description !== undefined && isValidElement(description)) ? (
-          <Description
-            title={
-              <HTMLTree
-                description={description.toString()}
-                frame={frame as ClickFrame}
+        <Flex column>
+          <TitleContainer>
+            {<Title>{title}</Title>}
+            {onClick ? (
+              <TimestampButton
+                startTimestampMs={startTimestampMs}
+                timestampMs={frame.timestampMs}
               />
-            }
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
-          </Description>
-        ) : (
-          <InspectorWrapper>
-            <ObjectInspector
-              data={description}
-              expandPaths={expandPaths}
-              onExpand={onInspectorExpanded}
-              theme={{
-                TREENODE_FONT_SIZE: '0.7rem',
-                ARROW_FONT_SIZE: '0.5rem',
-              }}
-            />
-          </InspectorWrapper>
-        )}
+            ) : null}
+          </TitleContainer>
+
+          {typeof description === 'string' ||
+          (description !== undefined && isValidElement(description)) ? (
+            <Description title={description} showOnlyOnOverflow isHoverable>
+              {description}
+            </Description>
+          ) : (
+            <InspectorWrapper>
+              <ObjectInspector
+                data={description}
+                expandPaths={expandPaths}
+                onExpand={onInspectorExpanded}
+                theme={{
+                  TREENODE_FONT_SIZE: '0.7rem',
+                  ARROW_FONT_SIZE: '0.5rem',
+                }}
+              />
+            </InspectorWrapper>
+          )}
+        </Flex>
 
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
           <div>
@@ -156,34 +142,14 @@ function BreadcrumbItem({
         ))}
 
         {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-          <CrumbErrorIssue frame={frame as ErrorFrame} />
+          <CrumbErrorIssue frame={frame} />
         ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
 }
 
-function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
-  const organization = useOrganization();
-  const {eventId} = useReplayGroupContext();
-
-  if (eventId === frame.data.eventId) {
-    return <Title>Error: This Event</Title>;
-  }
-
-  return (
-    <Title>
-      Error:{' '}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
-      >
-        {getShortEventId(frame.data.eventId)}
-      </Link>
-    </Title>
-  );
-}
-
-function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
@@ -192,7 +158,7 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
   ) : null;
 
-  if (`${frame.data.groupId}` === groupId) {
+  if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
         {projectBadge}
@@ -201,52 +167,22 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     );
   }
 
-  const url = isFeedbackFrame(frame as ReplayFrame)
-    ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
-    : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
-
   return (
     <CrumbIssueWrapper>
       {projectBadge}
-      <Link to={url}>{frame.data.groupShortId}</Link>
+      <Link
+        to={
+          isFeedbackFrame(frame)
+            ? {
+                pathname: `/organizations/${organization.slug}/feedback/`,
+                query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
+              }
+            : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
+        }
+      >
+        {frame.data.groupShortId}
+      </Link>
     </CrumbIssueWrapper>
-  );
-}
-
-function HTMLTree({description, frame}: {description: string; frame: ClickFrame}) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const componentName =
-    isClickFrame(frame) && frame.data.node?.attributes['data-sentry-component'];
-  const lastComponentIndex =
-    description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
-
-  return (
-    <Fragment>
-      {componentName ? (
-        <Fragment>
-          <div style={{display: 'inline'}}>
-            {description.substring(0, lastComponentIndex)}
-          </div>
-          <Tooltip title={t('Search by this component')} isHoverable>
-            <Link
-              to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-                query: {
-                  ...location.query,
-                  query: `click.component_name:${componentName}`,
-                },
-              }}
-            >
-              {componentName}
-            </Link>
-          </Tooltip>
-        </Fragment>
-      ) : (
-        description
-      )}
-    </Fragment>
   );
 }
 
@@ -255,7 +191,6 @@ const CrumbIssueWrapper = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
 `;
 
 const InspectorWrapper = styled('div')`
@@ -266,6 +201,7 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: ${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
@@ -338,7 +274,6 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
 `;
 
 const CodeContainer = styled('div')`
-  margin-top: ${space(1)};
   max-height: 400px;
   max-width: 100%;
   overflow: auto;

@@ -25,7 +25,10 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.models.user import User
 
-ACTOR_TYPES = {"team": 0, "user": 1}
+ACTOR_TYPES = {
+    "team": 0,
+    "user": 1,
+}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
@@ -156,7 +159,13 @@ class Actor(Model):
     def get_actor_tuple(self) -> ActorTuple:
         # Returns ActorTuple version of the Actor model.
         actor_type = actor_type_to_class(self.type)
-        return ActorTuple(self.resolve().id, actor_type)
+
+        if self.type == ACTOR_TYPES["user"]:
+            return ActorTuple(self.user_id, actor_type)
+        if self.type == ACTOR_TYPES["team"]:
+            return ActorTuple(self.team_id, actor_type)
+
+        raise ValueError("Unknown actor type")
 
     def get_actor_identifier(self):
         # Returns a string like "team:1"
@@ -192,10 +201,6 @@ class Actor(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
-
-
-def get_actor_id_for_user(user: User | RpcUser) -> int:
-    return get_actor_for_user(user).id
 
 
 def get_actor_for_user(user: int | User | RpcUser) -> Actor:

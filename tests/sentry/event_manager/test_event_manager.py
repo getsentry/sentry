@@ -1387,6 +1387,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("metadata") == {
             "type": "Foo",
             "value": "bar",
+            "initial_priority": PriorityLevel.HIGH,
             "display_title_with_tree_label": False,
         }
 
@@ -1412,6 +1413,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("type") == "csp"
         assert group.data.get("metadata") == {
             "directive": "script-src",
+            "initial_priority": PriorityLevel.HIGH,
             "uri": "example.com",
             "message": "Blocked 'script' from 'example.com'",
         }
