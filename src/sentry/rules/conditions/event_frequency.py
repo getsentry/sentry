@@ -6,10 +6,11 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django import forms
 from django.core.cache import cache
+from django.db.models.enums import TextChoices
 from django.utils import timezone
 
 from sentry import release_health, tsdb
@@ -43,15 +44,14 @@ comparison_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
-COMPARISON_TYPE_COUNT = "count"
-COMPARISON_TYPE_PERCENT = "percent"
-comparison_types = {
-    COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
-    COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
-}
 
 
-class GenericConditionData(TypedDict):
+class ComparisonType(TextChoices):
+    COUNT = "count"
+    PERCENT = "percent"
+
+
+class EventFrequencyConditionData(TypedDict):
     """
     The base typed dict for all condition data representing EventFrequency issue
     alert rule conditions
@@ -64,21 +64,13 @@ class GenericConditionData(TypedDict):
     # The interval to compare the value against such as 5m, 1h, 3w, etc.
     # e.g. # of issues is more than {value} in {interval}.
     interval: str
-
-
-class CountComparisonConditionData(GenericConditionData):
-    # NOTE: Some of tne earlier alert rules were created without the comparisonType
-    # field, although modern rules will always have it.
-    # Specifies the comparison type. Should be set to COMPARISON_TYPE_COUNT.
-    comparisonType: NotRequired[str]
-
-
-class PercentComparisonConditionData(GenericConditionData):
-    # Specifies the comparison type. Should be set to COMPARISON_TYPE_PERCENT.
-    comparisonType: str
-    # The previous interval to compare the curr interval against.
+    # NOTE: Some of tne earliest COUNT conditions were created without the
+    # comparisonType field, although modern rules will always have it.
+    comparisonType: NotRequired[Literal[ComparisonType.COUNT, ComparisonType.PERCENT]]
+    # The previous interval to compare the curr interval against. This is only
+    # present in PERCENT conditions.
     # e.g. # of issues is 50% higher in {interval} compared to {comparisonInterval}
-    comparisonInterval: str
+    comparisonInterval: NotRequired[str]
 
 
 class EventFrequencyForm(forms.Form):
@@ -93,7 +85,7 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=tuple(comparison_types.items()),
+        choices=ComparisonType,
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
@@ -112,8 +104,8 @@ class EventFrequencyForm(forms.Form):
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
             del cleaned_data["comparisonInterval"]
-        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or COMPARISON_TYPE_COUNT
-        if cleaned_data["comparisonType"] == COMPARISON_TYPE_PERCENT and not cleaned_data.get(
+        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or ComparisonType.COUNT
+        if cleaned_data["comparisonType"] == ComparisonType.PERCENT and not cleaned_data.get(
             "comparisonInterval"
         ):
             msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
@@ -128,7 +120,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def __init__(
         self,
-        data: CountComparisonConditionData | PercentComparisonConditionData,
+        data: EventFrequencyConditionData | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -147,7 +139,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             },
         }
 
-        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc]
+        # MyPy refuses to make TypedDict compatible with MutableMapping
+        # https://github.com/python/mypy/issues/4976
+        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc, arg-type]
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
@@ -179,18 +173,18 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if not (interval and value is not None):
             return False
         interval_delta = self.intervals[interval][1]
-        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
 
         # extrapolate if interval less than bucket size
         # if comparing percent increase, both intervals will be increased, so do not extrapolate value
         if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
-            if comparison_type != COMPARISON_TYPE_PERCENT:
+            if comparison_type != ComparisonType.PERCENT:
                 value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
             interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
 
         result = bucket_count(activity.timestamp - interval_delta, activity.timestamp, buckets)
 
-        if comparison_type == COMPARISON_TYPE_PERCENT:
+        if comparison_type == ComparisonType.PERCENT:
             comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
             comparison_end = activity.timestamp - comparison_interval
 
@@ -262,8 +256,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             option_override_cm = options_override({"consistent": False})
         with option_override_cm:
             result: int = self.query(event, end - duration, end, environment_id=environment_id)
-            comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
-            if comparison_type == COMPARISON_TYPE_PERCENT:
+            comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
+            if comparison_type == ComparisonType.PERCENT:
                 comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
                 comparison_end = end - comparison_interval
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
@@ -375,7 +369,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
         cleaned_data = super().clean()
         if (
             cleaned_data
-            and cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT
+            and cleaned_data["comparisonType"] == ComparisonType.COUNT
             and cleaned_data.get("value", 0) > 100
         ):
             self.add_error(

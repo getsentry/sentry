@@ -359,7 +359,6 @@ class RuleProcessorTest(TestCase):
         )
         with (
             patch("sentry.rules.processing.processor.rules", init_registry()),
-            patch("sentry.rules.rules", init_registry()),
             patch(
                 "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
             ) as passes,
@@ -421,10 +420,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with (
-            patch("sentry.rules.processing.processor.rules", init_registry()),
-            patch("sentry.rules.rules", init_registry()),
-        ):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -453,10 +449,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with (
-            patch("sentry.rules.processing.processor.rules", init_registry()),
-            patch("sentry.rules.rules", init_registry()),
-        ):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,

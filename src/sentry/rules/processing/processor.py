@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
 from random import randrange
+from typing import Any
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -19,7 +20,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.conditions.event_frequency import GenericConditionData
+from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
@@ -39,7 +40,7 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
 
 
 def is_condition_slow(
-    condition: GenericConditionData,
+    condition: EventFrequencyConditionData | Mapping[str, Any],
 ) -> bool:
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
@@ -140,14 +141,19 @@ class RuleProcessor:
         return rule_statuses
 
     def condition_matches(
-        self, condition: GenericConditionData, state: EventState, rule: Rule
+        self,
+        condition: EventFrequencyConditionData | Mapping[str, Any],
+        state: EventState,
+        rule: Rule,
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        # MyPy refuses to make TypedDict compatible with MutableMapping
+        # https://github.com/python/mypy/issues/4976
+        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)  # type: ignore[arg-type]
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None

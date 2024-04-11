@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -21,14 +20,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
-
-if TYPE_CHECKING:
-    from sentry.rules.conditions.event_frequency import (
-        CountComparisonConditionData,
-        PercentComparisonConditionData,
-    )
-
-logger = logging.getLogger("sentry.rules")
 
 
 class RuleSource(IntEnum):
@@ -101,42 +92,6 @@ class Rule(Model):
             pass
 
         return None
-
-    @property
-    def conditions(self) -> list[CountComparisonConditionData | PercentComparisonConditionData]:
-        from sentry.rules import rules
-        from sentry.rules.conditions.base import EventCondition
-
-        conditions_and_filters = self.data.get("conditions", [])
-        conditions = []
-        for condition_or_filter in conditions_and_filters:
-            id = condition_or_filter["id"]
-            rule_cls = rules.get(id)
-            if rule_cls is None:
-                logger.warning("Unregistered condition or filter %r", id)
-                continue
-
-            if rule_cls.rule_type == EventCondition.rule_type:
-                conditions.append(condition_or_filter)
-        return conditions
-
-    @property
-    def filters(self) -> list[dict[str, Any]]:
-        from sentry.rules import rules
-        from sentry.rules.filters.base import EventFilter
-
-        conditions_and_filters = self.data.get("conditions", [])
-        filters = []
-        for condition_or_filter in conditions_and_filters:
-            id = condition_or_filter["id"]
-            rule_cls = rules.get(id)
-            if rule_cls is None:
-                logger.warning("Unregistered condition or filter %r", id)
-                continue
-
-            if rule_cls.rule_type == EventFilter.rule_type:
-                filters.append(condition_or_filter)
-        return filters
 
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
