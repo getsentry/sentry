@@ -259,10 +259,16 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
+        if result.get("owner"):
+            owner_id = result.get("owner").id
+        else:
+            owner_id = None
+
         try:
             monitor = Monitor.objects.create(
                 project_id=result["project"].id,
                 organization_id=organization.id,
+                owner_actor_id=owner_id,
                 name=result["name"],
                 slug=result.get("slug"),
                 status=result["status"],
