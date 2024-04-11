@@ -33,6 +33,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     tooltip,
     tooltipOptions,
     selectionMode,
+    showDetailsInOverlay,
   } = item.props;
   const multiple = selectionMode
     ? selectionMode === 'multiple'
@@ -97,6 +98,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
+      showDetailsInOverlay={showDetailsInOverlay}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
       data-test-id={item.key}
