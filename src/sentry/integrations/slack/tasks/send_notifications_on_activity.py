@@ -16,18 +16,18 @@ _default_logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.tasks.send_activity_notifications",
+    name="sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
     queue="integrations_slack_activity_notify",
     silo_mode=SiloMode.REGION,
 )
-def send_activity_notifications(activity_id):
+def send_activity_notifications_to_slack_threads(activity_id) -> None:
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
         _default_logger.info("Activity does not exist", extra={"activity_id": activity_id})
         return
 
-    organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
+    organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
     if features.has("organizations:slack-thread-issue-alert", organization):
         slack_service = SlackService.default()
         try:
@@ -57,6 +57,8 @@ def activity_created_receiver(instance, created, **kwargs):
         return
 
     transaction.on_commit(
-        lambda: send_activity_notifications.apply_async(kwargs={"activity_id": instance.id}),
+        lambda: send_activity_notifications_to_slack_threads.apply_async(
+            kwargs={"activity_id": instance.id}
+        ),
         using=router.db_for_read(Activity),
     )

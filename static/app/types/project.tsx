@@ -212,7 +212,7 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-minidump'
   | 'native-qt'
-  | 'nintendo'
+  | 'nintendo-switch'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'

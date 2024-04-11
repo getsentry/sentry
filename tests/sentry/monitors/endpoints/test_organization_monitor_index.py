@@ -8,6 +8,7 @@ from django.test.utils import override_settings
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.constants import ObjectStatus
+from sentry.models.actor import get_actor_for_user
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.quotas.base import SeatAssignmentResult
@@ -287,6 +288,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
+            "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -296,6 +298,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.owner_actor_id == get_actor_for_user(self.user).id
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,

@@ -87,6 +87,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    free_text_key = "message"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     entity: Entity | None = None
@@ -200,6 +201,10 @@ class BaseQueryBuilder:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
+        if self.builder_config.parser_config_overrides is None:
+            self.builder_config.parser_config_overrides = {}
+        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
+
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore

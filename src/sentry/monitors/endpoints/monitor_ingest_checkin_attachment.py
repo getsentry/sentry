@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
@@ -19,6 +18,7 @@ from sentry.api.authentication import (
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
@@ -95,7 +95,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
             if organization_slug:
                 try:
                     # Try lookup by slug first. This requires organization context.
-                    if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                    if (
+                        id_or_slug_path_params_enabled(
+                            self.convert_args.__qualname__, str(organization_slug)
+                        )
+                        and str(organization_slug).isnumeric()
+                    ):
                         organization = Organization.objects.get_from_cache(id=organization_slug)
                     else:
                         organization = Organization.objects.get_from_cache(slug=organization_slug)
