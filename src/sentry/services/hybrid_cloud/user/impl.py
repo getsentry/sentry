@@ -37,7 +37,11 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.model import (
+    RpcUserContact,
+    RpcVerifyUserEmail,
+    UserIdEmailArgs,
+)
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user, serialize_user_avatar
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
@@ -282,6 +286,10 @@ class DatabaseBackedUserService(UserService):
             return None
 
         return serialize_user_avatar(avatar=possible_avatar)
+
+    def get_bulk_contact_info(self, *, user_ids: list[int]) -> list[RpcUserContact]:
+        users = User.objects.filter(id__in=user_ids).values_list("id", "name", "email")
+        return [RpcUserContact(id=id, name=name, email=email) for (id, name, email) in users]
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],

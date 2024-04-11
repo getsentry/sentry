@@ -37,7 +37,7 @@ from sentry.models.outbox import OutboxCategory
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user import RpcUser, RpcUserContact
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
@@ -328,6 +328,48 @@ class Organization(
                 return None
             self._default_owner_id = owners[0].id
         return self._default_owner_id
+
+    @classmethod
+    def _get_bulk_owner_ids(cls, organizations: Collection[Organization]) -> dict[int, int]:
+        from sentry.models.organizationmember import OrganizationMember
+
+        owner_id_table: dict[int, int] = {}
+        org_ids_to_query: list[int] = []
+        for org in organizations:
+            default_owner = getattr(org, "_default_owner", None)
+            if default_owner:
+                owner_id_table[org.id] = default_owner.id
+            else:
+                org_ids_to_query.append(org.id)
+
+        if org_ids_to_query:
+            queried_owner_ids = OrganizationMember.objects.filter(
+                organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
+            ).values_list("organization_id", "user_id")
+
+            for (org_id, user_id) in queried_owner_ids:
+                # An org may have multiple owners. Here we mimic the behavior of
+                # `get_default_owner`, which is to use the first one in the query
+                # result's iteration order.
+                if org_id not in owner_id_table:
+                    owner_id_table[org_id] = user_id
+
+        return owner_id_table
+
+    @classmethod
+    def get_bulk_owner_contacts(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, RpcUserContact]:
+        owner_id_table = cls._get_bulk_owner_ids(organizations)
+
+        contacts = user_service.get_bulk_contact_info(user_ids=list(owner_id_table.values()))
+        contact_table = {c.id: c for c in contacts}
+
+        return {
+            org_id: contact_table[user_id]
+            for (org_id, user_id) in owner_id_table.items()
+            if user_id in contact_table
+        }
 
     def has_single_owner(self):
         owners = list(

@@ -25,6 +25,12 @@ class RpcUserEmail(RpcModel):
     is_verified: bool = False
 
 
+class RpcUserContact(RpcModel):
+    id: int = -1
+    name: str = ""
+    email: str = ""
+
+
 class RpcAuthenticator(RpcModel):
     id: int = 0
     user_id: int = -1
