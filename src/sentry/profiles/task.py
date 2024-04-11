@@ -1129,7 +1129,7 @@ def _set_frames_platform(profile: Profile):
         if platform in ["javascript", "node", "cocoa"]:
             # bail early because it was already set
             return
-        for i, frame in enumerate(profile["profile"]["frames"]):
+        for i, _ in enumerate(profile["profile"]["frames"]):
             profile["profile"]["frames"]["platform"] = platform
         return
     elif profile["platform"] == "android":
