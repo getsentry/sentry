@@ -146,7 +146,7 @@ export function generateTraceLink(dateSelection) {
   };
 }
 
-export function generateTransactionIdLink() {
+export function generateTransactionIdLink(transactionName?: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -160,6 +160,7 @@ export function generateTransactionIdLink() {
       location,
       organization,
       spanId,
+      transactionName,
     });
   };
 }

@@ -72,10 +72,10 @@ describe('TransactionsList', function () {
         },
       ];
       generateLink = {
-        transaction: (org, row, query) => ({
+        transaction: (org, row) => ({
           pathname: `/${org.slug}`,
           query: {
-            ...query,
+            ...location.query,
             transaction: row.transaction,
             count: row.count,
             'count()': row['count()'],
@@ -381,11 +381,11 @@ describe('TransactionsList', function () {
       expect(links).toHaveLength(2);
       expect(links[0]).toHaveAttribute(
         'href',
-        '/org-slug?count%28%29=100&pathname=%2F&query=%5Bobject%20Object%5D&transaction=%2Fa'
+        '/org-slug?count%28%29=100&transaction=%2Fa'
       );
       expect(links[1]).toHaveAttribute(
         'href',
-        '/org-slug?count%28%29=1000&pathname=%2F&query=%5Bobject%20Object%5D&transaction=%2Fb'
+        '/org-slug?count%28%29=1000&transaction=%2Fb'
       );
     });
 

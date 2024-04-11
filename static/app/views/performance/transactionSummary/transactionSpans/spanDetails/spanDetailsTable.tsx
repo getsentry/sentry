@@ -56,8 +56,16 @@ type Props = {
 };
 
 export default function SpanTable(props: Props) {
-  const {location, organization, project, examples, suspectSpan, isLoading, pageLinks} =
-    props;
+  const {
+    location,
+    organization,
+    project,
+    examples,
+    suspectSpan,
+    isLoading,
+    pageLinks,
+    transactionName,
+  } = props;
 
   if (!defined(examples)) {
     return null;
@@ -97,7 +105,12 @@ export default function SpanTable(props: Props) {
           columnSortBy={[]}
           grid={{
             renderHeadCell,
-            renderBodyCell: renderBodyCellWithMeta(location, organization, suspectSpan),
+            renderBodyCell: renderBodyCellWithMeta(
+              location,
+              organization,
+              transactionName,
+              suspectSpan
+            ),
           }}
           location={location}
         />
@@ -123,6 +136,7 @@ function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
 function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
+  transactionName: string,
   suspectSpan?: SuspectSpan
 ) {
   return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
@@ -155,6 +169,7 @@ function renderBodyCellWithMeta(
         location,
         organization,
         spanId: worstSpan.id,
+        transactionName: transactionName,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;

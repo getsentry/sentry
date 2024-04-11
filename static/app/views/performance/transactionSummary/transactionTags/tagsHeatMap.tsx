@@ -357,6 +357,7 @@ function TagsHeatMap(
                         eventView: EventView.fromLocation(location),
                         location,
                         organization,
+                        transactionName,
                       });
 
                       return (
