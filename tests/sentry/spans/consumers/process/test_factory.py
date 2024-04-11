@@ -215,8 +215,9 @@ def test_produces_valid_segment_to_kafka():
 def test_option_disabled(mock_buffer):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
+    mock_commit = mock.Mock()
     strategy = process_spans_strategy().create_with_partitions(
-        commit=mock.Mock(),
+        commit=mock_commit,
         partitions={},
     )
 
@@ -244,6 +245,13 @@ def test_option_disabled(mock_buffer):
     strategy.join(1)
     strategy.terminate()
     mock_buffer.assert_not_called()
+
+    calls = [
+        mock.call({partition: 2}),
+        mock.call({}, force=True),
+    ]
+
+    mock_commit.assert_has_calls(calls=calls, any_order=True)
 
 
 @override_options(

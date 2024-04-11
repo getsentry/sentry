@@ -32,13 +32,8 @@ BATCH_SIZE = 100
 @dataclasses.dataclass
 class ProduceSegmentContext:
     should_process_segments: bool
-    timestamp: int | None
-    partition: int | None
-
-
-EMPTY_SEGMENT_CONTEXT = ProduceSegmentContext(
-    should_process_segments=False, timestamp=None, partition=None
-)
+    timestamp: int
+    partition: int
 
 
 def get_project_id(headers: Headers) -> int | None:
@@ -60,18 +55,18 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
 
 def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
-        return EMPTY_SEGMENT_CONTEXT
+        return FILTERED_PAYLOAD
 
     try:
         project_id = get_project_id(message.payload.headers)
     except Exception:
         logger.exception("Failed to parse span message header")
-        return EMPTY_SEGMENT_CONTEXT
+        return FILTERED_PAYLOAD
 
     if project_id is None or project_id not in options.get(
         "standalone-spans.process-spans-consumer.project-allowlist"
     ):
-        return EMPTY_SEGMENT_CONTEXT
+        return FILTERED_PAYLOAD
 
     assert isinstance(message.value, BrokerValue)
 
@@ -85,7 +80,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
 
         segment_id = span.get("segment_id", None)
         if segment_id is None:
-            return EMPTY_SEGMENT_CONTEXT
+            return FILTERED_PAYLOAD
 
         trace_id = span["trace_id"]
 
@@ -109,16 +104,13 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
         return _process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
-        return EMPTY_SEGMENT_CONTEXT
+        return FILTERED_PAYLOAD
 
 
 def _accumulator(result: dict[int, ProduceSegmentContext], value: BaseValue[ProduceSegmentContext]):
     context = value.payload
     if not context.should_process_segments:
         return result
-
-    assert context.partition is not None
-    assert context.timestamp is not None
 
     result[context.partition] = context
     return result
@@ -140,9 +132,6 @@ def _explode_segments(context_dict: dict[int, ProduceSegmentContext]):
     for context in context_dict.values():
         if not context.should_process_segments:
             continue
-
-        assert context.partition is not None
-        assert context.timestamp is not None
 
         with sentry_sdk.start_transaction(
             op="process", name="spans.process.explode_segments"
