@@ -103,6 +103,7 @@ const SENTRY_EXPERIMENTAL_SPA =
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
 const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`

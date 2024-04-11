@@ -93,6 +93,7 @@ jobs:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          # should set value either as `true` or `false`
           CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
         run: |
           yarn build-acceptance
