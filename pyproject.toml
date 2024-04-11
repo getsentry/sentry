@@ -621,6 +621,7 @@ module = [
     "sentry.reprocessing2",
     "sentry.runner.*",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.utils.iterators",
