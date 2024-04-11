@@ -1174,10 +1174,12 @@ describe('trace view', () => {
         await userEvent.keyboard('{arrowDown}');
       }
 
-      // User clicks on an entry in the list, then proceeds to search
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '6/11'
-      );
+      await waitFor(async () => {
+        // User clicks on an entry in the list, then proceeds to search
+        expect(
+          await screen.findByTestId('trace-search-result-iterator')
+        ).toHaveTextContent('6/11');
+      });
       // And then continues the query - the highlighting is preserved as long as the
       // rwo is part of the search results
       assertHighlightedRowAtIndex(container, 6);
