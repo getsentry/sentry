@@ -1,4 +1,4 @@
-import {Fragment, startTransition, useEffect, useState} from 'react';
+import {Fragment, startTransition, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -8,7 +8,12 @@ import {space} from 'sentry/styles/space';
 import type {MetricMeta, Project} from 'sentry/types';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
-import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
+import {
+  getMetricsTagsQueryKey,
+  useMetricsTags,
+} from 'sentry/utils/metrics/useMetricsTags';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const MAX_PROJECTS_TO_SHOW = 3;
 const MAX_TAGS_TO_SHOW = 5;
@@ -20,13 +25,28 @@ export function MetricListItemDetails({
   metric: MetricMeta;
   selectedProjects: Project[];
 }) {
-  const [isQueryEnabled, setIsQueryEnabled] = useState(false);
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const projectIds = useMemo(
+    () => selectedProjects.map(project => parseInt(project.id, 10)),
+    [selectedProjects]
+  );
+
+  const [isQueryEnabled, setIsQueryEnabled] = useState(() => {
+    // We only wnat to disable the query if there is no data in the cache
+    const queryKey = getMetricsTagsQueryKey(organization, metric.mri, {
+      projects: projectIds,
+    });
+    const data = queryClient.getQueryData(queryKey);
+    return !!data;
+  });
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     // TODO: improve useMetricsTag interface
     isQueryEnabled ? metric.mri : undefined,
     {
-      projects: selectedProjects.map(project => parseInt(project.id, 10)),
+      projects: projectIds,
     }
   );
 
