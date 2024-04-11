@@ -83,7 +83,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(pageFilters.selection);
   const mriMode = useMriMode();
 
-  const shouldUseComboBox = false && hasMetricsExperimentalFeature(organization);
+  const shouldUseComboBox = hasMetricsExperimentalFeature(organization);
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
