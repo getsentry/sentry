@@ -68,7 +68,6 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
-    skip_devservices = os.environ.get("SENTRY_DEVENV_SKIP_DEVSERVICES") is not None
 
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
@@ -82,7 +81,7 @@ def main(context: dict[str, str]) -> int:
         # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
         volta.install()
 
-    if constants.DARWIN and not skip_devservices:
+    if constants.DARWIN:
         repo_config = configparser.ConfigParser()
         repo_config.read(f"{reporoot}/devenv/config.ini")
 
@@ -134,15 +133,16 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    # Frontend engineers don't necessarily always have devservices running and
-    # can configure to skip them to save on local resources
-    if skip_devservices:
-        return 0
-
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+
+    # Frontend engineers don't necessarily always have devservices running and
+    # can configure to skip them to save on local resources
+    if os.environ.get("SENTRY_DEVENV_SKIP_DEVSERVICES") is not None:
+        print("Skipping python migrations since SENTRY_DEVENV_SKIP_DEVSERVICES is set.")
+        return 0
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
