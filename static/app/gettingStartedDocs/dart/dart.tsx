@@ -5,6 +5,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDartMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -14,7 +15,7 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnipet = (params: Params) => `
+const getInstallSnippet = (params: Params) => `
 dependencies:
   sentry: ^${getPackageVersion(params, 'sentry.dart', '7.8.0')}`;
 
@@ -87,7 +88,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'yml',
           partialLoading: params.sourcePackageRegistries.isLoading,
-          code: getInstallSnipet(params),
+          code: getInstallSnippet(params),
         },
       ],
     },
@@ -198,6 +199,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  customMetricsOnboarding: getDartMetricsOnboarding({getInstallSnippet}),
 };
 
 export default docs;
