@@ -32,27 +32,9 @@ export function evaluateTokenForTraceNode(
     | NoDataNode,
   token: ParseResult[0]
 ): boolean {
-  // const type = SPAN_KEYS[token.key];
-
   // @ts-expect-error ignore the lookup as the value will be dynamic
   const value = node.value[token.key];
-
   let match: undefined | boolean = undefined;
-
-  // if (token.value === undefined) {
-  //   match = value === undefined;
-  // }
-
-  // if (token.value === null) {
-  //   match = value === null;
-  // }
-
-  // // @TODO check for the distinction between obj and array here as L78
-  // // does not guarantee exact same primitive type in this case
-  // if (typeof value !== type && token.value !== null && token.value !== undefined) {
-  //   // The two types are not the same.
-  //   return false;
-  // }
 
   // prettier-ignore
   switch (token.type) {
@@ -62,13 +44,19 @@ export function evaluateTokenForTraceNode(
     }
     case Token.FILTER: {
       switch(token.filter) {
-        case FilterType.SIZE: {
-          break;
-        }
         case FilterType.NUMERIC: {
           break;
         }
         case FilterType.NUMERIC_IN: {
+          break;
+        }
+        case FilterType.DURATION: {
+          break;
+        }
+        case FilterType.BOOLEAN: {
+          break;
+        }
+        case FilterType.SIZE: {
           break;
         }
         case FilterType.TEXT: {
@@ -84,11 +72,6 @@ export function evaluateTokenForTraceNode(
           break;
         }
         case FilterType.AGGREGATE_DURATION: {
-        }
-        case FilterType.DURATION: {
-          break;
-        }
-        case FilterType.BOOLEAN: {
           break;
         }
         case FilterType.HAS: {
@@ -97,8 +80,26 @@ export function evaluateTokenForTraceNode(
         case FilterType.IS: {
           break;
         }
+        case FilterType.AGGREGATE_SIZE: {
+          break;
+        }
+        case FilterType.AGGREGATE_NUMERIC: {
+          break;
+        }
+        case FilterType.RELATIVE_DATE: {
+          break;
+        }
+        case FilterType.AGGREGATE_PERCENTAGE: {
+          break;
+        }
+        case FilterType.AGGREGATE_RELATIVE_DATE: {
+          break;
+        }
+        case FilterType.SPECIFIC_DATE: {
+          break;
+        }
         default: {
-          assertNeverType(token.filter)
+          assertNeverType(token)
           break;
         }
       }

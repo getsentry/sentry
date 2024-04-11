@@ -395,7 +395,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.SPACES as const,
     value,
-    parsedValue: value
+    parsedValue: value,
   });
 
   tokenFilter = <T extends FilterType>(
@@ -416,7 +416,7 @@ export class TokenConverter {
       warning: this.checkFilterWarning(key),
     } as FilterResult;
 
-    if(filterToken.filter === FilterType.NUMERIC) {
+    if (filterToken.filter === FilterType.NUMERIC) {
       filterToken.value.rawValue = Number(filterToken.value.value);
     }
 
