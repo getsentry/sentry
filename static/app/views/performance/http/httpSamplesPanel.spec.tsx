@@ -99,7 +99,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('status panel', () => {
-    let chartRequestMock;
+    let chartRequestMock, samplesRequestMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -142,6 +142,30 @@ describe('HTTPSamplesPanel', () => {
           },
         },
       });
+    });
+
+    samplesRequestMock = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+        }),
+      ],
+      body: {
+        data: [
+          {
+            span_id: 'b1bf1acde131623a',
+            'span.description':
+              'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
+            project: 'javascript',
+            timestamp: '2024-03-25T20:31:36+00:00',
+            'span.status_code': '200',
+            'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+            'span.self_time': 320.300102,
+          },
+        ],
+      },
     });
 
     it('fetches panel data', async () => {
@@ -197,6 +221,22 @@ describe('HTTPSamplesPanel', () => {
             topEvents: '5',
             yAxis: 'count()',
           },
+        })
+      );
+
+      expect(samplesRequestMock).toHaveBeenNthCalledWith(
+        1,
+        `/api/0/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({
+            query:
+              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+            project: [],
+            field: ['transaction.id', 'span.description', 'span.status_code'],
+            referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+            statsPeriod: '10d',
+          }),
         })
       );
 
