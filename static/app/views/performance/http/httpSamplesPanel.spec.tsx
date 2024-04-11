@@ -320,7 +320,7 @@ describe('HTTPSamplesPanel', () => {
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
             upperBound: 1000,
-            referrer: 'api.starfish.http-module-samples-panel-samples',
+            referrer: 'api.starfish.http-module-samples-panel-duration-samples',
             statsPeriod: '10d',
           }),
         })

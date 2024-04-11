@@ -175,10 +175,10 @@ export function HTTPSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
-    data: samplesData,
-    isFetching: isSamplesDataFetching,
-    error: samplesDataError,
-    refetch: refetchSpanSamples,
+    data: durationSamplesData,
+    isFetching: isDurationSamplesDataFetching,
+    error: durationSamplesDataError,
+    refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
     search,
     fields: [
@@ -189,17 +189,17 @@ export function HTTPSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: query.panel === 'duration' && durationAxisMax > 0,
-    referrer: 'api.starfish.http-module-samples-panel-samples',
+    referrer: 'api.starfish.http-module-samples-panel-duration-samples',
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
-    samplesData,
+    durationSamplesData,
     domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
     highlightedSpanId
   );
 
   const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return samplesData.find(
+    return durationSamplesData.find(
       s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
     );
   };
@@ -368,12 +368,12 @@ export function HTTPSamplesPanel() {
 
               <ModuleLayout.Full>
                 <SpanSamplesTable
-                  data={samplesData}
-                  isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  data={durationSamplesData}
+                  isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
                   highlightedSpanId={highlightedSpanId}
                   onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
                   onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-                  error={samplesDataError}
+                  error={durationSamplesDataError}
                   // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
                   meta={{
                     fields: {
@@ -397,7 +397,7 @@ export function HTTPSamplesPanel() {
           )}
 
           <ModuleLayout.Full>
-            <Button onClick={() => refetchSpanSamples()}>
+            <Button onClick={() => refetchDurationSpanSamples()}>
               {t('Try Different Samples')}
             </Button>
           </ModuleLayout.Full>
