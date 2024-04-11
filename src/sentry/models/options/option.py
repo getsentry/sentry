@@ -49,8 +49,16 @@ class BaseOption(OverwritableConfigMixin, Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        # These ping options change too frequently to be useful in exports.
-        return q & ~models.Q(key__in={"sentry:last_worker_ping", "sentry:last_worker_version"})
+        # These ping options change too frequently, or necessarily with each install, to be useful
+        # in exports. More broadly, we don't really care about comparing them for accuracy.
+        return q & ~models.Q(
+            key__in={
+                "sentry:install-id",  # Only used on self-hosted
+                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
+                "sentry:last_worker_ping",  # Changes very frequently
+                "sentry:last_worker_version",  # Changes very frequently
+            }
+        )
 
 
 @region_silo_only_model

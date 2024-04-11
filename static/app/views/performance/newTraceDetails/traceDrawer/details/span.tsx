@@ -12,7 +12,7 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -21,11 +21,12 @@ import {TraceDrawerComponents} from './styles';
 export function SpanNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
-  const {event, childTransaction, ...span} = node.value;
+  const span = node.value;
+  const {event, childTransaction} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -40,22 +41,19 @@ export function SpanNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {getSpanOperation(span)}
+              {getSpanOperation(span) + ' - ' + span.description ?? span.span_id}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event.eventID}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug ? (

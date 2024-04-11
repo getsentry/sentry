@@ -5,7 +5,7 @@ import {
   SiblingAutogroupNode,
   type TraceTree,
   type TraceTreeNode,
-} from './traceTree';
+} from './traceModels/traceTree';
 
 export function isMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>

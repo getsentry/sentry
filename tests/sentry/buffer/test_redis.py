@@ -2,12 +2,13 @@ import datetime
 import pickle
 from collections import defaultdict
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import RedisBuffer
+from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
@@ -331,6 +332,23 @@ class TestRedisBuffer:
         assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
             event4_id
         )
+
+    def test_buffer_hook_registry(self):
+        """Test that we can add an event to the registry and that the callback is invoked"""
+        mock = Mock()
+        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+
+        redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.buf
+
+    def test_process_batch(self):
+        """Test that the registry's callbacks are invoked when we process a batch"""
+        mock = Mock()
+        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+        self.buf.process_batch()
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.buf
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

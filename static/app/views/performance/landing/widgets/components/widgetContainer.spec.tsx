@@ -954,31 +954,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'metrics',
-          field: [
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
-            'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.fid, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count()',
-          ],
-          query: 'transaction.op:[pageload,""] span.op:[ui.interaction.click,""]',
-        }),
-      })
-    );
-    expect(eventsMock).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
       expect.objectContaining({
@@ -986,22 +961,24 @@ describe('Performance > Widgets > WidgetContainer', function () {
           dataset: 'metrics',
           field: [
             'transaction',
-            'transaction.op',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.fid)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.fid, any)',
+            'p75(measurements.inp)',
+            'opportunity_score(measurements.score.total)',
+            'avg(measurements.score.total)',
             'count()',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.fid)',
+            'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.ttfb)',
           ],
-          per_page: 4,
-          query: 'transaction.op:pageload',
-          sort: '-count()',
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -1215,7 +1192,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // Open context menu
     await userEvent.click(await screen.findByLabelText('More'));
 
-    // Check that the the "User Misery" option is disabled by clicking on it,
+    // Check that the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
     const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
     await userEvent.click(userMiseryOption);
