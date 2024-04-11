@@ -24,7 +24,7 @@ if [[ -n "$VIRTUAL_ENV" ]]; then
     query-valid-python-version || exit 1
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
-        die "You don't seem to have a virtualenv. Please create one by running: devenv sync"
+        die "You don't seem to have a virtualenv. Please create one by running: source ./scripts/bootstrap-py3-venv"
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi
