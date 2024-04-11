@@ -305,9 +305,10 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         are created; and if the label matches the default name used on project
         creation.
 
+
         :return:
             bool: True if rule is approximated to be created on project creation, False otherwise.
-        """
+        ""
         # TODO(mgaeta): Bug: Rule is optional.
         delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore[union-attr]
         guess: bool = delta.total_seconds() < 30 and self.rule.label == [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]  # type: ignore[union-attr]
@@ -321,6 +322,11 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
+        from datetime import datetime, timedelta
+        current_time = datetime.now()
+        if self.last_query_time and (current_time - self.last_query_time) < timedelta(minutes=5):
+            return {}  # Skip the query if the last one was less than 5 minutes ago
+        self.last_query_time = current_time
         sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
