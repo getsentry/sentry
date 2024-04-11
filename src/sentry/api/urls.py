@@ -29,8 +29,8 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.project_similar_issues_embeddings_records import (
-    ProjectSimilarIssuesEmbeddingsRecords,
+from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
+    ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
@@ -2485,9 +2485,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rule-task-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/similar-embeddings-records/$",
-        ProjectSimilarIssuesEmbeddingsRecords.as_view(),
-        name="sentry-api-0-project-similar-embeddings-records",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/backfill-similar-embeddings-records/$",
+        ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
+        name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",
