@@ -205,7 +205,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 # associated with this account in particular, since that is the only one the user
                 # claiming email could have been sent to.
                 rpc_user = user_service.get_user(user_id=user.id)
-                user_service.verify_any_email(email=user.email)
+                user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
                     region_name=mapping.region_name, user=rpc_user
                 )
