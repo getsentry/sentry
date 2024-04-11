@@ -16,7 +16,7 @@ ACTIVITIES_COUNT = 100
 #  `sentry.api.paginator.BasePaginator.get_result`.
 SEARCH_MAX_HITS = 1000
 
-SearchFunction = Callable[[Mapping[str, Any]], tuple[CursorResult, Mapping[str, Any]]]
+SearchFunction = Callable[[Mapping[str, Any]], tuple[CursorResult[Any], Mapping[str, Any]]]
 
 __all__ = (
     "ACTIVITIES_COUNT",

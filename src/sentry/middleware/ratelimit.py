@@ -3,12 +3,14 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable
+from typing import Any
 
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 
 from sentry.api.base import apply_cors_headers
+from sentry.middleware import ViewFunc
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
@@ -42,7 +44,7 @@ class RatelimitMiddleware:
         return response
 
     def process_view(
-        self, request: HttpRequest, view_func, view_args, view_kwargs
+        self, request: HttpRequest, view_func: ViewFunc, view_args: Any, view_kwargs: Any
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
 

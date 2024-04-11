@@ -13,7 +13,7 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
-class GroupValidator(serializers.Serializer):
+class GroupValidator(serializers.Serializer[dict[str, Any]]):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(

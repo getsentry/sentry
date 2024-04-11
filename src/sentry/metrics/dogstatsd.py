@@ -29,16 +29,16 @@ class DogStatsdMetricsBackend(MetricsBackend):
         statsd.disable_buffering = False
 
         # When enabled, a background thread will be used to send metric payloads to the Agent.
-        statsd.enable_background_sender(
+        statsd.enable_background_sender(  # type: ignore[attr-defined]
             sender_queue_size=SENDER_QUEUE_SIZE, sender_queue_timeout=SENDER_QUEUE_TIMEOUT
         )
         # Applications should call wait_for_pending() before exiting to make sure all pending payloads are sent.
-        atexit.register(statsd.wait_for_pending)
+        atexit.register(statsd.wait_for_pending)  # type: ignore[attr-defined]
 
         # Origin detection is enabled after 0.45 by default.
         # Disable it since it silently fails.
         # Ref: https://github.com/DataDog/datadogpy/issues/764
-        statsd._container_id = None
+        statsd._container_id = None  # type: ignore[attr-defined]
         super().__init__(prefix=prefix)
 
     def incr(

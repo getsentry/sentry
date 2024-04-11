@@ -1,3 +1,4 @@
+from pyparsing import Any
 from rest_framework import serializers
 
 from sentry.models.release import Release
@@ -5,7 +6,7 @@ from sentry.models.release import Release
 from . import InCommitValidator
 
 
-class StatusDetailsValidator(serializers.Serializer):
+class StatusDetailsValidator(serializers.Serializer[dict[str, Any]]):
     inNextRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
     inCommit = InCommitValidator(required=False)

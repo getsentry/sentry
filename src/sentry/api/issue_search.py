@@ -262,7 +262,7 @@ def convert_query_values(
     projects: Sequence[Project],
     user: User | RpcUser | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
 ) -> list[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
