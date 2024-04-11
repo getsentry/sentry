@@ -87,7 +87,7 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Initialize the SDK as early as possible.'),
+      description: t('Initialize the SDK as early as possible.'),
       configurations: [
         {
           language: 'powershell',
