@@ -229,7 +229,7 @@ def _set_bulk_cached_query_chunk(
     query_bulk_cache_key = _bulk_cache_query_key(project, chunk)
     cache.set(
         query_bulk_cache_key, chunk_cache, timeout=900 + (137 * chunk)
-    )  #  Add prime number jitter per cache. All cache turns over between 15-25 mins
+    )  # Add prime number jitter per cache. All cache turns over between 15-25 mins
 
 
 def _set_bulk_cached_query(
