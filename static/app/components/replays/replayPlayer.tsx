@@ -62,8 +62,9 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
-    initRoot,
+    setRoot,
     isBuffering,
+    isVideoBuffering,
     isFetching,
     isFinished,
     isVideoReplay,
@@ -79,8 +80,25 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
 
   useVideoSizeLogger({videoDimensions, windowDimensions});
 
-  // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [initRoot]);
+  // Sets the parent element where the player
+  // instance will use as root (i.e. where it will
+  // create an iframe)
+  useEffect(() => {
+    // XXX: This is smelly, but without the
+    // dependence on `isFetching` here, will result
+    // in ReplayContext creating a new Replayer
+    // instance before events are hydrated. This
+    // resulted in the `recording(Start/End)Frame`
+    // as the only two events when we instanciated
+    // Replayer and the rrweb Replayer requires all
+    // events to be present when instanciated.
+    if (!isFetching) {
+      setRoot(viewEl.current);
+    }
+    return () => {
+      setRoot(null);
+    };
+  }, [setRoot, isFetching]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -129,7 +147,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-        {isBuffering ? <PositionedBuffering /> : null}
+        {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
         {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>

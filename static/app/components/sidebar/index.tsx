@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Chevron} from 'sentry/components/chevron';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -13,7 +14,6 @@ import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboardin
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
-  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -52,6 +52,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {
+  MODULE_TITLE as CACHE_MODULE_TITLE,
+  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
+} from 'sentry/views/performance/cache/settings';
 import {
   MODULE_TITLE as HTTP_MODULE_TITLE,
   releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
@@ -244,7 +248,9 @@ function Sidebar() {
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
           organization.features.includes('performance-screens-view') ||
-          organization.features.includes('performance-http-view')
+          organization.features.includes('performance-http-view') ||
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('starfish-browser-resource-module-ui')
         ) {
           return (
             <SidebarAccordion
@@ -283,6 +289,20 @@ function Sidebar() {
                   {...HTTPModuleBadgeProps}
                 />
               </Feature>
+              <Feature features="performance-cache-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-cache">
+                      {CACHE_MODULE_TITLE}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  id="performance-cache"
+                  icon={<SubitemDot collapsed />}
+                  {...CacheModuleBadgeProps}
+                />
+              </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
@@ -309,7 +329,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
                   isNew
@@ -319,7 +339,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  to={`/organizations/${organization.slug}/performance/browser/resources/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
                 />
@@ -328,7 +348,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/traces`}
+                  to={`/organizations/${organization.slug}/performance/traces/`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
                 />
@@ -438,15 +458,13 @@ function Sidebar() {
   );
 
   const monitors = hasOrganization && (
-    <Feature features="monitors" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconTimer />}
-        label={t('Crons')}
-        to={`/organizations/${organization.slug}/crons/`}
-        id="crons"
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconTimer />}
+      label={t('Crons')}
+      to={`/organizations/${organization.slug}/crons/`}
+      id="crons"
+    />
   );
 
   const replays = hasOrganization && (
@@ -667,7 +685,7 @@ function Sidebar() {
                 id="collapse"
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
-                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
+                icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
                 label={collapsed ? t('Expand') : t('Collapse')}
                 onClick={toggleCollapse}
               />

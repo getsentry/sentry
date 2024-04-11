@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {
   isMissingInstrumentationNode,
@@ -10,7 +10,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {NoDataDetails} from '../details/noData';
@@ -23,8 +23,8 @@ export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
   node: T;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: T) => void;
   organization: Organization;
-  scrollToNode: (node: T) => void;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {

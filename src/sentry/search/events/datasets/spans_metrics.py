@@ -518,6 +518,19 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="rate",
                 ),
+                fields.MetricsFunction(
+                    "any",
+                    required_args=[fields.MetricArg("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_distribution=lambda args, alias: Function(
+                        "min",
+                        [self.builder.column(args["column"])],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="string",
+                    redundant_grouping=True,
+                ),
             ]
         }
 

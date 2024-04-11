@@ -244,9 +244,10 @@ class ScheduledQuery:
             limit += 1
             dynamic_limit = True
 
-        # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
-        # to keep that as it was supplied by the executor.
-        updated_metrics_query = updated_metrics_query.set_limit(limit)
+        if limit is not None:
+            # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
+            # to keep that as it was supplied by the executor.
+            updated_metrics_query = updated_metrics_query.set_limit(min(limit, SNUBA_QUERY_LIMIT))
 
         return updated_metrics_query, dynamic_limit
 
@@ -790,6 +791,12 @@ class QueryExecutor:
             value=self._number_of_executed_queries,
         )
 
+        for query_result in self._query_results:
+            if not isinstance(query_result, QueryResult):
+                raise MetricsQueryExecutionError(
+                    "Not all queries were executed in the execution loop"
+                )
+
         return cast(Sequence[QueryResult], self._query_results)
 
     def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
@@ -812,13 +819,11 @@ class QueryExecutor:
         if query_type == QueryType.TOTALS_AND_SERIES:
             series_query = replace(totals_query, type=ScheduledQueryType.SERIES)
 
-        final_query = replace(totals_query, next=series_query)
-
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
-        self._scheduled_queries.append(
-            final_query.initialize(
-                self._organization, self._projects, self._blocked_metrics_for_projects
-            )
+        final_query = replace(totals_query, next=series_query).initialize(
+            self._organization, self._projects, self._blocked_metrics_for_projects
         )
+
+        self._scheduled_queries.append(final_query)
         self._query_results.append(None)

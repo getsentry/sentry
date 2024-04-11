@@ -2,15 +2,18 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
+from sentry import options
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
+from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_codec("buffered-segments")
@@ -23,22 +26,29 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 
 
 def process_message(message: Message[KafkaPayload]):
-    try:
-        segment = _deserialize_segment(message.payload.value)
-    except ValidationError:
-        logger.exception("Failed to deserialize segment payload")
-        return
+    value = message.payload.value
+    segment = _deserialize_segment(value)
+    metrics.incr("detect_performance_issues.spans.count", len(segment["spans"]))
+
+    assert len(segment["spans"]) > 0
 
     process_segment(segment["spans"])
 
 
 def _process_message(message: Message[KafkaPayload]):
+    if not options.get("standalone-spans.detect-performance-issues-consumer.enable"):
+        return None
+
     assert isinstance(message.value, BrokerValue)
 
     try:
-        process_message(message)
+        with sentry_sdk.start_transaction(
+            op="process", name="spans.detect_performance_issues.process_message"
+        ):
+            sentry_sdk.set_measurement("message_size.bytes", len(message.payload.value))
+            process_message(message)
     except Exception:
-        logger.exception("Failed to process segment payload")
+        sentry_sdk.capture_exception()
 
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

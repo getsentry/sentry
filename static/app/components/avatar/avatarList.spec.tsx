@@ -68,4 +68,16 @@ describe('AvatarList', () => {
     expect(screen.getByText('D')).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
   });
+
+  it('renders with collapsed avatar count if > 5 teams', () => {
+    const teams = [
+      {...team, id: '1', name: 'A', slug: 'A', type: 'team'},
+      {...team, id: '2', name: 'B', slug: 'B', type: 'team'},
+    ];
+
+    renderComponent({users: [], teams});
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
+  });
 });

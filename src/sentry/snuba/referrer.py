@@ -344,6 +344,9 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS = (
+        "api.performance.transactions.statistical-detector-root-cause-analysis"
+    )
     API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
         "api.performance.transactions.statistical-detector-stats"
     )
