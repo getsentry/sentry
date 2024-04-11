@@ -38,8 +38,8 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationSearchEditPermission,)
 
