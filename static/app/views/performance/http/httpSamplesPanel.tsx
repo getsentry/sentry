@@ -201,9 +201,11 @@ export function HTTPSamplesPanel() {
   } = useIndexedSpans({
     filters,
     fields: [
+      SpanIndexedField.PROJECT,
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
+      SpanIndexedField.ID,
     ],
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
