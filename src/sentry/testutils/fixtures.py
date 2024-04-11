@@ -12,7 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -553,7 +553,7 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
+            kwargs["actor"] = Actor.objects.get(id=get_actor_for_user(self.user).id)
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):

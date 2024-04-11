@@ -203,10 +203,6 @@ class Actor(Model):
         return (self.pk, ImportKind.Inserted)
 
 
-def get_actor_id_for_user(user: User | RpcUser) -> int:
-    return get_actor_for_user(user).id
-
-
 def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     if isinstance(user, int):
         user_id = user

@@ -75,7 +75,7 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
@@ -668,7 +668,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule_1.owner.id == get_actor_for_user(self.user).id
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -992,7 +992,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
@@ -1002,17 +1002,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
 
         update_alert_rule(
             alert_rule=alert_rule,
