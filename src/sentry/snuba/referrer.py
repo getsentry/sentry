@@ -443,6 +443,7 @@ class Referrer(Enum):
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
+    API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"

@@ -1728,6 +1728,12 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
+register(
+    "performance.traces.query_timestamp_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
