@@ -11,6 +11,7 @@ from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
@@ -277,10 +278,14 @@ class RelocationIndexEndpoint(Endpoint):
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
         uploading_complete.delay(relocation.uuid)
-        analytics.record(
-            "relocation.created",
-            creator_id=request.user.id,
-            owner_id=owner.id,
-            uuid=str(relocation.uuid),
-        )
+        try:
+            analytics.record(
+                "relocation.created",
+                creator_id=request.user.id,
+                owner_id=owner.id,
+                uuid=str(relocation.uuid),
+            )
+        except Exception as e:
+            capture_exception(e)
+
         return Response(serialize(relocation), status=status.HTTP_201_CREATED)
