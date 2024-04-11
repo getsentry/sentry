@@ -1,110 +1,97 @@
-import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
+import {type CSSProperties, Fragment, useCallback, useRef} from 'react';
+import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/profiling/flex';
-import {IconChevron} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 interface Props {
-  detailDisplay: boolean;
   feedbackIssue: FeedbackIssue;
   className?: string;
   style?: CSSProperties;
 }
 
-const hideDropdown = css`
-  button[aria-haspopup] {
-    display: block;
-    opacity: 0;
-    transition: opacity 50ms linear;
-  }
-
-  &:hover button[aria-haspopup],
-  button[aria-expanded='true'],
-  button[aria-haspopup].focus-visible {
-    opacity: 1;
-  }
-`;
-
-export default function FeedbackItemUsername({
-  className,
-  detailDisplay,
-  feedbackIssue,
-  style,
-}: Props) {
+export default function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
-  const {onClick: handleCopyEmail} = useCopyToClipboard({
-    successMessage: t('Copied Email to clipboard'),
-    text: String(email),
+  const nameOrEmail = name || email;
+  const isSameNameAndEmail = name === email;
+
+  const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
+
+  const userNodeRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectText = useCallback(() => {
+    if (!userNodeRef.current) {
+      return;
+    }
+
+    // We use findDOMNode here because `this.userNodeRef` is not a dom node,
+    // it's a ref to AutoSelectText
+    const node = findDOMNode(userNodeRef.current); // eslint-disable-line react/no-find-dom-node
+    if (!node || !(node instanceof HTMLElement)) {
+      return;
+    }
+
+    selectText(node);
+  }, []);
+
+  const {onClick: handleCopyToClipboard} = useCopyToClipboard({
+    text: user ?? '',
   });
 
-  const {onClick: handleCopyUsername} = useCopyToClipboard({
-    successMessage: t('Copied Name to clipboard'),
-    text: String(name),
-  });
-
-  if (!email && !name) {
+  if (!name && !email) {
     return <strong>{t('Anonymous User')}</strong>;
   }
 
-  if (detailDisplay) {
-    return (
-      <Flex
-        align="center"
-        gap={space(1)}
-        className={className}
-        style={style}
-        css={hideDropdown}
-      >
-        <Flex align="center" wrap="wrap">
-          <strong>
-            {name ?? t('No Name')}
-            <Purple>•</Purple>
-          </strong>
-          <strong>{email ?? t('No Email')}</strong>
-        </Flex>
-        <FlexDropdownMenu
-          triggerProps={{
-            'aria-label': t('Short-ID copy actions'),
-            icon: <IconChevron direction="down" size="xs" />,
-            size: 'zero',
-            borderless: true,
-            showChevron: false,
+  return (
+    <Flex align="center" gap={space(1)} className={className} style={style}>
+      <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
+        <Flex
+          align="center"
+          wrap="wrap"
+          gap={space(0.5)}
+          onClick={() => {
+            handleSelectText();
+            handleCopyToClipboard();
           }}
-          position="bottom"
-          size="xs"
-          items={[
-            {
-              key: 'copy-email',
-              label: t('Copy Email Address'),
-              onAction: handleCopyEmail,
-            },
-            {
-              key: 'copy-name',
-              label: t('Copy Name'),
-              onAction: handleCopyUsername,
-            },
-          ]}
-        />
-      </Flex>
-    );
-  }
-
-  return <strong>{name ?? email}</strong>;
+          ref={userNodeRef}
+        >
+          {isSameNameAndEmail ? (
+            <strong>{name ?? email}</strong>
+          ) : (
+            <Fragment>
+              <strong>{name ?? t('No Name')}</strong>
+              <Purple>•</Purple>
+              <strong>{email ?? t('No Email')}</strong>
+            </Fragment>
+          )}
+        </Flex>
+      </Tooltip>
+      {email ? (
+        <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
+          <LinkButton
+            href={`mailto:${email}`}
+            external
+            icon={<IconMail color="gray300" />}
+            aria-label={t(`Email %s`, user)}
+            borderless
+            size="zero"
+          />
+        </Tooltip>
+      ) : null}
+    </Flex>
+  );
 }
-
-const FlexDropdownMenu = styled(DropdownMenu)`
-  display: flex;
-`;
 
 const Purple = styled('span')`
   color: ${p => p.theme.purple300};
-  padding: ${space(0.5)};
 `;
