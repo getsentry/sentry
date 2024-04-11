@@ -484,10 +484,7 @@ export class VirtualizedViewManager {
 
       // Holding shift key allows for horizontal scrolling
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
-
-      if (Math.abs(distance) !== 0) {
-        event.preventDefault();
-      }
+      event.preventDefault();
 
       const physical_delta_pct = distance / this.trace_physical_space.width;
       const view_delta = physical_delta_pct * this.trace_view.width;
@@ -1309,7 +1306,6 @@ export class VirtualizedViewManager {
       }
 
       entry.ref.style.opacity = '1';
-      entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
