@@ -68,6 +68,7 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+    skip_devservices = os.environ.get("SENTRY_DEVENV_SKIP_DEVSERVICES") is not None
 
     # don't want this to be accidentally run from getsentry
     assert repo == "sentry", repo
@@ -84,7 +85,7 @@ def main(context: dict[str, str]) -> int:
         # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
         volta.install()
 
-    if constants.DARWIN:
+    if constants.DARWIN and not skip_devservices:
         repo_config = configparser.ConfigParser()
         repo_config.read(f"{reporoot}/devenv/config.ini")
 
@@ -166,6 +167,11 @@ python3 -m tools.fast_editable --path .
         ),
     ):
         return 1
+
+    # Frontend engineers don't necessarily always have devservices running and
+    # can configure to skip them to save on local resources
+    if skip_devservices:
+        return 0
 
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
