@@ -138,6 +138,8 @@ class Table extends PureComponent<TableProps, TableState> {
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
     if (!eventView.hasAggregateField()) {
       apiPayload.field.push('trace');
+      apiPayload.field.push('issue');
+      apiPayload.field.push('event.type');
     }
 
     apiPayload.referrer = 'api.discover.query-table';
