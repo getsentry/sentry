@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, startTransition, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -20,9 +20,24 @@ export function MetricListItemDetails({
   metric: MetricMeta;
   selectedProjects: Project[];
 }) {
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(metric.mri, {
-    projects: selectedProjects.map(project => parseInt(project.id, 10)),
-  });
+  const [isQueryEnabled, setIsQueryEnabled] = useState(false);
+
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
+    // TODO: improve useMetricsTag interface
+    isQueryEnabled ? metric.mri : undefined,
+    {
+      projects: selectedProjects.map(project => parseInt(project.id, 10)),
+    }
+  );
+
+  useEffect(() => {
+    // Start querying tags after a short delay to avoid querying
+    // for every metric if a user quickly hovers over them
+    const timeout = setTimeout(() => {
+      startTransition(() => setIsQueryEnabled(true));
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, []);
 
   const metricProjects = selectedProjects.filter(project =>
     metric.projectIds.includes(parseInt(project.id, 10))
@@ -34,7 +49,7 @@ export function MetricListItemDetails({
   return (
     <DetailsWrapper>
       <MetricName>
-        {/* Add zero width spaces at delimiter like characters for nice word breaks */}
+        {/* Add zero width spaces at delimiter characters for nice word breaks */}
         {formatMRI(metric.mri).replaceAll(/([\.\/-_])/g, '\u200b$1')}
       </MetricName>
       <DetailsGrid>
@@ -58,7 +73,7 @@ export function MetricListItemDetails({
         <DetailsValue>{metric.unit}</DetailsValue>
         <DetailsLabel>Tags</DetailsLabel>
         <DetailsValue>
-          {tagsIsLoading ? (
+          {tagsIsLoading || !isQueryEnabled ? (
             <StyledLoadingIndicator mini size={12} />
           ) : truncatedTags.length === 0 ? (
             t('(None)')
