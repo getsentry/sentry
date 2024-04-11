@@ -29,6 +29,9 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
+AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+
+
 @dataclass
 class AbuseQuota:
     # Quota Id.
@@ -38,7 +41,7 @@ class AbuseQuota:
     # Quota categories.
     categories: list[DataCategory]
     # Quota Scope.
-    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+    scope: AbuseQuotaScope
     # The optional namespace that the quota belongs to.
     namespace: str | None = None
     # Old org option name still used for compatibility reasons,
@@ -47,6 +50,39 @@ class AbuseQuota:
     # Old Sentry option name still used for compatibility reasons,
     # takes precedence over `option`.
     compat_option_sentry: str | None = None
+
+
+def build_metric_abuse_quotas() -> list[AbuseQuota]:
+    quotas = list()
+
+    scopes: list[tuple[AbuseQuotaScope, str]] = [
+        (QuotaScope.PROJECT, "p"),
+        (QuotaScope.ORGANIZATION, "o"),
+        (QuotaScope.GLOBAL, "g"),
+    ]
+
+    for (scope, prefix) in scopes:
+        quotas.append(
+            AbuseQuota(
+                id=f"{prefix}amb",
+                option=f"metric-abuse-quota.{scope.api_name()}",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=scope,
+            )
+        )
+
+        for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+            quotas.append(
+                AbuseQuota(
+                    id=f"{prefix}amb_{use_case.value}",
+                    option=f"metric-abuse-quota.{scope.api_name()}.{use_case.value}",
+                    categories=[DataCategory.METRIC_BUCKET],
+                    scope=scope,
+                    namespace=use_case.value,
+                )
+            )
+
+    return quotas
 
 
 class QuotaConfig:
@@ -416,7 +452,7 @@ class Quota(Service):
             ),
         ]
 
-        abuse_quotas.extend(self._build_metric_abuse_quotas())
+        abuse_quotas.extend(build_metric_abuse_quotas())
 
         # XXX: These reason codes are hardcoded in getsentry:
         #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
@@ -470,36 +506,6 @@ class Quota(Service):
                     reason_code=reason_codes[quota.scope],
                     namespace=quota.namespace,
                 )
-
-    def _build_metric_abuse_quotas(self):
-        quotas = list()
-
-        for (scope, prefix) in [
-            (QuotaScope.PROJECT, "p"),
-            (QuotaScope.ORGANIZATION, "o"),
-            (QuotaScope.GLOBAL, "g"),
-        ]:
-            quotas.append(
-                AbuseQuota(
-                    id=f"{prefix}amb",
-                    option=f"metric-abuse-quota.{scope.api_name()}",
-                    categories=[DataCategory.METRIC_BUCKET],
-                    scope=scope,
-                )
-            )
-
-            for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
-                quotas.append(
-                    AbuseQuota(
-                        id=f"{prefix}amb_{use_case.value}",
-                        option=f"metric-abuse-quota.{scope.api_name()}.{use_case.value}",
-                        categories=[DataCategory.METRIC_BUCKET],
-                        scope=scope,
-                        namespace=use_case.value,
-                    )
-                )
-
-        return quotas
 
     def get_monitor_quota(self, project):
         from sentry.monitors.rate_limit import get_project_monitor_quota
