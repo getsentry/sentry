@@ -67,7 +67,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             name="orgs"
             aria-label="org-slugs"
             onChange={evt => {
-              onUpdateRelocationState(evt.target.value);
+              onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
             required
             minLength={3}
@@ -82,7 +82,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             placeholder="Select Location"
             options={regions.map(r => ({label: r.name, value: r.url}))}
             onChange={opt => {
-              onUpdateRelocationState(undefined, opt.value);
+              onUpdateRelocationState({regionUrl: opt.value});
             }}
           />
           {regionUrl && (
@@ -109,7 +109,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
                 name="promocode"
                 aria-label="promocode"
                 onChange={evt => {
-                  onUpdateRelocationState(undefined, undefined, evt.target.value);
+                  onUpdateRelocationState({promoCode: evt.target.value});
                 }}
                 placeholder=""
                 value={promoCode}

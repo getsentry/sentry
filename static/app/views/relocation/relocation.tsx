@@ -27,7 +27,7 @@ import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
 import InProgress from './inProgress';
 import PublicKey from './publicKey';
-import type {RelocationState, StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
 import UploadBackup from './uploadBackup';
 
 type RouteParams = {
@@ -278,18 +278,17 @@ function RelocationOnboarding(props: Props) {
             data-test-id={`onboarding-step-${stepObj.id}`}
             existingRelocationUUID={existingRelocation}
             stepIndex={stepIndex}
-            onUpdateRelocationState={(maybeOrgSlugs, maybeRegionUrl, maybePromoCode) => {
+            onUpdateRelocationState={({
+              orgSlugs,
+              regionUrl,
+              promoCode,
+            }: MaybeUpdateRelocationState) => {
               setRelocationState({
-                orgSlugs:
-                  maybeOrgSlugs === undefined ? relocationState.orgSlugs : maybeOrgSlugs,
+                orgSlugs: orgSlugs === undefined ? relocationState.orgSlugs : orgSlugs,
                 regionUrl:
-                  maybeRegionUrl === undefined
-                    ? relocationState.regionUrl
-                    : maybeRegionUrl,
+                  regionUrl === undefined ? relocationState.regionUrl : regionUrl,
                 promoCode:
-                  maybePromoCode === undefined
-                    ? relocationState.promoCode
-                    : maybePromoCode,
+                  promoCode === undefined ? relocationState.promoCode : promoCode,
               });
             }}
             onComplete={(uuid?) => {

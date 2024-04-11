@@ -6,15 +6,17 @@ export type RelocationState = {
   regionUrl: string;
 };
 
+export type MaybeUpdateRelocationState = {
+  orgSlugs?: string;
+  promoCode?: string;
+  regionUrl?: string;
+};
+
 export type StepProps = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
   active: boolean;
   existingRelocationUUID: string;
   onComplete: (uuid?: string) => void;
-  onUpdateRelocationState: (
-    orgSlugs?: string,
-    regionUrl?: string,
-    promoCode?: string
-  ) => void;
+  onUpdateRelocationState: (MaybeUpdateRelocationState) => void;
   publicKeys: Map<string, string>;
   relocationState: RelocationState;
   stepIndex: number;
