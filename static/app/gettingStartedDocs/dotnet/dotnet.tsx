@@ -36,8 +36,8 @@ const getInstallProfilingSnippetCoreCli = () => `
 dotnet add package Sentry.Profiling`;
 
 enum DotNetPlatform {
-  WINDOWS,
-  IOS_MACCATALYST,
+  DOTNET,
+  DOTNET_FRAMEWORK,
 }
 
 const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
@@ -67,25 +67,23 @@ SentrySdk.Init(options =>
     options.TracesSampleRate = 1.0;`
         : ''
     }${
-      params.isProfilingSelected
-        ? `
+      !params.isProfilingSelected
+        ? ''
+        : platform !== DotNetPlatform.DOTNET_FRAMEWORK
+          ? `
 
     // Sample rate for profiling, applied on top of othe TracesSampleRate,
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
-    options.ProfilesSampleRate = 1.0;${
-      platform !== DotNetPlatform.IOS_MACCATALYST
-        ? `
-
+    options.ProfilesSampleRate = 1.0;
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
     options.AddIntegration(new ProfilingIntegration(
         // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
-        : ''
-    }`
-        : ''
+          : `
+    // Profiling is not supported for .NET Framework`
     }
 });`;
 
@@ -189,15 +187,15 @@ const onboarding: OnboardingConfig = {
               code: [
                 {
                   language: 'csharp',
-                  label: 'Windows',
-                  value: 'Windows',
-                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
+                  label: '.NET (Windows/macOS/Linux)',
+                  value: 'dotnet',
+                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET),
                 },
                 {
                   language: 'csharp',
-                  label: 'iOS/Mac Catalyst',
-                  value: 'ios/macCatalyst',
-                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                  label: '.NET Framework',
+                  value: 'dotnet-framework',
+                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET_FRAMEWORK),
                 },
               ],
             }
