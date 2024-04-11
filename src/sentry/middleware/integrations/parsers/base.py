@@ -149,7 +149,6 @@ class BaseRequestParser(abc.ABC):
         self,
         regions: Sequence[Region],
         identifier: int | str | None = None,
-        shard_identifier_override: int | None = None,  # deprecated used in getsentry
         integration_id: int | None = None,
     ):
         """
@@ -159,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
                 region=region.name,
@@ -170,9 +169,6 @@ class BaseRequestParser(abc.ABC):
             )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-    # Alias to prop up getsentry
-    get_response_from_outbox_creation = get_response_from_webhookpayload
 
     def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
@@ -203,7 +199,7 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
-            logging.info(
+            logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
@@ -213,7 +209,7 @@ class BaseRequestParser(abc.ABC):
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            logging.info(
+            logger.info(
                 "integrations.parser.no_bucket_id",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )

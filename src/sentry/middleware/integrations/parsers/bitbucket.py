@@ -46,7 +46,7 @@ class BitbucketRequestParser(BaseRequestParser):
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_webhookpayload(
-            regions=[region], shard_identifier_override=mapping.organization_id
+            regions=[region], identifier=mapping.organization_id
         )
 
     def get_response(self):
