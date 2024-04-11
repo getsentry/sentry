@@ -33,6 +33,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
@@ -190,6 +191,24 @@ export function HTTPSamplesPanel() {
     max: durationAxisMax,
     enabled: query.panel === 'duration' && durationAxisMax > 0,
     referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+  });
+
+  const {
+    data: responseCodeSamplesData,
+    isFetching: isResponseCodeSamplesDataFetching,
+    error: responseCodeSamplesDataError,
+    refetch: refetchResponseCodeSpanSamples,
+  } = useIndexedSpans({
+    filters,
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+    ],
+    sorts: [SPAN_SAMPLES_SORT],
+    limit: SPAN_SAMPLE_LIMIT,
+    enabled: query.panel === 'status',
+    referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
@@ -383,24 +402,47 @@ export function HTTPSamplesPanel() {
                   }}
                 />
               </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <Button onClick={() => refetchDurationSpanSamples()}>
+                  {t('Try Different Samples')}
+                </Button>
+              </ModuleLayout.Full>
             </Fragment>
           )}
 
           {query.panel === 'status' && (
-            <ModuleLayout.Full>
-              <ResponseCodeCountChart
-                series={Object.values(responseCodeData).filter(Boolean)}
-                isLoading={isResponseCodeDataLoading}
-                error={responseCodeError}
-              />
-            </ModuleLayout.Full>
-          )}
+            <Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <Button onClick={() => refetchDurationSpanSamples()}>
-              {t('Try Different Samples')}
-            </Button>
-          </ModuleLayout.Full>
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={responseCodeSamplesData ?? []}
+                  isLoading={isResponseCodeSamplesDataFetching}
+                  error={responseCodeSamplesDataError}
+                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                  meta={{
+                    fields: {
+                      'span.response_code': 'number',
+                    },
+                    units: {},
+                  }}
+                />
+              </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <Button onClick={() => refetchResponseCodeSpanSamples()}>
+                  {t('Try Different Samples')}
+                </Button>
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
@@ -408,6 +450,14 @@ export function HTTPSamplesPanel() {
 }
 
 const SAMPLE_HOVER_DEBOUNCE = 10;
+
+const SPAN_SAMPLE_LIMIT = 10;
+
+// This is functionally a random sort, which is what we want
+const SPAN_SAMPLES_SORT = {
+  field: 'span_id',
+  kind: 'desc' as const,
+};
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
