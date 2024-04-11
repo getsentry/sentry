@@ -60,7 +60,7 @@ def process_spans_strategy():
     return ProcessSpansStrategyFactory(
         num_processes=2,
         input_block_size=1,
-        max_batch_size=1,
+        max_batch_size=2,
         max_batch_time=1,
         output_block_size=1,
     )
@@ -281,3 +281,139 @@ def test_option_project_rollout(mock_buffer):
     strategy.join(1)
     strategy.terminate()
     mock_buffer.assert_not_called()
+
+
+@django_db_all
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [1],
+    }
+)
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+def test_produces_valid_segment_to_kafka_multiple_partitions():
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition_1 = Partition(topic, 0)
+    partition_2 = Partition(topic, 1)
+    factory = process_spans_strategy()
+    mock_commit = mock.Mock()
+    with mock.patch.object(
+        factory,
+        "producer",
+        new=mock.Mock(),
+    ) as mock_producer:
+        strategy = factory.create_with_partitions(
+            commit=mock_commit,
+            partitions={},
+        )
+
+        span_data = build_mock_span(project_id=1, is_segment=True)
+        message1 = build_mock_message(span_data, topic)
+
+        span_data = build_mock_span(project_id=1)
+        message2 = build_mock_message(span_data, topic)
+
+        offsets = {partition_1: 0, partition_2: 0}
+        for _ in range(2):
+            for partition in [partition_1, partition_2]:
+                offset = offsets[partition]
+                strategy.submit(
+                    Message(
+                        BrokerValue(
+                            KafkaPayload(
+                                b"key",
+                                message1.value().encode("utf-8"),
+                                [
+                                    ("project_id", b"1"),
+                                ],
+                            ),
+                            partition,
+                            offset + 1,
+                            datetime.now(),
+                        )
+                    )
+                )
+
+                strategy.submit(
+                    Message(
+                        BrokerValue(
+                            KafkaPayload(
+                                b"key",
+                                message2.value().encode("utf-8"),
+                                [
+                                    ("project_id", b"1"),
+                                ],
+                            ),
+                            partition,
+                            offset + 2,
+                            datetime.now() + timedelta(minutes=1),
+                        )
+                    )
+                )
+
+                strategy.submit(
+                    Message(
+                        BrokerValue(
+                            KafkaPayload(
+                                b"key",
+                                message2.value().encode("utf-8"),
+                                [
+                                    ("project_id", b"1"),
+                                ],
+                            ),
+                            partition,
+                            offset + 3,
+                            datetime.now() + timedelta(minutes=1),
+                        )
+                    )
+                )
+
+                strategy.submit(
+                    Message(
+                        BrokerValue(
+                            KafkaPayload(
+                                b"key",
+                                message2.value().encode("utf-8"),
+                                [
+                                    ("project_id", b"1"),
+                                ],
+                            ),
+                            partition,
+                            offset + 4,
+                            datetime.now() + timedelta(minutes=3),
+                        )
+                    )
+                )
+
+                offsets[partition] = offset + 4
+
+        strategy.poll()
+        strategy.join(1)
+        strategy.terminate()
+
+        # 8 calls during poll, 8 during submit, 1 during join
+        calls = [
+            mock.call({partition_1: 3}),
+            mock.call({partition_1: 5}),
+            mock.call({partition_1: 7}),
+            mock.call({partition_1: 9}),
+            mock.call({partition_2: 3}),
+            mock.call({partition_2: 5}),
+            mock.call({partition_2: 7}),
+            mock.call({partition_2: 9}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}),
+            mock.call({}, force=True),
+        ]
+
+        mock_commit.assert_has_calls(calls=calls, any_order=True)
+
+        assert mock_producer.produce.call_count == 4
+        BUFFERED_SEGMENT_SCHEMA.decode(mock_producer.produce.call_args.args[1].value)
+        assert mock_producer.produce.call_args.args[0] == ArroyoTopic("buffered-segments")

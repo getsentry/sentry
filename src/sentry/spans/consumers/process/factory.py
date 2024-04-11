@@ -1,18 +1,18 @@
 import dataclasses
 import logging
-from collections.abc import Mapping
-from functools import partial
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
-from arroyo.processing.strategies import RunTask
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import BrokerValue, Commit, Message, Partition
-from confluent_kafka import KafkaException
+from arroyo.processing.strategies.produce import Produce
+from arroyo.processing.strategies.reduce import Reduce
+from arroyo.processing.strategies.unfold import Unfold
+from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
@@ -32,8 +32,13 @@ BATCH_SIZE = 100
 @dataclasses.dataclass
 class ProduceSegmentContext:
     should_process_segments: bool
-    timestamp: int
-    partition: int
+    timestamp: int | None
+    partition: int | None
+
+
+EMPTY_SEGMENT_CONTEXT = ProduceSegmentContext(
+    should_process_segments=False, timestamp=None, partition=None
+)
 
 
 def get_project_id(headers: Headers) -> int | None:
@@ -53,20 +58,20 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
-def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
+def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
-        return None
+        return EMPTY_SEGMENT_CONTEXT
 
     try:
         project_id = get_project_id(message.payload.headers)
     except Exception:
         logger.exception("Failed to parse span message header")
-        return None
+        return EMPTY_SEGMENT_CONTEXT
 
     if project_id is None or project_id not in options.get(
         "standalone-spans.process-spans-consumer.project-allowlist"
     ):
-        return None
+        return EMPTY_SEGMENT_CONTEXT
 
     assert isinstance(message.value, BrokerValue)
 
@@ -80,7 +85,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
 
         segment_id = span.get("segment_id", None)
         if segment_id is None:
-            return None
+            return EMPTY_SEGMENT_CONTEXT
 
         trace_id = span["trace_id"]
 
@@ -99,7 +104,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
     )
 
 
-def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
+def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
     try:
         return _process_message(message)
     except Exception:
@@ -107,17 +112,29 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         return None
 
 
-def _produce_segment(
-    message: Message[ProduceSegmentContext | None], segments_producer: KafkaProducer, topic: Topic
-):
-    if message.payload is None:
-        return
+def accumulator(
+    result: dict[int, ProduceSegmentContext], value: Message[ProduceSegmentContext]
+) -> dict[int, ProduceSegmentContext]:
+    context = value.payload
+    if not context.should_process_segments:
+        return result
 
-    context = message.payload
+    assert context.partition is not None
+    assert context.timestamp is not None
 
-    if context.should_process_segments:
+    result[context.partition] = context
+    return result
+
+
+def _explode_segments(context_dict: dict[int, ProduceSegmentContext]):
+    buffered_segments = []
+
+    for context in context_dict.values():
+        if not context.should_process_segments:
+            continue
+
         with sentry_sdk.start_transaction(
-            op="process", name="spans.process.produce_segment"
+            op="process", name="spans.process.explode_segments"
         ) as txn:
             client = RedisSpansBuffer()
             payload_context = {}
@@ -142,23 +159,20 @@ def _produce_segment(
                             continue
 
                         payload_data = prepare_buffered_segment_payload(segment)
-                        payload = KafkaPayload(None, payload_data, [])
+                        buffered_segments.append(KafkaPayload(None, payload_data, []))
 
-                        try:
-                            segments_producer.produce(topic, payload)
-                        except KafkaException:
-                            logger.exception("Failed to produce segment to Kafka")
+    if not len(buffered_segments):
+        return [FILTERED_PAYLOAD]
+
+    return buffered_segments
 
 
-def produce_segment(
-    message: Message[ProduceSegmentContext | None],
-    segments_producer: KafkaProducer,
-    topic: Topic,
-):
+def explode_segments(context_dict: dict[int, ProduceSegmentContext]):
     try:
-        _produce_segment(message, segments_producer, topic)
+        return _explode_segments(context_dict)
     except Exception:
         sentry_sdk.capture_exception()
+        return [FILTERED_PAYLOAD]
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -183,7 +197,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         producer_config.pop("compression.type", None)
         producer_config.pop("message.max.bytes", None)
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
+        self.output_topic = ArroyoTopic(
+            get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
+        )
 
     def create_with_partitions(
         self,
@@ -191,14 +207,26 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
 
-        produce_function = partial(
-            produce_segment, segments_producer=self.producer, topic=self.topic
+        produce_step = Produce(
+            producer=self.producer,
+            topic=self.output_topic,
+            next_step=CommitOffsets(commit),
         )
-        next_step = RunTask(function=produce_function, next_step=CommitOffsets(commit))
+
+        unfold_step = Unfold(generator=explode_segments, next_step=produce_step)
+
+        initial_value: Callable[[], dict[int, ProduceSegmentContext]] = lambda: {}
+        reduce_step: Reduce[dict[int, ProduceSegmentContext], ProduceSegmentContext] = Reduce(
+            self.max_batch_size,
+            self.max_batch_time,
+            accumulator,
+            initial_value=initial_value,
+            next_step=unfold_step,
+        )
 
         return RunTaskWithMultiprocessing(
             function=process_message,
-            next_step=next_step,
+            next_step=reduce_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.__pool,
