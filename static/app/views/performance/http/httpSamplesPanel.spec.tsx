@@ -19,7 +19,7 @@ jest.mock('sentry/utils/useOrganization');
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let ribbonRequestMock;
+  let eventsRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -59,19 +59,14 @@ describe('HTTPSamplesPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    ribbonRequestMock = MockApiClient.addMockResponse({
+    eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
-        }),
-      ],
       body: {
         data: [
           {
             'project.id': 1,
+            'transaction.id': '',
             'spm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -99,7 +94,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('status panel', () => {
-    let chartRequestMock;
+    let eventsStatsRequestMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -119,7 +114,7 @@ describe('HTTPSamplesPanel', () => {
         key: '',
       });
 
-      chartRequestMock = MockApiClient.addMockResponse({
+      eventsStatsRequestMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
         method: 'GET',
         match: [
@@ -147,7 +142,7 @@ describe('HTTPSamplesPanel', () => {
     it('fetches panel data', async () => {
       render(<HTTPSamplesPanel />);
 
-      expect(ribbonRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
@@ -174,7 +169,7 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      expect(chartRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events-stats/`,
         expect.objectContaining({
@@ -197,6 +192,30 @@ describe('HTTPSamplesPanel', () => {
             topEvents: '5',
             yAxis: 'count()',
           },
+        })
+      );
+
+      expect(eventsRequestMock).toHaveBeenNthCalledWith(
+        2,
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({
+            dataset: 'spansIndexed',
+            query:
+              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+            project: [],
+            field: [
+              'project',
+              'transaction.id',
+              'span.description',
+              'span.status_code',
+              'span_id',
+            ],
+            sort: '-span_id',
+            referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+            statsPeriod: '10d',
+          }),
         })
       );
 
@@ -320,7 +339,7 @@ describe('HTTPSamplesPanel', () => {
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
             upperBound: 1000,
-            referrer: 'api.starfish.http-module-samples-panel-samples',
+            referrer: 'api.starfish.http-module-samples-panel-duration-samples',
             statsPeriod: '10d',
           }),
         })
