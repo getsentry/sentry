@@ -19,6 +19,16 @@ import type {
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 
 interface TraceSearchInputProps {
+  onNodeExpand: (
+    event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
+  ) => void;
+  onNodeZoomIn: (
+    event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
+  ) => void;
   onTraceSearch: (
     query: string,
     node: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -42,6 +52,8 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
   const trace_dispatch = props.trace_dispatch;
   const onTraceSearch = props.onTraceSearch;
+  const onNodeExpand = props.onNodeExpand;
+  const onNodeZoomIn = props.onNodeZoomIn;
 
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
@@ -117,10 +129,22 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             type: event.shiftKey ? 'go to previous match' : 'go to next match',
           });
           break;
+        case 'ArrowLeft': {
+          const node = traceStateRef.current.search.node;
+          if (node?.zoomedIn) onNodeZoomIn(event, node, false);
+          else if (node?.expanded) onNodeExpand(event, node, false);
+          break;
+        }
+        case 'ArrowRight': {
+          const node = traceStateRef.current.search.node;
+          if (node && !node?.expanded) onNodeExpand(event, node, true);
+          else if (node?.expanded && node.canFetch) onNodeZoomIn(event, node, true);
+          break;
+        }
         default:
       }
     },
-    [trace_dispatch]
+    [trace_dispatch, onNodeExpand, onNodeZoomIn]
   );
 
   const onNextSearchClick = useCallback(() => {

@@ -116,6 +116,16 @@ function maybeFocusRow(
 interface TraceProps {
   forceRerender: number;
   manager: VirtualizedViewManager;
+  onNodeExpand: (
+    event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
+  ) => void;
+  onNodeZoomIn: (
+    event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
+  ) => void;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -125,11 +135,6 @@ interface TraceProps {
     trace: TraceTree,
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     index: number | null
-  ) => void;
-  onTraceSearch: (
-    query: string,
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    behavior: 'track result' | 'persist'
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
@@ -150,7 +155,8 @@ export function Trace({
   manager,
   scrollQueueRef,
   previouslyFocusedNodeRef,
-  onTraceSearch,
+  onNodeZoomIn,
+  onNodeExpand,
   onTraceLoad,
   rerender,
   trace_state,
@@ -165,13 +171,6 @@ export function Trace({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
-
-  const treePromiseStatusRef =
-    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
-
-  if (!treePromiseStatusRef.current) {
-    treePromiseStatusRef.current = new Map();
-  }
 
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
@@ -257,62 +256,6 @@ export function Trace({
     organization,
   ]);
 
-  const onNodeZoomIn = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: TraceTreeNode<TraceTree.NodeValue>,
-      value: boolean
-    ) => {
-      if (!isTransactionNode(node) && !isSpanNode(node)) {
-        throw new TypeError('Node must be a transaction or span');
-      }
-
-      event.stopPropagation();
-      rerenderRef.current();
-
-      treeRef.current
-        .zoomIn(node, value, {
-          api,
-          organization,
-        })
-        .then(() => {
-          rerenderRef.current();
-
-          // If a query exists, we want to reapply the search after zooming in
-          // so that new nodes are also highlighted if they match a query
-          if (traceStateRef.current.search.query) {
-            onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-          }
-
-          treePromiseStatusRef.current!.set(node, 'success');
-        })
-        .catch(_e => {
-          treePromiseStatusRef.current!.set(node, 'error');
-        });
-    },
-    [api, organization, onTraceSearch]
-  );
-
-  const onNodeExpand = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: TraceTreeNode<TraceTree.NodeValue>,
-      value: boolean
-    ) => {
-      event.stopPropagation();
-
-      treeRef.current.expand(node, value);
-      rerenderRef.current();
-
-      if (traceStateRef.current.search.query) {
-        // If a query exists, we want to reapply the search after expanding
-        // so that new nodes are also highlighted if they match a query
-        onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-      }
-    },
-    [onTraceSearch]
-  );
-
   const onRowKeyDown = useCallback(
     (
       event: React.KeyboardEvent,
@@ -346,7 +289,7 @@ export function Trace({
         else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, trace_dispatch]
+    [manager, onNodeZoomIn, onNodeExpand, trace_dispatch]
   );
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {

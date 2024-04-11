@@ -52,7 +52,7 @@ import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {searchInTraceTree} from './traceState/traceSearch';
-import {isTraceNode} from './guards';
+import {isSpanNode, isTraceNode, isTransactionNode} from './guards';
 import {Trace} from './trace';
 import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
@@ -329,12 +329,13 @@ function TraceViewContent(props: TraceViewContentProps) {
           const resultIndex: number | undefined = matches?.[0]?.index;
           const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
           const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+
           traceDispatch({
             type: 'set results',
             results: matches,
             resultsLookup: lookup,
-            resultIteratorIndex: resultIteratorIndex,
             resultIndex: resultIndex,
+            resultIteratorIndex: resultIteratorIndex,
             previousNode: activeNodeSearchResult,
             node,
           });
@@ -430,6 +431,57 @@ function TraceViewContent(props: TraceViewContentProps) {
       });
     },
     [setRowAsFocused, traceDispatch]
+  );
+
+  const onNodeZoomIn = useCallback(
+    (
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      value: boolean
+    ) => {
+      if (!isTransactionNode(node) && !isSpanNode(node)) {
+        throw new TypeError('Node must be a transaction or span');
+      }
+
+      event.stopPropagation();
+      rerender();
+
+      tree
+        .zoomIn(node, value, {
+          api,
+          organization,
+        })
+        .then(() => {
+          rerender();
+
+          // If a query exists, we want to reapply the search after zooming in
+          // so that new nodes are also highlighted if they match a query
+          if (traceStateRef.current.search.query) {
+            onTraceSearch(traceStateRef.current.search.query, node, 'persist');
+          }
+        });
+    },
+    [api, organization, onTraceSearch, tree]
+  );
+
+  const onNodeExpand = useCallback(
+    (
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      value: boolean
+    ) => {
+      event.stopPropagation();
+
+      tree.expand(node, value);
+      rerender();
+
+      if (traceStateRef.current.search.query) {
+        // If a query exists, we want to reapply the search after expanding
+        // so that new nodes are also highlighted if they match a query
+        onTraceSearch(traceStateRef.current.search.query, node, 'persist');
+      }
+    },
+    [onTraceSearch, tree]
   );
 
   const scrollRowIntoView = useCallback(
@@ -694,6 +746,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             onTraceSearch={onTraceSearch}
+            onNodeExpand={onNodeExpand}
+            onNodeZoomIn={onNodeZoomIn}
           />
           <TraceResetZoomButton viewManager={viewManager} />
         </TraceToolbar>
@@ -706,8 +760,9 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_dispatch={traceDispatch}
             scrollQueueRef={scrollQueueRef}
             onRowClick={onRowClick}
+            onNodeExpand={onNodeExpand}
+            onNodeZoomIn={onNodeZoomIn}
             onTraceLoad={onTraceLoad}
-            onTraceSearch={onTraceSearch}
             previouslyFocusedNodeRef={previouslyFocusedNodeRef}
             manager={viewManager}
             forceRerender={forceRender}
