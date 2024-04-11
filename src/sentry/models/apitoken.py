@@ -23,6 +23,7 @@ from sentry.types.region import find_all_region_names
 from sentry.types.token import AuthTokenType
 
 DEFAULT_EXPIRATION = timedelta(days=30)
+TOKEN_REDACTED = "***REDACTED***"
 
 
 def default_expiration():
@@ -60,8 +61,8 @@ class ApiTokenManager(ControlOutboxProducingManager):
         # a default of generate_token()
         #
         # TODO(mdtro): All of these if/else statements will be cleaned up at a later time
-        # to use a match statment on the AuthTokenType. Move each of the various token type
-        # create calls one at a time.
+        #   to use a match statment on the AuthTokenType. Move each of the various token type
+        #   create calls one at a time.
         if "refresh_token" in kwargs:
             plaintext_refresh_token = kwargs["refresh_token"]
         else:
@@ -89,35 +90,13 @@ class ApiTokenManager(ControlOutboxProducingManager):
         kwargs["token"] = plaintext_token
         kwargs["refresh_token"] = plaintext_refresh_token
 
+        api_token = super().create(*args, **kwargs)
+
         # Store the plaintext tokens for one-time retrieval
-        self.__plaintext_token = plaintext_token
-        self.__plaintext_refresh_token = plaintext_refresh_token
+        api_token._set_plaintext_token(token=plaintext_token)
+        api_token._set_plaintext_refresh_token(token=plaintext_refresh_token)
 
-        return super().create(*args, **kwargs)
-
-    @property
-    def plaintext_token(self):
-        plaintext_token = getattr(self, "_ApiTokenManager__plaintext_token", None)
-
-        if plaintext_token:
-            setattr(self, "_ApiTokenManager__plaintext_token", None)
-        else:
-            raise PlaintextSecretAlreadyRead()
-
-        return plaintext_token
-
-    @property
-    def plaintext_refresh_token(self):
-        plaintext_refresh_token: str | None = getattr(
-            self, "_ApiTokenManager__plaintext_refresh_token", None
-        )
-
-        if plaintext_refresh_token:
-            setattr(self, "_ApiTokenManager__plaintext_refresh_token", None)
-        else:
-            raise PlaintextSecretAlreadyRead()
-
-        return plaintext_refresh_token
+        return api_token
 
 
 @control_silo_only_model
@@ -151,28 +130,81 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def __str__(self):
         return force_str(self.token)
 
-    @property
-    def _plaintext_token(self):
+    def _set_plaintext_token(self, token: str) -> None:
+        """Set the plaintext token for one-time reading
+        This function should only be called from the model's
+        manager class.
+
+        :param token: A plaintext string of the token
+        :raises PlaintextSecretAlreadyRead: when the token has already been read once
         """
-        To be called immediately after creation of a new token to return the
-        plaintext token to the user. After reading the token, it will be set
-        to `None` to prevent future accidental leaking of the token in logs,
-        exceptions, etc.
+        existing_token = None
+        try:
+            existing_token = self.__plaintext_token
+        except AttributeError:
+            self.__plaintext_token = token
+
+        if existing_token == TOKEN_REDACTED:
+            raise PlaintextSecretAlreadyRead()
+
+    def _set_plaintext_refresh_token(self, token: str) -> None:
+        """Set the plaintext refresh token for one-time reading
+        This function should only be called from the model's
+        manager class.
+
+        :param token: A plaintext string of the refresh token
+        :raises PlaintextSecretAlreadyRead: if the token has already been read once
         """
-        return ApiToken.objects.plaintext_token
+        existing_refresh_token = None
+        try:
+            existing_refresh_token = self.__plaintext_refresh_token
+        except AttributeError:
+            self.__plaintext_refresh_token = token
+
+        if existing_refresh_token == TOKEN_REDACTED:
+            raise PlaintextSecretAlreadyRead()
 
     @property
-    def _plaintext_refresh_token(self):
+    def plaintext_token(self) -> str:
+        """The plaintext value of the token
+        To be called immediately after creation of a new `ApiToken` to return the
+        plaintext token to the user. After reading the token, the plaintext token
+        string will be set to `TOKEN_REDACTED` to prevent future accidental leaking
+        of the token in logs, exceptions, etc.
+
+        :raises PlaintextSecretAlreadyRead: if the token has already been read once
+        :return: the plaintext value of the token
         """
-        To be called immediately after creation of a new token to return the
-        plaintext refresh token to the user. After reading the refresh token, it will be set
-        to `None` to prevent future accidental leaking of the refresh token in logs,
-        exceptions, etc.
+        token = self.__plaintext_token
+        if token == TOKEN_REDACTED:
+            raise PlaintextSecretAlreadyRead()
+
+        self.__plaintext_token = TOKEN_REDACTED
+
+        return token
+
+    @property
+    def plaintext_refresh_token(self) -> str:
+        """The plaintext value of the refresh token
+        To be called immediately after creation of a new `ApiToken` to return the
+        plaintext token to the user. After reading the token, the plaintext token
+        string will be set to `TOKEN_REDACTED` to prevent future accidental leaking
+        of the token in logs, exceptions, etc.
+
+        :raises PlaintextSecretAlreadyRead: if the refresh token has already been read once
+        :raises NotSupported: if called on a User Auth Token
+        :return: the plaintext value of the refresh token
         """
-        if self.refresh_token or self.hashed_refresh_token:
-            return ApiToken.objects.plaintext_refresh_token
-        else:
+        if not self.refresh_token and not self.hashed_refresh_token:
             raise NotSupported("This API token type does not support refresh tokens")
+
+        token = self.__plaintext_refresh_token
+        if token == TOKEN_REDACTED:
+            raise PlaintextSecretAlreadyRead()
+
+        self.__plaintext_refresh_token = TOKEN_REDACTED
+
+        return token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if options.get("apitoken.save-hash-on-create"):

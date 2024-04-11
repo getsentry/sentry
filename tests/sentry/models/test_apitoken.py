@@ -106,31 +106,31 @@ class ApiTokenTest(TestCase):
         assert token.hashed_token is None
         assert token.hashed_refresh_token is None
 
-        assert token._plaintext_token is not None
-        assert token._plaintext_refresh_token is not None
+        assert token.plaintext_token is not None
+        assert token.plaintext_refresh_token is not None
 
         # we accessed the tokens above when we asserted it was not None
         # accessing them again should throw an exception
         with pytest.raises(PlaintextSecretAlreadyRead):
-            _ = token._plaintext_token
+            _ = token.plaintext_token
 
         with pytest.raises(PlaintextSecretAlreadyRead):
-            _ = token._plaintext_refresh_token
+            _ = token.plaintext_refresh_token
 
     @override_options({"apitoken.save-hash-on-create": True})
     def test_plaintext_values_only_available_immediately_after_create(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
-        assert token._plaintext_token is not None
-        assert token._plaintext_refresh_token is not None
+        assert token.plaintext_token is not None
+        assert token.plaintext_refresh_token is not None
 
         # we accessed the tokens above when we asserted it was not None
         # accessing them again should throw an exception
         with pytest.raises(PlaintextSecretAlreadyRead):
-            _ = token._plaintext_token
+            _ = token.plaintext_token
 
         with pytest.raises(PlaintextSecretAlreadyRead):
-            _ = token._plaintext_refresh_token
+            _ = token.plaintext_refresh_token
 
     @override_options({"apitoken.save-hash-on-create": True})
     def test_error_when_accessing_refresh_token_on_user_token(self):
@@ -138,7 +138,7 @@ class ApiTokenTest(TestCase):
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
 
         with pytest.raises(NotSupported):
-            assert token._plaintext_refresh_token is not None
+            assert token.plaintext_refresh_token is not None
 
     @override_options({"apitoken.save-hash-on-create": True})
     def test_user_auth_token_refresh_raises_error(self):
@@ -152,14 +152,14 @@ class ApiTokenTest(TestCase):
     def test_user_auth_token_sha256_hash(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
-        expected_hash = hashlib.sha256(token._plaintext_token.encode()).hexdigest()
+        expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
         assert expected_hash == token.hashed_token
 
     @override_options({"apitoken.save-hash-on-create": True})
     def test_hash_updated_when_calling_update(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
-        initial_expected_hash = hashlib.sha256(token._plaintext_token.encode()).hexdigest()
+        initial_expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
         assert initial_expected_hash == token.hashed_token
 
         new_token = "abc1234"

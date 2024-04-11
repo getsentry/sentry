@@ -31,10 +31,10 @@ class ApiTokenSerializer(Serializer):
         if not attrs["application"]:
             include_token = kwargs.get("include_token", True)
             if include_token:
-                data["token"] = obj._plaintext_token
+                data["token"] = obj.plaintext_token
 
                 if not obj.token_type == AuthTokenType.USER:
-                    data["refreshToken"] = obj._plaintext_refresh_token
+                    data["refreshToken"] = obj.plaintext_refresh_token
 
         """
         While this is a nullable column at the db level, this should never be empty. If it is, it's a sign that the
