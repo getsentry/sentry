@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
@@ -96,7 +96,7 @@ class GroupingConfigLoader:
             "enhancements": self._get_enhancements(project),
         }
 
-    def _get_enhancements(self, project) -> str:
+    def _get_enhancements(self, project: Project) -> str:
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -121,14 +121,14 @@ class GroupingConfigLoader:
         cache.set(cache_key, rv)
         return rv
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project) -> str:
         raise NotImplementedError
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
             validate=lambda x: x in CONFIGURATIONS,
@@ -154,12 +154,12 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
     cache_prefix = "background-grouping-enhancements:"
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project) -> str:
         return options.get("store.background-grouping-config-id")
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project: Project, silent: bool = True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -171,12 +171,12 @@ def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
+def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) -> GroupingConfig:
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None) -> str:
+def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -200,7 +200,7 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
+def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -209,7 +209,9 @@ def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
     return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
 
 
-def load_grouping_config(config_dict=None) -> StrategyConfiguration:
+def load_grouping_config(
+    config_dict: GroupingConfig | dict[str, Any] | None = None
+) -> StrategyConfiguration:
     """Loads the given grouping config."""
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
@@ -257,7 +259,9 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: NodeData, config: FingerprintingRules, allow_custom_title: bool = True
+) -> None:
     client_fingerprint = event.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
@@ -419,7 +423,9 @@ def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVaria
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
+def detect_synthetic_exception(
+    event_data: NodeData, loaded_grouping_config: StrategyConfiguration
+) -> None:
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so

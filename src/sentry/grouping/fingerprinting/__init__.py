@@ -20,6 +20,9 @@ from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
+if TYPE_CHECKING:
+    from sentry.db.models import NodeData
+
 logger = logging.getLogger(__name__)
 
 VERSION = 1
@@ -194,7 +197,9 @@ class FingerprintingRules:
                 base_rules = FINGERPRINTING_BASES.get(base, [])
                 yield from base_rules
 
-    def get_fingerprint_values_for_event(self, event: dict[str, object]) -> None | object:
+    def get_fingerprint_values_for_event(
+        self, event: NodeData
+    ) -> None | tuple[Rule, str, dict[str, Any]]:
         if not (self.bases or self.rules):
             return
         access = EventAccess(event)
@@ -420,7 +425,7 @@ class Rule:
         self,
         matchers: Sequence[Match],
         fingerprint: str,
-        attributes: Sequence[object],
+        attributes: dict[str, Any],
         is_builtin: bool = False,
     ) -> None:
         self.matchers = matchers
@@ -430,7 +435,7 @@ class Rule:
 
     def get_fingerprint_values_for_event_access(
         self, event_access: EventAccess
-    ) -> None | tuple[str, Sequence[object]]:
+    ) -> None | tuple[str, dict[str, Any]]:
         by_match_group = {}
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
