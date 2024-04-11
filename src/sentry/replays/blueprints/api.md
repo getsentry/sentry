@@ -383,6 +383,7 @@ Retrieve a collection of selectors.
 | element.testid     | string        | -                                                  |
 | element.title      | string        | -                                                  |
 | project_id         | string        | -                                                  |
+| component_name     | string        | -                                                  |
 
 - Response 200
 
@@ -403,7 +404,8 @@ Retrieve a collection of selectors.
           "testid": "",
           "title": ""
         },
-        "project_id": "1"
+        "project_id": "1",
+        "component_name": "SignUpForm"
       }
     ]
   }
@@ -612,13 +614,12 @@ Retrieve a collection of click events associated with a replay.
   }
   ```
 
-## Replay Viewed By [/organizations/<organization_slug>/replays/<replay_id>/viewed-by/]
+## Replay Viewed By [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/viewed-by/]
 
 ### Fetch Replay Viewed By [GET]
 
 | Column    | Type        | Description                                        |
 | --------- | ----------- | -------------------------------------------------- |
-| id        | string      | A replay-id.                                       |
 | viewed_by | array[User] | An array of user types who have viewed the replay. |
 
 - Response 200
@@ -626,7 +627,6 @@ Retrieve a collection of click events associated with a replay.
   ```json
   {
     "data": {
-      "id": "81220fbf68494b30a5129ceb4cc5937d",
       "viewed_by": [
         {
           "id": "884411",

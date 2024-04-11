@@ -1,6 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -106,6 +111,7 @@ describe('HTTPSamplesPanel', () => {
           transaction: '/api/0/users',
           transactionMethod: 'GET',
           panel: 'status',
+          responseCodeClass: '3',
         },
         hash: '',
         state: undefined,
@@ -122,10 +128,16 @@ describe('HTTPSamplesPanel', () => {
           }),
         ],
         body: {
-          'spm()': {
+          '301': {
             data: [
               [1699907700, [{count: 7810.2}]],
               [1699908000, [{count: 1216.8}]],
+            ],
+          },
+          '304': {
+            data: [
+              [1699907700, [{count: 2701.5}]],
+              [1699908000, [{count: 78.12}]],
             ],
           },
         },
@@ -172,22 +184,18 @@ describe('HTTPSamplesPanel', () => {
             dataset: 'spansMetrics',
             environment: [],
             excludeOther: 0,
-            field: [],
+            field: ['span.status_code', 'count()'],
             interval: '30m',
             orderby: undefined,
             partial: 1,
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
             statsPeriod: '10d',
-            topEvents: undefined,
-            yAxis: [
-              'http_response_rate(3)',
-              'http_response_rate(4)',
-              'http_response_rate(5)',
-            ],
+            topEvents: '5',
+            yAxis: 'count()',
           },
         })
       );
@@ -357,6 +365,18 @@ describe('HTTPSamplesPanel', () => {
         '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48#span-b1bf1acde131623a'
       );
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
+    });
+
+    it('re-fetches samples', async () => {
+      render(<HTTPSamplesPanel />);
+
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try Different Samples'}));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(2);
     });
   });
 });
