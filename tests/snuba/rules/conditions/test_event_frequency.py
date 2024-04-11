@@ -28,6 +28,31 @@ from sentry.utils.samples import load_data
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
+    def _make_sessions(self, num: int, environment_name: str | None):
+        received = time.time()
+
+        def make_session(i):
+            return dict(
+                distinct_id=uuid4().hex,
+                session_id=uuid4().hex,
+                org_id=self.project.organization_id,
+                project_id=self.project.id,
+                status="ok",
+                seq=0,
+                release="foo@1.0.0",
+                environment=environment_name if environment_name else "prod",
+                retention_days=90,
+                duration=None,
+                errors=0,
+                # The line below is crucial to spread sessions throughout the time period.
+                started=received - i - 1,
+                received=received,
+            )
+
+        self.bulk_store_sessions([make_session(i) for i in range(num)])
+
+
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -135,6 +160,37 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: 1}
+
+
+class EventFrequencyPercentConditionQueryTest(
+    EventFrequencyQueryTestBase, BaseEventFrequencyPercentTest
+):
+    rule_cls = EventFrequencyPercentCondition
+
+    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
+    @patch("sentry.rules.base.RuleBase.get_option", return_value="10m")
+    def test_batch_query_percent(self, mock_get_option):
+        condition_inst = self.rule_cls(self.event.group.project)
+        self._make_sessions(60, self.environment2.name)
+        self._make_sessions(60, self.environment.name)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {
+            self.event.group_id: 10.0,
+            self.event2.group_id: 10.0,
+        }
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 10.0}
 
 
 class ErrorEventMixin(SnubaTestCase):
@@ -395,36 +451,13 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-class EventFrequencyPercentConditionTestCase(BaseMetricsTestCase, RuleTestCase):
+class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, RuleTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
 
     def add_event(self, data, project_id, timestamp):
         raise NotImplementedError
-
-    def _make_sessions(self, num):
-        received = time.time()
-
-        def make_session(i):
-            return dict(
-                distinct_id=uuid4().hex,
-                session_id=uuid4().hex,
-                org_id=self.project.organization_id,
-                project_id=self.project.id,
-                status="ok",
-                seq=0,
-                release="foo@1.0.0",
-                environment="prod",
-                retention_days=90,
-                duration=None,
-                errors=0,
-                # The line below is crucial to spread sessions throughout the time period.
-                started=received - i - 1,
-                received=received,
-            )
-
-        self.bulk_store_sessions([make_session(i) for i in range(num)])
 
     def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment or self.environment.name != "prod":
