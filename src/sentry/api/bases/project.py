@@ -144,7 +144,7 @@ class ProjectEndpoint(Endpoint):
                     self.convert_args.__qualname__, str(organization_slug)
                 ):
                     redirect = redirect.get(
-                        organization__id=organization_slug,
+                        organization__slug__id_or_slug=organization_slug,
                         redirect_slug__id_or_slug=project_slug,
                     )
                 else:
