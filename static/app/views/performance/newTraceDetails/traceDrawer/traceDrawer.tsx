@@ -115,6 +115,20 @@ export function TraceDrawer(props: TraceDrawerProps) {
     (size: number, min: number, user?: boolean, minimized?: boolean) => {
       if (!props.traceGridRef) return;
 
+      // When we resize the layout in x axis, we need to update the physical space
+      // of the virtualized view manager to make sure a redrawing is correctly triggered.
+      // If we dont do this, then the virtualized view manager will only trigger a redraw
+      // whenver ResizeObserver detects a change. Since resize observers have "debounced"
+      // callbacks, relying only on them to redraw the screen causes visual jank.
+      if (
+        (traceStateRef.current.preferences.layout === 'drawer left' ||
+          traceStateRef.current.preferences.layout === 'drawer right') &&
+        props.manager.container
+      ) {
+        const {width, height} = props.manager.container.getBoundingClientRect();
+        props.manager.initializePhysicalSpace(width, height);
+        props.manager.draw();
+      }
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
@@ -169,7 +183,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, trace_dispatch]
+    [props.traceGridRef, props.manager, trace_dispatch]
   );
 
   const drawerOptions: Pick<UsePassiveResizableDrawerOptions, 'min' | 'initialSize'> =
