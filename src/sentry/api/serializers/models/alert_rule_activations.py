@@ -10,7 +10,7 @@ class AlertRuleActivationsResponse(TypedDict):
     alertRuleId: str
     dateCreated: datetime
     finishedAt: datetime
-    metric_value: int
+    metricValue: int
     querySubscriptionId: str
     isComplete: bool
 
