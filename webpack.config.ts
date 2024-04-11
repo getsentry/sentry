@@ -65,7 +65,7 @@ const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
 // Enable react 18 concurrent mode
 const USE_REACT_CONCURRENT_MODE =
-  DEV_MODE || IS_ACCEPTANCE_TEST || !!env.DISABLE_REACT_CONCURRENT_MODE;
+  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
