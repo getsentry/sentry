@@ -435,6 +435,9 @@ const SubText = styled('div')`
   line-height: normal;
   color: ${p => p.theme.gray300};
   ${p => p.theme.overflowEllipsis};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
 `;
 
 export function TransactionCell({
