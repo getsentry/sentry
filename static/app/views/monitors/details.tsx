@@ -16,8 +16,8 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -131,7 +131,7 @@ function MonitorDetails({params, location}: Props) {
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
-                <CronDetailsTimeline organization={organization} monitor={monitor} />
+                <DetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}

@@ -53,10 +53,10 @@ class BaseOption(OverwritableConfigMixin, Model):
         # in exports. More broadly, we don't really care about comparing them for accuracy.
         return q & ~models.Q(
             key__in={
-                "sentry:sentry:install-id",  # Only used on self-hosted
+                "sentry:install-id",  # Only used on self-hosted
+                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
                 "sentry:last_worker_ping",  # Changes very frequently
                 "sentry:last_worker_version",  # Changes very frequently
-                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
             }
         )
 

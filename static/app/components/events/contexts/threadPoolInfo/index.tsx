@@ -3,7 +3,12 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import type {Event, ThreadPoolInfoContext} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from '../utils';
 
 import {
   getThreadPoolInfoKnownDataDetails,
@@ -13,38 +18,51 @@ import {
 type Props = {
   data: ThreadPoolInfoContext | null;
   event: Event;
+  meta?: Record<string, any>;
 };
 
-export function ThreadPoolInfoEventContext({data, event}: Props) {
+export function getKnownThreadPoolInfoContextData({data, event, meta}: Props) {
+  if (!data) {
+    return [];
+  }
+  return getKnownData<
+    ThreadPoolInfoContext,
+    (typeof threadPoolInfoKnownDataValues)[number]
+  >({
+    data,
+    meta,
+    knownDataTypes: threadPoolInfoKnownDataValues,
+    onGetKnownDataDetails: v => getThreadPoolInfoKnownDataDetails({...v, event}),
+  });
+}
+
+export function getUnknownThreadPoolInfoContextData({
+  data,
+  meta,
+}: Pick<Props, 'data' | 'meta'>) {
+  if (!data) {
+    return [];
+  }
+  return getUnknownData({
+    allData: data,
+    knownKeys: threadPoolInfoKnownDataValues,
+    meta,
+  });
+}
+
+export function ThreadPoolInfoEventContext({data, event, meta: propsMeta}: Props) {
   if (!data) {
     return null;
   }
-
-  const meta =
-    event._meta?.contexts?.['ThreadPool Info'] ??
-    event._meta?.contexts?.threadpool_info ??
-    {};
+  const meta = propsMeta ?? getContextMeta(event, 'threadpool_info');
+  const knownData = getKnownThreadPoolInfoContextData({data, event, meta});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownThreadPoolInfoContextData({data, meta});
 
   return (
     <Fragment>
-      <ContextBlock
-        data={getKnownData<
-          ThreadPoolInfoContext,
-          (typeof threadPoolInfoKnownDataValues)[number]
-        >({
-          data,
-          meta,
-          knownDataTypes: threadPoolInfoKnownDataValues,
-          onGetKnownDataDetails: v => getThreadPoolInfoKnownDataDetails({...v, event}),
-        })}
-      />
-      <ContextBlock
-        data={getUnknownData({
-          allData: data,
-          knownKeys: threadPoolInfoKnownDataValues,
-          meta,
-        })}
-      />
+      <ContextBlock data={knownStructuredData} />
+      <ContextBlock data={unknownData} />
     </Fragment>
   );
 }

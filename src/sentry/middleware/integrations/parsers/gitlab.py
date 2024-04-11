@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.http.response import HttpResponseBase
 from django.urls import resolve
@@ -13,6 +15,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +79,27 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_webhookpayload_for_integration(
-            regions=regions, integration=integration
+        try:
+            data = json.loads(self.request.body)
+        except ValueError:
+            data = {}
+
+        return self.get_response_from_webhookpayload(
+            regions=regions,
+            identifier=self.get_mailbox_identifier(integration, data),
+            integration_id=integration.id,
         )
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """
+        Used by get_mailbox_identifier to find the project.id a payload is for.
+        In high volume gitlab instances we shard messages by project for greater
+        delivery throughput.
+        """
+        project_id = data.get("project", {}).get("id", None)
+        if not project_id:
+            return None
+        return project_id
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:
