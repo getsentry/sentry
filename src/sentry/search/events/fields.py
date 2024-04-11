@@ -1,10 +1,10 @@
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -53,6 +53,9 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
 )
 
+if TYPE_CHECKING:
+    from sentry.search.events.builder.discover import QueryBuilder
+
 MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
@@ -65,7 +68,14 @@ class InvalidFunctionArgument(Exception):
 
 
 class PseudoField:
-    def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
+    def __init__(
+        self,
+        name: str,
+        alias: str,
+        expression: list[Any] | None = None,
+        expression_fn: Callable[..., list[Any]] | None = None,
+        result_type: str | None = None,
+    ):
         self.name = name
         self.alias = alias
         self.expression = expression
@@ -74,28 +84,28 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params) -> list[Any] | tuple[Any]:
+    def get_expression(self, params: Mapping[str, Any]) -> list[Any] | tuple[Any] | None:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
             return self.expression_fn(params)
         return None
 
-    def get_field(self, params=None):
+    def get_field(self, params: Mapping[str, Any] | None = None) -> list[Any] | tuple[Any] | str:
         expression = self.get_expression(params)
         if expression is not None:
             expression.append(self.alias)
             return expression
         return self.alias
 
-    def validate(self):
+    def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
         assert (
             self.expression is None or self.expression_fn is None
         ), f"{self.name}: only one of expression, expression_fn is allowed"
 
 
-def project_threshold_config_expression(organization_id, project_ids):
+def project_threshold_config_expression(organization_id: int, project_ids: list[int]) -> list[Any]:
     """
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
@@ -253,7 +263,9 @@ def project_threshold_config_expression(organization_id, project_ids):
     return project_config_query
 
 
-def team_key_transaction_expression(organization_id, team_ids, project_ids):
+def team_key_transaction_expression(
+    organization_id: int, team_ids: list[int], project_ids: list[int]
+) -> list[Any]:
     if organization_id is None or team_ids is None or project_ids is None:
         raise TypeError("Team key transactions parameters cannot be None")
 
@@ -445,18 +457,6 @@ FIELD_ALIASES = {
 }
 
 
-def format_column_arguments(column_args, arguments):
-    for i in range(len(column_args)):
-        if isinstance(column_args[i], (list, tuple)):
-            if isinstance(column_args[i][0], ArgValue):
-                column_args[i][0] = arguments[column_args[i][0].arg]
-            format_column_arguments(column_args[i][1], arguments)
-        elif isinstance(column_args[i], str):
-            column_args[i] = column_args[i].format(**arguments)
-        elif isinstance(column_args[i], ArgValue):
-            column_args[i] = arguments[column_args[i].arg]
-
-
 def parse_arguments(function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
@@ -515,7 +515,11 @@ def parse_arguments(function: str, columns: str) -> list[str]:
     return [arg for arg in args if arg]
 
 
-def resolve_field(field, params=None, functions_acl=None):
+def resolve_field(
+    field: str | Any,
+    params: Mapping[str, NormalizedArg] | None = None,
+    functions_acl: list[str] | None = None,
+) -> ResolvedFunction:
     if not isinstance(field, str):
         raise InvalidSearchQuery("Field names must be strings")
 
@@ -536,7 +540,12 @@ def resolve_field(field, params=None, functions_acl=None):
         raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
 
-def resolve_function(field, match=None, params=None, functions_acl=False):
+def resolve_function(
+    field: str | Any,
+    match: Match[str] | None = None,
+    params: Mapping[str, NormalizedArg] | None = None,
+    functions_acl: list[str] | None = None,
+) -> ResolvedFunction | None:
     if params is not None and field in params.get("aliases", {}):
         alias = params["aliases"][field]
         return ResolvedFunction(
@@ -619,6 +628,8 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
                 addition[2] = addition[2].format(**arguments)
         return ResolvedFunction(details, addition, None)
 
+    return None
+
 
 def parse_combinator(function: str) -> tuple[str, str | None]:
     for combinator in COMBINATORS:
@@ -629,7 +640,9 @@ def parse_combinator(function: str) -> tuple[str, str | None]:
     return function, None
 
 
-def parse_function(field, match=None, err_msg=None):
+def parse_function(
+    field: str, match: Match[str] | None = None, err_msg: str = None
+) -> tuple[str, list[str], str]:
     if not match:
         match = is_function(field)
 
@@ -667,7 +680,9 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
+def get_function_alias_with_columns(
+    function_name: str, columns: list[str], prefix: str = None
+) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -683,7 +698,9 @@ def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
     return alias
 
 
-def get_json_meta_type(field_alias, snuba_type, builder=None):
+def get_json_meta_type(
+    field_alias: str, snuba_type: str, builder: "QueryBuilder | None" = None
+) -> str:
     if builder:
         function = builder.function_alias_map.get(field_alias)
     else:
@@ -715,15 +732,6 @@ def get_json_meta_type(field_alias, snuba_type, builder=None):
     if field_type is not None:
         return field_type
     return snuba_json
-
-
-def reflective_result_type(index=0):
-    def result_type_fn(function_arguments, parameter_values):
-        argument = function_arguments[index]
-        value = parameter_values[argument.name]
-        return argument.get_type(value)
-
-    return result_type_fn
 
 
 class Combinator:
@@ -774,6 +782,20 @@ class ArgValue:
         self.arg = arg
 
 
+def format_column_arguments(
+    column_args: list[list[Any] | tuple[Any] | str | ArgValue], arguments: list[Any]
+) -> None:
+    for i in range(len(column_args)):
+        if isinstance(column_args[i], (list, tuple)):
+            if isinstance(column_args[i][0], ArgValue):
+                column_args[i][0] = arguments[column_args[i][0].arg]
+            format_column_arguments(column_args[i][1], arguments)
+        elif isinstance(column_args[i], str):
+            column_args[i] = column_args[i].format(**arguments)
+        elif isinstance(column_args[i], ArgValue):
+            column_args[i] = arguments[column_args[i].arg]
+
+
 class FunctionArg:
     """Parent class to function arguments, including both column references and values"""
 
@@ -781,7 +803,7 @@ class FunctionArg:
         self.name = name
         self.has_default = False
 
-    def get_default(self, _):
+    def get_default(self, _: Any) -> Any:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
@@ -789,7 +811,7 @@ class FunctionArg:
     ) -> NormalizedArg:
         return value
 
-    def get_type(self, _):
+    def get_type(self, _: Any) -> str:
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
@@ -798,6 +820,19 @@ class FunctionAliasArg(FunctionArg):
         if not ALIAS_PATTERN.match(value):
             raise InvalidFunctionArgument(f"{value} is not a valid function alias")
         return value
+
+
+def reflective_result_type(
+    index: int = 0,
+) -> Callable[[list[FunctionArg], Mapping[str, NormalizedArg]], str]:
+    def result_type_fn(
+        function_arguments: list[FunctionArg], parameter_values: Mapping[str, NormalizedArg]
+    ) -> str | None:
+        argument = function_arguments[index]
+        value = parameter_values[argument.name]
+        return argument.get_type(value)
+
+    return result_type_fn
 
 
 class StringArg(FunctionArg):
@@ -883,7 +918,7 @@ class NullColumn(FunctionArg):
         super().__init__(name)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: Any) -> None:
         return None
 
     def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> None:
@@ -935,7 +970,7 @@ class NullableNumberRange(NumberRange):
         super().__init__(name, start, end)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: Any) -> None:
         return None
 
     def normalize(
@@ -1041,11 +1076,11 @@ class ColumnTagArg(ColumnArg):
 
 
 class CountColumn(ColumnArg):
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, **kwargs)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: Any) -> None:
         return None
 
     def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
@@ -1098,7 +1133,7 @@ class NumericColumn(ColumnArg):
         name: str,
         allow_array_value: bool | None = False,
         spans: bool | None = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         self.spans = spans
         super().__init__(name, **kwargs)
@@ -1220,7 +1255,7 @@ class SessionColumnArg(ColumnArg):
         raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
 
 
-def with_default(default, argument):
+def with_default(default: Any, argument: FunctionArg) -> FunctionArg:
     argument.has_default = True
     argument.get_default = lambda *_: default
     return argument
@@ -1255,19 +1290,19 @@ class SnQLFieldColumn(FieldColumn):
 class DiscoverFunction:
     def __init__(
         self,
-        name,
-        required_args=None,
-        optional_args=None,
-        calculated_args=None,
-        column=None,
-        aggregate=None,
-        transform=None,
-        conditional_transform=None,
-        result_type_fn=None,
-        default_result_type=None,
-        redundant_grouping=False,
-        combinators=None,
-        private=False,
+        name: str,
+        required_args: list[FunctionArg] | None = None,
+        optional_args: list[FunctionArg] | None = None,
+        calculated_args: list[object] | None = None,
+        column: str | list[Any] | None | None = None,
+        aggregate: str | list[Any] | None = None,
+        transform: str | None = None,
+        conditional_transform: ConditionalFunction | None = None,
+        result_type_fn: Callable[[Any, Any], Any] | None = None,
+        default_result_type: str | None = None,
+        redundant_grouping: bool | None = False,
+        combinators: list[Combinator] | None = None,
+        private: bool | None = False,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1317,22 +1352,22 @@ class DiscoverFunction:
         self.validate()
 
     @property
-    def required_args_count(self):
+    def required_args_count(self) -> int:
         return len(self.required_args)
 
     @property
-    def optional_args_count(self):
+    def optional_args_count(self) -> int:
         return len(self.optional_args)
 
     @property
-    def total_args_count(self):
+    def total_args_count(self) -> int:
         return self.required_args_count + self.optional_args_count
 
     @property
-    def args(self):
+    def args(self) -> list[FunctionArg]:
         return self.required_args + self.optional_args
 
-    def alias_as(self, name):
+    def alias_as(self, name: str) -> Any:
         """Create a copy of this function to be used as an alias"""
         alias = copy(self)
         alias.name = name
@@ -1390,7 +1425,9 @@ class DiscoverFunction:
 
         return arguments
 
-    def get_result_type(self, field=None, arguments=None) -> str | None:
+    def get_result_type(
+        self, field: str = None, arguments: list[Any] | Mapping[str, NormalizedArg] = None
+    ) -> str | None:
         if field is None or arguments is None or self.result_type_fn is None:
             return self.default_result_type
 
@@ -1401,7 +1438,7 @@ class DiscoverFunction:
         self.validate_result_type(result_type)
         return result_type
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -1465,7 +1502,7 @@ class DiscoverFunction:
                     f"{field}: expected at most {total_args_count:g} argument(s)"
                 )
 
-    def validate_result_type(self, result_type):
+    def validate_result_type(self, result_type: str | None) -> None:
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
@@ -1625,9 +1662,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1666,9 +1703,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
@@ -2112,7 +2149,7 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
 
 
 class SnQLFunction(DiscoverFunction):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
         self.requires_other_aggregates = kwargs.pop("requires_other_aggregates", False)
@@ -2189,7 +2226,7 @@ class MetricArg(FunctionArg):
 class MetricsFunction(SnQLFunction):
     """Metrics needs to differentiate between aggregate types so we can send queries to the right table"""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
