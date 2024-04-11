@@ -629,10 +629,7 @@ def _process_symbolicator_results_for_sample(
         for idx in range(len(raw_frames)):
             # If we didn't send the frame to symbolicator, add the raw frame.
             if idx not in frames_sent:
-                f = raw_frames[idx]
-                if profile["platform"] != platform:
-                    f["platform"] = platform
-                new_frames.append(f)
+                new_frames.append(raw_frames[idx])
                 continue
 
             # If we sent it to symbolicator, add the current symbolicated frame
