@@ -220,6 +220,7 @@ def _get_bulk_cached_query(project: Project) -> tuple[dict[int, dict[str, bool]]
         sentry_sdk.set_tag(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
         cache_result[i] = chunk_result or {}
     sentry_sdk.set_extra("cold_cache_chunks", cold_cache_chunks)
+    metrics.incr("on_demand_metrics.query_cache_cold_keys", amount=len(cold_cache_chunks))
     return cache_result, cold_cache_chunks
 
 
