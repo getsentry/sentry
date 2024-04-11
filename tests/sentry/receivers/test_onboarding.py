@@ -488,7 +488,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             is_api_token=False,
         )
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="metric",
