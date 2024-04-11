@@ -123,6 +123,7 @@ function makeSpan(opt: SpanOpt): ExampleSpan {
   const {id} = opt;
   return {
     id,
+    trace: 'trace',
     startTimestamp: 10100,
     finishTimestamp: 10200,
     exclusiveTime: 100,

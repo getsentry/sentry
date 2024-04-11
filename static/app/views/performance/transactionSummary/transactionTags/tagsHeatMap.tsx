@@ -27,7 +27,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
@@ -39,7 +43,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
-import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -348,11 +351,13 @@ function TagsHeatMap(
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateTransactionLink()(
+                      const target = generateLinkToEventInTraceView({
+                        eventSlug: generateEventSlug(row),
+                        dataRow: row,
+                        eventView: EventView.fromLocation(location),
+                        location,
                         organization,
-                        row,
-                        location
-                      );
+                      });
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>

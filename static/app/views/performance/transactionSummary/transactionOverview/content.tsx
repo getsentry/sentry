@@ -57,7 +57,7 @@ import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
+  generateTransactionIdLink,
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
@@ -391,7 +391,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionLink(),
+              id: generateTransactionIdLink(),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               replayId: generateReplayLink(routes),
               'profile.id': generateProfileLink(),

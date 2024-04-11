@@ -146,7 +146,7 @@ export function generateTraceLink(dateSelection) {
   };
 }
 
-export function generateTransactionLink() {
+export function generateTransactionIdLink() {
   return (
     organization: Organization,
     tableRow: TableDataRow,

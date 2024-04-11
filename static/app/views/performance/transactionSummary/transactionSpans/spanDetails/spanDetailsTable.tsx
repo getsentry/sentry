@@ -15,9 +15,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
@@ -25,8 +30,6 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-
-import {generateTransactionLink} from '../../utils';
 
 type TableColumnKeys =
   | 'id'
@@ -144,12 +147,15 @@ function renderBodyCellWithMeta(
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const target = generateTransactionLink()(
-        organization,
-        {...dataRow, trace: traceSlug},
+
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow: {...dataRow, trace: traceSlug},
+        eventView: EventView.fromLocation(location),
         location,
-        worstSpan.id
-      );
+        organization,
+        spanId: worstSpan.id,
+      });
 
       rendered = <Link to={target}>{rendered}</Link>;
     }
