@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import configparser
 import os
+import shlex
 import subprocess
 
 from devenv import constants
@@ -46,16 +47,15 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
 
 failed command (code p.returncode):
-    {proc.quote(final_cmd)}
+    {shlex.join(final_cmd)}
 
 Output:
-{out_str}
+{out.decode()}
 
 """
             )
