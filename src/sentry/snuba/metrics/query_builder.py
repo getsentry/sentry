@@ -452,7 +452,7 @@ def parse_conditions(
     # We will want to write our own grammar + interpreter for this later.
     try:
         query_builder = ReleaseHealthQueryBuilder(
-            Dataset.Sessions,
+            Dataset.Metrics,
             params={
                 "environment": environments,
                 "project_id": [project.id for project in projects],
