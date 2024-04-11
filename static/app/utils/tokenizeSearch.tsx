@@ -1,6 +1,6 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-const ALLOWED_WILDCARD_FIELDS = ['span.description'];
+const ALLOWED_WILDCARD_FIELDS = ['span.description', 'span.status_code'];
 export const EMPTY_OPTION_VALUE = '(empty)' as const;
 
 export enum TokenType {
