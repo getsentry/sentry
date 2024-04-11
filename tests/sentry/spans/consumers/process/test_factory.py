@@ -4,7 +4,6 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
@@ -139,7 +138,6 @@ def test_consumer_pushes_to_redis():
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
-@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 def test_produces_valid_segment_to_kafka():
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
@@ -193,6 +191,10 @@ def test_produces_valid_segment_to_kafka():
                 )
             )
         )
+
+        strategy.poll()
+        strategy.join(1)
+        strategy.terminate()
 
         mock_producer.produce.assert_called_once()
         BUFFERED_SEGMENT_SCHEMA.decode(mock_producer.produce.call_args.args[1].value)
@@ -290,7 +292,6 @@ def test_option_project_rollout(mock_buffer):
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
-@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 def test_produces_valid_segment_to_kafka_multiple_partitions():
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition_1 = Partition(topic, 0)
