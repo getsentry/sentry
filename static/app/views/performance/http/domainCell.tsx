@@ -29,6 +29,7 @@ export function DomainCell({projectId, domain}: Props) {
 
   const queryString = {
     ...location.query,
+    'span.domain': undefined,
     domain,
   };
 
