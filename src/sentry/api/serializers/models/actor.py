@@ -7,7 +7,7 @@ class ActorSerializerResponse(TypedDict):
     type: Literal["user", "team"]
     id: str
     name: str
-    email: str
+    email: str | None
 
 
 class ActorSerializer(Serializer):
