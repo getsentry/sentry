@@ -9,7 +9,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.tasks.backfill_seer_grouping_records import backfill_seer_grouping_records
 
 
-
 @region_silo_endpoint
 class ProjectSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
     owner = ApiOwner.ISSUES
