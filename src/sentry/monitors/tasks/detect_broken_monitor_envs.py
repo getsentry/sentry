@@ -170,7 +170,6 @@ def detect_broken_monitor_envs_for_org(org_id: int):
     # Query for all the broken incidents within the current org we are processing
     for open_incident in RangeQuerySetWrapper(
         orgs_open_incidents,
-        order_by="starting_timestamp",
         step=1000,
     ):
         # Record how long it takes to process this org's incident
