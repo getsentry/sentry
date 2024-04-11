@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -109,10 +109,10 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
         return _process_message(message)
     except Exception:
         sentry_sdk.capture_exception()
-        return None
+        return EMPTY_SEGMENT_CONTEXT
 
 
-def accumulator(
+def _accumulator(
     result: dict[int, ProduceSegmentContext], value: Message[ProduceSegmentContext]
 ) -> dict[int, ProduceSegmentContext]:
     context = value.payload
@@ -126,12 +126,25 @@ def accumulator(
     return result
 
 
+def accumulator(
+    result: dict[int, ProduceSegmentContext], value: Message[ProduceSegmentContext]
+) -> dict[int, ProduceSegmentContext]:
+    try:
+        return _accumulator(result, value)
+    except Exception:
+        sentry_sdk.capture_exception()
+        return result
+
+
 def _explode_segments(context_dict: dict[int, ProduceSegmentContext]):
     buffered_segments = []
 
     for context in context_dict.values():
         if not context.should_process_segments:
             continue
+
+        assert context.partition is not None
+        assert context.timestamp is not None
 
         with sentry_sdk.start_transaction(
             op="process", name="spans.process.explode_segments"
@@ -215,8 +228,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         unfold_step = Unfold(generator=explode_segments, next_step=produce_step)
 
-        initial_value: Callable[[], dict[int, ProduceSegmentContext]] = lambda: {}
-        reduce_step: Reduce[dict[int, ProduceSegmentContext], ProduceSegmentContext] = Reduce(
+        initial_value = lambda: {}
+        reduce_step: Reduce[ProduceSegmentContext, dict[int, ProduceSegmentContext]] = Reduce(
             self.max_batch_size,
             self.max_batch_time,
             accumulator,

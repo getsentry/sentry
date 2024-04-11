@@ -8,7 +8,11 @@ from arroyo.types import Topic as ArroyoTopic
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
-from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.spans.consumers.process.factory import (
+    ProcessSpansStrategyFactory,
+    ProduceSegmentContext,
+    accumulator,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -418,3 +422,28 @@ def test_produces_valid_segment_to_kafka_multiple_partitions():
         assert mock_producer.produce.call_count == 4
         BUFFERED_SEGMENT_SCHEMA.decode(mock_producer.produce.call_args.args[1].value)
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("buffered-segments")
+
+
+def test_accumulator():
+    def _make_message(segment_context):
+        return Message(
+            BrokerValue(
+                segment_context,
+                1,
+                1,
+                datetime.now() + timedelta(minutes=1),
+            )
+        )
+
+    result = accumulator({}, _make_message(ProduceSegmentContext(False, 1, 1)))
+    assert result == {}
+
+    result = accumulator(result, _make_message(ProduceSegmentContext(True, 1, 1)))
+    assert result == {1: ProduceSegmentContext(True, 1, 1)}
+
+    result = accumulator(result, _make_message(ProduceSegmentContext(True, 2, 2)))
+    result = accumulator(result, _make_message(ProduceSegmentContext(False, 2, 2)))
+    assert result == {1: ProduceSegmentContext(True, 1, 1), 2: ProduceSegmentContext(True, 2, 2)}
+
+    result = accumulator(result, _make_message(ProduceSegmentContext(True, 3, 2)))
+    assert result == {1: ProduceSegmentContext(True, 1, 1), 2: ProduceSegmentContext(True, 3, 2)}
