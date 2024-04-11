@@ -226,8 +226,7 @@ describe('ReplayClipPreview', () => {
         handleBackClick={handleBackClick}
         handleForwardClick={handleForwardClick}
         showNextAndPrevious
-      />,
-      {features: ['replay-play-from-replay-tab']}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Previous Clip'}));

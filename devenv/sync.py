@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import configparser
 import os
+import shlex
 import subprocess
 
 from devenv import constants
@@ -46,16 +47,15 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
 
 failed command (code p.returncode):
-    {proc.quote(final_cmd)}
+    {shlex.join(final_cmd)}
 
 Output:
-{out_str}
+{out.decode()}
 
 """
             )
@@ -68,6 +68,9 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+
+    # don't want this to be accidentally run from getsentry
+    assert repo == "sentry", repo
 
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
@@ -112,8 +115,39 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("javascript dependencies", ("make", "install-js-dev")),
-            ("python dependencies", ("make", "install-py-dev")),
+            (
+                "javascript dependencies",
+                (
+                    "bash",
+                    "-euo",
+                    "pipefail",
+                    "-c",
+                    """
+NODE_ENV=development ./.devenv/bin/yarn install --frozen-lockfile
+yarn check --verify-tree || yarn install --check-files
+""",
+                ),
+            ),
+            (
+                "python dependencies",
+                (
+                    "bash",
+                    "-euo",
+                    "pipefail",
+                    "-c",
+                    """
+# install pinned pip
+pip install --constraint requirements-dev-frozen.txt pip
+
+# pip doesn't do well with swapping drop-ins
+pip uninstall -qqy djangorestframework-stubs django-stubs
+
+pip install -r requirements-dev-frozen.txt
+
+python3 -m tools.fast_editable --path .
+""",
+                ),
+            ),
         ),
     ):
         return 1
@@ -136,12 +170,12 @@ def main(context: dict[str, str]) -> int:
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
-        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev", "--no-clobber"))
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
-            f"{venv_dir}/bin/{repo}",
+            f"{venv_dir}/bin/sentry",
             "devservices",
             "up",
             "redis",
@@ -151,17 +185,55 @@ def main(context: dict[str, str]) -> int:
         exit=True,
     )
 
-    if run_procs(
+    if not run_procs(
         repo,
         reporoot,
         venv_dir,
         (
             (
                 "python migrations",
-                ("make", "apply-migrations"),
+                (
+                    "bash",
+                    "-euo",
+                    "pipefail",
+                    "-c",
+                    """
+make create-db
+sentry upgrade --noinput
+""",
+                ),
             ),
         ),
     ):
-        return 0
+        return 1
 
-    return 1
+    # Starting sentry is slow.
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
+        proc.run(
+            (
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
+            )
+        )
+
+    return 0

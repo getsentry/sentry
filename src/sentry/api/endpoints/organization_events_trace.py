@@ -18,17 +18,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
@@ -670,13 +670,24 @@ def augment_transactions_with_spans(
 
     # If we're querying over 100 span ids, lets split the query into 3
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
+
+    # The max query size according to snuba/clickhouse docs is 256KiB, or about 256 thousand characters
+    # Each span id maps to being 20 characters; 16 characters turned back into a number maxes out at 20
+    # which at 10k transaction span ids, and even another 10k error span ids (which would only happen if there's no
+    # crossover) that's 20k * 20 = 400k bytes, with 3 queries that should be 133,333 bytes  which shouldn't be anywhere
+    # near the 256KiB max even with the other parts of the query.
+    # Experimentally (running queries in snuba admin) we've found the max query size is actually 131,535 bytes or
+    # 128.45KiB. Taking that into account, (131,535-10,000(for projects etc))/20 = 6000, means that we can fit at most
+    # 6000 span ids per query, Adding a bit of a buffer, if the query is for more than 12,500 spans we'll do 4 chunks
+    # instead of 3
     if len(query_spans) > 100:
         list_spans = list(query_spans)
-        chunks = [
-            list_spans[: len(list_spans) // 3],
-            list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
-            list_spans[len(list_spans) // 3 * 2 :],
-        ]
+        if len(query_spans) < 12_500:
+            total_chunks = 3
+        else:
+            total_chunks = 4
+        sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
+        chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
         results = bulk_snql_query(
             [query.get_snql_query() for query in queries],
@@ -720,23 +731,6 @@ def augment_transactions_with_spans(
             if parent is not None:
                 error["trace.transaction"] = parent["transaction.id"]
     return transactions
-
-
-def update_params_with_timestamp(request: HttpRequest, params: Mapping[str, str]) -> None:
-    # during the transition this is optional but it will become required
-    sentry_sdk.set_tag("trace_view.used_timestamp", "timestamp" in request.GET)
-    if "timestamp" in request.GET:
-        example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
-        # While possible, the majority of traces shouldn't take more than a week
-        # Starting with 3d for now, but potentially something we can increase if this becomes a problem
-        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
-        example_start = example_timestamp - timedelta(days=time_buffer)
-        example_end = example_timestamp + timedelta(days=time_buffer)
-        # If timestamp is being passed it should always overwrite the statsperiod or start & end
-        # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        params["start"] = max(params["start"], example_start)
-        params["end"] = min(params["end"], example_end)
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -840,7 +834,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed: bool = request.GET.get("detailed", "0") == "1"
         # Temporary url params until we finish migrating the frontend
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
-        update_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
@@ -1438,7 +1432,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        update_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, params)
 
         with handle_query_errors():
             result = discover.query(

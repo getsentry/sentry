@@ -51,6 +51,7 @@ function MetricWidgetViewerModal({
 }: Props) {
   const {selection} = usePageFilters();
   const [displayType, setDisplayType] = useState(widget.displayType);
+  const [interval, setInterval] = useState<string>(widget.interval);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
   );
@@ -202,7 +203,11 @@ function MetricWidgetViewerModal({
     const convertedWidget = expressionsToWidget(
       [...filteredQueries, ...filteredEquations],
       title.edited,
-      toDisplayType(displayType)
+      toDisplayType(displayType),
+      // TODO(metrics): for now we do not persist the interval by default
+      // as we need to find a way to handle per widget interval perferences
+      // with the dashboard interval preferences
+      widget.interval ?? interval
     );
 
     onMetricWidgetEdit?.(convertedWidget);
@@ -215,6 +220,8 @@ function MetricWidgetViewerModal({
     displayType,
     onMetricWidgetEdit,
     closeModal,
+    interval,
+    widget.interval,
   ]);
 
   return (
@@ -245,6 +252,8 @@ function MetricWidgetViewerModal({
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
             onOrderChange={handleOrderChange}
+            onIntervalChange={setInterval}
+            interval={interval}
           />
           <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>

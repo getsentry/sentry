@@ -70,6 +70,7 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.mediators.project_rules.creator import Creator
+from sentry.models.actor import get_actor_for_user
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -1285,14 +1286,6 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def bulk_store_sessions(self, sessions):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
-            ).status_code
-            == 200
-        )
-
     def build_session(self, **kwargs):
         session = {
             "session_id": str(uuid4()),
@@ -1319,9 +1312,6 @@ class SnubaTestCase(BaseTestCase):
             kwargs[key] = getattr(val, attr, val)
         session.update(kwargs)
         return session
-
-    def store_session(self, session):
-        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -3059,6 +3049,9 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
+        if "owner_actor_id" not in kwargs:
+            kwargs["owner_actor_id"] = get_actor_for_user(self.user).id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
