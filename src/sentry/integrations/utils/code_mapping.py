@@ -285,7 +285,6 @@ class CodeMappingTreesHelper:
         source code. Use existing code mappings to exclude some source files
         """
 
-        # l1 shoudl be longer
         def _list_endswith(l1: list[str], l2: list[str]) -> bool:
             if len(l2) > len(l1):
                 l1, l2 = l2, l1
