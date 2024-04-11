@@ -608,6 +608,7 @@ module = [
     "sentry.buffer.redis",
     "sentry.eventstore.reprocessing.redis",
     "sentry.grouping.fingerprinting",
+    "sentry.grouping.variants",
     "sentry.issues.related.*",
     "sentry.lang.java.processing",
     "sentry.migrations.*",
