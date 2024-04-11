@@ -673,7 +673,7 @@ def should_use_on_demand_metrics(
     query: str | None,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-    organization_bulk_query_cache: dict[str, Any] | None = None,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> bool:
     if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
         if organization_bulk_query_cache is None:
