@@ -251,7 +251,7 @@ export function TraceEventDataSection({
       platform === 'objc' ||
       platform === 'native' ||
       platform === 'cocoa' ||
-      platform === 'nintendo'
+      platform === 'nintendo-switch'
     ) {
       return [
         {

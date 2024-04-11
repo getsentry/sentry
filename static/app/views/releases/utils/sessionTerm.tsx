@@ -145,7 +145,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
     case 'apple-ios':
     case 'minidump':
     case 'native':
-    case 'nintendo':
+    case 'nintendo-switch':
       return {
         ...commonTermsDescription,
         ...desktopTermDescriptions,

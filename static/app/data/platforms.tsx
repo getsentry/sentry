@@ -355,11 +355,11 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
-    id: 'nintendo',
-    name: 'Nintendo',
+    id: 'nintendo-switch',
+    name: 'Nintendo Switch',
     type: 'framework',
     language: 'native',
-    link: 'https://docs.sentry.io/platforms/nintendo',
+    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
   },
   {
     id: 'node',
