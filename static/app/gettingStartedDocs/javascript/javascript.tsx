@@ -46,7 +46,7 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
   }${
     params.isReplaySelected
       ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
+        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions ?? {block: true, mask: true})}),`
       : ''
   }
 ],${
@@ -67,7 +67,6 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 }
 });
 `;
-
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
