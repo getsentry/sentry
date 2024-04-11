@@ -1165,19 +1165,23 @@ describe('trace view', () => {
       await searchToUpdate();
 
       assertHighlightedRowAtIndex(container, 1);
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await searchToUpdate();
 
       // User moves down the list using keyboard navigation
-      while (container.querySelector('.TraceRow.Highlight') !== rows[6]) {
+      for (const _ of [1, 2, 3, 4, 5]) {
+        const initial = screen.getByTestId('trace-search-result-iterator').textContent;
         await userEvent.keyboard('{arrowDown}');
+        await waitFor(() => {
+          expect(screen.getByTestId('trace-search-result-iterator')).not.toBe(initial);
+        });
       }
 
       // User clicks on an entry in the list, then proceeds to search
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '6/11'
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '6/11'
+        );
+      });
       // And then continues the query - the highlighting is preserved as long as the
       // rwo is part of the search results
       assertHighlightedRowAtIndex(container, 6);
