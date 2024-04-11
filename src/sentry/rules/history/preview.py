@@ -18,7 +18,7 @@ from sentry.rules.history.preview_strategy import (
     get_update_kwargs_for_group,
     get_update_kwargs_for_groups,
 )
-from sentry.rules.processor import get_match_function
+from sentry.rules.processing.processor import get_match_function
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,

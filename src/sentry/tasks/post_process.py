@@ -1091,7 +1091,7 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.rules.processor import RuleProcessor
+    from sentry.rules.processing.processor import RuleProcessor
 
     group_event = job["event"]
     if isinstance(group_event, Event):
