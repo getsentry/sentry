@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -8,12 +10,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule_activations import AlertRuleActivationsSerializer
+from sentry.api.serializers.models.alert_rule_activations import AlertRuleActivationsResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
+
+if TYPE_CHECKING:
+    from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.models.organization import Organization
 
 
 @extend_schema(tags=["Alerts"])
@@ -29,7 +35,7 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
         parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: inline_sentry_response_serializer(
-                "ListAlertRuleActivations", list[AlertRuleActivationsSerializer]
+                "ListAlertRuleActivations", list[AlertRuleActivationsResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -37,7 +43,7 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
         },
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
-    def get(self, request: Request, organization, alert_rule) -> Response:
+    def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         activations = alert_rule.activations.all()
         start = request.GET.get("start", None)
         end = request.GET.get("end", None)

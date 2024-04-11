@@ -59,9 +59,9 @@ class AlertRuleActivations(Model):
 
     objects: ClassVar[AlertRuleActivationsManager] = AlertRuleActivationsManager()
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activations")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activations", db_index=True)
     # date_added timestamp indicates when this particular run was activated
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     # If finished_at is null, this indicates whether the run is ongoing or completed
     finished_at = models.DateTimeField(null=True)
     # metric value represents the query results at the end of the activated time window.

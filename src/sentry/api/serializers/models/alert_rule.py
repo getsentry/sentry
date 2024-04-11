@@ -99,7 +99,6 @@ class AlertRuleSerializer(Serializer):
     ) -> defaultdict[AlertRule, Any]:
         alert_rules = {item.id: item for item in item_list}
         prefetch_related_objects(item_list, "snuba_query__environment")
-        prefetch_related_objects(item_list, "activations")
 
         result: defaultdict[AlertRule, dict[str, Any]] = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
@@ -190,7 +189,11 @@ class AlertRuleSerializer(Serializer):
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
-            activations = activations_by_alert_rule_id.get(item.id, [])
+            activations = sorted(
+                activations_by_alert_rule_id.get(item.id, []),
+                key=lambda x: x.date_added,
+                reverse=True,
+            )
             result[item]["activations"] = serialize(activations, **kwargs)
 
         resolved_actors: dict[str, dict[int | None, int | None]] = {}
