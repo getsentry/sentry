@@ -19,7 +19,7 @@ jest.mock('sentry/utils/useOrganization');
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let ribbonRequestMock;
+  let eventsRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -59,19 +59,14 @@ describe('HTTPSamplesPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    ribbonRequestMock = MockApiClient.addMockResponse({
+    eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
-        }),
-      ],
       body: {
         data: [
           {
             'project.id': 1,
+            'transaction.id': '',
             'spm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -99,7 +94,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('status panel', () => {
-    let chartRequestMock, samplesRequestMock;
+    let eventsStatsRequestMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -119,7 +114,7 @@ describe('HTTPSamplesPanel', () => {
         key: '',
       });
 
-      chartRequestMock = MockApiClient.addMockResponse({
+      eventsStatsRequestMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
         method: 'GET',
         match: [
@@ -144,34 +139,10 @@ describe('HTTPSamplesPanel', () => {
       });
     });
 
-    samplesRequestMock = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
-        }),
-      ],
-      body: {
-        data: [
-          {
-            span_id: 'b1bf1acde131623a',
-            'span.description':
-              'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
-            project: 'javascript',
-            timestamp: '2024-03-25T20:31:36+00:00',
-            'span.status_code': '200',
-            'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
-            'span.self_time': 320.300102,
-          },
-        ],
-      },
-    });
-
     it('fetches panel data', async () => {
       render(<HTTPSamplesPanel />);
 
-      expect(ribbonRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
@@ -198,7 +169,7 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      expect(chartRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events-stats/`,
         expect.objectContaining({
@@ -224,17 +195,25 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      expect(samplesRequestMock).toHaveBeenNthCalledWith(
-        1,
-        `/api/0/organizations/${organization.slug}/events/`,
+      expect(eventsRequestMock).toHaveBeenNthCalledWith(
+        2,
+        `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
+            dataset: 'spansIndexed',
             query:
               'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             project: [],
-            field: ['transaction.id', 'span.description', 'span.status_code'],
-            referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+            field: [
+              'project',
+              'transaction.id',
+              'span.description',
+              'span.status_code',
+              'span_id',
+            ],
+            sort: '-span_id',
+            referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
             statsPeriod: '10d',
           }),
         })

@@ -189,7 +189,7 @@ export function HTTPSamplesPanel() {
     ],
     min: 0,
     max: durationAxisMax,
-    enabled: query.panel === 'duration' && durationAxisMax > 0,
+    enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
     referrer: 'api.starfish.http-module-samples-panel-duration-samples',
   });
 
@@ -209,7 +209,7 @@ export function HTTPSamplesPanel() {
     ],
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
-    enabled: query.panel === 'status',
+    enabled: isPanelOpen && query.panel === 'status',
     referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
   });
 
