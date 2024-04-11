@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,10 +20,13 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
+import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/definitions';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
+import {ResponseCodeCountChart} from 'sentry/views/performance/http/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -31,6 +35,7 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
   SpanFunction,
@@ -52,6 +57,7 @@ export function HTTPSamplesPanel() {
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
       panel: decodePanel,
+      responseCodeClass: decodeResponseCodeClass,
     },
   });
 
@@ -59,6 +65,13 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
+
+  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
+    undefined,
+    [],
+
+    SAMPLE_HOVER_DEBOUNCE
+  );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
@@ -78,19 +91,50 @@ export function HTTPSamplesPanel() {
     });
   };
 
+  const handleResponseCodeClassChange = newResponseCodeClass => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        responseCodeClass: newResponseCodeClass.value,
+      },
+    });
+  };
+
   const isPanelOpen = Boolean(detailKey);
 
+  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
+  const ribbonFilters: SpanMetricsQueryFilters = {
+    'span.module': ModuleName.HTTP,
+    'span.domain': query.domain,
+    transaction: query.transaction,
+  };
+
+  // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
     'span.domain': query.domain,
     transaction: query.transaction,
   };
 
+  const responseCodeInRange = query.responseCodeClass
+    ? Object.keys(HTTP_RESPONSE_STATUS_CODES).filter(code =>
+        code.startsWith(query.responseCodeClass)
+      )
+    : [];
+
+  if (responseCodeInRange.length > 0) {
+    // TODO: Allow automatic array parameter concatenation
+    filters['span.status_code'] = `[${responseCodeInRange.join(',')}]`;
+  }
+
+  const search = MutableSearch.fromQueryObject(filters);
+
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
   } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
+    search: MutableSearch.fromQueryObject(ribbonFilters),
     fields: [
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -109,7 +153,7 @@ export function HTTPSamplesPanel() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
+    search,
     yAxis: [`avg(span.self_time)`],
     enabled: isPanelOpen && query.panel === 'duration',
     referrer: 'api.starfish.http-module-samples-panel-duration-chart',
@@ -119,9 +163,11 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+  } = useSpanMetricsTopNSeries({
+    search,
+    fields: ['span.status_code', 'count()'],
+    yAxis: ['count()'],
+    topEvents: 5,
     enabled: isPanelOpen && query.panel === 'status',
     referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
   });
@@ -134,7 +180,7 @@ export function HTTPSamplesPanel() {
     error: samplesDataError,
     refetch: refetchSpanSamples,
   } = useSpanSamples({
-    search: MutableSearch.fromQueryObject(filters),
+    search,
     fields: [
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
@@ -148,8 +194,15 @@ export function HTTPSamplesPanel() {
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     samplesData,
-    domainTransactionMetrics?.[0]?.['avg(span.self_time)']
+    domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
+    highlightedSpanId
   );
+
+  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
+    return samplesData.find(
+      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
+    );
+  };
 
   const handleClose = () => {
     router.replace({
@@ -261,18 +314,29 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <SegmentedControl
-              value={query.panel}
-              onChange={handlePanelChange}
-              aria-label={t('Choose breakdown type')}
-            >
-              <SegmentedControl.Item key="duration">
-                {t('By Duration')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="status">
-                {t('By Response Code')}
-              </SegmentedControl.Item>
-            </SegmentedControl>
+            <PanelControls>
+              <SegmentedControl
+                value={query.panel}
+                onChange={handlePanelChange}
+                aria-label={t('Choose breakdown type')}
+              >
+                <SegmentedControl.Item key="duration">
+                  {t('By Duration')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="status">
+                  {t('By Response Code')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
+
+              <CompactSelect
+                value={query.responseCodeClass}
+                options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
+                onChange={handleResponseCodeClassChange}
+                triggerProps={{
+                  prefix: t('Response Code'),
+                }}
+              />
+            </PanelControls>
           </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
@@ -286,6 +350,17 @@ export function HTTPSamplesPanel() {
                     },
                   ]}
                   scatterPlot={sampledSpanDataSeries}
+                  onHighlight={highlights => {
+                    const firstHighlight = highlights[0];
+
+                    if (!firstHighlight) {
+                      setHighlightedSpanId(undefined);
+                      return;
+                    }
+
+                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    setHighlightedSpanId(sample?.span_id);
+                  }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />
@@ -295,6 +370,9 @@ export function HTTPSamplesPanel() {
                 <SpanSamplesTable
                   data={samplesData}
                   isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  highlightedSpanId={highlightedSpanId}
+                  onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                  onSampleMouseOut={() => setHighlightedSpanId(undefined)}
                   error={samplesDataError}
                   // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
                   meta={{
@@ -310,21 +388,8 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <ModuleLayout.Full>
-              <ResponseRateChart
-                series={[
-                  {
-                    ...responseCodeData[`http_response_rate(3)`],
-                    seriesName: t('3XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(4)`],
-                    seriesName: t('4XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(5)`],
-                    seriesName: t('5XX'),
-                  },
-                ]}
+              <ResponseCodeCountChart
+                series={Object.values(responseCodeData).filter(Boolean)}
                 isLoading={isResponseCodeDataLoading}
                 error={responseCodeError}
               />
@@ -342,9 +407,34 @@ export function HTTPSamplesPanel() {
   );
 }
 
+const SAMPLE_HOVER_DEBOUNCE = 10;
+
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
+
+const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
+  {
+    value: '',
+    label: t('All'),
+  },
+  {
+    value: '2',
+    label: t('2XXs'),
+  },
+  {
+    value: '3',
+    label: t('3XXs'),
+  },
+  {
+    value: '4',
+    label: t('4XXs'),
+  },
+  {
+    value: '5',
+    label: t('5XXs'),
+  },
+];
 
 const HeaderContainer = styled('div')`
   display: grid;
@@ -372,4 +462,10 @@ const MetricsRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(4)};
+`;
+
+const PanelControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(2)};
 `;

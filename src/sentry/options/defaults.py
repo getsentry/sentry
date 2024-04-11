@@ -17,6 +17,7 @@ from sentry.options.manager import (
     FLAG_REQUIRED,
     FLAG_SCALAR,
 )
+from sentry.quotas.base import build_metric_abuse_quotas
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # Cache
@@ -461,6 +462,15 @@ register(
 register(
     "feedback.ingest-topic.rollout-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Extract spans only from a random fraction of transactions.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.span-extraction.sample-rate",
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1161,40 +1171,13 @@ register(
 )
 
 
-register(
-    "global-abuse-quota.metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "global-abuse-quota.sessions-metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "global-abuse-quota.transactions-metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "global-abuse-quota.spans-metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "global-abuse-quota.custom-metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
+for mabq in build_metric_abuse_quotas():
+    register(
+        mabq.option,
+        type=Int,
+        default=0,
+        flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    )
 
 # END ABUSE QUOTAS
 
