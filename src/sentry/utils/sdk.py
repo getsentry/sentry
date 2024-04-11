@@ -86,6 +86,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
+    "sentry.tasks.backfill_seer_grouping_records": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:

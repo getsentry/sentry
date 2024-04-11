@@ -123,7 +123,7 @@ def get_similar_issues_embeddings(
 
 
 class CreateGroupingRecordData(TypedDict):
-    group_id: int
+    hash: str
     project_id: int
     message: str
 
