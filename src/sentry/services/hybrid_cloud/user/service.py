@@ -163,6 +163,11 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def verify_any_email(self, *, email: str) -> bool:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
         """
         Creates a new user via a combination of email and username.
