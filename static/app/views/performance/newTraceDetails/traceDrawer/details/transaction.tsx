@@ -213,7 +213,8 @@ function AdditionalMobileEventContexts({event}: {event: EventTransaction}) {
     <Fragment>
       {Object.entries(omit(event.contexts ?? {}, ['feedback', 'response'])).map(
         ([key, value]) => {
-          if (key === 'profile' || key === 'trace') {
+          // Ignore profile as it's handled separately in the drawer.
+          if (key === 'profile') {
             return null;
           }
 
