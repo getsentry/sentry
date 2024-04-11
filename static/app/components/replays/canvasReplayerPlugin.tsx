@@ -213,8 +213,12 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
     // No canvas found for id... this isn't reliably reproducible and not
     // exactly sure why it flakes. Saving as metric to keep an eye on it.
-    if (!target) {
-      Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
+    if ((!target || !source) && shouldPreload) {
+      // Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
+      // See comments at definition of `handleQueue`
+      const queue = handleQueue.get(e.data.id) || [];
+      queue.push([e, replayer]);
+      handleQueue.set(e.data.id, [e, replayer]);
       return;
     }
 
@@ -264,16 +268,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       }
 
       // See comments at definition of `handleQueue`
-      const queue = handleQueue.get(id);
-      handleQueue.set(id, []);
-      while (queue?.length) {
-        const queueItem = queue.shift();
-        if (!queueItem) {
-          return;
-        }
-        const [event, replayer] = queueItem;
-        processEvent(event, {shouldPreload: false, replayer});
+      const queueItem = handleQueue.get(id);
+      // handleQueue.set(id, []);
+      // console.log({id, queue})
+      // while (queue?.length) {
+      //   const queueItem = queue.shift();
+      if (!queueItem) {
+        return;
       }
+      const [event, replayer] = queueItem;
+      processEvent(event, {shouldPreload: false, replayer});
+      // }
     },
 
     /**
@@ -295,10 +300,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         nextPreloadIndex = -1;
 
         if (isCanvas) {
-          // See comments at definition of `handleQueue`
-          const queue = handleQueue.get(e.data.id) || [];
-          queue.push([e, replayer]);
-          handleQueue.set(e.data.id, queue);
+          console.log('isCanvas and isSync', e.data);
+          processEvent(e, {replayer});
         }
 
         prune(e);
