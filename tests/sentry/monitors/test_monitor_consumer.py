@@ -733,3 +733,31 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_monitor_seat.assert_called_with(monitor)
+
+    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_accept_upsert_existing_monitor(
+        self,
+        check_accept_monitor_checkin,
+        assign_monitor_seat,
+    ):
+        """
+        Validate the unusual casse where a seat does not already exist but a
+        monitor does exist. We should ensure assign_monitor_seat is called
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin("my-monitor", environment="my-environment")
+
+        # Check-in was not produced as we could not assign a monitor seat
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+        # Monitor was created, but is disabled
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert monitor.status == ObjectStatus.DISABLED
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assign_monitor_seat.assert_called_with(monitor)

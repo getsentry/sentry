@@ -60,7 +60,6 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: Mapping | None,
-    quotas_outcome: PermitCheckInStatus,
 ):
     try:
         monitor = Monitor.objects.get(
@@ -120,13 +119,6 @@ def _ensure_monitor_with_config(
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
         monitor.update_config(config, validated_config)
-
-    # When accepting for upsert attempt to assign a seat for the monitor,
-    # otherwise the monitor is marked as disabled
-    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
 
     return monitor
 
@@ -467,7 +459,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             project,
             monitor_slug,
             monitor_config,
-            quotas_outcome,
         )
     except MonitorLimitsExceeded:
         metrics.incr(
@@ -489,6 +480,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             category=DataCategory.MONITOR,
         )
         return
+
+    # When accepting for upsert attempt to assign a seat for the monitor,
+    # otherwise the monitor is marked as disabled
+    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            monitor.update(status=ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
