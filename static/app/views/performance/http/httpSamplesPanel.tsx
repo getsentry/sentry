@@ -20,6 +20,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
+import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/definitions';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
@@ -116,8 +117,15 @@ export function HTTPSamplesPanel() {
     transaction: query.transaction,
   };
 
-  if (query.responseCodeClass) {
-    filters['span.status_code'] = `${query.responseCodeClass}*`;
+  const responseCodeInRange = query.responseCodeClass
+    ? Object.keys(HTTP_RESPONSE_STATUS_CODES).filter(code =>
+        code.startsWith(query.responseCodeClass)
+      )
+    : [];
+
+  if (responseCodeInRange.length > 0) {
+    // TODO: Allow automatic array parameter concatenation
+    filters['span.status_code'] = `[${responseCodeInRange.join(',')}]`;
   }
 
   const search = MutableSearch.fromQueryObject(filters);
