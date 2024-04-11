@@ -968,10 +968,73 @@ describe('trace view', () => {
         });
       }
     });
-    // @TODO I am torn on this because left-right
-    // should probably also move the input cursor...
-    // it.todo("supports expanding with arrowright")
-    // it.todo("supports collapsing with arrowleft")
+    it('supports expanding with ArrowRight', async () => {
+      await searchTestSetup();
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      await userEvent.click(searchInput);
+      // Fire change because userEvent triggers this letter by letter
+      fireEvent.change(searchInput, {target: {value: 'transaction-op-1'}});
+      // Wait for the search results to resolve
+      await searchToUpdate();
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'transaction-op-1'
+      );
+
+      // Expand our result
+      const request = mockSpansResponse(
+        '1',
+        {},
+        {
+          entries: [
+            {
+              type: EntryType.SPANS,
+              data: [makeSpan({span_id: '5', op: 'this-is-fetched-on-zoom'})],
+            },
+          ],
+        }
+      );
+      await userEvent.keyboard('{arrowright}');
+
+      await waitFor(() => {
+        expect(request).toHaveBeenCalledTimes(1);
+        expect(screen.getByText('this-is-fetched-on-zoom')).toBeInTheDocument();
+      });
+    });
+    it('supports collapsing with ArrowLeft', async () => {
+      await searchTestSetup();
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      await userEvent.click(searchInput);
+      // Fire change because userEvent triggers this letter by letter
+      fireEvent.change(searchInput, {target: {value: 'transaction-op-1'}});
+      // Wait for the search results to resolve
+      await searchToUpdate();
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'transaction-op-1'
+      );
+
+      mockSpansResponse(
+        '1',
+        {},
+        {
+          entries: [
+            {
+              type: EntryType.SPANS,
+              data: [makeSpan({span_id: '5', op: 'this-is-fetched-on-zoom'})],
+            },
+          ],
+        }
+      );
+      await userEvent.keyboard('{arrowright}');
+
+      await waitFor(() => {
+        expect(screen.getByText('this-is-fetched-on-zoom')).toBeInTheDocument();
+      });
+
+      await userEvent.keyboard('{arrowleft}');
+      expect(screen.queryByText('this-is-fetched-on-zoom')).not.toBeInTheDocument();
+    });
     it('search roving updates the element in the drawer', async () => {
       await searchTestSetup();
 
