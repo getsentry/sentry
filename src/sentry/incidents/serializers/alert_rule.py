@@ -406,7 +406,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     @staticmethod
     def _validate_time_window(dataset, time_window):
-        if dataset in [Dataset.Sessions, Dataset.Metrics]:
+        if dataset == Dataset.Metrics:
             # Validate time window
             if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
