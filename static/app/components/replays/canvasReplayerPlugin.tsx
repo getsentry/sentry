@@ -26,6 +26,8 @@ function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   );
 }
 
+class InvalidCanvasNodeError extends Error {}
+
 /**
  * Find the lowest matching index for event
  */
@@ -201,9 +203,15 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
   const debouncedProcessQueuedEvents = debounce(
     function () {
-      Array.from(handleQueue.entries()).forEach(([id, [e, replayer]]) => {
-        processEvent(e, {replayer});
-        handleQueue.delete(id);
+      Array.from(handleQueue.entries()).forEach(async ([id, [e, replayer]]) => {
+        try {
+          await processEvent(e, {replayer});
+          handleQueue.delete(id);
+        } catch (err) {
+          if (!(err instanceof InvalidCanvasNodeError)) {
+            Sentry.captureException(err);
+          }
+        }
       });
     },
     250,
@@ -232,11 +240,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       canvases.get(e.data.id) ||
       (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
 
-    // No canvas found for id... this isn't reliably reproducible and not
-    // exactly sure why it flakes. Saving as metric to keep an eye on it.
     if (!target) {
-      Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
-      return;
+      throw new InvalidCanvasNodeError('No canvas found for id');
     }
 
     await canvasMutation({
@@ -291,7 +296,11 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         return;
       }
       const [event, replayer] = queueItem;
-      processEvent(event, {replayer});
+      try {
+        processEvent(event, {replayer});
+      } catch (err) {
+        Sentry.captureException(err);
+      }
     },
 
     /**
@@ -327,7 +336,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         return;
       }
 
-      processEvent(e, {replayer});
+      try {
+        processEvent(e, {replayer});
+      } catch (err) {
+        if (err instanceof InvalidCanvasNodeError) {
+          // This can throw if mirror DOM is not ready
+          Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
+          return;
+        }
+
+        Sentry.captureException(err);
+      }
     },
   };
 }
