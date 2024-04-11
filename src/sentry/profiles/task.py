@@ -1126,8 +1126,8 @@ def _calculate_duration_for_android_format(profile: Profile) -> int:
 def _set_frames_platform(profile: Profile):
     if "version" not in profile:
         return
-    platform = profile.get("platform", "")
-    if platform in ["javascript", "node", "cocoa", ""]:
+    platform = profile["platform"]
+    if platform in ["javascript", "node", "cocoa"]:
         # bail early because it was already set
         return
     for i, _ in enumerate(profile["profile"]["frames"]):
