@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
 from sentry.models.user import User
@@ -70,7 +70,7 @@ def update_priority(
         project=project,
         new_priority=priority.to_str(),
         previous_priority=previous_priority.to_str() if previous_priority else None,
-        user_id=get_actor_id_for_user(actor) if actor else None,
+        user_id=get_actor_for_user(actor).id if actor else None,
         reason=reason.value if reason else None,
         sender=sender,
     )

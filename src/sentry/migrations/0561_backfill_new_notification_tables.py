@@ -5,6 +5,8 @@ from __future__ import annotations
 from enum import Enum
 
 from django.db import ProgrammingError, migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -211,7 +213,9 @@ End of copied over code
 """
 
 
-def backfill_notification_settings(apps, schema_editor):
+def backfill_notification_settings(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     try:
         NotificationSetting = apps.get_model("sentry", "NotificationSetting")
         NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
