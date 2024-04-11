@@ -40,6 +40,13 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
+        """
+        Return a list of activations for a metric alert rule.
+
+        An activation represents a single instance of an activated alert rule being triggered.
+        It contains a date_added field which represents the time the alert was triggered.
+        Activations can be filtered by start and end parameters to return activations with date_added that falls within the specified time window.
+        """
         activations = alert_rule.activations.all()
         start = request.GET.get("start", None)
         end = request.GET.get("end", None)
