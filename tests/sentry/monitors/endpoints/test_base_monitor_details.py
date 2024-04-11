@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models.actor import get_actor_for_team
+from sentry.models.actor import get_actor_for_team, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -217,6 +217,51 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
+
+    def test_owner(self):
+        monitor = self._create_monitor()
+        assert monitor.owner_actor_id == get_actor_for_user(self.user).id
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": f"team:{self.team.id}"}
+        )
+        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["owner"]["name"] == self.team.name
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_actor_id == get_actor_for_team(self.team).id
+
+        # Clear owner
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": None}
+        )
+        assert resp.data["owner"] is None
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_actor_id is None
+
+        # Validate error cases
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": "invalid"},
+        )
+        assert (
+            resp.data["owner"][0]
+            == "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+
+        new_user = self.create_user()
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": f"user:{new_user.id}"},
+        )
+        assert resp.data["owner"][0] == "User is not a member of this organization"
 
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()

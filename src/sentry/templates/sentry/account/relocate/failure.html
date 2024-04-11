@@ -10,6 +10,13 @@
 	<p>{% blocktrans %}This link has expired. Request a new claim account email to set your account
 	  password and claim your account.{% endblocktrans %}</p>
   <form method="POST" action="{% url 'sentry-account-relocate-reclaim' user_id %}">
+    {% csrf_token %}
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
+
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Resend Email" %}</button>
     </fieldset>
