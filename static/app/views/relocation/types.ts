@@ -1,15 +1,27 @@
 import type {RouteComponentProps} from 'react-router';
 
+export type RelocationState = {
+  orgSlugs: string;
+  promoCode: string;
+  regionUrl: string;
+};
+
+export type MaybeUpdateRelocationState = {
+  orgSlugs?: string;
+  promoCode?: string;
+  regionUrl?: string;
+};
+
 export type StepProps = Pick<
   RouteComponentProps<{}, {}>,
   'router' | 'route' | 'location'
 > & {
   active: boolean;
   existingRelocationUUID: string;
-  onChangeRegionUrl: (regionUrl?: string) => void;
   onComplete: (uuid?: string) => void;
+  onUpdateRelocationState: (MaybeUpdateRelocationState) => void;
   publicKeys: Map<string, string>;
-  regionUrl: string;
+  relocationState: RelocationState;
   stepIndex: number;
 };
 
