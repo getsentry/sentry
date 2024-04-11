@@ -2371,6 +2371,11 @@ register(
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deobfuscate profiles using Symbolicator
 register(
