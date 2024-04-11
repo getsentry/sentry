@@ -426,6 +426,57 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
     return cast(int, count["data"][0].get("total_groups", 0))
 
 
+@sentry_sdk.tracing.trace
+def update_params_with_trace_timestamp_projects(
+    trace_id: str,
+    params: Mapping[str, str],
+) -> None:
+    query_metadata = options.get("performance.traces.query_timestamp_projects")
+    sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
+    if not query_metadata:
+        return
+
+    metadata_query = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=[
+            "min(timestamp)",
+            "max(timestamp)",
+            "project.id",
+        ],
+    )
+    results = metadata_query.run_query(Referrer.API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS.value)
+    results = metadata_query.process_results(results)
+    project_id_set = set()
+    min_timestamp = None
+    max_timestamp = None
+    for row in results["data"]:
+        current_min = datetime.fromisoformat(row["min_timestamp"])
+        current_max = datetime.fromisoformat(row["max_timestamp"])
+        if min_timestamp is None:
+            min_timestamp = current_min
+        if max_timestamp is None:
+            max_timestamp = current_max
+
+        if current_min < min_timestamp:
+            min_timestamp = current_min
+        if current_max > max_timestamp:
+            max_timestamp = current_max
+
+        project_id_set.add(row["project.id"])
+
+    project_ids = list(project_id_set)
+    # Reusing this option for now
+    time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
+    if min_timestamp:
+        params["start"] = min_timestamp - timedelta(hours=time_buffer)
+    if max_timestamp:
+        params["end"] = max_timestamp + timedelta(hours=time_buffer)
+    params["project_objects"] = [p for p in params["project_objects"] if p.id in project_ids]
+    params["project_id"] = project_ids
+
+
 def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
@@ -852,6 +903,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
+            update_params_with_trace_timestamp_projects(trace_id, params)
+
             if use_spans:
                 transactions, errors = query_trace_data(
                     trace_id, params, limit, event_id, use_spans
@@ -1435,6 +1488,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         update_snuba_params_with_timestamp(request, params)
 
         with handle_query_errors():
+            update_params_with_trace_timestamp_projects(trace_id, params)
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",
