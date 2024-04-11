@@ -213,5 +213,5 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     ),
                 },
             ],
-            key=lambda trace: trace["trace"],
+            key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
         )
