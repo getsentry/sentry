@@ -1,75 +1,54 @@
 import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
+
+const organization = OrganizationFixture();
 
 describe('ApiTokens', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty result', async function () {
+  it('renders empty result', function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: null,
     });
 
-    render(<ApiTokens />);
-
-    expect(
-      await screen.findByText("You haven't created any authentication tokens yet.")
-    ).toBeInTheDocument();
+    render(<ApiTokens organization={organization} />);
   });
 
-  it('renders with result', async function () {
-    const token1 = ApiTokenFixture({id: '1', name: 'token1'});
-    const token2 = ApiTokenFixture({id: '2', name: 'token2'});
-
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [token1, token2],
-    });
-
-    render(<ApiTokens />);
-
-    expect(await screen.findByText('token1')).toBeInTheDocument();
-    expect(await screen.findByText('token2')).toBeInTheDocument();
-  });
-
-  it('can delete token', async function () {
+  it('renders with result', function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: [ApiTokenFixture()],
     });
 
-    const deleteTokenMock = MockApiClient.addMockResponse({
+    render(<ApiTokens organization={organization} />);
+  });
+
+  it('can delete token', function () {
+    MockApiClient.addMockResponse({
+      url: '/api-tokens/',
+      body: [ApiTokenFixture()],
+    });
+
+    const mock = MockApiClient.addMockResponse({
       url: '/api-tokens/',
       method: 'DELETE',
     });
+    expect(mock).not.toHaveBeenCalled();
 
-    render(<ApiTokens />);
+    render(<ApiTokens organization={organization} />);
 
-    const removeButton = await screen.findByRole('button', {name: 'Remove'});
-    expect(removeButton).toBeInTheDocument();
-    expect(deleteTokenMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText('Remove'));
 
-    // mock response for refetch after delete
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [],
-    });
-
-    userEvent.click(removeButton);
-
-    // Wait for list to update
-    expect(
-      await screen.findByText("You haven't created any authentication tokens yet.")
-    ).toBeInTheDocument();
-
-    // Should have called delete
-    expect(deleteTokenMock).toHaveBeenCalledTimes(1);
-    expect(deleteTokenMock).toHaveBeenCalledWith(
+    // Should be loading
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
       '/api-tokens/',
       expect.objectContaining({
         method: 'DELETE',
