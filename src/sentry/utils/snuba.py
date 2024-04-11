@@ -1010,7 +1010,6 @@ def _bulk_snuba_query(
                     log_snuba_info(
                         "{}.sql:\n {}".format(
                             headers.get("referer", "<unknown>"),
-
                             sqlparse.format(body["sql"], reindent_aligned=True),
                         )
                     )
@@ -1032,9 +1031,11 @@ def _bulk_snuba_query(
                 if response.status == 429:
                     for attempt in range(3):
                         try:
-                            time.sleep(1 * (2 ** attempt))  # Exponential backoff
+                            time.sleep(1 * (2**attempt))  # Exponential backoff
                             query_results = [
-                                _snuba_query((snuba_param_list[index], Hub(Hub.current), headers, parent_api))
+                                _snuba_query(
+                                    (snuba_param_list[index], Hub(Hub.current), headers, parent_api)
+                                )
                             ]
                             response, _, reverse = query_results[0]
                             body = json.loads(response.data, skip_trace=True)
