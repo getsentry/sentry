@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -16,10 +14,8 @@ from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
-
-if TYPE_CHECKING:
-    from sentry.incidents.models.alert_rule import AlertRule
-    from sentry.models.organization import Organization
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.models.organization import Organization
 
 
 @extend_schema(tags=["Alerts"])
