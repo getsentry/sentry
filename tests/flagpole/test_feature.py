@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from flagpole import ContextBuilder, Feature, InvalidFeatureFlagConfiguration
+from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
 from flagpole.operators import OperatorKind
 
 
@@ -33,7 +33,7 @@ class TestParseFeatureConfig:
         assert feature.owner == "test-owner"
         assert feature.segments == []
 
-        assert not feature.match(dict())
+        assert not feature.match(EvaluationContext(dict()))
 
     def test_valid_with_all_nesting(self):
         feature = Feature.from_feature_config_json(
@@ -68,8 +68,8 @@ class TestParseFeatureConfig:
         assert condition.operator.kind == OperatorKind.IN
         assert condition.operator.value == ["foobar"]
 
-        assert feature.match(dict(test_property="foobar"))
-        assert not feature.match(dict(test_property="barfoo"))
+        assert feature.match(EvaluationContext(dict(test_property="foobar")))
+        assert not feature.match(EvaluationContext(dict(test_property="barfoo")))
 
     def test_invalid_json(self):
         with pytest.raises(InvalidFeatureFlagConfiguration):
@@ -105,10 +105,10 @@ class TestParseFeatureConfig:
                 }]
             }
             """,
-            self.get_is_true_context_builder(is_true_value=True),
         )
 
-        assert feature.match(context_data=dict())
+        context_builder = self.get_is_true_context_builder(is_true_value=True)
+        assert feature.match(context_builder.build())
 
     def test_disabled_feature(self):
         feature = Feature.from_feature_config_json(
@@ -131,7 +131,7 @@ class TestParseFeatureConfig:
                 }]
             }
             """,
-            self.get_is_true_context_builder(is_true_value=True),
         )
 
-        assert not feature.match(context_data=dict())
+        context_builder = self.get_is_true_context_builder(is_true_value=True)
+        assert not feature.match(context_builder.build())

@@ -84,15 +84,8 @@ class Feature(BaseModel):
     """Defines whether or not the feature is enabled."""
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
-    context_builder: ContextBuilder | None = None
-    """Optional builder used to transform passed in data to an EvaluationContext whenever this feature is evaluated."""
 
-    def match(self, context_data: dict[str, Any]) -> bool:
-        if self.context_builder is not None:
-            context = self.context_builder.build(context_data)
-        else:
-            context = EvaluationContext(context_data)
-
+    def match(self, context: EvaluationContext) -> bool:
         if self.enabled:
             for segment in self.segments:
                 if segment.match(context):
@@ -105,16 +98,11 @@ class Feature(BaseModel):
             file.write(self.schema_json())
 
     @classmethod
-    def from_feature_dictionary(
-        cls, name: str, config_dict: dict[str, Any], context_builder: ContextBuilder | None
-    ) -> Feature:
+    def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
         try:
             feature = cls(name=name, **config_dict)
         except ValidationError as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
-
-        if context_builder is not None:
-            feature.context_builder = context_builder
 
         return feature
 
@@ -130,9 +118,7 @@ class Feature(BaseModel):
         if not isinstance(config_data_dict, dict):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
 
-        return cls.from_feature_dictionary(
-            name=name, config_dict=config_data_dict, context_builder=context_builder
-        )
+        return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder"]
+__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]
