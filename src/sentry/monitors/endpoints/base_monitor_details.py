@@ -93,6 +93,8 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             params["status"] = result["status"]
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
+        if "owner" in result:
+            params["owner_actor_id"] = result["owner"].id if result["owner"] else None
         if "config" in result:
             params["config"] = result["config"]
 
