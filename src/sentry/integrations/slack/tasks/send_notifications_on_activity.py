@@ -20,14 +20,14 @@ _default_logger = logging.getLogger(__name__)
     queue="integrations_slack_activity_notify",
     silo_mode=SiloMode.REGION,
 )
-def send_activity_notifications_to_slack_threads(activity_id):
+def send_activity_notifications_to_slack_threads(activity_id) -> None:
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
         _default_logger.info("Activity does not exist", extra={"activity_id": activity_id})
         return
 
-    organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
+    organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
     if features.has("organizations:slack-thread-issue-alert", organization):
         slack_service = SlackService.default()
         try:
