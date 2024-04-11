@@ -92,13 +92,13 @@ class BaseQueryBuilder:
     spans_metrics_builder = False
     entity: Entity | None = None
 
-    def get_middle(self):
+    def get_middle(self) -> datetime:
         """Get the middle for comparison functions"""
         if self.start is None or self.end is None:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
 
-    def first_half_condition(self):
+    def first_half_condition(self) -> Function:
         """Create the first half condition for percent_change functions"""
         return Function(
             "less",
@@ -108,7 +108,7 @@ class BaseQueryBuilder:
             ],
         )
 
-    def second_half_condition(self):
+    def second_half_condition(self) -> Function:
         """Create the second half condition for percent_change functions"""
         return Function(
             "greaterOrEquals",

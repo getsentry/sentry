@@ -52,7 +52,7 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 ):
     function_alias_prefix = "sentry_"
 
-    def strip_alias_prefix(self, result):
+    def strip_alias_prefix(self, result: dict[str, Any]) -> dict[str, Any]:
         alias_mappings = {
             column: get_function_alias(function_details.field)
             for column, function_details in self.function_alias_map.items()

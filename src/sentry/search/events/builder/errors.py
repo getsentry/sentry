@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Any
 
 from snuba_sdk import (
     AliasedExpression,
@@ -26,7 +27,7 @@ value_converters = {"status": convert_status_value}
 
 
 class ErrorsQueryBuilderMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.match = None
         self.entities = set()
         super().__init__(*args, **kwargs)
@@ -42,7 +43,7 @@ class ErrorsQueryBuilderMixin:
         )
         return parsed_terms
 
-    def resolve_match(self):
+    def resolve_match(self) -> None:
         error_entity = Entity(self.dataset.value, alias=self.dataset.value, sample=self.sample_rate)
         if len(self.entities) == 1:
             self.match = error_entity
@@ -52,7 +53,7 @@ class ErrorsQueryBuilderMixin:
         else:
             raise Exception("Unexpected number of entities")
 
-    def resolve_params(self):
+    def resolve_params(self) -> list[Condition]:
         conditions = super().resolve_params()
         if len(self.entities) == 2:
             conditions.append(
@@ -128,7 +129,7 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, QueryBuilder):
 
 
 class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     @property

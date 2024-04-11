@@ -293,7 +293,7 @@ def _group_attributes_side_query(
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ):
+    ) -> None:
         from sentry.utils import metrics
 
         try:
@@ -396,15 +396,15 @@ class Condition:
     ``QuerySetBuilder``.
     """
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset: QuerySet[Any], search_filter: SearchFilter) -> QuerySet[Any]:
         raise NotImplementedError
 
 
 class QCallbackCondition(Condition):
-    def __init__(self, callback: Callable[[Any], QuerySet]):
+    def __init__(self, callback: Callable[[Any], QuerySet[Any]]):
         self.callback = callback
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset: QuerySet[Any], search_filter: SearchFilter) -> QuerySet[Any]:
         value = search_filter.value.raw_value
         q = self.callback(value)
         if search_filter.operator not in ("=", "!=", "IN", "NOT IN"):
@@ -434,7 +434,7 @@ class ScalarCondition(Condition):
             django_operator = f"__{django_operator}"
         return django_operator
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset: QuerySet[Any], search_filter: SearchFilter) -> QuerySet[Any]:
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
@@ -449,7 +449,9 @@ class QuerySetBuilder:
     def __init__(self, conditions: Mapping[str, Condition]):
         self.conditions = conditions
 
-    def build(self, queryset: QuerySet, search_filters: Sequence[SearchFilter]) -> QuerySet:
+    def build(
+        self, queryset: QuerySet[Any], search_filters: Sequence[SearchFilter]
+    ) -> QuerySet[Any]:
         for search_filter in search_filters:
             name = search_filter.key.name
             if name in self.conditions:
@@ -588,7 +590,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         retention_window_start: datetime | None,
         *args: Any,
         **kwargs: Any,
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         """This method should return a QuerySet of the Group model.
         How you implement it is up to you, but we generally take in the various search parameters
         and filter Group's down using the field's we want to query on in Postgres."""
@@ -610,7 +612,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         environments: Sequence[Environment] | None,
         retention_window_start: datetime | None,
         search_filters: Sequence[SearchFilter],
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -644,7 +646,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     @abstractmethod
     def _get_query_executor(
         self,
-        group_queryset: QuerySet,
+        group_queryset: QuerySet[Group],
         projects: Sequence[Project],
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
