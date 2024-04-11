@@ -1042,7 +1042,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
         # 8:00 PDT, 11:00 EDT, 15:00 UTC
-        "schedule": crontab(minute="*/30"),
+        "schedule": crontab(minute="0", hour="15", day_of_week="mon-fri"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
@@ -1995,7 +1995,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
     # Enable setting priority for issues
-    "projects:issue-priority": False,
+    "projects:issue-priority": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,

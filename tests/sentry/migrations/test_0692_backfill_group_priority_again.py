@@ -24,13 +24,13 @@ class PriorityLevel:
 
 
 class BackfillGroupPriority(TestMigrations):
-    migrate_from = "0643_add_date_modified_col_dashboard_widget_query"
-    migrate_to = "0644_backfill_priority_for_groups"
+    migrate_from = "0691_remove_project_team_avatar_model"
+    migrate_to = "0692_backfill_group_priority_again"
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
         redis_cluster = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        redis_cluster.set("priority_backfill.last_processed_id", self.cache_group_id)
+        redis_cluster.set("priority_backfill-2.last_processed_id", self.cache_group_id)
 
     def test(self):
         for groups, expected_priority in (
