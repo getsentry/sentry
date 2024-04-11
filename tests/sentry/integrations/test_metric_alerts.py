@@ -264,7 +264,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)
