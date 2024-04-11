@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
+import sentry_sdk
 
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
@@ -165,79 +166,79 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     metrics.incr("feedback.create_feedback_issue.entered")
+    with sentry_sdk.start_span(op="feedback.create_feedback_issue"):
+        if should_filter_feedback(event, project_id, source):
+            return
 
-    if should_filter_feedback(event, project_id, source):
-        return
+        # Note that some of the fields below like title and subtitle
+        # are not used by the feedback UI, but are required.
+        event["event_id"] = event.get("event_id") or uuid4().hex
+        detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
+        evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            event_id=event.get("event_id") or uuid4().hex,
+            project_id=project_id,
+            fingerprint=[
+                uuid4().hex
+            ],  # random UUID for fingerprint so feedbacks are grouped individually
+            issue_title="User Feedback",
+            subtitle=event["contexts"]["feedback"]["message"],
+            resource_id=None,
+            evidence_data=evidence_data,
+            evidence_display=evidence_display,
+            type=FeedbackGroup,
+            detection_time=detection_time,
+            culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
+            level=event.get("level", "info"),
+        )
+        now = datetime.now()
 
-    # Note that some of the fields below like title and subtitle
-    # are not used by the feedback UI, but are required.
-    event["event_id"] = event.get("event_id") or uuid4().hex
-    detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
-    occurrence = IssueOccurrence(
-        id=uuid4().hex,
-        event_id=event.get("event_id") or uuid4().hex,
-        project_id=project_id,
-        fingerprint=[
-            uuid4().hex
-        ],  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title="User Feedback",
-        subtitle=event["contexts"]["feedback"]["message"],
-        resource_id=None,
-        evidence_data=evidence_data,
-        evidence_display=evidence_display,
-        type=FeedbackGroup,
-        detection_time=detection_time,
-        culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
-        level=event.get("level", "info"),
-    )
-    now = datetime.now()
+        event_data = {
+            "project_id": project_id,
+            "received": now.isoformat(),
+            "tags": event.get("tags", {}),
+            **event,
+        }
+        event_fixed = fix_for_issue_platform(event_data)
 
-    event_data = {
-        "project_id": project_id,
-        "received": now.isoformat(),
-        "tags": event.get("tags", {}),
-        **event,
-    }
-    event_fixed = fix_for_issue_platform(event_data)
+        # make sure event data is valid for issue platform
+        validate_issue_platform_event_schema(event_fixed)
 
-    # make sure event data is valid for issue platform
-    validate_issue_platform_event_schema(event_fixed)
+        project = Project.objects.get_from_cache(id=project_id)
 
-    project = Project.objects.get_from_cache(id=project_id)
+        if not project.flags.has_feedbacks:
+            first_feedback_received.send_robust(project=project, sender=Project)
 
-    if not project.flags.has_feedbacks:
-        first_feedback_received.send_robust(project=project, sender=Project)
+        if (
+            source
+            in [
+                FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+                FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
+            ]
+            and not project.flags.has_new_feedbacks
+        ):
+            first_new_feedback_received.send_robust(project=project, sender=Project)
 
-    if (
-        source
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
-        ]
-        and not project.flags.has_new_feedbacks
-    ):
-        first_new_feedback_received.send_robust(project=project, sender=Project)
-
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
-    )
-    metrics.incr(
-        "feedback.create_feedback_issue.produced_occurrence",
-        tags={"referrer": source.value},
-        sample_rate=1.0,
-    )
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project_id,
-        key_id=None,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=detection_time,
-        event_id=event["event_id"],
-        category=DataCategory.USER_REPORT_V2,
-        quantity=1,
-    )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
+        )
+        metrics.incr(
+            "feedback.create_feedback_issue.produced_occurrence",
+            tags={"referrer": source.value},
+            sample_rate=1.0,
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project_id,
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=detection_time,
+            event_id=event["event_id"],
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
 
 
 def validate_issue_platform_event_schema(event_data):

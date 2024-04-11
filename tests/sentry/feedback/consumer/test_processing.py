@@ -10,6 +10,7 @@ import pytest
 
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import process_event
+from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -19,7 +20,7 @@ but moving its tests here makes it easier to migrate to a separate StrategyFacto
 """
 
 
-def get_normalized_event(data, project):
+def get_normalized_event(data: dict[str, Any], project: Project) -> dict[str, Any]:
     mgr = EventManager(data, project=project)
     mgr.normalize()
     return dict(mgr.get_data())
@@ -73,7 +74,7 @@ def test_processing_calls_create_feedback_issue(
     start_time = time.time() - 3600
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload, use_rapid_json=True),
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,
