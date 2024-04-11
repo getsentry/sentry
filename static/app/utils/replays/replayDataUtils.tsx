@@ -5,6 +5,10 @@ import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+const defaultValues = {
+  has_viewed: false,
+};
+
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
   const user = Object.fromEntries(
@@ -40,6 +44,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   const finishedAt = new Date(apiResponse.finished_at);
   invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
   return {
+    ...defaultValues,
     ...apiResponse,
     ...(apiResponse.started_at ? {started_at: startedAt} : {}),
     ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),

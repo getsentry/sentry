@@ -20,6 +20,7 @@ export function ReplayListFixture(
       count_errors: 0,
       duration: duration(30000),
       finished_at: new Date('2022-09-15T06:54:00+00:00'),
+      has_viewed: false,
       id: '346789a703f6454384f1de473b8b9fcc',
       is_archived: false,
       os: {

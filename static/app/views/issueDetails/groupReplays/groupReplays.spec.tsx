@@ -201,6 +201,7 @@ describe('GroupReplays', () => {
                 'count_rage_clicks',
                 'duration',
                 'finished_at',
+                'has_viewed',
                 'id',
                 'is_archived',
                 'os',
