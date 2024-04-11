@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.constants import ObjectStatus
+from sentry.models.actor import get_actor_for_team
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -156,6 +157,28 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             "startingTimestamp": monitor_incident.starting_timestamp,
             "resolvingTimestamp": monitor_incident.resolving_timestamp,
             "brokenNotice": None,
+        }
+
+    def test_owner_user(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "user",
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "name": self.user.email,
+        }
+
+    def test_owner_team(self):
+        team_actor = get_actor_for_team(self.team)
+        monitor = self._create_monitor(owner_actor_id=team_actor.id)
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "team",
+            "id": str(self.team.id),
+            "name": self.team.slug,
         }
 
 
