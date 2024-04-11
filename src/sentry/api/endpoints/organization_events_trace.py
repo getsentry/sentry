@@ -466,6 +466,10 @@ def update_params_with_trace_timestamp_projects(
 
         project_id_set.add(row["project.id"])
 
+    # Do not modify the params if anything comes back empty
+    if len(project_id_set) == 0 or min_timestamp is None or max_timestamp is None:
+        return
+
     project_ids = list(project_id_set)
     # Reusing this option for now
     time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
