@@ -24,7 +24,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import withOrganization from 'sentry/utils/withOrganization';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -152,4 +151,4 @@ export function ApiTokens() {
   );
 }
 
-export default withOrganization(ApiTokens);
+export default ApiTokens;
