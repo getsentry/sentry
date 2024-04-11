@@ -12,7 +12,15 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import FILTERED_PAYLOAD, BaseValue, BrokerValue, Commit, Message, Partition
+from arroyo.types import (
+    FILTERED_PAYLOAD,
+    BaseValue,
+    BrokerValue,
+    Commit,
+    FilteredPayload,
+    Message,
+    Partition,
+)
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
@@ -53,7 +61,7 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
-def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
+def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
         return FILTERED_PAYLOAD
 
@@ -99,7 +107,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
     )
 
 
-def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
+def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
     try:
         return _process_message(message)
     except Exception:
@@ -126,15 +134,15 @@ def accumulator(
         return result
 
 
-def _explode_segments(context_dict: dict[int, ProduceSegmentContext]):
-    buffered_segments = []
+def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
+    buffered_segments: list[KafkaPayload | FilteredPayload] = [FILTERED_PAYLOAD]
 
     for context in context_dict.values():
         if not context.should_process_segments:
             continue
 
         with sentry_sdk.start_transaction(
-            op="process", name="spans.process.explode_segments"
+            op="process", name="spans.process.expand_segments"
         ) as txn:
             client = RedisSpansBuffer()
             payload_context = {}
@@ -161,15 +169,12 @@ def _explode_segments(context_dict: dict[int, ProduceSegmentContext]):
                         payload_data = prepare_buffered_segment_payload(segment)
                         buffered_segments.append(KafkaPayload(None, payload_data, []))
 
-    if not len(buffered_segments):
-        return [FILTERED_PAYLOAD]
-
     return buffered_segments
 
 
-def explode_segments(context_dict: dict[int, ProduceSegmentContext]):
+def expand_segments(context_dict: dict[int, ProduceSegmentContext]):
     try:
-        return _explode_segments(context_dict)
+        return _expand_segments(context_dict)
     except Exception:
         sentry_sdk.capture_exception()
         return [FILTERED_PAYLOAD]
@@ -213,7 +218,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=CommitOffsets(commit),
         )
 
-        unfold_step = Unfold(generator=explode_segments, next_step=produce_step)
+        unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
 
         initial_value: Callable[[], dict[int, ProduceSegmentContext]] = lambda: {}
         reduce_step: Reduce[ProduceSegmentContext, dict[int, ProduceSegmentContext]] = Reduce(
