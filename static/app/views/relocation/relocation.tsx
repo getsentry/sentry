@@ -351,6 +351,11 @@ const Container = styled('div')`
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
+
+  p,
+  a {
+    line-height: 1.6;
+  }
 `;
 
 const Header = styled('header')`

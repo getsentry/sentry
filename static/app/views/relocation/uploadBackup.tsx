@@ -130,7 +130,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
       >
         <p>
           {t(
-            'Nearly done! The file is being uploaded to sentry for the relocation process. You can close this tab if you like. We will email  when complete.'
+            "Nearly done! Just upload your tarball here, and we'll send you an email when everything is ready to go!"
           )}
         </p>
         {file ? (
