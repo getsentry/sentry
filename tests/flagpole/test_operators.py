@@ -33,20 +33,20 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
         assert create_case_insensitive_set_from_list(["AbC", "DEF"]) == {"abc", "def"}
 
 
-def assert_valid_types(operator: type[Operator], expected_types: Any):
+def assert_valid_types(operator: type[Operator], expected_types: list[Any]):
     for value in expected_types:
         operator_dict = dict(value=value)
         json_operator = json.dumps(operator_dict)
         try:
-            operator = operator.parse_raw(json_operator)
+            parsed_operator = operator.parse_raw(json_operator)
         except ValidationError as exc:
             raise AssertionError(
                 f"Expected value `{value}` to be a valid value for operator '{operator}'"
             ) from exc
-        assert operator.value == value
+        assert parsed_operator.value == value
 
 
-def assert_invalid_types(operator: type[Operator], invalid_types: Any):
+def assert_invalid_types(operator: type[Operator], invalid_types: list[Any]):
     for value in invalid_types:
         json_dict = dict(value=value)
         operator_json = json.dumps(json_dict)
@@ -165,7 +165,7 @@ class TestContainsOperators(TestCase):
         assert_valid_types(operator=NotContainsOperator, expected_types=values)
 
     def test_invalid_value_type_parsing(self):
-        values = [
+        values: list[Any] = [
             None,
             [],
             dict(foo="bar"),
