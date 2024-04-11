@@ -105,7 +105,7 @@ class ProjectKeyTest(TestCase):
             assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
             assert (
                 key.crons_endpoint
-                == f"http://testserver/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+                == f"http://testserver/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
@@ -129,7 +129,7 @@ class ProjectKeyTest(TestCase):
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
             assert (
                 key.crons_endpoint
-                == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+                == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
 
     @override_settings(SENTRY_REGION="us")
@@ -146,7 +146,7 @@ class ProjectKeyTest(TestCase):
         assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
         assert (
             key.crons_endpoint
-            == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+            == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
         )
 
     @override_settings(SENTRY_REGION="us")
@@ -170,7 +170,7 @@ class ProjectKeyTest(TestCase):
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
             assert (
                 key.crons_endpoint
-                == f"http://{host}/api/{self.project.id}/crons/___MONITOR_SLUG___/abc/"
+                == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
 
 
