@@ -638,8 +638,7 @@ def _process_symbolicator_results_for_sample(
             # as raw_frames (except some frames are not sent).
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
                 f = symbolicated_frames[frame_idx]
-                if profile["platform"] != platform:
-                    f["platform"] = platform
+                f["platform"] = platform
                 new_frames.append(f)
 
             # go to the next symbolicated frame result
