@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import sentry_sdk
@@ -12,7 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, Message, Partition
+from arroyo.types import FILTERED_PAYLOAD, BaseValue, BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
@@ -112,9 +112,7 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext:
         return EMPTY_SEGMENT_CONTEXT
 
 
-def _accumulator(
-    result: dict[int, ProduceSegmentContext], value: Message[ProduceSegmentContext]
-) -> dict[int, ProduceSegmentContext]:
+def _accumulator(result: dict[int, ProduceSegmentContext], value: BaseValue[ProduceSegmentContext]):
     context = value.payload
     if not context.should_process_segments:
         return result
@@ -127,7 +125,7 @@ def _accumulator(
 
 
 def accumulator(
-    result: dict[int, ProduceSegmentContext], value: Message[ProduceSegmentContext]
+    result: dict[int, ProduceSegmentContext], value: BaseValue[ProduceSegmentContext]
 ) -> dict[int, ProduceSegmentContext]:
     try:
         return _accumulator(result, value)
@@ -228,7 +226,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         unfold_step = Unfold(generator=explode_segments, next_step=produce_step)
 
-        initial_value = lambda: {}
+        initial_value: Callable[[], dict[int, ProduceSegmentContext]] = lambda: {}
         reduce_step: Reduce[ProduceSegmentContext, dict[int, ProduceSegmentContext]] = Reduce(
             self.max_batch_size,
             self.max_batch_time,

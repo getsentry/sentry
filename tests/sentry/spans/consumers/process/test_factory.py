@@ -425,11 +425,14 @@ def test_produces_valid_segment_to_kafka_multiple_partitions():
 
 
 def test_accumulator():
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+
     def _make_message(segment_context):
         return Message(
             BrokerValue(
                 segment_context,
-                1,
+                partition,
                 1,
                 datetime.now() + timedelta(minutes=1),
             )
