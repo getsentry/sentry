@@ -7,7 +7,7 @@ type Props = {
   event: Event;
 };
 
-function getKnownData(data: Props['data']) {
+export function getDefaultContextData(data: Props['data']) {
   return Object.entries(data)
     .filter(([k]) => k !== 'type' && k !== 'title')
     .map(([key, value]) => ({
@@ -18,5 +18,5 @@ function getKnownData(data: Props['data']) {
 }
 
 export function DefaultContext({data}: Props) {
-  return <ContextBlock data={getKnownData(data)} />;
+  return <ContextBlock data={getDefaultContextData(data)} />;
 }

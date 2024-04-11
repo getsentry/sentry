@@ -14,7 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
@@ -272,7 +272,7 @@ def record_group_history(
     actor_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
         else:
@@ -307,7 +307,7 @@ def bulk_record_group_history(
     actor_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
         else:

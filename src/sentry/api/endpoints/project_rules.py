@@ -860,7 +860,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         alert_rule_created.send_robust(
             user=request.user,
             project=project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=self,
             is_api_token=request.auth is not None,

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,18 +11,12 @@ import {UserKnownDataType} from '.';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
-type Output = {
-  subject: string;
-  value: string | null;
-  subjectIcon?: React.ReactNode;
-};
-
 type Props = {
   data: UserEventContextData;
   type: UserKnownDataType;
 };
 
-export function getUserKnownDataDetails({data, type}: Props): Output | undefined {
+export function getUserKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case UserKnownDataType.NAME:
       return {

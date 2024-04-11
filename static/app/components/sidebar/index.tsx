@@ -329,7 +329,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
                   isNew
@@ -339,7 +339,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  to={`/organizations/${organization.slug}/performance/browser/resources/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
                 />
@@ -348,7 +348,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/traces`}
+                  to={`/organizations/${organization.slug}/performance/traces/`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
                 />
@@ -458,15 +458,13 @@ function Sidebar() {
   );
 
   const monitors = hasOrganization && (
-    <Feature features="monitors" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconTimer />}
-        label={t('Crons')}
-        to={`/organizations/${organization.slug}/crons/`}
-        id="crons"
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconTimer />}
+      label={t('Crons')}
+      to={`/organizations/${organization.slug}/crons/`}
+      id="crons"
+    />
   );
 
   const replays = hasOrganization && (
