@@ -69,6 +69,10 @@ def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
 
+    FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+
+    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # exist inside it
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
     print(f"ensuring {repo} venv at {venv_dir}...")
@@ -113,6 +117,8 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             ("javascript dependencies", ("make", "install-js-dev")),
+            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+            # and pre-commit were moved to inside devenv and not the sentry venv
             ("python dependencies", ("make", "install-py-dev")),
         ),
     ):
@@ -125,7 +131,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "git and precommit",
-                # this can't be done in paralell with python dependencies
+                # this can't be done in parallel with python dependencies
                 # as multiple pips cannot act on the same venv
                 ("make", "setup-git"),
             ),
@@ -137,6 +143,12 @@ def main(context: dict[str, str]) -> int:
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+
+    # Frontend engineers don't necessarily always have devservices running and
+    # can configure to skip them to save on local resources
+    if FRONTEND_ONLY:
+        print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
+        return 0
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
