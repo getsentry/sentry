@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -11,7 +12,7 @@ import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
 import type {Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -38,32 +39,42 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
     project,
   });
 
-  const content = contextItems.map(({key, subject, value: contextValue}, i) => {
-    if (key === 'type') {
-      return null;
-    }
-    const contextMeta = meta?.[key];
-    const contextErrors = contextMeta?.['']?.err ?? [];
-    const hasErrors = contextErrors.length > 0;
+  const content = contextItems.map(
+    ({key, subject, value: contextValue, action = {}}, i) => {
+      if (key === 'type') {
+        return null;
+      }
+      const contextMeta = meta?.[key];
+      const contextErrors = contextMeta?.['']?.err ?? [];
+      const hasErrors = contextErrors.length > 0;
 
-    return (
-      <ContextContent key={i} hasErrors={hasErrors}>
-        <ContextSubject>{subject}</ContextSubject>
-        <ContextValue hasErrors={hasErrors}>
-          <StructuredData
-            value={contextValue}
-            depth={0}
-            maxDefaultDepth={0}
-            meta={contextMeta}
-            config={{}}
-            withAnnotatedText
-            withOnlyFormattedText
-          />
-          <AnnotatedTextErrors errors={contextErrors} />
-        </ContextValue>
-      </ContextContent>
-    );
-  });
+      const dataComponent = (
+        <StructuredData
+          value={contextValue}
+          depth={0}
+          maxDefaultDepth={0}
+          meta={contextMeta}
+          config={{}}
+          withAnnotatedText
+          withOnlyFormattedText
+        />
+      );
+
+      return (
+        <ContextContent key={i} hasErrors={hasErrors}>
+          <ContextSubject>{subject}</ContextSubject>
+          <ContextValue hasErrors={hasErrors}>
+            {defined(action?.link) ? (
+              <Link to={action.link}>{dataComponent}</Link>
+            ) : (
+              dataComponent
+            )}
+            <AnnotatedTextErrors errors={contextErrors} />
+          </ContextValue>
+        </ContextContent>
+      );
+    }
+  );
 
   return (
     <Card>
