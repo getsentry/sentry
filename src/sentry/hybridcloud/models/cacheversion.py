@@ -2,7 +2,7 @@ from django.db import models, router, transaction
 from django.db.models import F
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, control_silo_only_model, region_silo_only_model
 from sentry.db.postgres.transactions import enforce_constraints
 
 
@@ -33,3 +33,12 @@ class RegionCacheVersion(CacheVersionBase):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_regioncacheversion"
+
+
+@control_silo_only_model
+class ControlCacheVersion(CacheVersionBase):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class Meta:
+        app_label = "hybridcloud"
+        db_table = "hybridcloud_controlcacheversion"

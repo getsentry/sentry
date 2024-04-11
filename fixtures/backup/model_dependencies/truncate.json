@@ -1,4 +1,5 @@
 [
+  "hybridcloud_controlcacheversion",
   "hybridcloud_regioncacheversion",
   "hybridcloud_webhookpayload",
   "nodestore_node",

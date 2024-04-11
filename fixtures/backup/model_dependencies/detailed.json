@@ -87,6 +87,22 @@
     "table_name": "hybridcloud_apitokenreplica",
     "uniques": []
   },
+  "hybridcloud.controlcacheversion": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "hybridcloud.controlcacheversion",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_controlcacheversion",
+    "uniques": [
+      [
+        "key"
+      ]
+    ]
+  },
   "hybridcloud.externalactorreplica": {
     "dangling": false,
     "foreign_keys": {
