@@ -174,11 +174,10 @@ class RedisQuotaTest(TestCase):
             assert quota.scope_id is None
             assert quota.categories == {DataCategory.METRIC_BUCKET}
             assert quota.limit == metric_abuse_limit_by_id[id] * 10
-            assert (
-                quota.namespace == expected_use_case.value
-                if expected_use_case is not None
-                else None
-            )
+            if expected_use_case is None:
+                assert quota.namespace is None
+            else:
+                assert quota.namespace == expected_use_case.value
             assert quota.window == 10
             if expected_scope == QuotaScope.GLOBAL:
                 assert quota.reason_code == "global_abuse_limit"
