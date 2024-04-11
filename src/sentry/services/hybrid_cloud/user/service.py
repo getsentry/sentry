@@ -158,7 +158,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def verify_any_email(self, *, email: str) -> bool:
+    def verify_user_email(self, *, email: str, user_id: int) -> bool:
         pass
 
     @rpc_method
