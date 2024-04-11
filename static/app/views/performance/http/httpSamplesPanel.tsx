@@ -33,6 +33,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
@@ -175,10 +176,10 @@ export function HTTPSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
-    data: samplesData,
-    isFetching: isSamplesDataFetching,
-    error: samplesDataError,
-    refetch: refetchSpanSamples,
+    data: durationSamplesData,
+    isFetching: isDurationSamplesDataFetching,
+    error: durationSamplesDataError,
+    refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
     search,
     fields: [
@@ -188,18 +189,38 @@ export function HTTPSamplesPanel() {
     ],
     min: 0,
     max: durationAxisMax,
-    enabled: query.panel === 'duration' && durationAxisMax > 0,
-    referrer: 'api.starfish.http-module-samples-panel-samples',
+    enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
+    referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+  });
+
+  const {
+    data: responseCodeSamplesData,
+    isFetching: isResponseCodeSamplesDataFetching,
+    error: responseCodeSamplesDataError,
+    refetch: refetchResponseCodeSpanSamples,
+  } = useIndexedSpans({
+    filters,
+    fields: [
+      SpanIndexedField.PROJECT,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+      SpanIndexedField.ID,
+    ],
+    sorts: [SPAN_SAMPLES_SORT],
+    limit: SPAN_SAMPLE_LIMIT,
+    enabled: isPanelOpen && query.panel === 'status',
+    referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
-    samplesData,
+    durationSamplesData,
     domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
     highlightedSpanId
   );
 
   const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return samplesData.find(
+    return durationSamplesData.find(
       s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
     );
   };
@@ -368,12 +389,12 @@ export function HTTPSamplesPanel() {
 
               <ModuleLayout.Full>
                 <SpanSamplesTable
-                  data={samplesData}
-                  isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  data={durationSamplesData}
+                  isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
                   highlightedSpanId={highlightedSpanId}
                   onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
                   onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-                  error={samplesDataError}
+                  error={durationSamplesDataError}
                   // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
                   meta={{
                     fields: {
@@ -383,24 +404,47 @@ export function HTTPSamplesPanel() {
                   }}
                 />
               </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <Button onClick={() => refetchDurationSpanSamples()}>
+                  {t('Try Different Samples')}
+                </Button>
+              </ModuleLayout.Full>
             </Fragment>
           )}
 
           {query.panel === 'status' && (
-            <ModuleLayout.Full>
-              <ResponseCodeCountChart
-                series={Object.values(responseCodeData).filter(Boolean)}
-                isLoading={isResponseCodeDataLoading}
-                error={responseCodeError}
-              />
-            </ModuleLayout.Full>
-          )}
+            <Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <Button onClick={() => refetchSpanSamples()}>
-              {t('Try Different Samples')}
-            </Button>
-          </ModuleLayout.Full>
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={responseCodeSamplesData ?? []}
+                  isLoading={isResponseCodeSamplesDataFetching}
+                  error={responseCodeSamplesDataError}
+                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                  meta={{
+                    fields: {
+                      'span.response_code': 'number',
+                    },
+                    units: {},
+                  }}
+                />
+              </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <Button onClick={() => refetchResponseCodeSpanSamples()}>
+                  {t('Try Different Samples')}
+                </Button>
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
@@ -408,6 +452,14 @@ export function HTTPSamplesPanel() {
 }
 
 const SAMPLE_HOVER_DEBOUNCE = 10;
+
+const SPAN_SAMPLE_LIMIT = 10;
+
+// This is functionally a random sort, which is what we want
+const SPAN_SAMPLES_SORT = {
+  field: 'span_id',
+  kind: 'desc' as const,
+};
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
