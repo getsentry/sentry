@@ -42,9 +42,6 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.SPAN_OP: lambda search_filter: filter_aliases.lowercase_search(
                 self.builder, search_filter
             ),
-            constants.SPAN_DESCRIPTION: lambda search_filter: filter_aliases.lowercase_search(
-                self.builder, search_filter
-            ),
         }
 
     @property
