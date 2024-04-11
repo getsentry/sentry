@@ -170,6 +170,7 @@ def test_strip_event_data_keeps_exception_mechanism(store_event, configs):
 
     assert mechanism == {
         "handled": False,
+        "synthetic": False,
         "type": "mach",
         "meta": {
             "signal": {"number": 11, "code": 0, "name": "SIGSEGV", "code_name": "SEGV_NOOP"},
@@ -178,6 +179,10 @@ def test_strip_event_data_keeps_exception_mechanism(store_event, configs):
                 "code": 1,
                 "subcode": 0,
                 "name": "EXC_BAD_ACCESS",
+            },
+            "errno": {
+                "number": 10,
+                "name": "EACCES",
             },
         },
     }
