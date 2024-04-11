@@ -102,6 +102,14 @@ export function HTTPSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
+  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
+  const ribbonFilters: SpanMetricsQueryFilters = {
+    'span.module': ModuleName.HTTP,
+    'span.domain': query.domain,
+    transaction: query.transaction,
+  };
+
+  // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
     'span.domain': query.domain,
@@ -118,7 +126,7 @@ export function HTTPSamplesPanel() {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
   } = useSpanMetrics({
-    search,
+    search: MutableSearch.fromQueryObject(ribbonFilters),
     fields: [
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,

@@ -167,7 +167,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:3*',
+              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
             statsPeriod: '10d',
           },
