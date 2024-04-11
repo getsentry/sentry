@@ -182,7 +182,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        hash = GroupHash.objects.get(id=event.group.id)
+        hash = GroupHash.objects.get(group_id=event.group.id)
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
             self.project, event.event_id, event.group_id, event.group.message, hash
         )
@@ -191,7 +191,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
     def test_lookup_group_data_stacktrace_single_no_stacktrace(self):
         """Test that no data is returned if the event has no stacktrace"""
         event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
-        hash = GroupHash.objects.get(id=event.group.id)
+        hash = GroupHash.objects.get(group_id=event.group.id)
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
             self.project, event.event_id, event.group_id, event.group.message, hash
         )

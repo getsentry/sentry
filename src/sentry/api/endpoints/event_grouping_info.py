@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
@@ -10,7 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
-from sentry.grouping.variants import PerformanceProblemVariant
+from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
 from sentry.models.project import Project
 from sentry.utils import json, metrics
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
@@ -43,7 +44,7 @@ def get_grouping_info(
             # Create a variant for every problem associated with the event
             # TODO: Generate more unique keys, in case this event has more than
             # one problem of a given type
-            variants = {
+            variants: dict[str, BaseVariant] | Any = {
                 problem.problem.type.slug: PerformanceProblemVariant(problem)
                 for problem in problems
                 if problem
