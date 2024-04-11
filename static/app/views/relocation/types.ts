@@ -12,7 +12,10 @@ export type MaybeUpdateRelocationState = {
   regionUrl?: string;
 };
 
-export type StepProps = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
+export type StepProps = Pick<
+  RouteComponentProps<{}, {}>,
+  'router' | 'route' | 'location'
+> & {
   active: boolean;
   existingRelocationUUID: string;
   onComplete: (uuid?: string) => void;
