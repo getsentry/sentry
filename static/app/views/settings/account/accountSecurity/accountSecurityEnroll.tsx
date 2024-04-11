@@ -30,7 +30,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types';
-import {generateOrgSlugUrl, getSubDomains} from 'sentry/utils';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -337,9 +337,9 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
     openRecoveryOptions({authenticatorName: this.authenticatorName});
 
     // The remainder of this function is included primarily to smooth out the relocation flow. The
-    // newly claimed user will have landed on `https://sentry.sentry.io/settings/account/security`
-    // to perform the 2FA registration. But now that they have in fact registered, we want to
-    // redirect them to the subdomain of the organization they are already a member of (ex:
+    // newly claimed user will have landed on `https://sentry.io/settings/account/security` to
+    // perform the 2FA registration. But now that they have in fact registered, we want to redirect
+    // them to the subdomain of the organization they are already a member of (ex:
     // `https://my-2fa-org.sentry.io`), but did not have the ability to access due to their previous
     // lack of 2FA enrollment.
     let orgs = OrganizationsStore.getAll();
@@ -357,10 +357,8 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
     // If we are already in an org sub-domain, we don't need to do any redirection. If we are not
     // (this is usually only the case for a newly claimed relocated user), we redirect to the org
     // slug's subdomain now.
-    const subDomains = getSubDomains(new URL(window.location.href));
-    const firstSubDomain = subDomains.length > 0 ? subDomains[0] : '';
     const isAlreadyInOrgSubDomain = orgs.some(org => {
-      return org.slug === firstSubDomain;
+      return org.links.organizationUrl === new URL(window.location.href).origin;
     });
     if (!isAlreadyInOrgSubDomain) {
       window.location.assign(generateOrgSlugUrl(orgs[0].slug));

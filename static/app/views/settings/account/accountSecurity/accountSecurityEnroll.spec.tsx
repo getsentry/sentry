@@ -9,7 +9,13 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
 
 const ENDPOINT = '/users/me/authenticators/';
-const usorg = OrganizationFixture({slug: 'us-org'});
+const usorg = OrganizationFixture({
+  slug: 'us-org',
+  links: {
+    organizationUrl: 'https://us-org.example.test',
+    regionUrl: 'https://us.example.test',
+  },
+});
 
 describe('AccountSecurityEnroll', function () {
   jest.spyOn(window.location, 'assign').mockImplementation(() => {});
