@@ -24,10 +24,10 @@ const getDartVerifySnippet = () => `
 Sentry.metrics().increment("hits", value: 4);`;
 
 export const getDartMetricsOnboarding = ({
-   getInstallSnippet,
- }: {
-   getInstallSnippet: (params: DocsParams<any>) => string;
- }): OnboardingConfig => ({
+  getInstallSnippet,
+}: {
+  getInstallSnippet: (params: DocsParams<any>) => string;
+}): OnboardingConfig => ({
   install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
@@ -128,10 +128,10 @@ Future<void> main() async {
 };`;
 
 export const getFlutterMetricsOnboarding = ({
-   getInstallSnippet,
- }: {
-   getInstallSnippet: (params: DocsParams<any>) => string;
- }): OnboardingConfig => ({
+  getInstallSnippet,
+}: {
+  getInstallSnippet: (params: DocsParams<any>) => string;
+}): OnboardingConfig => ({
   install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
