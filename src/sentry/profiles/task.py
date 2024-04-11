@@ -1130,8 +1130,7 @@ def _set_frames_platform(profile: Profile):
             # bail early because it was already set
             return
         for i, frame in enumerate(profile["profile"]["frames"]):
-            if frame.get("platform", "") == "":
-                profile["profile"]["frames"]["platform"] = platform
+            profile["profile"]["frames"]["platform"] = platform
         return
     elif profile["platform"] == "android":
         for i, _ in enumerate(profile["profile"]["methods"]):
