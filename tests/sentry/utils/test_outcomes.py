@@ -31,6 +31,7 @@ def setup():
         (Outcome.INVALID, False),
         (Outcome.ABUSE, False),
         (Outcome.CLIENT_DISCARD, False),
+        (Outcome.CARDINALITY_LIMITED, False),
     ],
 )
 def test_outcome_is_billing(outcome: Outcome, is_billing: bool):

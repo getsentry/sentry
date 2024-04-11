@@ -363,6 +363,7 @@ class UsageStatsOrganization<
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
+        [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -386,6 +387,7 @@ class UsageStatsOrganization<
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
+            case Outcome.CARDINALITY_LIMITED:
             case Outcome.INVALID:
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
@@ -399,6 +401,7 @@ class UsageStatsOrganization<
       // Invalid and rate_limited data is combined with dropped
       count[Outcome.DROPPED] += count[Outcome.INVALID];
       count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
