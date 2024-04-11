@@ -218,6 +218,21 @@ def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     return actor
 
 
+def get_actor_for_team(team: int | Team) -> Actor:
+    if isinstance(team, int):
+        team_id = team
+    else:
+        team_id = team.id
+    try:
+        with transaction.atomic(router.db_for_write(Actor)):
+            actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["team"], team_id=team_id)
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
+        actor = Actor.objects.filter(type=ACTOR_TYPES["team"], team_id=team_id).first()
+    return actor
+
+
 class ActorTuple(namedtuple("Actor", "id type")):
     """
     This is an artifact from before we had the Actor model.

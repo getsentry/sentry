@@ -6,6 +6,8 @@ from typing import Any, Literal, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.models.actor import Actor, ActorTuple
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
@@ -157,6 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+    owner: ActorSerializerResponse
 
 
 class MonitorBulkEditResponse:
@@ -176,6 +179,16 @@ class MonitorSerializer(Serializer):
         projects_data = {
             project.id: serialized_project
             for project, serialized_project in zip(projects, serialize(list(projects), user))
+        }
+
+        actors = Actor.objects.filter(id__in=[i.owner_actor_id for i in item_list])
+        actor_tuples = [a.get_actor_tuple() for a in actors]
+
+        actors_serialized = serialize(
+            ActorTuple.resolve_many(actor_tuples), user, ActorSerializer()
+        )
+        actor_data = {
+            actor.id: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -205,6 +218,7 @@ class MonitorSerializer(Serializer):
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
+                "owner": actor_data.get(item.owner_actor_id),
             }
             for item in item_list
         }
@@ -231,6 +245,7 @@ class MonitorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
+            "owner": attrs["owner"],
         }
 
         if self._expand("alertRule"):
