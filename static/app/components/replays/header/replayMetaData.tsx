@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import AvatarList from 'sentry/components/avatar/avatarList';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {IconCursorArrow} from 'sentry/icons';
@@ -10,7 +11,9 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useReplayViewedByData from 'sentry/utils/replays/hooks/useReplayViewedByData';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -21,10 +24,16 @@ type Props = {
 };
 
 function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
+  const {data: viewers} = useReplayViewedByData({
+    orgSlug: organization.slug,
+    projectSlug: replayRecord?.project_id,
+    replayId: replayRecord?.id,
+  });
 
   const breadcrumbTab = {
     ...location,
@@ -80,6 +89,14 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
           <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
         ) : (
           <HeaderPlaceholder width="20px" height="16px" />
+        )}
+      </KeyMetricData>
+      <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
+      <KeyMetricData>
+        {viewers ? (
+          <AvatarList avatarSize={25} users={viewers.data.viewed_by} />
+        ) : (
+          <HeaderPlaceholder width="55px" height="27px" />
         )}
       </KeyMetricData>
     </KeyMetrics>
