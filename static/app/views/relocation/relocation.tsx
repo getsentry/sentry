@@ -87,15 +87,13 @@ function RelocationOnboarding(props: Props) {
   const api = useApi();
   const regions = ConfigStore.get('regions');
 
+  const [regionUrl, setRegionUrl] = useState('');
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
   const [existingRelocation, setExistingRelocation] = useState('');
-
-  // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
-  // change during a single run through this workflow.
-  const [publicKey, setPublicKey] = useState('');
-  const [publicKeyState, setPublicKeyState] = useState(LoadingState.FETCHING);
+  const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
+  const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
 
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
@@ -138,24 +136,32 @@ function RelocationOnboarding(props: Props) {
     fetchExistingRelocation();
   }, [fetchExistingRelocation]);
 
-  const fetchPublicKey = useCallback(() => {
-    const endpoint = `/publickeys/relocations/`;
-    setPublicKeyState(LoadingState.FETCHING);
-
-    return api
-      .requestPromise(endpoint)
-      .then(response => {
-        setPublicKey(response.public_key);
-        setPublicKeyState(LoadingState.FETCHED);
+  const fetchPublicKeys = useCallback(() => {
+    setPublicKeysState(LoadingState.FETCHING);
+    return Promise.all(
+      regions.map(region =>
+        api.requestPromise(`/publickeys/relocations/`, {
+          method: 'GET',
+          host: region.url,
+        })
+      )
+    )
+      .then(responses => {
+        setPublicKeys(
+          new Map<string, string>(
+            regions.map((region, index) => [region.url, responses[index].public_key])
+          )
+        );
+        setPublicKeysState(LoadingState.FETCHED);
       })
       .catch(_error => {
-        setPublicKey('');
-        setPublicKeyState(LoadingState.ERROR);
+        setPublicKeys(new Map<string, string>());
+        setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api]);
+  }, [api, regions]);
   useEffect(() => {
-    fetchPublicKey();
-  }, [fetchPublicKey]);
+    fetchPublicKeys();
+  }, [fetchPublicKeys]);
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -238,7 +244,7 @@ function RelocationOnboarding(props: Props) {
 
   const isLoading =
     existingRelocationState !== LoadingState.FETCHED ||
-    publicKeyState !== LoadingState.FETCHED;
+    publicKeysState !== LoadingState.FETCHED;
   const contentView = isLoading ? (
     <LoadingIndicator />
   ) : (
@@ -250,6 +256,11 @@ function RelocationOnboarding(props: Props) {
             data-test-id={`onboarding-step-${stepObj.id}`}
             existingRelocationUUID={existingRelocation}
             stepIndex={stepIndex}
+            onChangeRegionUrl={(regUrl?) => {
+              if (regUrl) {
+                setRegionUrl(regUrl);
+              }
+            }}
             onComplete={(uuid?) => {
               if (uuid) {
                 setExistingRelocation(uuid);
@@ -258,7 +269,8 @@ function RelocationOnboarding(props: Props) {
                 goNextStep(stepObj);
               }
             }}
-            publicKey={publicKey}
+            publicKeys={publicKeys}
+            regionUrl={regionUrl}
             route={props.route}
             router={props.router}
             location={props.location}
@@ -270,17 +282,17 @@ function RelocationOnboarding(props: Props) {
 
   const hasErr =
     existingRelocationState === LoadingState.ERROR ||
-    publicKeyState === LoadingState.ERROR;
+    publicKeysState === LoadingState.ERROR;
   const errView = hasErr ? (
     <LoadingError
       data-test-id="loading-error"
       message={t('Failed to load information from server - check your connection?')}
       onRetry={() => {
-        if (existingRelocationState) {
+        if (existingRelocationState === LoadingState.ERROR) {
           fetchExistingRelocation();
         }
-        if (publicKeyState) {
-          fetchPublicKey();
+        if (publicKeysState === LoadingState.ERROR) {
+          fetchPublicKeys();
         }
       }}
     />

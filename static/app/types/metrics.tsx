@@ -62,19 +62,22 @@ export interface MetricsQueryApiResponse {
   }[][];
   end: string;
   intervals: string[];
-  meta: (
-    | {name: string; type: string}
+  meta: [
+    ...{name: string; type: string}[],
     // The last entry in meta has a different shape
-    | {
-        group_bys: string[];
-        limit: number | null;
-        order: string | null;
-        scaling_factor?: number | null;
-        unit?: string | null;
-        unit_family?: 'duration' | 'information' | null;
-      }
-  )[][];
+    MetricsQueryApiResponseLastMeta,
+  ][];
   start: string;
+}
+
+export interface MetricsQueryApiResponseLastMeta {
+  group_bys: string[];
+  limit: number | null;
+  order: string | null;
+  has_more?: boolean;
+  scaling_factor?: number | null;
+  unit?: string | null;
+  unit_family?: 'duration' | 'information' | null;
 }
 
 export type MetricsGroup = {
