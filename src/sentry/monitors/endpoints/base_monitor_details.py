@@ -93,6 +93,8 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             params["status"] = result["status"]
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
+        if "owner" in result:
+            params["owner_actor_id"] = result["owner"].id if result["owner"] else None
         if "config" in result:
             params["config"] = result["config"]
 
@@ -112,21 +114,21 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
 
-        # Update monitor slug
-        if "slug" in result:
-            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
-
         # Attempt to assign a monitor seat
-        if params["status"] == ObjectStatus.ACTIVE:
+        if params["status"] == ObjectStatus.ACTIVE and monitor.status != ObjectStatus.ACTIVE:
             outcome = quotas.backend.assign_monitor_seat(monitor)
-            # The MonitorValidator checks if a seat assignment is availble.
+            # The MonitorValidator checks if a seat assignment is available.
             # This protects against a race condition
             if outcome != Outcome.ACCEPTED:
                 raise ParameterValidationError("Failed to enable monitor, please try again")
 
         # Attempt to unassign the monitor seat
-        if params["status"] == ObjectStatus.DISABLED:
+        if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
             quotas.backend.disable_monitor_seat(monitor)
+
+        # Update monitor slug in billing
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
 
         if params:
             monitor.update(**params)
