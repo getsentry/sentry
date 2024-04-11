@@ -395,6 +395,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.SPACES as const,
     value,
+    parsedValue: value
   });
 
   tokenFilter = <T extends FilterType>(
@@ -414,6 +415,10 @@ export class TokenConverter {
       invalid: this.checkInvalidFilter(filter, key, value),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
+
+    if(filterToken.filter === FilterType.NUMERIC) {
+      filterToken.value.rawValue = Number(filterToken.value.value);
+    }
 
     return {
       ...this.defaultTokenFields,
@@ -613,7 +618,6 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
-    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
