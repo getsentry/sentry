@@ -46,6 +46,8 @@ interface ComboBoxProps<Value extends string>
   className?: string;
   disabled?: boolean;
   isLoading?: boolean;
+  menuSize?: FormSize;
+  menuWidth?: string;
   size?: FormSize;
   sizeLimit?: number;
   sizeLimitMessage?: string;
@@ -53,12 +55,14 @@ interface ComboBoxProps<Value extends string>
 
 function ComboBox<Value extends string>({
   size = 'md',
+  menuSize,
   className,
   placeholder,
   disabled,
   isLoading,
   sizeLimitMessage,
   menuTrigger = 'focus',
+  menuWidth,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -96,11 +100,11 @@ function ComboBox<Value extends string>({
 
   // Make popover width constant while it is open
   useEffect(() => {
-    if (listBoxRef.current && state.isOpen) {
-      const listBoxElement = listBoxRef.current;
-      listBoxElement.style.width = `${listBoxElement.offsetWidth + 4}px`;
+    if (popoverRef.current && state.isOpen) {
+      const popoverElement = popoverRef.current;
+      popoverElement.style.width = `${popoverElement.offsetWidth + 4}px`;
       return () => {
-        listBoxElement.style.width = 'max-content';
+        popoverElement.style.width = 'max-content';
       };
     }
     return () => {};
@@ -153,9 +157,9 @@ function ComboBox<Value extends string>({
           zIndex={theme.zIndex?.tooltip}
           visible={state.isOpen}
         >
-          <StyledOverlay ref={popoverRef}>
+          <StyledOverlay ref={popoverRef} width={menuWidth}>
             {isLoading && (
-              <MenuHeader size={size}>
+              <MenuHeader size={menuSize ?? size}>
                 <MenuTitle>{t('Loading...')}</MenuTitle>
                 <MenuHeaderTrailingItems>
                   {isLoading && <StyledLoadingIndicator size={12} mini />}
@@ -170,7 +174,7 @@ function ComboBox<Value extends string>({
                 ref={listBoxRef}
                 listState={state}
                 keyDownHandler={() => true}
-                size={size}
+                size={menuSize ?? size}
                 sizeLimitMessage={sizeLimitMessage}
               />
               <EmptyMessage>No items found</EmptyMessage>
@@ -331,7 +335,7 @@ const SizingDiv = styled('div')<{size?: FormSize}>`
   opacity: 0;
   pointer-events: none;
   z-index: -1;
-  position: absolute;
+  position: fixed;
   white-space: pre;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 `;
@@ -343,16 +347,17 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
-const StyledOverlay = styled(Overlay)`
+const StyledOverlay = styled(Overlay)<{width?: string}>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
   ListBoxWrap/GridListWrap will also shrink to fit */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 32rem;
   position: absolute;
+  max-height: 32rem;
   min-width: 100%;
   overflow-y: auto;
+  width: ${p => p.width ?? 'auto'};
 `;
 
 export const EmptyMessage = styled('p')`
