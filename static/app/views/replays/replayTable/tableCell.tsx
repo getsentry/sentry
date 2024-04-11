@@ -623,7 +623,7 @@ export function PlayPauseCell({
   isSelected: boolean;
 }) {
   const inner = isSelected ? (
-    <ReplayPlayPauseButton size="sm" iconSize="sm" priority="default" borderless />
+    <ReplayPlayPauseButton size="sm" priority="default" borderless />
   ) : (
     <Button
       title={t('Play')}
