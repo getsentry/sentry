@@ -132,7 +132,7 @@ export function UploadBackup({onComplete}: StepProps) {
       >
         <p>
           {t(
-            'Nearly done! Just upload your tarball to here, and well send you an email when everything is ready to go!'
+            'Nearly done! Just upload your tarball here, and well send you an email when everything is ready to go!'
           )}
         </p>
         {file ? (
