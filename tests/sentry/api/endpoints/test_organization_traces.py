@@ -109,7 +109,24 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        assert response.data == []
+        assert response.data == {
+            "data": [],
+            "meta": {
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {
+                    "id": "string",
+                    "parent_span": "string",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    "id": None,
+                    "parent_span": None,
+                },
+            },
+        }
 
     def test_matching_tag(self):
         # Hack: ensure that no span ids with leading 0s are generated for the test
@@ -179,11 +196,28 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        result = sorted(response.data, key=lambda trace: trace["trace"])
-        for row in result:
+
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {
+                "id": "string",
+                "parent_span": "string",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "id": None,
+                "parent_span": None,
+            },
+        }
+
+        result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
+        for row in result_data:
             row["spans"].sort(key=lambda span: span["id"])
 
-        assert result == sorted(
+        assert result_data == sorted(
             [
                 {
                     "trace": trace_id_1,

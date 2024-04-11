@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -55,12 +54,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
         serialized = serializer.validated_data
 
         per_page = self.get_per_page(request)
-        limit = per_page * serialized["maxSpansPerTrace"]
-
-        # Abort early if number of trace x spans per trace
-        # exceeds 10_000 (the snuba query limit),
-        if limit > 10_000:
-            raise ParseError(detail="Too many spans per trace.")
 
         def data_fn(offset: int, limit: int):
             with handle_query_errors():
@@ -74,8 +67,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     # if we let Clickhouse decide which order to return the results in.
                     # This also means we cannot order by any columns or paginate.
                     orderby=None,
-                    limit=limit,
-                    offset=0,
+                    limit=per_page * serialized["maxSpansPerTrace"],
                     limitby=("trace", serialized["maxSpansPerTrace"]),
                     sample_rate=options.get("traces.sample-list.sample-rate"),
                     config=QueryBuilderConfig(
@@ -85,8 +77,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 span_results = builder.run_query(Referrer.API_TRACE_EXPLORER_SPANS_LIST.value)
                 span_results = builder.process_results(span_results)
 
+            fields = span_results["meta"].pop("fields", {})
+            meta = {
+                **span_results["meta"],
+                "fields": {field: fields[field] for field in serialized["field"]},
+            }
+
             if not span_results["data"]:
-                return []
+                return {"data": [], "meta": meta}
 
             spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
             for row in span_results["data"]:
@@ -128,7 +126,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     query=f"trace:[{', '.join(spans_by_trace.keys())}]",
                     selected_columns=["trace", "count()", "trace_name()", "elapsed()"],
                     limit=len(spans_by_trace),
-                    offset=0,
                     limitby=("trace", serialized["maxSpansPerTrace"]),
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "elapsed"],
@@ -152,9 +149,17 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 for row in trace_results["data"]
             ]
 
-            return traces
+            return {"data": traces, "meta": meta}
 
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
+            on_results=lambda results: self.handle_results_with_meta(
+                request,
+                organization,
+                params["project_id"],
+                results,
+                standard_meta=True,
+                dataset=Dataset.SpansIndexed,
+            ),
         )
