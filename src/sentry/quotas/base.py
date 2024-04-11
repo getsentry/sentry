@@ -9,6 +9,7 @@ from django.core.cache import cache
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -413,54 +414,9 @@ class Quota(Service):
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
-            AbuseQuota(
-                id="oam",
-                option="organization-abuse-quota.metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.ORGANIZATION,
-            ),
-            AbuseQuota(
-                id="oacm",
-                option="organization-abuse-quota.custom-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.ORGANIZATION,
-                namespace="custom",
-            ),
-            AbuseQuota(
-                id="gam",
-                option="global-abuse-quota.metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-            ),
-            AbuseQuota(
-                id="gams",
-                option="global-abuse-quota.sessions-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="sessions",
-            ),
-            AbuseQuota(
-                id="gamt",
-                option="global-abuse-quota.transactions-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="transactions",
-            ),
-            AbuseQuota(
-                id="gamp",
-                option="global-abuse-quota.spans-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="spans",
-            ),
-            AbuseQuota(
-                id="gamc",
-                option="global-abuse-quota.custom-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="custom",
-            ),
         ]
+
+        abuse_quotas.extend(self._build_metric_abuse_quotas())
 
         # XXX: These reason codes are hardcoded in getsentry:
         #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
@@ -514,6 +470,36 @@ class Quota(Service):
                     reason_code=reason_codes[quota.scope],
                     namespace=quota.namespace,
                 )
+
+    def _build_metric_abuse_quotas(self):
+        quotas = list()
+
+        for (scope, prefix) in [
+            (QuotaScope.PROJECT, "p"),
+            (QuotaScope.ORGANIZATION, "o"),
+            (QuotaScope.GLOBAL, "g"),
+        ]:
+            quotas.append(
+                AbuseQuota(
+                    id=f"{prefix}amb",
+                    option=f"metric-abuse-quota.{scope.api_name()}",
+                    categories=[DataCategory.METRIC_BUCKET],
+                    scope=scope,
+                )
+            )
+
+            for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+                quotas.append(
+                    AbuseQuota(
+                        id=f"{prefix}amb_{use_case.value}",
+                        option=f"metric-abuse-quota.{scope.api_name()}.{use_case.value}",
+                        categories=[DataCategory.METRIC_BUCKET],
+                        scope=scope,
+                        namespace=use_case.value,
+                    )
+                )
+
+        return quotas
 
     def get_monitor_quota(self, project):
         from sentry.monitors.rate_limit import get_project_monitor_quota
