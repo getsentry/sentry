@@ -6,6 +6,7 @@ from sentry.search.events.types import SelectType
 
 class SpansIndexedQueryBuilder(QueryBuilder):
     requires_organization_condition = False
+    free_text_key = "span.description"
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
