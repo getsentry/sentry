@@ -5,6 +5,7 @@ from snuba_sdk import MetricsQuery
 
 from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
+from sentry.sentry_metrics.querying.visitors.query_modulator import Modulator
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class IntermediateQuery:
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
+    modulators: list[Modulator] | None = None
 
 
 class PreparationStep(ABC):
