@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import google.auth
 import google.auth.transport.requests
@@ -11,10 +12,19 @@ logger = logging.getLogger(__name__)
 
 
 class VertexProvider(LlmModelBase):
-    candidate_count = 1
-    top_p = 1
+    """
+    A provider for Google Vertex AI. Uses default service account credentials.
+    """
 
-    def complete_prompt(
+    provider_name = "vertex"
+
+    def get_provider_options(self) -> dict[str, Any]:
+        return self.options[self.provider_name]["options"]
+
+    candidate_count = 1  # we only want one candidate returned at the moment
+    top_p = 1  # TODO: make this configurable?
+
+    def _complete_prompt(
         self,
         usecase_options: UseCaseProviderOptions,
         prompt: str,
@@ -34,13 +44,14 @@ class VertexProvider(LlmModelBase):
         }
 
         headers = {
-            "Authorization": f"Bearer {get_access_token()}",
+            "Authorization": f"Bearer {self._get_access_token()}",
             "Content-Type": "application/json",
         }
 
-        response = requests.post(
-            self.options["vertex"]["options"]["url"], headers=headers, json=payload
-        )
+        vertex_url = self.options["vertex"]["options"]["url"]
+        vertex_url += usecase_options["options"]["model"] + ":predict"
+
+        response = requests.post(vertex_url, headers=headers, json=payload)
 
         if response.status_code == 200:
             logger.info("Request successful.")
@@ -51,10 +62,9 @@ class VertexProvider(LlmModelBase):
 
         return response.json()["predictions"][0]["content"]
 
+    def _get_access_token(self) -> str:
+        # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
 
-def get_access_token() -> str:
-    # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
-
-    creds, _ = google.auth.default()
-    creds.refresh(google.auth.transport.requests.Request())
-    return creds.token
+        creds, _ = google.auth.default()
+        creds.refresh(google.auth.transport.requests.Request())
+        return creds.token

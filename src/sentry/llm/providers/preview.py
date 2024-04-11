@@ -1,14 +1,15 @@
-from typing import Any
-
 from sentry.llm.providers.base import LlmModelBase
 from sentry.llm.types import UseCaseProviderOptions
 
 
 class PreviewLLM(LlmModelBase):
-    def __init__(self, **options: dict[str, Any]) -> None:
-        pass
+    """
+    A dummy LLM provider that does not actually send any requests to any LLM API.
+    """
 
-    def complete_prompt(
+    provider_name = "preview"
+
+    def _complete_prompt(
         self,
         usecase_options: UseCaseProviderOptions,
         prompt: str,

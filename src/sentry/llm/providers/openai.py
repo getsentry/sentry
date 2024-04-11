@@ -5,7 +5,10 @@ from sentry.llm.types import UseCaseProviderOptions
 
 
 class OpenAIProvider(LlmModelBase):
-    def complete_prompt(
+
+    provider_name = "openai"
+
+    def _complete_prompt(
         self,
         usecase_options: UseCaseProviderOptions,
         prompt: str,
@@ -13,7 +16,7 @@ class OpenAIProvider(LlmModelBase):
         temperature: float = 0.7,
         max_output_tokens: int = 1000,
     ) -> str | None:
-        model = usecase_options["model"]
+        model = usecase_options["options"]["model"]
         client = get_openai_client(self.options["openai"]["options"]["api_key"])
 
         response = client.chat.completions.create(

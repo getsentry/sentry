@@ -2420,39 +2420,22 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Options for setting LLMs
-# register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
-register(
-    "llm.provider.options",
-    default={},
-    type=Dict,
-    flags=FLAG_NOSTORE,
-)
-#     "preview": {
-#         "models": [
-#             "stub-1.0",
-#         ],
-#         "options": {
-#             "api_key": "...",
-#             "default_model": "stub-1.0",
-#         },
-#     },
+# Options for setting LLM providers and usecases
+register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
+# Example provider:
 #     "openai": {
 #         "options": {
-#             "api_key": "...",
-#             "default_model": "gpt-4-turbo-1.0",
+#             "api_key": "",
 #         },
-#         "models": [
-#             "gpt-4-turbo-1.0",
-#         ],
-#     },
-# }
-register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
+#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
+#     }
 
+register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
+# Example usecase:
 #     "suggestedfix": {
 #         "provider": "openai",
 #         "options": {
-#             "model": "gpt-3.5-turbo-16k",
+#             "model": "gpt-3.5-turbo",
 #         },
 #     }
 # }
