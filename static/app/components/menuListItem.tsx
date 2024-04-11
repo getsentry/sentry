@@ -244,7 +244,7 @@ function DetailsOverlay({
   });
 
   return createPortal(
-    <PositionWrapper
+    <StyledPositionWrapper
       {...popper.attributes.popper}
       ref={setOverlayElement}
       zIndex={theme.zIndex.tooltip}
@@ -253,15 +253,22 @@ function DetailsOverlay({
       <StyledOverlay id={id} placement="right-start" size={size}>
         {children}
       </StyledOverlay>
-    </PositionWrapper>,
+    </StyledPositionWrapper>,
     document.body
   );
 }
 
+const StyledPositionWrapper = styled(PositionWrapper)`
+  &[data-popper-reference-hidden='true'] {
+    opacity: 0;
+    pointer-events: none;
+  }
+`;
+
 const StyledOverlay = styled(Overlay)<{
   size: Props['size'];
 }>`
-  padding: ${p => getVerticalPadding(p.size)} ${space(1)};
+  padding: ${p => getVerticalPadding(p.size)};
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;
   user-select: text;
