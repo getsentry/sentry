@@ -1,7 +1,10 @@
+from unittest.mock import Mock
+
 from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -104,6 +107,9 @@ class TeamProjectsCreateTest(APITestCase):
         assert response.data["detail"] == "A project with this slug already exists."
 
     def test_default_rules(self):
+        signal_handler = Mock()
+        alert_rule_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -114,9 +120,15 @@ class TeamProjectsCreateTest(APITestCase):
 
         project = Project.objects.get(id=response.data["id"])
         rule = Rule.objects.filter(project=project).first()
+
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
+
+        # Ensure that creating the default alert rule does not trigger the
+        # alert_rule_created signal to avoid fake recording fake analytics.
+        assert signal_handler.call_count == 0
+        alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules(self):
         response = self.get_success_response(
