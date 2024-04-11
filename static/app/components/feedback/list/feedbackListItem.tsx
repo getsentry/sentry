@@ -95,7 +95,9 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
             <TextOverflow style={{gridArea: 'user'}}>
               <strong>
-                {feedbackItem.metadata.name ?? feedbackItem.metadata.contact_email}
+                {feedbackItem.metadata.name ??
+                  feedbackItem.metadata.contact_email ??
+                  t('Anonymous User')}
               </strong>
             </TextOverflow>
 

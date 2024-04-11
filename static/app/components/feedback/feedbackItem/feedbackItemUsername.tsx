@@ -54,26 +54,28 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   return (
     <Flex align="center" gap={space(1)} className={className} style={style}>
-      <Flex
-        align="center"
-        wrap="wrap"
-        gap={space(0.5)}
-        onClick={() => {
-          handleSelectText();
-          handleCopyToClipboard();
-        }}
-        ref={userNodeRef}
-      >
-        {isSameNameAndEmail ? (
-          <strong>{name ?? email}</strong>
-        ) : (
-          <Fragment>
-            <strong>{name ?? t('No Name')}</strong>
-            <Purple>•</Purple>
-            <strong>{email ?? t('No Email')}</strong>
-          </Fragment>
-        )}
-      </Flex>
+      <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
+        <Flex
+          align="center"
+          wrap="wrap"
+          gap={space(0.5)}
+          onClick={() => {
+            handleSelectText();
+            handleCopyToClipboard();
+          }}
+          ref={userNodeRef}
+        >
+          {isSameNameAndEmail ? (
+            <strong>{name ?? email}</strong>
+          ) : (
+            <Fragment>
+              <strong>{name ?? t('No Name')}</strong>
+              <Purple>•</Purple>
+              <strong>{email ?? t('No Email')}</strong>
+            </Fragment>
+          )}
+        </Flex>
+      </Tooltip>
       {email ? (
         <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
