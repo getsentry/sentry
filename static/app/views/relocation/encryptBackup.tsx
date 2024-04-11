@@ -65,7 +65,7 @@ export function EncryptBackup(props: StepProps) {
           {t('encrypts the data using our public key, and ')}
           <mark>{'/sentry-admin/export.tar'}</mark>
           {t(
-            'is the name of the output tarball. This is what youll upload in the next step.'
+            "is the name of the output tarball. This is what you'll upload in the next step."
           )}
         </p>
         <p className="encrypt-note">
