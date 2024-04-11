@@ -7,7 +7,10 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope, build_metric_abuse_quotas
 from sentry.quotas.redis import RedisQuota, is_rate_limited
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import (
+    USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
+    UseCaseID,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import clusters
 
@@ -152,7 +155,7 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
 
-        expected_quotas = dict()
+        expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
             (QuotaScope.PROJECT, "p"),
             (QuotaScope.ORGANIZATION, "o"),
@@ -162,21 +165,26 @@ class RedisQuotaTest(TestCase):
             for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
                 expected_quotas[(scope, use_case)] = f"{prefix}amb_{use_case.value}"
 
-        for ((scope, use_case), id) in expected_quotas.items():
+        for ((expected_scope, expected_use_case), id) in expected_quotas.items():
             quota = next(x for x in quotas if x.id == id)
             assert quota is not None
 
             assert quota.id == id
-            assert quota.scope == scope
+            assert quota.scope == expected_scope
             assert quota.scope_id is None
             assert quota.categories == {DataCategory.METRIC_BUCKET}
             assert quota.limit == metric_abuse_limit_by_id[id] * 10
+            assert (
+                quota.namespace == expected_use_case.value
+                if expected_use_case is not None
+                else None
+            )
             assert quota.window == 10
-            if scope == QuotaScope.GLOBAL:
+            if expected_scope == QuotaScope.GLOBAL:
                 assert quota.reason_code == "global_abuse_limit"
-            elif scope == QuotaScope.ORGANIZATION:
+            elif expected_scope == QuotaScope.ORGANIZATION:
                 assert quota.reason_code == "org_abuse_limit"
-            elif scope == QuotaScope.PROJECT:
+            elif expected_scope == QuotaScope.PROJECT:
                 assert quota.reason_code == "project_abuse_limit"
             else:
                 assert False, "invalid quota scope"
