@@ -308,6 +308,8 @@ def record_alert_rule_created(
     wizard_v3=None,
     **kwargs,
 ):
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="alert_rules", complete=True
     )
