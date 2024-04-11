@@ -92,6 +92,8 @@ class AlertRuleSerializer(Serializer):
     ) -> defaultdict[AlertRule, Any]:
         alert_rules = {item.id: item for item in item_list}
         prefetch_related_objects(item_list, "snuba_query__environment")
+        prefetch_related_objects(item_list, "snuba_query__subscriptions__project")
+        prefetch_related_objects(item_list, "projects")
 
         result: defaultdict[AlertRule, dict[str, Any]] = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
@@ -127,23 +129,20 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
-        alert_rule_projects = set()
-        for alert_rule in alert_rules.values():
+        # Construct list of all projects associated with each alert rule
+        # given both the project fk as well as the snuba query projects relationship
+        projects_per_alert_rule = defaultdict(set)
+        for alert_rule in item_list:
             try:
-                alert_rule_projects.add([alert_rule.id, alert_rule.projects.get().slug])
+                alert_rule_project = alert_rule.projects[0]
+                projects_per_alert_rule[alert_rule].add(alert_rule_project.slug)
+                snuba_query_project = alert_rule.snuba_query.subscriptions.project.slug
+                projects_per_alert_rule[alert_rule.id].add(snuba_query_project)
             except Exception:
                 pass
 
-        # TODO - Cleanup Subscription Project Mapping
-        snuba_alert_rule_projects = AlertRule.objects.filter(
-            id__in=[item.id for item in item_list]
-        ).values_list("id", "snuba_query__subscriptions__project__slug")
-
-        alert_rule_projects.update(snuba_alert_rule_projects)
-
-        for alert_rule_id, project_slug in alert_rule_projects:
-            rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
-            rule_result.append(project_slug)
+        for alert_rule, project_slug_set in projects_per_alert_rule.items():
+            result[alert_rule]["projects"] = list(project_slug_set)
 
         rule_activities = list(
             AlertRuleActivity.objects.filter(
