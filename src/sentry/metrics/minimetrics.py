@@ -1,7 +1,7 @@
 import random
 from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Union
+from typing import Any
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
