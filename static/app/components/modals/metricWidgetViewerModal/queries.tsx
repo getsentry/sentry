@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -10,6 +10,7 @@ import {
   IconAdd,
   IconClose,
   IconCopy,
+  IconEdit,
   IconEllipsis,
   IconSettings,
   IconSiren,
@@ -76,6 +77,32 @@ export function Queries({
     [metricEquations, displayType]
   );
 
+  const handleEditQueryAlias = useCallback(
+    (index: number) => {
+      const query = metricQueries[index];
+      // eslint-disable-next-line no-alert
+      const newAlias = prompt(t('Edit alias'), query.alias); // TODO: replace with inline input
+      if (newAlias === null) {
+        return;
+      }
+      onQueryChange({alias: newAlias}, index);
+    },
+    [metricQueries, onQueryChange]
+  );
+
+  const handleEditEquationAlias = useCallback(
+    (index: number) => {
+      const query = metricEquations[index];
+      // eslint-disable-next-line no-alert
+      const newAlias = prompt(t('Edit alias'), query.alias); // TODO: replace with inline input
+      if (newAlias === null) {
+        return;
+      }
+      onEquationChange({alias: newAlias}, index);
+    },
+    [metricEquations, onEquationChange]
+  );
+
   const showQuerySymbols = filteredQueries.length + filteredEquations.length > 1;
   const visibleExpressions = [...filteredQueries, ...filteredEquations].filter(
     expression => !expression.isHidden
@@ -104,6 +131,7 @@ export function Queries({
             canRemoveQuery={filteredQueries.length > 1}
             removeQuery={removeQuery}
             addQuery={addQuery}
+            editAlias={handleEditQueryAlias}
             queryIndex={index}
             metricsQuery={query}
           />
@@ -126,7 +154,11 @@ export function Queries({
             value={equation.formula}
             availableVariables={availableVariables}
           />
-          <EquationContextMenu removeEquation={removeEquation} equationIndex={index} />
+          <EquationContextMenu
+            removeEquation={removeEquation}
+            editAlias={handleEditEquationAlias}
+            equationIndex={index}
+          />
         </QueryWrapper>
       ))}
       {displayType !== DisplayType.BIG_NUMBER && (
@@ -146,6 +178,7 @@ export function Queries({
 interface QueryContextMenuProps {
   addQuery: (index: number) => void;
   canRemoveQuery: boolean;
+  editAlias: (index: number) => void;
   metricsQuery: DashboardMetricsQuery;
   queryIndex: number;
   removeQuery: (index: number) => void;
@@ -157,6 +190,7 @@ function QueryContextMenu({
   addQuery,
   canRemoveQuery,
   queryIndex,
+  editAlias,
 }: QueryContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
@@ -195,6 +229,14 @@ function QueryContextMenu({
         removeQuery(queryIndex);
       },
     };
+    const aliasItem = {
+      leadingItems: [<IconEdit key="icon" />],
+      key: 'alias',
+      label: t('Alias'),
+      onAction: () => {
+        editAlias(queryIndex);
+      },
+    };
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
@@ -209,13 +251,14 @@ function QueryContextMenu({
     };
 
     return customMetric
-      ? [duplicateQueryItem, addAlertItem, removeQueryItem, settingsItem]
-      : [duplicateQueryItem, addAlertItem, removeQueryItem];
+      ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
+      : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
   }, [
     createAlert,
     metricsQuery.mri,
     removeQuery,
     addQuery,
+    editAlias,
     canRemoveQuery,
     queryIndex,
     router,
@@ -236,17 +279,47 @@ function QueryContextMenu({
 }
 
 interface EquationContextMenuProps {
+  editAlias: (index: number) => void;
   equationIndex: number;
   removeEquation: (index: number) => void;
 }
 
-function EquationContextMenu({equationIndex, removeEquation}: EquationContextMenuProps) {
+function EquationContextMenu({
+  equationIndex,
+  editAlias,
+  removeEquation,
+}: EquationContextMenuProps) {
+  const items = useMemo<MenuItemProps[]>(() => {
+    const removeEquationItem = {
+      leadingItems: [<IconClose key="icon" />],
+      key: 'delete',
+      label: t('Remove Query'),
+      onAction: () => {
+        removeEquation(equationIndex);
+      },
+    };
+    const aliasItem = {
+      leadingItems: [<IconEdit key="icon" />],
+      key: 'alias',
+      label: t('Alias'),
+      onAction: () => {
+        editAlias(equationIndex);
+      },
+    };
+
+    return [aliasItem, removeEquationItem];
+  }, [editAlias, equationIndex, removeEquation]);
+
   return (
-    <Button
-      aria-label={t('Remove Equation')}
-      onClick={() => removeEquation(equationIndex)}
-      size="md"
-      icon={<IconClose size="sm" key="icon" />}
+    <DropdownMenu
+      items={items}
+      triggerProps={{
+        'aria-label': t('Equation actions'),
+        size: 'md',
+        showChevron: false,
+        icon: <IconEllipsis direction="down" size="sm" />,
+      }}
+      position="bottom-end"
     />
   );
 }

@@ -36,6 +36,7 @@ export interface MetricsQueryApiRequestQuery {
   mri: MRI;
   name: string;
   op: string;
+  alias?: string;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -46,6 +47,7 @@ export interface MetricsQueryApiRequestQuery {
 export interface MetricsQueryApiRequestFormula {
   formula: string;
   name: string;
+  alias?: string;
   limit?: number;
   orderBy?: 'asc' | 'desc';
 }
