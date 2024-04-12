@@ -112,6 +112,7 @@ export default function SelectorTable({
           return (
             <SelectorLink
               value={value.selector}
+              display={value.displaySelector}
               selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(
                 value.fullSelector
               )}"`}
@@ -163,9 +164,11 @@ export default function SelectorTable({
 
 export function SelectorLink({
   value,
+  display,
   selectorQuery,
   projectId,
 }: {
+  display: string;
   projectId: string;
   selectorQuery: string;
   value: string;
@@ -197,7 +200,7 @@ export function SelectorLink({
             },
           }}
         >
-          <TextOverflow>{value}</TextOverflow>
+          <TextOverflow>{display}</TextOverflow>
         </Link>
       </WiderHovercard>
     </StyledTextOverflow>

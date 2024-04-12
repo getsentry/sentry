@@ -29,7 +29,7 @@ export default function constructSelector(element: ReplayClickElement) {
   const fullTitle = '[title="' + element.title + '"]';
   const title = trimAttribute(element.title, fullTitle);
 
-  const fullComponentName = '[data-sentry-component-"' + element.component_name + '"]';
+  const fullComponentName = '[data-sentry-component="' + element.component_name + '"]';
   const componentName = trimAttribute(element.component_name, fullComponentName);
 
   const fullSelector =
@@ -45,7 +45,8 @@ export default function constructSelector(element: ReplayClickElement) {
   const selector =
     tag + id + classes + role + ariaLabel + testId + alt + title + componentName;
   const displaySelector = componentName
-    ? element.component_name + ' ' + role + ariaLabel + testId + alt + title
+    ? element.component_name + id + role + ariaLabel + testId + alt + title
     : selector;
+
   return {fullSelector, selector, displaySelector};
 }

@@ -15,9 +15,11 @@ describe('constructSelector', () => {
         title: 'cool title',
       },
       fullSelector:
-        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"][data-sentry-component="TestButton"]',
       selector:
-        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"][data-sentry-component="TestButton"]',
+      displaySelector:
+        'TestButton#ID1[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
     },
     {
       element: {
@@ -31,8 +33,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'a[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a',
+      displaySelector: 'a',
     },
     {
       element: {
@@ -46,8 +50,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'a.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a.classA[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a.classA',
+      displaySelector: 'a.classA',
     },
     {
       element: {
@@ -61,8 +67,10 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'a#ID2.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a#ID2.classA[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a#ID2.classA',
+      displaySelector: 'a#ID2.classA',
     },
     {
       element: {
@@ -77,8 +85,9 @@ describe('constructSelector', () => {
         title: '',
       },
       fullSelector:
-        'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+        'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="TestButton"]',
       selector: 'a#ID2.classA.classB',
+      displaySelector: 'a#ID2.classA',
     },
     {
       element: {
@@ -93,8 +102,9 @@ describe('constructSelector', () => {
         title: '',
       },
       fullSelector:
-        'a#ID2.classA.classB[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
+        'a#ID2.classA.classB[role=""][aria="hello"][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a#ID2.classA.classB[aria="hello"]',
+      displaySelector: 'a#ID2.classA.classB[aria="hello"]',
     },
     {
       element: {
@@ -108,15 +118,18 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
-      selector: 'a#ID2[aria="hello"]',
+      fullSelector:
+        'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""][data-sentry-component="TestHello"]',
+      selector: 'a#ID2[aria="hello"][data-sentry-component="TestHello"]',
+      displaySelector: 'TestHello#ID2[aria="hello"]',
     },
   ])(
     'should construct the correct trimmed selector and full selector, for each element in the list',
-    ({element, fullSelector, selector}) => {
+    ({element, fullSelector, selector, displaySelector}) => {
       expect(constructSelector(element)).toStrictEqual({
         fullSelector,
         selector,
+        displaySelector,
       });
     }
   );
