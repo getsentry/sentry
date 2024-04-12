@@ -1,3 +1,5 @@
+.devenv/bin/**/*
+**/*.min.js
 **/tests/**/fixtures/**/*
-fixtures/**/*
+fixtures/profiles/embedded.js
 tests/relay_integration/**/*
