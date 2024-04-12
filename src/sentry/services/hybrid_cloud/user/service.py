@@ -121,10 +121,7 @@ class UserService(RpcService):
         pass
 
     def get_user(self, user_id: int) -> RpcUser | None:
-        user = get_user(user_id)
-        if user.is_anonymous:
-            return None
-        return user
+        return get_user(user_id)
 
     @rpc_method
     @abstractmethod
@@ -157,6 +154,11 @@ class UserService(RpcService):
         email: str,
         ident: str | None = None,
     ) -> RpcUser | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def verify_user_email(self, *, email: str, user_id: int) -> bool:
         pass
 
     @rpc_method
@@ -195,12 +197,11 @@ class UserService(RpcService):
 
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
-def get_user(user_id: int) -> RpcUser:
+def get_user(user_id: int) -> RpcUser | None:
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]
-    else:
-        return RpcUser(is_anonymous=True)
+    return None
 
 
 user_service = UserService.create_delegation()

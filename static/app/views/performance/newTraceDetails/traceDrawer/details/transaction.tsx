@@ -205,6 +205,35 @@ function ReplaySection({
   ) : null;
 }
 
+function AdditionalMobileEventContexts({event}: {event: EventTransaction}) {
+  if (!event.contexts) {
+    return null;
+  }
+  return (
+    <Fragment>
+      {Object.entries(omit(event.contexts ?? {}, ['feedback', 'response'])).map(
+        ([key, value]) => {
+          // Ignore profile as it's handled separately in the drawer.
+          if (key === 'profile') {
+            return null;
+          }
+
+          return (
+            <Chunk
+              key={key}
+              type={value?.type ?? ''}
+              alias={key}
+              group={undefined}
+              event={event}
+              value={value}
+            />
+          );
+        }
+      )}
+    </Fragment>
+  );
+}
+
 const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
 };
@@ -286,7 +315,7 @@ export function TransactionNodeDetails({
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {node.value['transaction.op']}
+              {node.value['transaction.op'] + ' - ' + node.value.transaction}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
@@ -496,6 +525,7 @@ export function TransactionNodeDetails({
           value={event.user}
         />
       ) : null}
+      <AdditionalMobileEventContexts event={event} />
       <EventExtraData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event._metrics_summary ? (

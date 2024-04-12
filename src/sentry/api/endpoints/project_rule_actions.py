@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import RuleActionSerializer
 from sentry.models.rule import Rule
-from sentry.rules.processor import RuleProcessor
+from sentry.rules.processing.processor import RuleProcessor
 from sentry.utils.safe import safe_execute
 from sentry.utils.samples import create_sample_event
 

@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba import discover
 
@@ -28,6 +28,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+
+        update_snuba_params_with_timestamp(request, params, timestamp_key="traceTimestamp")
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):

@@ -1820,6 +1820,10 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     position: absolute;
 
+    &:hover {
+      z-index: 10;
+    }
+
     .TraceIndicatorLabel {
       min-width: 34px;
       text-align: center;

@@ -25,6 +25,7 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
+import logoNintendo from 'sentry-logos/logo-nintendo.svg';
 import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
@@ -59,6 +60,7 @@ const LOGO_MAPPING = {
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
+  nintendo: logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
