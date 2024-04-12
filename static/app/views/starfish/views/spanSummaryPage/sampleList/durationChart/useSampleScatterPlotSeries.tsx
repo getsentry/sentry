@@ -35,7 +35,7 @@ export function useSampleScatterPlotSeries(
       symbol,
       color,
       symbolSize: span?.span_id === highlightedSpanId ? 19 : 14,
-      seriesName: span?.['transaction.id']?.substring(0, 8) ?? t('Sample'),
+      seriesName: span?.span_id?.substring(0, 16) ?? t('Sample'),
     };
 
     return series;
