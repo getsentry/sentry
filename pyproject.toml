@@ -96,7 +96,6 @@ module = [
     "google.cloud.*",
     "google.resumable_media.common.*",
     "google.rpc.status_pb2.*",
-    "google_crc32c.*",
     "kombu.*",
     "mistune.*",
     "onelogin.saml2.auth.*",
