@@ -72,11 +72,12 @@ export function TraceView() {
     if (!slug || slug === 'null' || slug === 'undefined') {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-null-slug']);
-        Sentry.captureMessage(`Trace slug is empty, got ${slug}`);
+        Sentry.captureMessage(`Trace slug is empty`);
       });
     }
     return slug;
   }, [params.traceSlug]);
+
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
