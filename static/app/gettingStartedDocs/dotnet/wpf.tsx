@@ -24,16 +24,32 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 type Params = DocsParams;
 
 const getInstallSnippetPackageManager = (params: Params) => `
-Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+Install-Package Sentry -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+dotnet add package Sentry -v ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
 
-const getInstallProfilingSnippetPackageManager = () => `
-Install-Package Sentry.Profiling`;
+const getInstallProfilingSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Profiling -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  '4.3.0'
+)}`;
 
-const getInstallProfilingSnippetCoreCli = () => `
-dotnet add package Sentry.Profiling`;
+const getInstallProfilingSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Profiling -v ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  '4.3.0'
+)}`;
 
 enum DotNetPlatform {
   DOTNET,
@@ -151,13 +167,13 @@ const onboarding: OnboardingConfig = {
                     language: 'shell',
                     label: 'Package Manager',
                     value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(),
+                    code: getInstallProfilingSnippetPackageManager(params),
                   },
                   {
                     language: 'shell',
                     label: '.NET Core CLI',
                     value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(),
+                    code: getInstallProfilingSnippetCoreCli(params),
                   },
                 ],
               },

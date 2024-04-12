@@ -23,21 +23,29 @@ const getInstallSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.Maui -Version ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '3.34.0'
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.Maui -v ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '3.34.0'
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
 )}`;
 
-const getInstallProfilingSnippetPackageManager = () => `
-Install-Package Sentry.Profiling`;
+const getInstallProfilingSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Profiling -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.maui',
+  '4.3.0'
+)}`;
 
-const getInstallProfilingSnippetCoreCli = () => `
-dotnet add package Sentry.Profiling`;
+const getInstallProfilingSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Profiling -v ${getPackageVersion(
+  params,
+  'sentry.dotnet.maui',
+  '4.3.0'
+)}`;
 
 enum DotNetPlatform {
   WINDOWS,
@@ -158,13 +166,13 @@ const onboarding: OnboardingConfig = {
                     language: 'shell',
                     label: 'Package Manager',
                     value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(),
+                    code: getInstallProfilingSnippetPackageManager(params),
                   },
                   {
                     language: 'shell',
                     label: '.NET Core CLI',
                     value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(),
+                    code: getInstallProfilingSnippetCoreCli(params),
                   },
                 ],
               },
