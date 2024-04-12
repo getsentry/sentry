@@ -301,16 +301,11 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
     """Process the response further into the expected output."""
 
     def make_selector_name(row) -> str:
-        if row["click_component_name"]:
-            selector = row["click_component_name"]
-            if row["click_id"]:
-                selector = selector + f"#{row['click_id']}"
-        else:
-            selector = row["click_tag"]
-            if row["click_id"]:
-                selector = selector + f"#{row['click_id']}"
-            if row["click_class_filtered"]:
-                selector = selector + "." + ".".join(row["click_class_filtered"])
+        selector = row["click_tag"]
+        if row["click_id"]:
+            selector = selector + f"#{row['click_id']}"
+        if row["click_class_filtered"]:
+            selector = selector + "." + ".".join(row["click_class_filtered"])
 
         if row["click_role"]:
             selector = selector + f'[role="{row["click_role"]}"]'
@@ -322,6 +317,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
             selector = selector + f'[aria="{row["click_aria_label"]}"]'
         if row["click_title"]:
             selector = selector + f'[title="{row["click_title"]}"]'
+        if row["click_component_name"]:
+            selector = selector + f'[component_name="{row["click_component_name"]}"]'
 
         return selector
 

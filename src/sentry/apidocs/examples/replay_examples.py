@@ -75,23 +75,6 @@ class ReplayExamples:
             value={
                 "data": [
                     {
-                        "count_dead_clicks": 1,
-                        "count_rage_clicks": 0,
-                        "dom_element": "SignUpForm#myform",
-                        "element": {
-                            "alt": "",
-                            "aria_label": "",
-                            "class": ["classForm"],
-                            "component_name": "SignUpForm",
-                            "id": "myform",
-                            "role": "",
-                            "tag": "div",
-                            "testid": "",
-                            "title": "",
-                        },
-                        "project_id": "1",
-                    },
-                    {
                         "count_dead_clicks": 2,
                         "count_rage_clicks": 1,
                         "dom_element": "div#myid.class1.class2",
