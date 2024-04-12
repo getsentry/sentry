@@ -250,7 +250,7 @@ function DetailsOverlay({
       zIndex={theme.zIndex.tooltip}
       style={popper.styles.popper}
     >
-      <StyledOverlay id={id} placement="right-start" size={size}>
+      <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
         {children}
       </StyledOverlay>
     </StyledPositionWrapper>,
