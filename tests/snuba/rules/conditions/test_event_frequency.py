@@ -29,7 +29,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
-    def _make_sessions(self, num: int, environment_name: str | None):
+    def _make_sessions(self, num: int, environment_name: str | None = None):
         received = time.time()
 
         def make_session(i):
@@ -180,8 +180,8 @@ class EventFrequencyPercentConditionQueryTest(
             environment_id=self.environment.id,
         )
         assert batch_query == {
-            self.event.group_id: 10.0,
-            self.event2.group_id: 10.0,
+            self.event.group_id: 10,
+            self.event2.group_id: 10,
         }
 
         batch_query = condition_inst.batch_query_hook(
@@ -190,7 +190,7 @@ class EventFrequencyPercentConditionQueryTest(
             end=self.end,
             environment_id=self.environment2.id,
         )
-        assert batch_query == {self.event3.group_id: 10.0}
+        assert batch_query == {self.event3.group_id: 10}
 
 
 class ErrorEventMixin(SnubaTestCase):

@@ -545,7 +545,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            percent: int = 100 * round(issue_count / avg_sessions_in_interval, 4)
+            percent: int = int(100 * round(issue_count / avg_sessions_in_interval, 4))
             return percent
 
         return 0
@@ -577,7 +577,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     referrer_suffix="alert_event_frequency_percent",
                 )
                 for group_id, count in error_issue_count.items():
-                    percent: int = 100 * round(count / avg_sessions_in_interval, 4)
+                    percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
                     batch_percents[group_id] = percent
         else:
             percent = 0
