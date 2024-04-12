@@ -183,9 +183,7 @@ class BaseModel(models.Model):
             foreign_field_model_name = get_model_name(foreign_field.model)
             matched_fks = set(pk_map.get_pks(foreign_field_model_name))
             matched_fks_query = dict()
-            if len(matched_fks) > 0:
-                matched_fks_query[field_name + "__in"] = matched_fks
-
+            matched_fks_query[field_name + "__in"] = matched_fks
             if foreign_field.nullable:
                 match_on_null_query = dict()
                 match_on_null_query[field_name + "__isnull"] = True
