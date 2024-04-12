@@ -13,9 +13,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 interface ProjectRendererProps {
   projectSlug: string;
+  hideName?: boolean;
 }
 
-export function ProjectRenderer({projectSlug}: ProjectRendererProps) {
+export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   const organization = useOrganization();
 
   return (
@@ -24,6 +25,7 @@ export function ProjectRenderer({projectSlug}: ProjectRendererProps) {
         const project = projects.find(p => p.slug === projectSlug);
         return (
           <ProjectBadge
+            hideName={hideName}
             project={project ? project : {slug: projectSlug}}
             avatarSize={16}
           />

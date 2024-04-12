@@ -99,7 +99,13 @@ export function Content() {
             {t('Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
+            {t('Breakdown')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
             {t('Trace Duration')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Issues')}
           </StyledPanelHeader>
           {isLoading && (
             <StyledPanelItem span={4}>
@@ -127,7 +133,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
   const [expanded, setExpanded] = useState<boolean>(false);
   return (
     <Fragment>
-      <StyledPanelItem align="center">
+      <StyledPanelItem align="center" center>
         <Button
           icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
           aria-label={t('Toggle trace details')}
@@ -148,8 +154,14 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       <StyledPanelItem align="right">
         <Count value={trace.numSpans} />
       </StyledPanelItem>
+      <StyledPanelItem align="center">
+        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+      </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
+      </StyledPanelItem>
+      <StyledPanelItem align="center">
+        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
       {expanded && trace.spans.map(span => <SpanRow key={span.id} span={span} />)}
     </Fragment>
@@ -167,13 +179,21 @@ function SpanRow({span}: {span: SpanResult<Field>}) {
         />
       </StyledPanelItem>
       <StyledPanelItem align="left" span={2}>
-        <ProjectRenderer projectSlug={span.project} />
-        <strong>{span['span.op']}</strong>
-        <strong>{'\u2014'}</strong>
-        {span['span.description']}
+        <Description>
+          <ProjectRenderer projectSlug={span.project} hideName />
+          <strong>{span['span.op']}</strong>
+          <em>{'\u2014'}</em>
+          {span['span.description']}
+        </Description>
+      </StyledPanelItem>
+      <StyledPanelItem align="center">
+        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
+      </StyledPanelItem>
+      <StyledPanelItem align="center">
+        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
     </Fragment>
   );
@@ -243,7 +263,7 @@ const LayoutMain = styled(Layout.Main)`
 const PanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content);
+  grid-template-columns: repeat(1, min-content) auto repeat(4, min-content);
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -251,10 +271,18 @@ const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
 `;
 
+const Description = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const StyledPanelItem = styled(PanelItem)<{
   align?: 'left' | 'center' | 'right';
   span?: number;
 }>`
+  padding: ${space(1)};
   ${p => p.theme.overflowEllipsis};
   ${p =>
     p.align === 'center'
