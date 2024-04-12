@@ -312,14 +312,14 @@ const MetricWidgetBody = memo(
       });
     }, [queries]);
 
+    // Pause refetching if focus area is drawn
+    const enableRefetch = !focusAreaProps.selection;
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsQuery(orderedQueries, filters, {
-      interval: interval,
-    });
+    } = useMetricsQuery(orderedQueries, filters, {interval}, enableRefetch);
 
     const limitedResults = useMemo(() => {
       if (!timeseriesData) {
