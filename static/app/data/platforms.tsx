@@ -397,6 +397,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/node/guides/express/',
   },
   {
+    id: 'node-fastify',
+    name: 'Fastify',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/fastify/',
+  },
+  {
     id: 'node-gcpfunctions',
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
@@ -404,11 +411,25 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/',
   },
   {
+    id: 'node-hapi',
+    name: 'Hapi',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/hapi/',
+  },
+  {
     id: 'node-koa',
     name: 'Koa',
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/node/guides/koa/',
+  },
+  {
+    id: 'node-nestjs',
+    name: 'NestJS',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/nestjs/',
   },
   {
     id: 'node-serverlesscloud',
