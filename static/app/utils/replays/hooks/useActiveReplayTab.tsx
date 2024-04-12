@@ -31,7 +31,7 @@ function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
-  const paramValue = getParamValue()?.toLowerCase() ?? '';
+  const paramValue = (typeof getParamValue() === 'string' ? getParamValue().toLowerCase() : '');
 
   return {
     getActiveTab: useCallback(
@@ -48,6 +48,7 @@ function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
       },
       [organization, setParamValue, defaultTab]
     ),
+}
   };
 }
 
