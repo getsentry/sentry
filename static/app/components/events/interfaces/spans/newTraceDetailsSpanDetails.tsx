@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -99,18 +99,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
   }, [props.node.errors, props.node.performance_issues]);
+
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
   const resolvedModule: ModuleName = resolveSpanModule(
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
-
-  useLayoutEffect(() => {
-    if (!('op' in props.span)) {
-      return;
-    }
-  }, [props.span]);
 
   function renderTraversalButton(): React.ReactNode {
     if (!props.childTransactions) {

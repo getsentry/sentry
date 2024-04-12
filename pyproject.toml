@@ -64,7 +64,7 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-enable_error_code = ["ignore-without-code"]
+enable_error_code = ["ignore-without-code", "redundant-self"]
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -96,7 +96,6 @@ module = [
     "google.cloud.*",
     "google.resumable_media.common.*",
     "google.rpc.status_pb2.*",
-    "google_crc32c.*",
     "kombu.*",
     "mistune.*",
     "onelogin.saml2.auth.*",
@@ -538,22 +537,9 @@ module = [
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",
     "sentry_plugins.bitbucket.client",
-    "sentry_plugins.bitbucket.endpoints.webhook",
     "sentry_plugins.bitbucket.mixins",
-    "sentry_plugins.client",
-    "sentry_plugins.github.client",
     "sentry_plugins.github.plugin",
-    "sentry_plugins.github.webhooks.base",
-    "sentry_plugins.github.webhooks.integration",
-    "sentry_plugins.heroku.plugin",
-    "sentry_plugins.jira.client",
     "sentry_plugins.jira.plugin",
-    "sentry_plugins.pivotal.plugin",
-    "sentry_plugins.redmine.forms",
-    "sentry_plugins.redmine.plugin",
-    "sentry_plugins.splunk.plugin",
-    "sentry_plugins.trello.plugin",
-    "sentry_plugins.twilio.plugin",
     "tests.sentry.api.bases.test_organization",
     "tests.sentry.api.bases.test_project",
     "tests.sentry.api.bases.test_sentryapps",
