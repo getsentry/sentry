@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
@@ -15,18 +17,18 @@ class BaseVariant:
         return None
 
     @property
-    def description(self):
+    def description(self) -> str | None:
         return self.type
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> dict[Any, Any]:
         return {}
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, str | None]:
         rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
         rv.update(self._get_metadata_as_dict())
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
@@ -36,14 +38,14 @@ KeyedVariants = KeyedList[BaseVariant]
 class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
 
-    type = "checksum"
+    type: str = "checksum"
 
-    def __init__(self, hash, hashed=False):
+    def __init__(self, hash, hashed=False) -> None:
         self.hash = hash
         self.hashed = hashed
 
     @property
-    def description(self):
+    def description(self) -> str:
         if self.hashed:
             return "hashed legacy checksum"
         return "legacy checksum"
@@ -75,7 +77,7 @@ class PerformanceProblemVariant(BaseVariant):
     description = "performance problem"
     contributes = True
 
-    def __init__(self, event_performance_problem):
+    def __init__(self, event_performance_problem) -> None:
         self.event_performance_problem = event_performance_problem
         self.problem = event_performance_problem.problem
 
@@ -96,7 +98,7 @@ class ComponentVariant(BaseVariant):
 
     type = "component"
 
-    def __init__(self, component, config):
+    def __init__(self, component, config) -> None:
         self.component = component
         self.config = config
 
@@ -142,7 +144,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom-fingerprint"
 
-    def __init__(self, values, fingerprint_info=None):
+    def __init__(self, values, fingerprint_info=None) -> None:
         self.values = values
         self.info = fingerprint_info
 
@@ -153,7 +155,7 @@ class CustomFingerprintVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return hash_from_values(self.values)
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> dict[str, Any]:
         return expose_fingerprint_dict(self.values, self.info)
 
 
@@ -163,7 +165,7 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
     type = "built-in-fingerprint"
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "Sentry defined fingerprint"
 
 
@@ -172,13 +174,13 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted-component"
 
-    def __init__(self, values, component, config, fingerprint_info=None):
+    def __init__(self, values, component, config, fingerprint_info=None) -> None:
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "modified " + self.component.description
 
     def get_hash(self) -> str | None:
@@ -192,7 +194,7 @@ class SaltedComponentVariant(ComponentVariant):
                 final_values.append(value)
         return hash_from_values(final_values)
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> dict[str, Any]:
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
