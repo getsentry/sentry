@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -113,16 +111,6 @@ const onboarding: OnboardingConfig = {
               code: getInstallSnippetCoreCli(params),
             },
           ],
-        },
-        {
-          description: (
-            <AlertWithoutMarginBottom type="info">
-              {tct(
-                '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-                {strong: <strong />}
-              )}
-            </AlertWithoutMarginBottom>
-          ),
         },
       ],
     },
@@ -261,7 +249,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

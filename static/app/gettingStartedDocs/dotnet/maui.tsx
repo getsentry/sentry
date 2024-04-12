@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -88,9 +90,12 @@ public static MauiApp CreateMauiApp()
           ? `
 
       // Requires NuGet package: Sentry.Profiling
-      // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
+      // Note: By default, the profiler is initialized asynchronously. This can
+      // be tuned by passing a desired initialization timeout to the constructor.
       options.AddIntegration(new ProfilingIntegration(
-          // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+          // During startup, wait up to 500ms to profile the app startup code.
+          // This could make launching the app a bit slower so comment it out if you
+          // prefer profiling to start asynchronously
           TimeSpan.FromMilliseconds(500)
       ));`
           : ''
@@ -177,8 +182,12 @@ const onboarding: OnboardingConfig = {
                 ],
               },
               {
-                description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t(
+                      'Profiling for .NET Framework and .NET on Android are not supported.'
+                    )}
+                  </AlertWithoutMarginBottom>
                 ),
               },
             ]
@@ -327,3 +336,7 @@ const docs: Docs = {
 };
 
 export default docs;
+
+const AlertWithoutMarginBottom = styled(Alert)`
+  margin-bottom: 0;
+`;

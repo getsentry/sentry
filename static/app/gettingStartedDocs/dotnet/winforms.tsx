@@ -81,8 +81,13 @@ static class Program
             // e.g. 0.2 means we want to profile 20 % of the captured transactions.
             // We recommend adjusting this value in production.
             o.ProfilesSampleRate = 1.0;
+            // Requires NuGet package: Sentry.Profiling
+            // Note: By default, the profiler is initialized asynchronously. This can
+            // be tuned by passing a desired initialization timeout to the constructor.
             o.AddIntegration(new ProfilingIntegration(
-                // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+                // During startup, wait up to 500ms to profile the app startup code.
+                // This could make launching the app a bit slower so comment it out if you
+                // prefer profiling to start asynchronously
                 TimeSpan.FromMilliseconds(500)
             ));`
                 : ''
@@ -170,7 +175,7 @@ const onboarding: OnboardingConfig = {
               {
                 description: (
                   <AlertWithoutMarginBottom type="info">
-                    {t('.NET Framework is not supported.')}
+                    {t('Profiling for .NET Framework is not supported.')}
                   </AlertWithoutMarginBottom>
                 ),
               },

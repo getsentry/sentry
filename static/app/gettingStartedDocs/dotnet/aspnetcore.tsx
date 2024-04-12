@@ -75,9 +75,12 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               // We recommend adjusting this value in production.
               o.ProfilesSampleRate = 1.0;
               // Requires NuGet package: Sentry.Profiling
-              // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
+              // Note: By default, the profiler is initialized asynchronously. This can
+              // be tuned by passing a desired initialization timeout to the constructor.
               o.AddIntegration(new ProfilingIntegration(
-                  // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+                  // During startup, wait up to 500ms to profile the app startup code.
+                  // This could make launching the app a bit slower so comment it out if you
+                  // prefer profiling to start asynchronously.
                   TimeSpan.FromMilliseconds(500)
               ));`
                   : ''
@@ -142,12 +145,6 @@ const onboarding: OnboardingConfig = {
         ...(params.isProfilingSelected
           ? [
               {
-                description: tct(
-                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                  {
-                    sentryProfilingPackage: <code />,
-                  }
-                ),
                 code: [
                   {
                     language: 'shell',
@@ -162,11 +159,6 @@ const onboarding: OnboardingConfig = {
                     code: getInstallProfilingSnippetCoreCli(params),
                   },
                 ],
-              },
-              {
-                description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
-                ),
               },
             ]
           : []),
