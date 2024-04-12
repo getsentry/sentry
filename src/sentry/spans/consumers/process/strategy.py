@@ -29,7 +29,6 @@ class CommitSpanOffsets(CommitOffsets):
         self.__next_step.terminate()
 
     def join(self, timeout: float | None = None) -> None:
-        # Commit all previously staged offsets
         super().join(timeout)
         self.__next_step.join(timeout=timeout)
 
