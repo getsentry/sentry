@@ -1,5 +1,5 @@
 name: 'Sentry Artifacts'
-description: 'Handles uploading coverage/test artifacts to codecov and our internal test data collection service.'
+description: 'Handles uploading coverage/test artifacts to codecov'
 
 inputs:
   files:
@@ -13,23 +13,10 @@ inputs:
   token:
     description: 'The codecov token'
     required: true
-  artifact-path:
-    description: 'Path to test data output artifact to upload to our internal test data collection service'
-    required: false
 
 runs:
   using: 'composite'
   steps:
-    - name: Collect test data
-      if: ${{ inputs.artifact-path != '' }}
-      uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
-      with:
-        path: ${{ inputs.artifact-path }}
-        gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}/instance${{ steps.setup.outputs.matrix-instance-number }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
-        gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-        workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-        service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
     - name: Upload to codecov
       uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
       with:
