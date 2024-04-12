@@ -22,6 +22,7 @@ from sentry.profiles.task import (
     _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
+    _set_frames_platform,
     _symbolicate_profile,
 )
 from sentry.testutils.cases import TransactionTestCase
@@ -865,3 +866,36 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
         _symbolicate_profile(js_profile, self.project)
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
+
+
+def test_set_frames_platform_sample():
+    python_prof = {
+        "version": "1",
+        "platform": "python",
+        "profile": {
+            "frames": [
+                {"function": "a"},
+                {"function": "b"},
+            ]
+        },
+    }
+    _set_frames_platform(python_prof)
+
+    platforms = [f["platform"] for f in python_prof["profile"]["frames"]]
+    assert platforms == ["python", "python"]
+
+
+def test_set_frames_platform_android():
+    android_prof = {
+        "platform": "android",
+        "profile": {
+            "methods": [
+                {"name": "a"},
+                {"name": "b"},
+            ]
+        },
+    }
+    _set_frames_platform(android_prof)
+
+    platforms = [m["platform"] for m in android_prof["profile"]["methods"]]
+    assert platforms == ["android", "android"]
