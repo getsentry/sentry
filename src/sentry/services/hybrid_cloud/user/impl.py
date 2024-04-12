@@ -71,7 +71,7 @@ class DatabaseBackedUserService(UserService):
         return self._FQ.get_many_ids(filter)
 
     def get_many_profiles(self, *, filter: UserFilterArgs) -> list[RpcUserProfile]:
-        users = self._FQ._query_many(filter, ids_only=True)
+        users = self._FQ.query_many(filter, select_related=False)
         return [serialize_rpc_user_profile(user) for user in users]
 
     def get_many_by_email(
@@ -325,8 +325,8 @@ class DatabaseBackedUserService(UserService):
 
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet[User]:
-            if ids_only:
+        def base_query(self, select_related: bool = True) -> QuerySet[User]:
+            if not select_related:
                 return User.objects
 
             return User.objects.extra(
