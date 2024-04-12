@@ -2042,6 +2042,8 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       &.Errored {
+        color: ${p => p.theme.error};
+
         .TraceChildrenCount {
           background-color: ${p => p.theme.error} !important;
         }
