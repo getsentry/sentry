@@ -37,7 +37,7 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
+        examples=MetricAlertExamples.GET_METRIC_ALERT_ACTIVATIONS,
     )
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
