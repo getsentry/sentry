@@ -13,8 +13,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {Chevron} from 'sentry/components/chevron';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
