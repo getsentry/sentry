@@ -1239,22 +1239,22 @@
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-1.6.0.tgz#a90b549170864eff030a6b7e395f48ead5193170"
   integrity sha512-sXBcXIOGuG8/XcHqmnkhLIs0oy6Dp+TkH4Alr4WH/P8mNsp5GcStI/ZwbEiEoxA0P3Fi+oUppQ6srxaY2rSCHg==
 
-"@codecov/bundler-plugin-core@^0.0.1-beta.4":
-  version "0.0.1-beta.4"
-  resolved "https://registry.yarnpkg.com/@codecov/bundler-plugin-core/-/bundler-plugin-core-0.0.1-beta.4.tgz#c6ff4aeb61b5b01e00f70f927db7d4ca73cb28db"
-  integrity sha512-rxPmTCoO/G/KcbQCQECenVfTpWSkuNTEJL4v37zetQ4Wr1ydh2dt+53uK9Hp1s8C+ogEjpMPG8X8bHK4tp+y/g==
+"@codecov/bundler-plugin-core@^0.0.1-beta.6":
+  version "0.0.1-beta.6"
+  resolved "https://registry.yarnpkg.com/@codecov/bundler-plugin-core/-/bundler-plugin-core-0.0.1-beta.6.tgz#50ada40c16251ce7ffa0c66292401c8f45383e3f"
+  integrity sha512-dGk/s90fZm7D1O00gRtuE2gqM/CW9nglaPzcIT0v10VOV2tj+aHRrdB+yjas+RW8QP8Qf/sMqSmjkufP1iqggw==
   dependencies:
     chalk "4.1.2"
     semver "^7.5.4"
     unplugin "^1.6.0"
     zod "^3.22.4"
 
-"@codecov/webpack-plugin@^0.0.1-beta.4":
-  version "0.0.1-beta.4"
-  resolved "https://registry.yarnpkg.com/@codecov/webpack-plugin/-/webpack-plugin-0.0.1-beta.4.tgz#347c2ca3c07e721a8b5f55a435c7f9793d95b81d"
-  integrity sha512-23cmh7ixiZxzCsLPnDu2wuUuzmPpJ17X+cvBm90CQ1pleBt5h5VFvjvA6v6pe/bW3K58noxnAG69q7JF+gwZDg==
+"@codecov/webpack-plugin@^0.0.1-beta.6":
+  version "0.0.1-beta.6"
+  resolved "https://registry.yarnpkg.com/@codecov/webpack-plugin/-/webpack-plugin-0.0.1-beta.6.tgz#9a82c7810c2463f4a6ee579e6d0d05fc58ac536a"
+  integrity sha512-3dyq8XmSxD4/92XFWkkukbSugb6kBsRZ3VpgR6ykKZ003fTLqOIzMEs15IQw3eHku/7b2awM9MvofvstaQdijA==
   dependencies:
-    "@codecov/bundler-plugin-core" "^0.0.1-beta.4"
+    "@codecov/bundler-plugin-core" "^0.0.1-beta.6"
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"

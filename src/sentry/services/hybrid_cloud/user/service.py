@@ -19,7 +19,7 @@ from sentry.services.hybrid_cloud.user import (
 )
 from sentry.services.hybrid_cloud.user.model import (
     RpcAvatar,
-    RpcUserContact,
+    RpcUserProfile,
     RpcVerifyUserEmail,
     UserIdEmailArgs,
 )
@@ -56,6 +56,11 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_many_ids(self, *, filter: UserFilterArgs) -> list[int]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_many_profiles(self, *, filter: UserFilterArgs) -> list[RpcUserProfile]:
         pass
 
     @rpc_method
@@ -198,11 +203,6 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_bulk_contact_info(self, *, user_ids: list[int]) -> list[RpcUserContact]:
         pass
 
 

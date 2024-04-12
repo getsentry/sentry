@@ -137,8 +137,7 @@ export function generateTraceLink(dateSelection) {
       traceId,
       dateSelection,
       {},
-      tableRow.timestamp,
-      tableRow.id
+      tableRow.timestamp
     );
   };
 }

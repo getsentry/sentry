@@ -21,7 +21,9 @@ class TestActivityCreatedReceiver(TestCase):
             "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
             self.mock_send_activity_notifications,
         ):
-            activity_created_receiver({}, False)
+            foo = mock.MagicMock()
+            foo.id = 123
+            activity_created_receiver(foo, False)
             self.mock_send_activity_notifications.apply_async.assert_not_called()
 
     def test_calls_async_function(self) -> None:
