@@ -146,7 +146,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         )}
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <Count value={trace.spans.length} />
+        <Count value={trace.numSpans} />
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
