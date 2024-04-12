@@ -12,6 +12,10 @@ def llm(usecase: str) -> None:
     configure()
     from sentry.llm.usecases import LlmUseCase, complete_prompt
 
-    llm_response = complete_prompt(LlmUseCase(usecase), "prompt here", "message here", 0.0, 1024)
+    llm_response = complete_prompt(
+        usecase=LlmUseCase(usecase),
+        prompt="prompt here",
+        message="message here",
+    )
 
     click.echo(llm_response)
