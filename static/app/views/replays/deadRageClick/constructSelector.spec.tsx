@@ -15,9 +15,9 @@ describe('constructSelector', () => {
         title: 'cool title',
       },
       fullSelector:
-        'TestButton[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
       selector:
-        'TestButton[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
     },
     {
       element: {
@@ -76,8 +76,9 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'TestButton[role=""][aria=""][data-test-id=""][alt=""][title=""]',
-      selector: 'TestButton',
+      fullSelector:
+        'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      selector: 'a#ID2.classA.classB',
     },
     {
       element: {
@@ -107,8 +108,8 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'TestHello[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
-      selector: 'TestHello[aria="hello"]',
+      fullSelector: 'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
+      selector: 'a#ID2[aria="hello"]',
     },
   ])(
     'should construct the correct trimmed selector and full selector, for each element in the list',

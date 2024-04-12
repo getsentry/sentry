@@ -5,8 +5,6 @@ function trimAttribute(elementAttribute, fullAlltribute) {
 }
 
 export default function constructSelector(element: ReplayClickElement) {
-  const componentName = element.component_name;
-
   const tag = element.tag;
 
   const id = trimAttribute(element.id, '#' + element.id);
@@ -31,9 +29,23 @@ export default function constructSelector(element: ReplayClickElement) {
   const fullTitle = '[title="' + element.title + '"]';
   const title = trimAttribute(element.title, fullTitle);
 
-  const identifier = componentName ? componentName : tag + id + classes;
+  const fullComponentName = '[data-sentry-component-"' + element.component_name + '"]';
+  const componentName = trimAttribute(element.component_name, fullComponentName);
+
   const fullSelector =
-    identifier + fullRole + fullAriaLabel + fullTestId + fullAlt + fullTitle;
-  const selector = identifier + role + ariaLabel + testId + alt + title;
-  return {fullSelector, selector};
+    tag +
+    id +
+    classes +
+    fullRole +
+    fullAriaLabel +
+    fullTestId +
+    fullAlt +
+    fullTitle +
+    componentName;
+  const selector =
+    tag + id + classes + role + ariaLabel + testId + alt + title + componentName;
+  const displaySelector = componentName
+    ? element.component_name + ' ' + role + ariaLabel + testId + alt + title
+    : selector;
+  return {fullSelector, selector, displaySelector};
 }
