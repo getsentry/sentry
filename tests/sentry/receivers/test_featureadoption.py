@@ -535,7 +535,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         alert_rule_created.send(
             user=self.owner,
             project=self.project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=type(self.project),
             is_api_token=False,

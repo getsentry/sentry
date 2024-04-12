@@ -96,7 +96,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["serial", "parallel"]),
-            default="serial",
+            default="parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -108,7 +108,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--max-batch-time", "max_batch_time"],
             type=int,
-            default=10,
+            default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
     ]
@@ -510,8 +510,8 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
-                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
-                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
             ),
             None,
         )

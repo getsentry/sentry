@@ -70,6 +70,7 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.mediators.project_rules.creator import Creator
+from sentry.models.actor import get_actor_for_user
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -646,16 +647,21 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch(
-            "sentry.event_manager.detect_performance_problems",
-            side_effect=detect_performance_problems_interceptor,
-        ), mock.patch.object(
-            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-        ), override_options(
-            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch(
+                "sentry.event_manager.detect_performance_problems",
+                side_effect=detect_performance_problems_interceptor,
+            ),
+            mock.patch.object(
+                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+            ),
+            override_options(
+                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+            ),
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -1464,6 +1470,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         duration: int = 10,
@@ -1500,6 +1507,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         self.store_span(payload)
 
@@ -1509,6 +1518,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         op: str | None = None,
@@ -1555,6 +1565,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if store_metrics_summary:
             payload["_metrics_summary"] = store_metrics_summary
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2840,14 +2852,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
-        assert attachment["title"] == "N+1 Query"
+        assert "N+1 Query" in attachment["text"]
         assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in attachment["blocks"][1]["text"]["text"]
         )
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
+            attachment["blocks"][-2]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -3048,6 +3061,9 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
+        if "owner_actor_id" not in kwargs:
+            kwargs["owner_actor_id"] = get_actor_for_user(self.user).id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
