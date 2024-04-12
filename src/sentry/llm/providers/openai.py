@@ -23,7 +23,8 @@ class OpenAIProvider(LlmModelBase):
 
         response = client.chat.completions.create(
             model=model,
-            temperature=temperature * 2,  # open AI temp range is [0.0 - 2.0]
+            temperature=temperature
+            * 2,  # open AI temp range is [0.0 - 2.0], so we have to multiply by two
             messages=[
                 {"role": "system", "content": prompt},
                 {

@@ -75,3 +75,29 @@ def test_invalid_model(set_sentry_option):
                 temperature=0.0,
                 max_output_tokens=1024,
             )
+
+
+def test_invalid_temperature(set_sentry_option):
+    with (
+        set_sentry_option("llm.provider.options", {"preview": {"models": ["stub-1.0"]}}),
+        set_sentry_option(
+            "llm.usecases.options",
+            {"example": {"provider": "preview", "options": {"model": "stub-1.0"}}},
+        ),
+    ):
+        with pytest.raises(ValueError):
+            complete_prompt(
+                usecase=LlmUseCase.EXAMPLE,
+                prompt="prompt here",
+                message="message here",
+                temperature=-1,
+                max_output_tokens=1024,
+            )
+        with pytest.raises(ValueError):
+            complete_prompt(
+                usecase=LlmUseCase.EXAMPLE,
+                prompt="prompt here",
+                message="message here",
+                temperature=2,
+                max_output_tokens=1024,
+            )

@@ -52,7 +52,12 @@ def complete_prompt(
     Default temperature and max_output_tokens set to a hopefully
     reasonable value, but please consider what makes sense for
     your specific use case.
+
+    Note that temperature should be between 0 and 1, and we will
+    normalize to any providers who have a different range
     """
+    _validate_temperature(temperature)
+
     usecase_config = get_usecase_config(usecase.value)
 
     backend = get_llm_provider_backend(usecase)
@@ -87,3 +92,8 @@ def get_provider_config(provider: str):
     if provider not in llm_provider_options_all:
         raise InvalidProviderError(f"LLM provider {provider} not found")
     return llm_provider_options_all[provider]
+
+
+def _validate_temperature(temperature: float):
+    if temperature < 0 or temperature > 1:
+        raise ValueError("Temperature must be between 0 and 1")
