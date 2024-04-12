@@ -35,6 +35,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
+from sentry.models.actor import ActorTuple
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.constants import MAX_SLUG_LENGTH
@@ -305,6 +306,10 @@ class Monitor(Model):
                     max_length=MAX_SLUG_LENGTH,
                 )
         return super().save(*args, **kwargs)
+
+    @property
+    def owner_actor(self) -> ActorTuple | None:
+        return ActorTuple.from_id(self.owner_user_id, self.owner_team_id)
 
     @property
     def schedule(self) -> CrontabSchedule | IntervalSchedule:

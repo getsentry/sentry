@@ -10,6 +10,35 @@ describe('CodeownerErrors', () => {
   const project = ProjectFixture();
   const org = OrganizationFixture();
 
+  it('should render error', async () => {
+    const codeowner = CodeOwnerFixture({
+      errors: {
+        missing_user_emails: [],
+        missing_external_users: [],
+        missing_external_teams: ['@getsentry/something'],
+        teams_without_access: [],
+        users_without_access: [],
+      },
+    });
+    render(
+      <CodeOwnerErrors
+        codeowners={[codeowner]}
+        projectSlug={project.slug}
+        orgSlug={org.slug}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByText(
+        'There was 1 ownership issue within Sentry on the latest sync with the CODEOWNERS file'
+      )
+    );
+    expect(
+      screen.getByText(`There’s a problem linking teams and members from an integration`)
+    ).toBeInTheDocument();
+    expect(screen.getByText('@getsentry/something')).toBeInTheDocument();
+  });
+
   it('should render errors', async () => {
     const codeowner = CodeOwnerFixture({
       errors: {
