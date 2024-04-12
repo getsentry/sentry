@@ -184,8 +184,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     1. Process spans and push them to redis
     2. Commit offsets for processed spans
-    3. Reduce the messages to find timestamps we need to process segments for
-    4. Fetch all segments that are ready to be processed
+    3. Reduce the messages to find segments that have timestamps two minutes or older
+    4. Fetch all segments that are ready to be processed and expire the keys so they
+       aren't reprocessed
     5. Produce segments to buffered-segments topic
     """
 
@@ -207,8 +208,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
         self.output_topic = ArroyoTopic(
             get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
