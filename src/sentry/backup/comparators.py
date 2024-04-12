@@ -211,6 +211,42 @@ class AutoSuffixComparator(JSONScrubbingComparator):
         return findings
 
 
+class KeyValueComparator(JSONScrubbingComparator):
+    """
+    Models of the kind `sentry.*option` store key-value pairs of options. Some of these keys and/or
+    values need special-handling to be compared properly. Because these key-value pairs have no
+    schema, we more or less have to resort to listing keys we want to skip.
+    """
+
+    def __init__(self, *, skip_keys: list[str]):
+        super().__init__("key", "value")
+        self.skip_keys = skip_keys
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # Keys must be equal, since we use them as part of the `InstanceID`.
+        assert left["fields"]["key"] == right["fields"]["key"]
+
+        findings: list[ComparatorFinding] = []
+        key = left["fields"]["key"]
+        if key in self.skip_keys:
+            return findings
+
+        left_value = left["fields"]["value"]
+        right_value = right["fields"]["value"]
+        if left_value != right_value:
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ({left_value}) of a key-value entry with key `{key}` was not equal to the right({right_value})""",
+                )
+            )
+
+        return findings
+
+
 class DateUpdatedComparator(JSONScrubbingComparator):
     """
     Comparator that ensures that the specified fields' value on the right input is an ISO-8601
@@ -866,6 +902,16 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.option": [
+                KeyValueComparator(
+                    skip_keys=[
+                        "sentry:install-id",  # Only used on self-hosted.
+                        "sentry:latest_version",  # Should not necessarily invalidate comparison.
+                        "sentry:last_worker_ping",  # Changes very frequently.
+                        "sentry:last_worker_version",  # Changes very frequently.
+                    ]
+                ),
+            ],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [

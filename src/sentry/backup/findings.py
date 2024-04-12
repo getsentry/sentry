@@ -100,6 +100,13 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 
+    # A key-value pair was unequal
+    KeyValueComparator = auto()
+
+    # Failed to compare a key-value pair because one side of the comparison had either the `key` or
+    # `value` field missing.
+    KeyValueComparatorExistenceCheck = auto()
+
     # Secret token fields did not match their regex specification.
     SecretHexComparator = auto()
 

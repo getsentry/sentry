@@ -882,6 +882,13 @@ source: tests/sentry/backup/test_comparators.py
     - user
   model_name: sentry.notificationsettingprovider
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - last_updated
+  - class: KeyValueComparator
+    fields:
+    - key
+    - value
   - class: ForeignKeyComparator
     fields: []
   model_name: sentry.option
