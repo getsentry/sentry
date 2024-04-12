@@ -19,7 +19,7 @@ export default function ReplayUnsupportedAlert({projectSlug}: Props) {
         `Currently, [docsLink:Web is supported], and Mobile is being developed. Join our [waitlistLink:waitlist].`,
         {
           docsLink,
-          waitlistLink
+          waitlistLink,
         }
       )}
     </Alert>
