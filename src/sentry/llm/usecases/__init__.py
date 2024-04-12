@@ -40,8 +40,18 @@ def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
 
 
 def complete_prompt(
-    *, usecase: LlmUseCase, prompt: str, message: str, temperature: float, max_output_tokens: int
+    *,
+    usecase: LlmUseCase,
+    prompt: str,
+    message: str,
+    temperature: float = 0.5,
+    max_output_tokens: int = 1000,
 ) -> str | None:
+    """
+    Complete a prompt with a message using the specified usecase.
+    Default temperature and max_output_tokens set to a hopefully
+    reasonable value.
+    """
     usecase_config = get_usecase_config(usecase.value)
 
     backend = get_llm_provider_backend(usecase)

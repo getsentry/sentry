@@ -15,8 +15,8 @@ class OpenAIProvider(LlmModelBase):
         usecase_config: dict[str, Any],
         prompt: str,
         message: str,
-        temperature: float = 0.7,
-        max_output_tokens: int = 1000,
+        temperature: float,
+        max_output_tokens: int,
     ) -> str | None:
         model = usecase_config["options"]["model"]
         client = get_openai_client(self.provider_config["options"]["api_key"])
