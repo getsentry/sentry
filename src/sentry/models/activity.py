@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -30,6 +31,9 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
+
+
+_default_logger = logging.getLogger(__name__)
 
 
 class ActivityManager(BaseManager["Activity"]):
@@ -154,7 +158,14 @@ class Activity(Model):
             )
 
             activity_created_receiver(self, created)
-        except Exception:
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
             pass
 
         if not created:
