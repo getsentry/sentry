@@ -270,7 +270,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
 @region_silo_only_model
 class GroupSubscription(Model):
     """
-    Identifies a subscription relationship between a user and an issue.
+    Identifies a subscription relationship between a user / team and an issue.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
