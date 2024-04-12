@@ -111,8 +111,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         max_timestamp = timestamp
 
             # TODO: move to use `update_snuba_params_with_timestamp`
-            time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-            buffer = timedelta(days=time_buffer)
+            time_buffer = options.get("performance.traces.trace-explorer-buffer-hours")
+            buffer = timedelta(hours=time_buffer)
             params["start"] = min_timestamp - buffer
             params["end"] = max_timestamp + buffer
             snuba_params.start = min_timestamp - buffer
