@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -52,8 +54,8 @@ dotnet add package Sentry.Profiling -v ${getPackageVersion(
 )}`;
 
 enum DotNetPlatform {
-  DOTNET,
-  DOTNET_FRAMEWORK,
+  WINDOWS,
+  IOS_MACCATALYST,
 }
 
 const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
@@ -83,23 +85,24 @@ SentrySdk.Init(options =>
     options.TracesSampleRate = 1.0;`
         : ''
     }${
-      !params.isProfilingSelected
-        ? ''
-        : platform !== DotNetPlatform.DOTNET_FRAMEWORK
-          ? `
+      params.isProfilingSelected
+        ? `
 
     // Sample rate for profiling, applied on top of othe TracesSampleRate,
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
-    options.ProfilesSampleRate = 1.0;
+    options.ProfilesSampleRate = 1.0;${
+      platform !== DotNetPlatform.IOS_MACCATALYST
+        ? `
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
     options.AddIntegration(new ProfilingIntegration(
         // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
-          : `
-    // Profiling is not supported for .NET Framework`
+        : ''
+    }`
+        : ''
     }
 });`;
 
@@ -179,7 +182,14 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+.'
+                ),
+              },
+              {
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t('.NET Framework is not supported.')}
+                  </AlertWithoutMarginBottom>
                 ),
               },
             ]
@@ -203,15 +213,15 @@ const onboarding: OnboardingConfig = {
               code: [
                 {
                   language: 'csharp',
-                  label: '.NET (Windows/macOS/Linux)',
-                  value: 'dotnet',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET),
+                  label: 'Windows',
+                  value: 'Windows',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
                 },
                 {
                   language: 'csharp',
-                  label: '.NET Framework',
-                  value: 'dotnet-framework',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET_FRAMEWORK),
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
                 },
               ],
             }
@@ -369,3 +379,7 @@ const docs: Docs = {
 };
 
 export default docs;
+
+const AlertWithoutMarginBottom = styled(Alert)`
+  margin-bottom: 0;
+`;

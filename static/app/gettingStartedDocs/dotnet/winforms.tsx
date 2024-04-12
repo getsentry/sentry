@@ -51,12 +51,7 @@ dotnet add package Sentry.Profiling -v ${getPackageVersion(
   '4.3.0'
 )}`;
 
-enum DotNetPlatform {
-  DOTNET,
-  DOTNET_FRAMEWORK,
-}
-
-const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
+const getConfigureSnippet = (params: Params) => `
 using System;
 using System.Windows.Forms;
 using Sentry;
@@ -80,10 +75,8 @@ static class Program
             o.TracesSampleRate = 1.0;`
                 : ''
             }${
-              !params.isProfilingSelected
-                ? ''
-                : platform !== DotNetPlatform.DOTNET_FRAMEWORK
-                  ? `
+              params.isProfilingSelected
+                ? `
             // Sample rate for profiling, applied on top of othe TracesSampleRate,
             // e.g. 0.2 means we want to profile 20 % of the captured transactions.
             // We recommend adjusting this value in production.
@@ -92,8 +85,7 @@ static class Program
                 // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
                 TimeSpan.FromMilliseconds(500)
             ));`
-                  : `
-            // Profiling is not supported for .NET Framework`
+                : ''
             }
           }
         });
@@ -148,21 +140,11 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          description: (
-            <AlertWithoutMarginBottom type="info">
-              {tct(
-                '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-                {strong: <strong />}
-              )}
-            </AlertWithoutMarginBottom>
-          ),
-        },
         ...(params.isProfilingSelected
           ? [
               {
                 description: tct(
-                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  'Additionally, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
                   {
                     sentryProfilingPackage: <code />,
                   }
@@ -183,8 +165,10 @@ const onboarding: OnboardingConfig = {
                 ],
               },
               {
-                description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t('.NET Framework is not supported.')}
+                  </AlertWithoutMarginBottom>
                 ),
               },
             ]
@@ -202,27 +186,10 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        params.isProfilingSelected
-          ? {
-              code: [
-                {
-                  language: 'csharp',
-                  label: '.NET',
-                  value: 'dotnet',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET),
-                },
-                {
-                  language: 'csharp',
-                  label: '.NET Framework',
-                  value: 'dotnet-framework',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET_FRAMEWORK),
-                },
-              ],
-            }
-          : {
-              language: 'csharp',
-              code: getConfigureSnippet(params),
-            },
+        {
+          language: 'csharp',
+          code: getConfigureSnippet(params),
+        },
       ],
     },
   ],

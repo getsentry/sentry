@@ -51,12 +51,7 @@ dotnet add package Sentry.Profiling -v ${getPackageVersion(
   '4.3.0'
 )}`;
 
-enum DotNetPlatform {
-  DOTNET,
-  DOTNET_FRAMEWORK,
-}
-
-const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
+const getConfigureSnippet = (params: Params) => `
 using System.Windows.Threading;
 using System.Windows;
 using Sentry;
@@ -79,16 +74,13 @@ public partial class App : Application
             o.TracesSampleRate = 1.0;`
                 : ''
             }${
-              !params.isProfilingSelected
-                ? ''
-                : platform !== DotNetPlatform.DOTNET_FRAMEWORK
-                  ? `
+              params.isProfilingSelected
+                ? `
             // Sample rate for profiling, applied on top of othe TracesSampleRate,
             // e.g. 0.2 means we want to profile 20 % of the captured transactions.
             // We recommend adjusting this value in production.
             o.ProfilesSampleRate = 1.0;`
-                  : `
-            // Profiling is not supported for .NET Framework`
+                : ''
             }
         });
     }
@@ -157,7 +149,7 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: tct(
-                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  'Additionally, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
                   {
                     sentryProfilingPackage: <code />,
                   }
@@ -178,8 +170,10 @@ const onboarding: OnboardingConfig = {
                 ],
               },
               {
-                description: t(
-                  '.NET profiling alpha is available for Windows, Linux, macOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t('.NET Framework is not supported.')}
+                  </AlertWithoutMarginBottom>
                 ),
               },
             ]
@@ -197,27 +191,10 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        params.isProfilingSelected
-          ? {
-              code: [
-                {
-                  language: 'csharp',
-                  label: '.NET',
-                  value: 'Windows',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET),
-                },
-                {
-                  language: 'csharp',
-                  label: '.NET Framework',
-                  value: 'ios/macCatalyst',
-                  code: getConfigureSnippet(params, DotNetPlatform.DOTNET_FRAMEWORK),
-                },
-              ],
-            }
-          : {
-              language: 'csharp',
-              code: getConfigureSnippet(params),
-            },
+        {
+          language: 'csharp',
+          code: getConfigureSnippet(params),
+        },
       ],
     },
   ],
