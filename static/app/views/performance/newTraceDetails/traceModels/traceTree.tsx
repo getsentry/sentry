@@ -256,11 +256,18 @@ export function makeTraceNodeBarColor(
   if (isMissingInstrumentationNode(node)) {
     return theme.gray300;
   }
-  if (isTraceErrorNode(node)) {
-    return theme.red300;
-  }
   if (isNoDataNode(node)) {
     return theme.yellow300;
+  }
+  if (isTraceErrorNode(node)) {
+    switch (node.value.level) {
+      case 'error':
+      case 'fatal':
+        return theme.red300;
+      default: {
+        return theme.purple300;
+      }
+    }
   }
   return pickBarColor('default');
 }
@@ -1551,6 +1558,22 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
   get spanChildren(): (TraceTreeNode | NoDataNode)[] {
     return this._spanChildren;
+  }
+
+  private _max_severity: keyof Theme['level'] | undefined;
+  get max_severity(): keyof Theme['level'] {
+    if (this._max_severity) {
+      return this._max_severity;
+    }
+
+    for (const error of this.errors) {
+      if (error.level === 'error' || error.level === 'fatal') {
+        this._max_severity = error.level;
+        return this.max_severity;
+      }
+    }
+
+    return 'default';
   }
 
   /**
