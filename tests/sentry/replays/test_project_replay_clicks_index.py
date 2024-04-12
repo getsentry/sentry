@@ -95,6 +95,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="id1",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -131,13 +132,14 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div",
                 "click.selector:div#id1",
                 "click.selector:div[alt=Alt]",
+                "click.selector:div[data-sentry-component=SignUpForm]",
                 "click.selector:div[title=MyTitle]",
                 "click.selector:div[data-testid='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#id1.class1.class2",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
-                "click.selector:div#id1.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div#id1.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")

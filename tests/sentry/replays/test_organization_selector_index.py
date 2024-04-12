@@ -95,7 +95,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["project_id"] == project.id
             assert (
                 response_data["data"][0]["dom_element"]
-                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
+                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"][component_name="SignUpForm"]'
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
@@ -107,78 +107,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["tag"] == "div"
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
-            assert response_data["data"][0]["component_name"] == "SignUpForm"
-
-    def test_get_replays_no_component_name_and_aria_label(self):
-        """Test replays conform to the interchange format."""
-        project = self.create_project(teams=[self.team])
-
-        replay_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay_id))
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay_id,
-                node_id=1,
-                tag="div",
-                id="myid",
-                class_=["class1", "class2"],
-                role="button",
-                testid="1",
-                alt="Alt",
-                title="MyTitle",
-                is_dead=1,
-                is_rage=1,
-                text="Hello",
-            )
-        )
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay_id,
-                node_id=1,
-                tag="div",
-                id="myid",
-                class_=["class1", "class2", ""],
-                role="button",
-                testid="1",
-                alt="Alt",
-                title="MyTitle",
-                is_dead=1,
-                is_rage=0,
-                text="Hello",
-            )
-        )
-
-        with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-
-            response_data = response.json()
-            assert "data" in response_data
-            assert len(response_data["data"]) == 1
-
-            assert response_data["data"][0]["project_id"] == project.id
-            assert (
-                response_data["data"][0]["dom_element"]
-                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][title="MyTitle"]'
-            )
-            assert response_data["data"][0]["count_dead_clicks"] == 2
-            assert response_data["data"][0]["count_rage_clicks"] == 1
-            assert response_data["data"][0]["element"]["alt"] == "Alt"
-            assert response_data["data"][0]["element"]["class"] == ["class1", "class2"]
-            assert response_data["data"][0]["element"]["id"] == "myid"
-            assert response_data["data"][0]["element"]["role"] == "button"
-            assert response_data["data"][0]["element"]["tag"] == "div"
-            assert response_data["data"][0]["element"]["testid"] == "1"
-            assert response_data["data"][0]["element"]["title"] == "MyTitle"
-            assert response_data["data"][0]["element"]["aria_label"] == ""
-            assert response_data["data"][0]["component_name"] == ""
+            assert response_data["data"][0]["element"]["component_name"] == "SignUpForm"
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
