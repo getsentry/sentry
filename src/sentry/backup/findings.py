@@ -34,7 +34,8 @@ class FindingKind(IntEnum):
 class ComparatorFindingKind(FindingKind):
     Unknown = auto()
 
-    # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
+    # The instances of a particular model did not maintain total ordering of pks (that is, pks did
+    # not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
 
     # Multiple instances of the same custom ordinal signature exist in the input.
@@ -44,7 +45,8 @@ class ComparatorFindingKind(FindingKind):
     # equal.
     UnequalCounts = auto()
 
-    # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
+    # The JSON of two instances of a model, after certain fields have been scrubbed by all
+    # applicable comparators, were not byte-for-byte equivalent.
     UnequalJSON = auto()
 
     # Failed to compare an auto suffixed field.
@@ -97,6 +99,13 @@ class ComparatorFindingKind(FindingKind):
 
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
+
+    # A key-value pair was unequal
+    KeyValueComparator = auto()
+
+    # Failed to compare a key-value pair because one side of the comparison had either the `key` or
+    # `value` field missing.
+    KeyValueComparatorExistenceCheck = auto()
 
     # Secret token fields did not match their regex specification.
     SecretHexComparator = auto()
