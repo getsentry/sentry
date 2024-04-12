@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0691_remove_project_team_avatar_model"),
+        ("sentry", "0693_add_monitors_ownership_actor_id"),
     ]
 
     operations = [
