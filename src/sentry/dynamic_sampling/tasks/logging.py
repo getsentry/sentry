@@ -72,9 +72,18 @@ def log_recalibrate_org_error(org_id: int, error: str) -> None:
 
 
 def log_custom_rule_progress(
-    org_id: int, project_ids: Sequence[int], rule_id: int, samples_count: int
+    org_id: int,
+    project_ids: Sequence[int],
+    rule_id: int,
+    samples_count: int,
+    min_samples_count: int,
 ):
-    extra = {"org_id": org_id, "rule_id": rule_id, "samples_count": samples_count}
+    extra = {
+        "org_id": org_id,
+        "rule_id": rule_id,
+        "samples_count": samples_count,
+        "min_samples_count": min_samples_count,
+    }
 
     if project_ids:
         extra["project_ids"] = project_ids

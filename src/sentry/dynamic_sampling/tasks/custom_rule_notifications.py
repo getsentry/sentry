@@ -104,6 +104,7 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         project_ids=[project.id for project in projects],
         rule_id=rule.id,
         samples_count=samples_count,
+        min_samples_count=MIN_SAMPLES_FOR_NOTIFICATION,
     )
 
     return samples_count
