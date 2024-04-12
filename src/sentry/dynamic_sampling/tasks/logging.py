@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
@@ -68,6 +69,20 @@ def log_skipped_job(org_id: int, job: str):
 
 def log_recalibrate_org_error(org_id: int, error: str) -> None:
     logger.info("dynamic_sampling.recalibrate_org_error", extra={"org_id": org_id, "error": error})
+
+
+def log_custom_rule_progress(
+    org_id: int, project_ids: Sequence[int], rule_id: int, samples_count: int
+):
+    extra = {"org_id": org_id, "rule_id": rule_id, "samples_count": samples_count}
+
+    if project_ids:
+        extra["project_ids"] = project_ids
+
+    logger.info(
+        "dynamic_sampling.custom_rule_progress",
+        extra=extra,
+    )
 
 
 def log_recalibrate_org_state(
