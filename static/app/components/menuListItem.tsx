@@ -218,6 +218,18 @@ const MenuListItem = memo(
 
 export default MenuListItem;
 
+const POPPER_OPTIONS = {
+  placement: 'right-start' as const,
+  modifiers: [
+    {
+      name: 'offset',
+      options: {
+        offset: [-4, 8],
+      },
+    },
+  ],
+};
+
 function DetailsOverlay({
   children,
   size,
@@ -231,17 +243,8 @@ function DetailsOverlay({
 }) {
   const theme = useTheme();
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
-  const popper = usePopper(itemRef.current, overlayElement, {
-    placement: 'right-start',
-    modifiers: [
-      {
-        name: 'offset',
-        options: {
-          offset: [0, 8],
-        },
-      },
-    ],
-  });
+
+  const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
 
   return createPortal(
     <StyledPositionWrapper
@@ -268,7 +271,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
 const StyledOverlay = styled(Overlay)<{
   size: Props['size'];
 }>`
-  padding: ${p => getVerticalPadding(p.size)};
+  padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;
   user-select: text;
