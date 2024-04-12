@@ -1978,7 +1978,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:replay-play-from-replay-tab": False,
     # Mobile replay killswitch
     # TODO: Delete me on or before public beta.
-    "organizations:session-replay-mobile": True,
+    "organizations:session-replay-video": True,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
