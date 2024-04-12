@@ -1,7 +1,8 @@
+from typing import Any
+
 from openai import OpenAI
 
 from sentry.llm.providers.base import LlmModelBase
-from sentry.llm.types import UseCaseProviderOptions
 
 
 class OpenAIProvider(LlmModelBase):
@@ -10,7 +11,7 @@ class OpenAIProvider(LlmModelBase):
 
     def _complete_prompt(
         self,
-        usecase_options: UseCaseProviderOptions,
+        usecase_options: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float = 0.7,

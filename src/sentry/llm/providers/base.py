@@ -1,19 +1,18 @@
 from typing import Any
 
-from sentry.llm.types import ModelLiterals, ProviderOptions, UseCaseProviderOptions
 from sentry.utils.services import Service
 
 
 class LlmModelBase(Service):
 
-    provider_name: ModelLiterals
+    provider_name: str
 
-    def __init__(self, **options: ProviderOptions) -> None:
+    def __init__(self, **options: Any) -> None:
         self.options = options
 
     def complete_prompt(
         self,
-        usecase_options: UseCaseProviderOptions,
+        usecase_options: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float,
@@ -27,7 +26,7 @@ class LlmModelBase(Service):
 
     def _complete_prompt(
         self,
-        usecase_options: UseCaseProviderOptions,
+        usecase_options: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float,

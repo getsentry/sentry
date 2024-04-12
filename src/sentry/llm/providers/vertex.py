@@ -6,7 +6,6 @@ import google.auth.transport.requests
 import requests
 
 from sentry.llm.providers.base import LlmModelBase
-from sentry.llm.types import UseCaseProviderOptions
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ class VertexProvider(LlmModelBase):
 
     def _complete_prompt(
         self,
-        usecase_options: UseCaseProviderOptions,
+        usecase_options: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float,
