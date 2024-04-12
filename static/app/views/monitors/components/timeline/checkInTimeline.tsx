@@ -64,6 +64,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
               status={getAggregateStatus(envMapping)}
               roundedLeft={roundedLeft}
               roundedRight={roundedRight}
+              data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
         );
@@ -104,6 +105,7 @@ export function MockCheckInTimeline({
               status={CheckInStatus.IN_PROGRESS}
               roundedLeft
               roundedRight
+              data-test-id="monitor-checkin-tick"
             />
           </Tooltip>
         );

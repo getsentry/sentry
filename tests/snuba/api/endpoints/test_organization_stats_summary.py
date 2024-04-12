@@ -308,6 +308,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -326,6 +327,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 0,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -370,6 +372,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1024, "sum(quantity)": 1024},
                         },
@@ -382,6 +385,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6},
                         },
@@ -400,6 +404,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(quantity)": 1},
                         }
@@ -440,6 +445,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {
                                 "dropped": 1025,
@@ -456,6 +462,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6, "sum(times_seen)": 6},
                         },
@@ -474,6 +481,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 2, "sum(quantity)": 1, "sum(times_seen)": 1},
                         }
@@ -511,6 +519,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -529,6 +538,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 0,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -571,6 +581,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -618,6 +629,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(times_seen)": 1},
                         }
@@ -637,6 +649,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(times_seen)": 1},
                         }
@@ -713,6 +726,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6},
                         }
