@@ -46,6 +46,7 @@ interface ComboBoxProps<Value extends string>
   className?: string;
   disabled?: boolean;
   isLoading?: boolean;
+  loadingMessage?: string;
   menuSize?: FormSize;
   menuWidth?: string;
   size?: FormSize;
@@ -60,6 +61,7 @@ function ComboBox<Value extends string>({
   placeholder,
   disabled,
   isLoading,
+  loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
   menuWidth,
@@ -100,7 +102,7 @@ function ComboBox<Value extends string>({
 
   // Make popover width constant while it is open
   useEffect(() => {
-    if (popoverRef.current && state.isOpen) {
+    if (!menuWidth && popoverRef.current && state.isOpen) {
       const popoverElement = popoverRef.current;
       popoverElement.style.width = `${popoverElement.offsetWidth + 4}px`;
       return () => {
@@ -108,7 +110,7 @@ function ComboBox<Value extends string>({
       };
     }
     return () => {};
-  }, [state.isOpen]);
+  }, [menuWidth, state.isOpen]);
 
   const selectContext = useContext(SelectContext);
 
@@ -160,7 +162,7 @@ function ComboBox<Value extends string>({
           <StyledOverlay ref={popoverRef} width={menuWidth}>
             {isLoading && (
               <MenuHeader size={menuSize ?? size}>
-                <MenuTitle>{t('Loading...')}</MenuTitle>
+                <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
                 <MenuHeaderTrailingItems>
                   {isLoading && <StyledLoadingIndicator size={12} mini />}
                 </MenuHeaderTrailingItems>
@@ -196,6 +198,7 @@ function ControlledComboBox<Value extends string>({
   options,
   sizeLimit,
   value,
+  onOpenChange,
   ...props
 }: Omit<ComboBoxProps<Value>, 'items' | 'defaultItems' | 'children'> & {
   options: ComboBoxOptionOrSection<Value>[];
@@ -264,12 +267,16 @@ function ControlledComboBox<Value extends string>({
     setInputValue(newInputValue);
   }, []);
 
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    // Disable filtering right after the dropdown is opened
-    if (isOpen) {
-      setIsFiltering(false);
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      // Disable filtering right after the dropdown is opened
+      if (isOpen) {
+        setIsFiltering(false);
+      }
+      onOpenChange?.(isOpen);
+    },
+    [onOpenChange]
+  );
 
   return (
     // TODO: remove usage of SelectContext in ListBox

@@ -80,7 +80,12 @@ export const QueryBuilder = memo(function QueryBuilder({
   const breakpoints = useBreakpoints();
   const {projects} = useProjects();
 
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(pageFilters.selection);
+  const {
+    data: meta,
+    isLoading: isMetaLoading,
+    isRefetching: isMetaRefetching,
+    refetch: refetchMeta,
+  } = useMetricsMeta(pageFilters.selection);
   const mriMode = useMriMode();
 
   const shouldUseComboBox = hasMetricsExperimentalFeature(organization);
@@ -196,6 +201,15 @@ export const QueryBuilder = memo(function QueryBuilder({
     [incrementQueryMetric, onChange, organization]
   );
 
+  const handleOpenMetricsMenu = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen && !isMetaLoading && !isMetaRefetching) {
+        refetchMeta();
+      }
+    },
+    [isMetaLoading, isMetaRefetching, refetchMeta]
+  );
+
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => ({
@@ -227,10 +241,12 @@ export const QueryBuilder = memo(function QueryBuilder({
           <MetricComboBox
             aria-label={t('Metric')}
             placeholder={t('Select a metric')}
+            loadingMessage={t('Loading metrics...')}
             sizeLimit={100}
             size="md"
             menuSize="sm"
             isLoading={isMetaLoading}
+            onOpenChange={handleOpenMetricsMenu}
             options={mriOptions}
             value={metricsQuery.mri}
             onChange={handleMRIChange}

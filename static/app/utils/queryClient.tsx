@@ -150,7 +150,7 @@ export function useApiQueries<TResponseData, TError = RequestError>(
       return {
         queryKey,
         queryFn,
-        options,
+        ...options,
       };
     }),
   });
