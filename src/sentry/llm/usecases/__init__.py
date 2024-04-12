@@ -50,7 +50,8 @@ def complete_prompt(
     """
     Complete a prompt with a message using the specified usecase.
     Default temperature and max_output_tokens set to a hopefully
-    reasonable value.
+    reasonable value, but please consider what makes sense for
+    your specific use case.
     """
     usecase_config = get_usecase_config(usecase.value)
 
