@@ -13,5 +13,5 @@ export function SpanIdCell({orgSlug, projectSlug, transactionId, spanId}: Props)
     `/organizations/${orgSlug}/performance/${projectSlug}:${transactionId}#span-${spanId}`
   );
 
-  return <Link to={url}>{spanId.slice(0, 8)}</Link>;
+  return <Link to={url}>{spanId.slice(0, 16)}</Link>;
 }
