@@ -184,8 +184,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     1. Process spans and push them to redis
     2. Commit offsets for processed spans
-    3. Reduce the messages to find segments that have timestamps two minutes or older
-    4. Fetch all segments that are ready to be processed and expire the keys so they
+    3. Reduce the messages to find the latest timestamp to process
+    4. Fetch all segments are two minutes or older and expire the keys so they
        aren't reprocessed
     5. Produce segments to buffered-segments topic
     """
