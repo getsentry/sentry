@@ -207,10 +207,11 @@ describe('HTTPSamplesPanel', () => {
             project: [],
             field: [
               'project',
+              'trace',
               'transaction.id',
+              'span_id',
               'span.description',
               'span.status_code',
-              'span_id',
             ],
             sort: '-span_id',
             referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
@@ -334,7 +335,12 @@ describe('HTTPSamplesPanel', () => {
             query:
               'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
-            additionalFields: ['transaction.id', 'span.description', 'span.status_code'],
+            additionalFields: [
+              'trace',
+              'transaction.id',
+              'span.description',
+              'span.status_code',
+            ],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),

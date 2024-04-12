@@ -183,6 +183,7 @@ export function HTTPSamplesPanel() {
   } = useSpanSamples({
     search,
     fields: [
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
@@ -202,10 +203,11 @@ export function HTTPSamplesPanel() {
     filters,
     fields: [
       SpanIndexedField.PROJECT,
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
-      SpanIndexedField.ID,
     ],
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
