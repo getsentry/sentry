@@ -148,6 +148,10 @@ def process_profile_task(
     if not _normalize_profile(profile, organization, project):
         return
 
+    # set platform information at frame-level
+    # only for those platforms that didn't go through symbolication
+    _set_frames_platform(profile)
+
     if "version" in profile:
         set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
@@ -242,7 +246,10 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile, platform
                 )
 
-                set_measurement(f"profile.frames.sent.{platform}", len(frames_sent))
+                set_measurement(
+                    f"profile.frames.sent.{platform}",
+                    len(frames_sent),
+                )
 
                 modules, stacktraces, success = run_symbolicate(
                     project=project,
@@ -634,7 +641,9 @@ def _process_symbolicator_results_for_sample(
             # This works since symbolicated_frames are in the same order
             # as raw_frames (except some frames are not sent).
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
-                new_frames.append(symbolicated_frames[frame_idx])
+                f = symbolicated_frames[frame_idx]
+                f["platform"] = platform
+                new_frames.append(f)
 
             # go to the next symbolicated frame result
             symbolicated_frame_idx += 1
@@ -829,7 +838,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+    # We re-use this option as a deny list before we remove it completely.
+    if project.id not in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         try:
             with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
                 success = _deobfuscate_using_symbolicator(
@@ -842,7 +852,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     return
         except Exception as e:
             sentry_sdk.capture_exception(e)
-    _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
+    else:
+        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
 
 
 @metrics.wraps("process_profile.deobfuscate.locally")
@@ -1110,3 +1121,13 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:
     return int(profile["duration_ns"] * 1e-6)
+
+
+def _set_frames_platform(profile: Profile):
+    platform = profile["platform"]
+    frames = (
+        profile["profile"]["methods"] if platform == "android" else profile["profile"]["frames"]
+    )
+    for f in frames:
+        if "platform" not in f:
+            f["platform"] = platform

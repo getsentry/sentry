@@ -189,15 +189,29 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const target = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug(dataRow),
-        dataRow,
-        organization,
-        eventView,
-        isHomepage,
-        location,
-        type: 'discover',
-      });
+      let target;
+      if (dataRow.trace !== null) {
+        target = generateLinkToEventInTraceView({
+          eventSlug: generateEventSlug(dataRow),
+          dataRow,
+          organization,
+          eventView,
+          isHomepage,
+          location,
+          type: 'discover',
+        });
+      } else {
+        if (dataRow['event.type'] === 'transaction') {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = {
+          pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/?referrer=discover-events-table`,
+          query: location.query,
+        };
+      }
 
       const eventIdLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -297,15 +311,30 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const target = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug(dataRow),
-        dataRow,
-        organization,
-        eventView,
-        isHomepage,
-        location,
-        type: 'discover',
-      });
+      let target;
+
+      if (dataRow.trace !== null) {
+        target = generateLinkToEventInTraceView({
+          eventSlug: generateEventSlug(dataRow),
+          dataRow,
+          organization,
+          eventView,
+          isHomepage,
+          location,
+          type: 'discover',
+        });
+      } else {
+        if (dataRow['event.type'] === 'transaction') {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = {
+          pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/?referrer=discover-events-table`,
+          query: location.query,
+        };
+      }
 
       const idLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -341,7 +370,7 @@ function TableView(props: TableViewProps) {
       );
     } else if (columnKey === 'trace') {
       const timestamp = getTimeStampFromTableDateField(
-        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+        dataRow['max(timestamp)'] ?? dataRow.timestamp
       );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
@@ -350,8 +379,7 @@ function TableView(props: TableViewProps) {
           String(dataRow.trace),
           dateSelection,
           {},
-          timestamp,
-          dataRow.id
+          timestamp
         );
 
         cell = (

@@ -70,6 +70,7 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.mediators.project_rules.creator import Creator
+from sentry.models.actor import get_actor_for_user
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -1285,14 +1286,6 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def bulk_store_sessions(self, sessions):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
-            ).status_code
-            == 200
-        )
-
     def build_session(self, **kwargs):
         session = {
             "session_id": str(uuid4()),
@@ -1319,9 +1312,6 @@ class SnubaTestCase(BaseTestCase):
             kwargs[key] = getattr(val, attr, val)
         session.update(kwargs)
         return session
-
-    def store_session(self, session):
-        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -1475,6 +1465,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         duration: int = 10,
@@ -1511,6 +1502,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         self.store_span(payload)
 
@@ -1520,6 +1513,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         op: str | None = None,
@@ -1566,6 +1560,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if store_metrics_summary:
             payload["_metrics_summary"] = store_metrics_summary
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -3059,6 +3055,9 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
+        if "owner_actor_id" not in kwargs:
+            kwargs["owner_actor_id"] = get_actor_for_user(self.user).id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,

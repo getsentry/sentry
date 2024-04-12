@@ -106,8 +106,8 @@ def schedule_webhook_delivery(**kwargs) -> None:
         updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
             schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
         )
-        # If we have a full batch we should process in parallel as we're likely behind.
-        if use_parallel and updated_count >= MAX_MAILBOX_DRAIN:
+        # If we have a half-full batch we should process in parallel as we're likely behind.
+        if use_parallel and updated_count >= int(MAX_MAILBOX_DRAIN / 2):
             drain_mailbox_parallel.delay(record["id"])
         else:
             drain_mailbox.delay(record["id"])

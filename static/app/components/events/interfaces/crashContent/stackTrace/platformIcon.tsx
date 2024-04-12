@@ -18,7 +18,7 @@ function StacktracePlatformIcon({platform}: Props) {
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
-  top: -1px;
+  top: 0;
   left: -20px;
   border-radius: 3px 0 0 3px;
 

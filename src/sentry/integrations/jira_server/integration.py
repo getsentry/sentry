@@ -28,6 +28,7 @@ from sentry.integrations import (
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.group import Group
+from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.pipeline import PipelineView
@@ -278,14 +279,19 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     default_identity = None
 
     def get_client(self):
+        try:
+            self.default_identity = self.get_default_identity()
+        except Identity.DoesNotExist:
+            raise IntegrationError("Identity not found.")
+
         return JiraServerClient(
             integration=self.model,
-            identity_id=self.org_integration.default_auth_id,
-            org_integration_id=self.org_integration.id,
+            identity=self.default_identity,
         )
 
     def get_organization_config(self):
@@ -343,6 +349,20 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": _("Sync Jira Server Assignment to Sentry"),
                 "help": _(
                     "When a ticket is assigned in Jira Server, assign its linked Sentry issue to the same user."
+                ),
+            },
+            {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
                 ),
             },
             {

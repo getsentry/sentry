@@ -26,7 +26,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {
   isAutogroupedNode,
