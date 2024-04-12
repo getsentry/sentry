@@ -392,17 +392,23 @@ class Fixtures:
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
     def create_alert_rule_activation(
-        self, alert_rule=None, query_subscriptions=None, project=None, *args, **kwargs
+        self,
+        alert_rule=None,
+        query_subscriptions=None,
+        project=None,
+        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        *args,
+        **kwargs,
     ):
         if not alert_rule:
             alert_rule = self.create_alert_rule(
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
             )
 
         created_activations = []
