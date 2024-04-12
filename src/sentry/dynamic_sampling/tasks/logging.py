@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
@@ -78,7 +79,7 @@ def log_custom_rule_progress(
     samples_count: int,
     min_samples_count: int,
 ):
-    extra = {
+    extra: dict[str, Any] = {
         "org_id": org_id,
         "rule_id": rule_id,
         "samples_count": samples_count,
