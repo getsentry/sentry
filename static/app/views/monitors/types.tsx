@@ -121,6 +121,7 @@ export interface Monitor {
   id: string;
   isMuted: boolean;
   name: string;
+  owner: string;
   project: Project;
   slug: string;
   status: ObjectStatus;
