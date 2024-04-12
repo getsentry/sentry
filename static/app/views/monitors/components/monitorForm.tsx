@@ -48,8 +48,8 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 //
 // XXX(epurkhiser): For whatever reason the rules API wants the team and member
 // to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
 // In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
