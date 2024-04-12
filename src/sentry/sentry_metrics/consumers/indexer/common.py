@@ -155,4 +155,4 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             )
 
         self.__next_step.close()
-        self.__next_step.join(timeout)
+        self.__next_step.join(0.0)
