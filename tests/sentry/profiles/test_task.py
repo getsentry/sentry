@@ -16,6 +16,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
+    Profile,
     _calculate_profile_duration_ms,
     _deobfuscate,
     _deobfuscate_locally,
@@ -869,7 +870,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
 
 def test_set_frames_platform_sample():
-    js_prof = {
+    js_prof: Profile = {
         "version": "1",
         "platform": "javascript",
         "profile": {
@@ -887,7 +888,7 @@ def test_set_frames_platform_sample():
 
 
 def test_set_frames_platform_android():
-    android_prof = {
+    android_prof: Profile = {
         "platform": "android",
         "profile": {
             "methods": [
