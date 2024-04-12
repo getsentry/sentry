@@ -13,7 +13,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {TransactionIdCell} from 'sentry/views/starfish/components/tableCells/transactionIdCell';
+import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
@@ -30,8 +30,8 @@ type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.TRANSACTION_ID,
-    name: t('Event ID'),
+    key: SpanIndexedField.ID,
+    name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -100,9 +100,9 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
-  if (column.key === SpanIndexedField.TRANSACTION_ID) {
+  if (column.key === SpanIndexedField.ID) {
     return (
-      <TransactionIdCell
+      <SpanIdCell
         orgSlug={organization.slug}
         projectSlug={row.project}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}

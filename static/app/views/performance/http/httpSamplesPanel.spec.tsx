@@ -412,12 +412,12 @@ describe('HTTPSamplesPanel', () => {
       // Samples table
       expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
 
-      expect(screen.getByRole('columnheader', {name: 'Event ID'})).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', {name: 'Span ID'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'URL'})).toBeInTheDocument();
 
-      expect(screen.getByRole('cell', {name: '11c910c9'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: '11c910c9'})).toHaveAttribute(
+      expect(screen.getByRole('cell', {name: 'b1bf1acd'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'b1bf1acd'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48#span-b1bf1acde131623a'
       );
