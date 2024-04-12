@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -677,7 +678,7 @@ def should_use_on_demand_metrics(
 ) -> bool:
     if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
         if organization_bulk_query_cache is None:
-            organization_bulk_query_cache = {}
+            organization_bulk_query_cache = defaultdict(dict)
 
         dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
         groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
