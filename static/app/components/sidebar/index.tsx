@@ -658,13 +658,33 @@ function Sidebar() {
             </SidebarSection>
 
             <SidebarSection>
-              <SidebarCollapseItem
-                id="collapse"
-                data-test-id="sidebar-collapse"
-                {...sidebarItemProps}
-                icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
-                label={collapsed ? t('Expand') : t('Collapse')}
-                onClick={toggleCollapse}
+              {HookStore.get('sidebar:bottom-items').length > 0 &&
+                HookStore.get('sidebar:bottom-items')[0]({
+                  orientation,
+                  collapsed,
+                  hasPanel,
+                  organization,
+                })}
+              <SidebarHelp
+                orientation={orientation}
+                collapsed={collapsed}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <ServiceIncidents
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                hidePanel={hidePanel}
               />
             </SidebarSection>
 
@@ -674,9 +694,7 @@ function Sidebar() {
                   id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={
-                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
-                  }
+                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={toggleCollapse}
                 />
