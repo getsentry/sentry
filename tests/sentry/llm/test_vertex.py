@@ -26,5 +26,11 @@ def test_complete_prompt(set_sentry_option):
             )(),
         ),
     ):
-        res = complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        res = complete_prompt(
+            usecase=LlmUseCase.EXAMPLE,
+            prompt="prompt here",
+            message="message here",
+            temperature=0.0,
+            max_output_tokens=1024,
+        )
     assert res == ""

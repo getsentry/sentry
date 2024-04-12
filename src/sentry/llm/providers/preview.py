@@ -12,7 +12,8 @@ class PreviewLLM(LlmModelBase):
 
     def _complete_prompt(
         self,
-        usecase_options: dict[str, Any],
+        *,
+        usecase_config: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float = 0.7,

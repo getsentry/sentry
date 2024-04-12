@@ -21,5 +21,11 @@ def test_complete_prompt(set_sentry_option):
         mock_response.choices = [Mock(message=Mock(content=""))]
         mock_client.chat.completions.create.return_value = mock_response
 
-        res = complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        res = complete_prompt(
+            usecase=LlmUseCase.EXAMPLE,
+            prompt="prompt here",
+            message="message here",
+            temperature=0.0,
+            max_output_tokens=1024,
+        )
     assert res == ""

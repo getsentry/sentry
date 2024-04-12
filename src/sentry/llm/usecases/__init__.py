@@ -1,6 +1,7 @@
 from enum import Enum
 
 from sentry import options
+from sentry.llm.exceptions import InvalidProviderError, InvalidUsecaseError
 from sentry.llm.providers.base import LlmModelBase
 from sentry.utils.services import LazyServiceWrapper
 
@@ -20,12 +21,15 @@ llm_provider_backends: dict[str, LlmModelBase] = {}
 
 
 def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
-    usecase_config = get_usecase_options(usecase.value)
-    provider_config = get_provider_options()
+    usecase_config = get_usecase_config(usecase.value)
+    provider_config = get_provider_config(usecase_config["provider"])
     global llm_provider_backends
 
     if usecase_config["provider"] in llm_provider_backends:
         return llm_provider_backends[usecase_config["provider"]]
+
+    if usecase_config["provider"] not in SENTRY_LLM_SERVICE_ALIASES:
+        raise InvalidProviderError(f"LLM provider {usecase_config['provider']} not found")
 
     llm_provider_backends[usecase_config["provider"]] = LazyServiceWrapper(
         LlmModelBase,
@@ -36,34 +40,39 @@ def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
 
 
 def complete_prompt(
-    usecase: LlmUseCase, prompt: str, message: str, temperature: float, max_output_tokens: int
+    *, usecase: LlmUseCase, prompt: str, message: str, temperature: float, max_output_tokens: int
 ) -> str | None:
-    usecase_config = get_usecase_options(usecase.value)
-    provider_config = get_provider_options()
+    usecase_config = get_usecase_config(usecase.value)
 
-    backend = LazyServiceWrapper(
-        LlmModelBase,
-        SENTRY_LLM_SERVICE_ALIASES[usecase_config["provider"]],
-        provider_config,
+    backend = get_llm_provider_backend(usecase)
+    return backend.complete_prompt(
+        usecase_config=usecase_config,
+        prompt=prompt,
+        message=message,
+        temperature=temperature,
+        max_output_tokens=max_output_tokens,
     )
-    return backend.complete_prompt(usecase_config, prompt, message, temperature, max_output_tokens)
 
 
-def get_usecase_options(usecase: str):
+def get_usecase_config(usecase: str):
     usecase_options_all = options.get("llm.usecases.options")
     if not usecase_options_all:
-        raise ValueError("LLM usecase options not found. please check llm.usecases.options")
+        raise InvalidUsecaseError(
+            "LLM usecase options not found. please check llm.usecases.options"
+        )
 
     if usecase not in usecase_options_all:
-        raise ValueError(
+        raise InvalidUsecaseError(
             f"LLM usecase options not found for {usecase}. please check llm.usecases.options"
         )
 
     return usecase_options_all[usecase]
 
 
-def get_provider_options():
-    llm_provider_option = options.get("llm.provider.options")
-    if not llm_provider_option:
-        raise ValueError("LLM provider option not found")
-    return llm_provider_option
+def get_provider_config(provider: str):
+    llm_provider_options_all = options.get("llm.provider.options")
+    if not llm_provider_options_all:
+        raise InvalidProviderError("LLM provider option value not found")
+    if provider not in llm_provider_options_all:
+        raise InvalidProviderError(f"LLM provider {provider} not found")
+    return llm_provider_options_all[provider]

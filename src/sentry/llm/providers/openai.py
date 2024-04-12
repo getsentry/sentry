@@ -11,14 +11,15 @@ class OpenAIProvider(LlmModelBase):
 
     def _complete_prompt(
         self,
-        usecase_options: dict[str, Any],
+        *,
+        usecase_config: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float = 0.7,
         max_output_tokens: int = 1000,
     ) -> str | None:
-        model = usecase_options["options"]["model"]
-        client = get_openai_client(self.options["openai"]["options"]["api_key"])
+        model = usecase_config["options"]["model"]
+        client = get_openai_client(self.provider_config["options"]["api_key"])
 
         response = client.chat.completions.create(
             model=model,

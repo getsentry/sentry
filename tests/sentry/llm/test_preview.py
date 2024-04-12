@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.llm.exceptions import InvalidModelError, InvalidProviderError, InvalidUsecaseError
 from sentry.llm.usecases import LlmUseCase, complete_prompt
 
 
@@ -11,7 +12,13 @@ def test_complete_prompt(set_sentry_option):
             {"example": {"provider": "preview", "options": {"model": "stub-1.0"}}},
         ),
     ):
-        res = complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        res = complete_prompt(
+            usecase=LlmUseCase.EXAMPLE,
+            prompt="prompt here",
+            message="message here",
+            temperature=0.0,
+            max_output_tokens=1024,
+        )
 
     assert res == ""
 
@@ -24,8 +31,14 @@ def test_invalid_usecase_config(set_sentry_option):
             {"other": {"provider": "preview", "options": {"model": "stub-1.0"}}},
         ),
     ):
-        with pytest.raises(ValueError):
-            complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        with pytest.raises(InvalidUsecaseError):
+            complete_prompt(
+                usecase=LlmUseCase.EXAMPLE,
+                prompt="prompt here",
+                message="message here",
+                temperature=0.0,
+                max_output_tokens=1024,
+            )
 
 
 def test_invalid_provider_config(set_sentry_option):
@@ -33,11 +46,17 @@ def test_invalid_provider_config(set_sentry_option):
         set_sentry_option("llm.provider.options", {"badinput": {"models": ["stub-1.0"]}}),
         set_sentry_option(
             "llm.usecases.options",
-            {"example": {"provider": "preview", "options": {"model": "stub-1.0"}}},
+            {"example": {"provider": "bad", "options": {"model": "stub-1.0"}}},
         ),
     ):
-        with pytest.raises(ValueError):
-            complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        with pytest.raises(InvalidProviderError):
+            complete_prompt(
+                usecase=LlmUseCase.EXAMPLE,
+                prompt="prompt here",
+                message="message here",
+                temperature=0.0,
+                max_output_tokens=1024,
+            )
 
 
 def test_invalid_model(set_sentry_option):
@@ -48,5 +67,11 @@ def test_invalid_model(set_sentry_option):
             {"example": {"provider": "preview", "options": {"model": "stub-badmodel"}}},
         ),
     ):
-        with pytest.raises(ValueError):
-            complete_prompt(LlmUseCase.EXAMPLE, "prompt here", "message here", 0.0, 1024)
+        with pytest.raises(InvalidModelError):
+            complete_prompt(
+                usecase=LlmUseCase.EXAMPLE,
+                prompt="prompt here",
+                message="message here",
+                temperature=0.0,
+                max_output_tokens=1024,
+            )

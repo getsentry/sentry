@@ -18,14 +18,15 @@ class VertexProvider(LlmModelBase):
     provider_name = "vertex"
 
     def get_provider_options(self) -> dict[str, Any]:
-        return self.options[self.provider_name]["options"]
+        return self.provider_config[self.provider_name]["options"]
 
     candidate_count = 1  # we only want one candidate returned at the moment
     top_p = 1  # TODO: make this configurable?
 
     def _complete_prompt(
         self,
-        usecase_options: dict[str, Any],
+        *,
+        usecase_config: dict[str, Any],
         prompt: str,
         message: str,
         temperature: float,
@@ -46,9 +47,8 @@ class VertexProvider(LlmModelBase):
             "Authorization": f"Bearer {self._get_access_token()}",
             "Content-Type": "application/json",
         }
-
-        vertex_url = self.options["vertex"]["options"]["url"]
-        vertex_url += usecase_options["options"]["model"] + ":predict"
+        vertex_url = self.provider_config["options"]["url"]
+        vertex_url += usecase_config["options"]["model"] + ":predict"
 
         response = requests.post(vertex_url, headers=headers, json=payload)
 
