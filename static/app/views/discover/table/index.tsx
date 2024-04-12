@@ -123,13 +123,13 @@ class Table extends PureComponent<TableProps, TableState> {
     if (
       eventView.hasAggregateField() &&
       apiPayload.field.includes('trace') &&
-      !apiPayload.field.includes('max(timestamp)')
+      !apiPayload.field.includes('max(timestamp)') &&
+      !apiPayload.field.includes('timestamp')
     ) {
       apiPayload.field.push('max(timestamp)');
     } else if (
       apiPayload.field.includes('trace') &&
-      !apiPayload.field.includes('timestamp') &&
-      !apiPayload.field.includes('max(timestamp)')
+      !apiPayload.field.includes('timestamp')
     ) {
       apiPayload.field.push('timestamp');
     }
