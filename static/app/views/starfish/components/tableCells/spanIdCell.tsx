@@ -7,6 +7,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
 
 interface Props {
   projectSlug: string;
@@ -44,5 +45,5 @@ export function SpanIdCell({
     })
   );
 
-  return <Link to={url}>{spanId.slice(0, 16)}</Link>;
+  return <Link to={url}>{spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}</Link>;
 }
