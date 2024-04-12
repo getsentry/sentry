@@ -54,8 +54,5 @@ describe('dotnet onboarding docs', function () {
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/.NET profiling alpha is available/))
-    ).toBeInTheDocument();
   });
 });

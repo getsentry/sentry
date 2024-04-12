@@ -169,9 +169,6 @@ const onboarding: OnboardingConfig = {
                 ],
               },
               {
-                description: t('.NET profiling alpha is available on .NET 6.0+.'),
-              },
-              {
                 description: (
                   <AlertWithoutMarginBottom type="info">
                     {t('Profiling for .NET Framework is not supported.')}
