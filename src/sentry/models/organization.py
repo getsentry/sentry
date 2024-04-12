@@ -37,7 +37,7 @@ from sentry.models.outbox import OutboxCategory
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser, RpcUserContact
+from sentry.services.hybrid_cloud.user import RpcUser, RpcUserProfile
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
@@ -357,18 +357,19 @@ class Organization(
         return owner_id_table
 
     @classmethod
-    def get_bulk_owner_contacts(
+    def get_bulk_owner_profiles(
         cls, organizations: Collection[Organization]
-    ) -> dict[int, RpcUserContact]:
+    ) -> dict[int, RpcUserProfile]:
         owner_id_table = cls._get_bulk_owner_ids(organizations)
+        owner_ids = list(owner_id_table.values())
 
-        contacts = user_service.get_bulk_contact_info(user_ids=list(owner_id_table.values()))
-        contact_table = {c.id: c for c in contacts}
+        profiles = user_service.get_many_profiles(filter=dict(user_ids=owner_ids))
+        profile_table = {c.id: c for c in profiles}
 
         return {
-            org_id: contact_table[user_id]
+            org_id: profile_table[user_id]
             for (org_id, user_id) in owner_id_table.items()
-            if user_id in contact_table
+            if user_id in profile_table
         }
 
     def has_single_owner(self):
