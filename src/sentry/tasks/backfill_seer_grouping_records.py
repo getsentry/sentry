@@ -62,7 +62,7 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
         if not features.has("projects:similarity-embeddings-grouping", project):
             return num_groups_records_created
 
-        project_id, organization_id = project.id, project.organization.id
+        project_id = project.id
         time = datetime.now()
         events_entity = Entity("events", alias="events")
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -107,7 +107,7 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
                 query=query,
                 tenant_ids={
                     "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                    "organization_id": organization_id,
+                    "cross_org_query": 1,
                 },
             )
 
