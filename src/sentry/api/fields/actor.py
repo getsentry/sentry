@@ -17,7 +17,7 @@ class ActorField(serializers.Field):
         super().__init__(*args, **kwds)
 
     def to_representation(self, value):
-        return value.get_actor_identifier()
+        return value.identifier
 
     def to_internal_value(self, data):
         if not data:

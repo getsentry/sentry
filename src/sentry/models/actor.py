@@ -170,7 +170,7 @@ class Actor(Model):
     def get_actor_identifier(self):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
-        return self.get_actor_tuple().get_actor_identifier()
+        return self.get_actor_tuple().identifier
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
@@ -240,7 +240,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
     This should happen more easily if we move GroupAssignee, GroupOwner, etc. to use the Actor model.
     """
 
-    def get_actor_identifier(self):
+    @property
+    def identifier(self):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @overload
