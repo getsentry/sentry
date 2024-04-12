@@ -61,8 +61,9 @@ class UnsupportedFrameFilename(Exception):
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
         self.raw_path = frame_file_path
-
+        is_windows_path = False
         if "\\" in frame_file_path:
+            is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
 
         if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
@@ -83,7 +84,7 @@ class FrameFilename:
             raise UnsupportedFrameFilename("It needs an extension.")
 
         # Remove drive letter if it exists
-        if self.is_windows_path and frame_file_path[1] == ":":
+        if is_windows_path and frame_file_path[1] == ":":
             frame_file_path = frame_file_path[2:]
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
