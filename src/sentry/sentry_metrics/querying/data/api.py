@@ -19,9 +19,10 @@ from sentry.sentry_metrics.querying.data.preparation.units_normalization import 
 )
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
+from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 from sentry.sentry_metrics.querying.visitors.query_modulator import QueryModulationStep
 
-modulators = []
+modulators = [Modulator(from_key="project", to_key="project_id")]
 
 
 def run_queries(
@@ -73,7 +74,7 @@ def run_queries(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
         preparation_steps.append(UnitsNormalizationStep())
-        preparation_steps.append(QueryModulationStep(modulators, projects))
+        preparation_steps.append(QueryModulationStep(projects, modulators))
 
         # replace names and values in query
 
