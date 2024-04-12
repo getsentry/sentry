@@ -1,7 +1,6 @@
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import type {DateString} from 'sentry/types';
-import {Container} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
@@ -20,19 +19,17 @@ export function ProjectRenderer({projectSlug}: ProjectRendererProps) {
   const organization = useOrganization();
 
   return (
-    <Container>
-      <Projects orgId={organization.slug} slugs={[projectSlug]}>
-        {({projects}) => {
-          const project = projects.find(p => p.slug === projectSlug);
-          return (
-            <ProjectBadge
-              project={project ? project : {slug: projectSlug}}
-              avatarSize={16}
-            />
-          );
-        }}
-      </Projects>
-    </Container>
+    <Projects orgId={organization.slug} slugs={[projectSlug]}>
+      {({projects}) => {
+        const project = projects.find(p => p.slug === projectSlug);
+        return (
+          <ProjectBadge
+            project={project ? project : {slug: projectSlug}}
+            avatarSize={16}
+          />
+        );
+      }}
+    </Projects>
   );
 }
 
@@ -89,11 +86,7 @@ export function TraceIdRenderer({
     transactionId
   );
 
-  return (
-    <Container>
-      <Link to={target}>{getShortEventId(traceId)}</Link>
-    </Container>
-  );
+  return <Link to={target}>{getShortEventId(traceId)}</Link>;
 }
 
 interface TransactionIdRendererProps {
@@ -140,9 +133,5 @@ export function TransactionRenderer({
     projectID: String(projects[0]?.id ?? ''),
   });
 
-  return (
-    <Container>
-      <Link to={target}>{transaction}</Link>
-    </Container>
-  );
+  return <Link to={target}>{transaction}</Link>;
 }
