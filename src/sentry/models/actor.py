@@ -295,6 +295,30 @@ class ActorTuple(namedtuple("Actor", "id type")):
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 
+    @classmethod
+    def from_id(cls, user_id: int | None, team_id: int | None) -> ActorTuple | None:
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        if user_id and team_id:
+            raise ValueError("user_id and team_id may not both be specified")
+        if user_id and not team_id:
+            return cls(user_id, User)
+        if team_id and not user_id:
+            return cls(team_id, Team)
+
+        return None
+
+    @classmethod
+    def from_ids(cls, user_ids: Sequence[int], team_ids: Sequence[int]) -> Sequence[ActorTuple]:
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        return [
+            *[cls(user_id, User) for user_id in user_ids],
+            *[cls(team_id, Team) for team_id in team_ids],
+        ]
+
     def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
 

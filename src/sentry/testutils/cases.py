@@ -3061,8 +3061,8 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
-        if "owner_actor_id" not in kwargs:
-            kwargs["owner_actor_id"] = get_actor_for_user(self.user).id
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
 
         return Monitor.objects.create(
             organization_id=self.organization.id,
