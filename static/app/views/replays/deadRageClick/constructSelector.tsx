@@ -41,7 +41,7 @@ export default function constructSelector(element: ReplayClickElement) {
     fullTestId +
     fullAlt +
     fullTitle +
-    componentName;
+    fullComponentName;
   const selector =
     tag + id + classes + role + ariaLabel + testId + alt + title + componentName;
   const displaySelector = componentName

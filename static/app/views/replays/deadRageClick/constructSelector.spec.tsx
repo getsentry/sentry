@@ -86,8 +86,8 @@ describe('constructSelector', () => {
       },
       fullSelector:
         'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="TestButton"]',
-      selector: 'a#ID2.classA.classB',
-      displaySelector: 'a#ID2.classA',
+      selector: 'a#ID2.classA.classB[data-sentry-component="TestButton"]',
+      displaySelector: 'TestButton#ID2',
     },
     {
       element: {
