@@ -31,6 +31,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
@@ -252,6 +253,18 @@ class Monitor(Model):
     owner_actor_id = BoundedBigIntegerField(null=True, db_index=True)
     """
     The owner of the monitors actor_id.
+
+    @deprecated Will be replaced with user_id / team_id
+    """
+
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
+    """
+    The user assigned as the owner of this model.
+    """
+
+    owner_team_id = BoundedBigIntegerField(null=True, db_index=True)
+    """
+    The team assigned as the owener of this model.
     """
 
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
@@ -265,6 +278,16 @@ class Monitor(Model):
         unique_together = (("project_id", "slug"),)
         indexes = [
             models.Index(fields=["organization_id", "slug"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner_team_id__isnull=False, owner_user_id__isnull=True)
+                    | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=False)
+                    | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+                ),
+                name="monitor_owner_team_or_user_check",
+            )
         ]
 
     __repr__ = sane_repr("guid", "project_id", "name")

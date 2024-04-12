@@ -2,6 +2,7 @@ import type React from 'react';
 import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -64,7 +65,19 @@ export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
 
-  const traceSlug = useMemo(() => params.traceSlug?.trim() ?? '', [params.traceSlug]);
+  const traceSlug = useMemo(() => {
+    const slug = params.traceSlug?.trim() ?? '';
+    // null and undefined are not valid trace slugs, but they can be passed
+    // in the URL and need to check for their string coerced values.
+    if (!slug || slug === 'null' || slug === 'undefined') {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-null-slug']);
+        Sentry.captureMessage(`Trace slug is empty`);
+      });
+    }
+    return slug;
+  }, [params.traceSlug]);
+
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
