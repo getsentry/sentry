@@ -341,7 +341,7 @@ function TableView(props: TableViewProps) {
       );
     } else if (columnKey === 'trace') {
       const timestamp = getTimeStampFromTableDateField(
-        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+        dataRow['max(timestamp)'] ?? dataRow.timestamp
       );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
