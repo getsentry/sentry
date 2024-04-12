@@ -24,8 +24,10 @@ UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat(
 
 
 class ScrubbedData:
-    """A singleton class used to indicate data has been scrubbed, without indicating what that data
-    is. A unit type indicating "scrubbing was successful" only."""
+    """
+    A singleton class used to indicate data has been scrubbed, without indicating what that data is.
+    A unit type indicating "scrubbing was successful" only.
+    """
 
     instance: ScrubbedData
 
@@ -36,7 +38,8 @@ class ScrubbedData:
 
 
 class JSONScrubbingComparator(ABC):
-    """An abstract class that compares and then scrubs some set of fields that, by a more nuanced
+    """
+    An abstract class that compares and then scrubs some set of fields that, by a more nuanced
     definition than mere strict byte-for-byte equality, are expected to maintain some relation on
     otherwise equivalent JSON instances of the same model.
 
@@ -48,13 +51,16 @@ class JSONScrubbingComparator(ABC):
     If multiple comparators are used sequentially on a single model (see the `SCRUBBING_COMPARATORS`
     dict below for specific mappings), all of the `compare(...)` methods are called before any of
     the `scrub(...)` methods are. This ensures that comparators that touch the same fields do not
-    have their inputs mangled by one another."""
+    have their inputs mangled by one another.
+    """
 
     def __init__(self, *fields: str):
         self.fields = set(fields)
 
     def check(self, side: Side, data: JSONData) -> None:
-        """Ensure that we have received valid JSON data at runtime."""
+        """
+        Ensure that we have received valid JSON data at runtime.
+        """
 
         if "model" not in data or not isinstance(data["model"], str):
             raise RuntimeError(f"The {side.name} input must have a `model` string assigned to it.")
@@ -65,12 +71,16 @@ class JSONScrubbingComparator(ABC):
 
     @abstractmethod
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
-        """An abstract method signature, to be implemented by inheriting classes with their own
+        """
+        An abstract method signature, to be implemented by inheriting classes with their own
         comparison logic. Implementations of this method MUST take care not to mutate the method's
-        inputs!"""
+        inputs!
+        """
 
     def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
-        """Ensure that all tracked fields on either both models or neither."""
+        """
+        Ensure that all tracked fields on either both models or neither.
+        """
 
         findings = []
         for f in self.fields:
@@ -108,16 +118,19 @@ class JSONScrubbingComparator(ABC):
             Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
         ) = lambda _: ScrubbedData(),
     ) -> None:
-        """Removes all of the fields compared by this comparator from the `fields` dict, so that the
-        remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
+        """
+        Removes all of the fields compared by this comparator from the `fields` dict, so that the
+        remaining fields may be compared for equality. Public callers should use the
+        inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
 
         Parameters:
-        - on: An `InstanceID` that must be shared by both versions of the JSON model being compared.
-        - left: One of the models being compared (usually the "before") version.
-        - right: The other model it is being compared against (usually the "after" or
-            post-processed version).
-        - f: Optional helper method that populates the RHS of the scrubbed entry. If this is
-            omitted, the scrubbed entry defaults to `True`.
+          - on: An `InstanceID` that must be shared by both versions of the JSON model
+              being compared.
+          - left: One of the models being compared (usually the "before") version.
+          - right: The other model it is being compared against (usually the "after" or
+              post-processed version).
+          - f: Optional helper method that populates the RHS of the scrubbed entry. If this is
+              omitted, the scrubbed entry defaults to `True`.
         """
 
         self.check(Side.left, left)
@@ -148,25 +161,31 @@ class JSONScrubbingComparator(ABC):
         self.__scrub__(left, right)
 
     def get_kind(self) -> ComparatorFindingKind:
-        """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
-        be bubbled up in ComparatorFindings when they are generated."""
+        """
+        A unique identifier for this particular derivation of JSONScrubbingComparator, which will
+        be bubbled up in ComparatorFindings when they are generated.
+        """
 
         return ComparatorFindingKind.__members__[self.__class__.__name__]
 
     def get_kind_existence_check(self) -> ComparatorFindingKind:
-        """A unique identifier for the existence check of this particular derivation of
+        """
+        A unique identifier for the existence check of this particular derivation of
         JSONScrubbingComparator, which will be bubbled up in ComparatorFindings when they are
-        generated."""
+        generated.
+        """
 
         return ComparatorFindingKind.__members__[self.__class__.__name__ + "ExistenceCheck"]
 
 
 class AutoSuffixComparator(JSONScrubbingComparator):
-    """Certain globally unique fields, like usernames and organization slugs, have special behavior
+    """
+    Certain globally unique fields, like usernames and organization slugs, have special behavior
     when they encounter conflicts on import: rather than aborting, they simply generate a new
     placeholder value, with a random suffix on the end of the conflicting submission (ex: "my-org"
     becomes "my-org-1k1j"). This comparator is robust to such fields, and ensures that the left
-    field entry is a strict prefix of the right."""
+    field entry is a strict prefix of the right.
+    """
 
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         findings = []
@@ -192,9 +211,47 @@ class AutoSuffixComparator(JSONScrubbingComparator):
         return findings
 
 
+class KeyValueComparator(JSONScrubbingComparator):
+    """
+    Models of the kind `sentry.*option` store key-value pairs of options. Some of these keys and/or
+    values need special-handling to be compared properly. Because these key-value pairs have no
+    schema, we more or less have to resort to listing keys we want to skip.
+    """
+
+    def __init__(self, *, skip_keys: list[str]):
+        super().__init__("key", "value")
+        self.skip_keys = skip_keys
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # Keys must be equal, since we use them as part of the `InstanceID`.
+        assert left["fields"]["key"] == right["fields"]["key"]
+
+        findings: list[ComparatorFinding] = []
+        key = left["fields"]["key"]
+        if key in self.skip_keys:
+            return findings
+
+        left_value = left["fields"]["value"]
+        right_value = right["fields"]["value"]
+        if left_value != right_value:
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ({left_value}) of a key-value entry with key `{key}` was not equal to the right({right_value})""",
+                )
+            )
+
+        return findings
+
+
 class DateUpdatedComparator(JSONScrubbingComparator):
-    """Comparator that ensures that the specified fields' value on the right input is an ISO-8601
-    date that is greater than (ie, occurs after) or equal to the specified field's left input."""
+    """
+    Comparator that ensures that the specified fields' value on the right input is an ISO-8601
+    date that is greater than (ie, occurs after) or equal to the specified field's left input.
+    """
 
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         findings = []
@@ -219,9 +276,11 @@ class DateUpdatedComparator(JSONScrubbingComparator):
 
 
 class DatetimeEqualityComparator(JSONScrubbingComparator):
-    """Some exports from before sentry@23.7.1 may trim milliseconds from timestamps if they end in
+    """
+    Some exports from before sentry@23.7.1 may trim milliseconds from timestamps if they end in
     exactly `.000` (ie, not milliseconds at all - what are the odds!). Because comparisons may fail
-    in this case, we use a special comparator for these cases."""
+    in this case, we use a special comparator for these cases.
+    """
 
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         findings = []
@@ -246,9 +305,11 @@ class DatetimeEqualityComparator(JSONScrubbingComparator):
 
 
 class ForeignKeyComparator(JSONScrubbingComparator):
-    """Ensures that foreign keys match in a relative (they refer to the same other model in their
+    """
+    Ensures that foreign keys match in a relative (they refer to the same other model in their
     respective JSON blobs) rather than absolute (they have literally the same integer value)
-    sense."""
+    sense.
+    """
 
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
@@ -258,7 +319,9 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         self.foreign_fields = foreign_fields
 
     def set_primary_key_maps(self, left_pk_map: PrimaryKeyMap, right_pk_map: PrimaryKeyMap):
-        """Call this function before running the comparator, to ensure that it has access to the latest mapping information for both sides of the comparison."""
+        """
+        Call this function before running the comparator, to ensure that it has access to the latest mapping information for both sides of the comparison.
+        """
 
         self.left_pk_map = left_pk_map
         self.right_pk_map = right_pk_map
@@ -313,8 +376,10 @@ class ForeignKeyComparator(JSONScrubbingComparator):
 
 
 class ObfuscatingComparator(JSONScrubbingComparator, ABC):
-    """Comparator that compares private values, but then safely truncates them to ensure that they
-    do not leak out in logs, stack traces, etc."""
+    """
+    Comparator that compares private values, but then safely truncates them to ensure that they
+    do not leak out in logs, stack traces, etc.
+    """
 
     def __init__(self, *fields: str):
         super().__init__(*fields)
@@ -351,13 +416,17 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
 
     @abstractmethod
     def truncate(self, data: list[str]) -> list[str]:
-        """An abstract method signature which implements a specific truncation algorithm to do the
-        actual obfuscation."""
+        """
+        An abstract method signature which implements a specific truncation algorithm to do the
+        actual obfuscation.
+        """
 
 
 class EmailObfuscatingComparator(ObfuscatingComparator):
-    """Comparator that compares emails, but then safely truncates them to ensure that they
-    do not leak out in logs, stack traces, etc."""
+    """
+    Comparator that compares emails, but then safely truncates them to ensure that they
+    do not leak out in logs, stack traces, etc.
+    """
 
     def truncate(self, data: list[str]) -> list[str]:
         truncated = []
@@ -373,8 +442,10 @@ class EmailObfuscatingComparator(ObfuscatingComparator):
 
 
 class HashObfuscatingComparator(ObfuscatingComparator):
-    """Comparator that compares hashed values like keys and tokens, but then safely truncates
-    them to ensure that they do not leak out in logs, stack traces, etc."""
+    """
+    Comparator that compares hashed values like keys and tokens, but then safely truncates
+    them to ensure that they do not leak out in logs, stack traces, etc.
+    """
 
     def truncate(self, data: list[str]) -> list[str]:
         truncated = []
@@ -490,7 +561,8 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
 
 
 class IgnoredComparator(JSONScrubbingComparator):
-    """Ensures that two fields are tested for mutual existence, and nothing else.
+    """
+    Ensures that two fields are tested for mutual existence, and nothing else.
 
     Using this class means that you are foregoing comparing the relevant field(s), so please make
     sure you are validating them some other way!
@@ -600,15 +672,19 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
 
 
 class SecretHexComparator(RegexComparator):
-    """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
+    """
+    Certain 16-byte hexadecimal API keys are regenerated during an import operation.
+    """
 
     def __init__(self, bytes: int, *fields: str):
         super().__init__(re.compile(f"""^[0-9a-f]{{{bytes * 2}}}$"""), *fields)
 
 
 class SubscriptionIDComparator(RegexComparator):
-    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a
-    numeric prefix. Ensure that the two values are NOT equivalent."""
+    """
+    Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric
+    prefix. Ensure that the two values are NOT equivalent.
+    """
 
     def __init__(self, *fields: str):
         super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
@@ -670,8 +746,10 @@ class UnorderedListComparator(JSONScrubbingComparator):
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
 class UUID4Comparator(RegexComparator):
-    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator
-    ensures that they retain their validity, but are not equivalent."""
+    """
+    UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator
+    ensures that they retain their validity, but are not equivalent.
+    """
 
     def __init__(self, *fields: str):
         super().__init__(
@@ -708,8 +786,10 @@ class UUID4Comparator(RegexComparator):
 
 
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
-    claimed by the `DateUpdatedComparator`."""
+    """
+    Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already claimed
+    by the `DateUpdatedComparator`.
+    """
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
@@ -717,7 +797,7 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
-            if isinstance(f, models.DateTimeField) and name in comps:
+            if isinstance(f, models.DateTimeField):
                 # Only auto assign the `DatetimeEqualityComparator` if this field is not mentioned
                 # by a conflicting comparator.
                 possibly_conflicting = [
@@ -741,8 +821,10 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 
 
 def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or
-    has a foreign key into the `sentry.User` table."""
+    """
+    Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or has
+    a foreign key into the `sentry.User` table.
+    """
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
@@ -765,8 +847,10 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
 
 
 def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the ForeignKeyComparator or to all appropriate model fields (see
-    dependencies.py for more on what "appropriate" means in this context)."""
+    """
+    Automatically assigns the ForeignKeyComparator or to all appropriate model fields (see
+    dependencies.py for more on what "appropriate" means in this context).
+    """
 
     for model_name, rels in dependencies().items():
         comps[str(model_name)].append(
@@ -818,6 +902,16 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.option": [
+                KeyValueComparator(
+                    skip_keys=[
+                        "sentry:install-id",  # Only used on self-hosted.
+                        "sentry:latest_version",  # Should not necessarily invalidate comparison.
+                        "sentry:last_worker_ping",  # Changes very frequently.
+                        "sentry:last_worker_version",  # Changes very frequently.
+                    ]
+                ),
+            ],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [
