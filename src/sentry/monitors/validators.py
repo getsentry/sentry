@@ -254,7 +254,6 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the monitor. (eg. user:51 or team:6)",
-        as_actor=True,
     )
     is_muted = serializers.BooleanField(
         required=False,

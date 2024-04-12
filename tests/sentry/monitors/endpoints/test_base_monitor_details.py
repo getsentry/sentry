@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models.actor import get_actor_for_team, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -171,8 +170,10 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         }
 
     def test_owner_team(self):
-        team_actor = get_actor_for_team(self.team)
-        monitor = self._create_monitor(owner_actor_id=team_actor.id)
+        monitor = self._create_monitor(
+            owner_user_id=None,
+            owner_team_id=self.team.id,
+        )
         resp = self.get_success_response(self.organization.slug, monitor.slug)
 
         assert resp.data["owner"] == {
@@ -220,7 +221,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_owner(self):
         monitor = self._create_monitor()
-        assert monitor.owner_actor_id == get_actor_for_user(self.user).id
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"owner": f"team:{self.team.id}"}
@@ -229,7 +231,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["owner"]["name"] == self.team.name
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.owner_actor_id == get_actor_for_team(self.team).id
+        assert monitor.owner_team_id == self.team.id
+        assert monitor.owner_user_id is None
 
         # Clear owner
         resp = self.get_success_response(
@@ -238,7 +241,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["owner"] is None
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.owner_actor_id is None
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id is None
 
         # Validate error cases
         resp = self.get_error_response(
