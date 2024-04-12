@@ -113,16 +113,6 @@ jobs:
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
 
-      - name: Collect test data
-        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
-        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
-        with:
-          path: .artifact/pytest.acceptance.json
-          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.job }}/instance${{ steps.setup.outputs.matrix-instance-number }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
       # Upload coverage data even if running the tests step fails since
@@ -132,6 +122,7 @@ jobs:
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          artifact-path: .artifacts/pytest.acceptance.json
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.

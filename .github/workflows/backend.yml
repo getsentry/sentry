@@ -109,16 +109,6 @@ jobs:
         run: |
           make test-python-ci
 
-      - name: Collect test data
-        if: ${{ !cancelled() }}
-        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
-        with:
-          path: .artifacts/pytest.json
-          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}/instance${{ steps.setup.outputs.matrix-instance-number }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
@@ -126,6 +116,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          artifact-path: .artifacts/pytest.json
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -277,16 +268,6 @@ jobs:
         run: |
           make test-monolith-dbs
 
-      - name: Collect test data
-        if: ${{ !cancelled() }}
-        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
-        with:
-          path: .artifacts/pytest.monolith-dbs.json
-          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Handle artifacts
@@ -294,6 +275,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          artifact-path: .artifacts/pytest.monolith-dbs.json
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
