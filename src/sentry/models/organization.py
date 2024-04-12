@@ -331,6 +331,10 @@ class Organization(
 
     @classmethod
     def _get_bulk_owner_ids(cls, organizations: Collection[Organization]) -> dict[int, int]:
+        """Find user IDs of the default owners of multiple organization.
+
+        The returned table maps organization ID to user ID.
+        """
         from sentry.models.organizationmember import OrganizationMember
 
         owner_id_table: dict[int, int] = {}
@@ -360,6 +364,14 @@ class Organization(
     def get_bulk_owner_profiles(
         cls, organizations: Collection[Organization]
     ) -> dict[int, RpcUserProfile]:
+        """Query for profile data of owners of multiple organizations.
+
+        The returned table is keyed by organization ID and shows the default owner.
+        An organization may have multiple owners, in which case only the default
+        owner is shown. Organization IDs may be absent from the returned table if no
+        owner was found.
+        """
+
         owner_id_table = cls._get_bulk_owner_ids(organizations)
         owner_ids = list(owner_id_table.values())
 
