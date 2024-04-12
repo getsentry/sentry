@@ -1,16 +1,47 @@
 import Link from 'sentry/components/links/link';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  orgSlug: string;
   projectSlug: string;
   spanId: string;
+  timestamp: string;
+  traceId: string;
   transactionId: string;
 }
 
-export function SpanIdCell({orgSlug, projectSlug, transactionId, spanId}: Props) {
+export function SpanIdCell({
+  projectSlug,
+  traceId,
+  transactionId,
+  spanId,
+  timestamp,
+}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+
   const url = normalizeUrl(
-    `/organizations/${orgSlug}/performance/${projectSlug}:${transactionId}#span-${spanId}`
+    generateLinkToEventInTraceView({
+      eventSlug: generateEventSlug({
+        id: transactionId,
+        project: projectSlug,
+      }),
+      organization,
+      location,
+      eventView: EventView.fromLocation(location),
+      dataRow: {
+        id: transactionId,
+        trace: traceId,
+        timestamp,
+      },
+      spanId,
+    })
   );
 
   return <Link to={url}>{spanId.slice(0, 16)}</Link>;

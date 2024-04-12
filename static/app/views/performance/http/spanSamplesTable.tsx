@@ -17,14 +17,21 @@ import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-type ColumnKeys =
+type DataRowKeys =
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRACE
+  | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.ID
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.RESPONSE_CODE;
 
-type Row = Pick<IndexedResponse, ColumnKeys>;
+type ColumnKeys =
+  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_DESCRIPTION
+  | SpanIndexedField.RESPONSE_CODE;
+
+type DataRow = Pick<IndexedResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -47,7 +54,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 interface Props {
-  data: Row[];
+  data: DataRow[];
   isLoading: boolean;
   error?: Error | null;
   highlightedSpanId?: string;
@@ -95,7 +102,7 @@ export function SpanSamplesTable({
 
 function renderBodyCell(
   column: Column,
-  row: Row,
+  row: DataRow,
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization
@@ -103,8 +110,9 @@ function renderBodyCell(
   if (column.key === SpanIndexedField.ID) {
     return (
       <SpanIdCell
-        orgSlug={organization.slug}
         projectSlug={row.project}
+        traceId={row.trace}
+        timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
       />

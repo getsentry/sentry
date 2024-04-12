@@ -241,6 +241,7 @@ describe('HTTPSamplesPanel', () => {
               'trace',
               'transaction.id',
               'span_id',
+              'timestamp',
               'span.description',
               'span.status_code',
             ],
@@ -419,7 +420,7 @@ describe('HTTPSamplesPanel', () => {
       expect(screen.getByRole('cell', {name: 'b1bf1acde131623a'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48#span-b1bf1acde131623a'
+        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET'
       );
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
     });
