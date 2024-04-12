@@ -869,20 +869,21 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
 
 def test_set_frames_platform_sample():
-    python_prof = {
+    js_prof = {
         "version": "1",
-        "platform": "python",
+        "platform": "javascript",
         "profile": {
             "frames": [
                 {"function": "a"},
-                {"function": "b"},
+                {"function": "b", "platform": "cocoa"},
+                {"function": "c"},
             ]
         },
     }
-    _set_frames_platform(python_prof)
+    _set_frames_platform(js_prof)
 
-    platforms = [f["platform"] for f in python_prof["profile"]["frames"]]
-    assert platforms == ["python", "python"]
+    platforms = [f["platform"] for f in js_prof["profile"]["frames"]]
+    assert platforms == ["javascript", "cocoa", "javascript"]
 
 
 def test_set_frames_platform_android():
