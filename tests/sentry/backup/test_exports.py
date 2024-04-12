@@ -11,6 +11,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db import models
 from sentry.models.email import Email
+from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
@@ -314,3 +315,36 @@ class FilteringTests(ExportTestCase):
             assert self.count(data, UserRole) == 1
             assert self.count(data, UserRoleUser) == 1
             assert self.count(data, UserPermission) == 1
+
+
+class SafeDateTimeTests(ExportTestCase):
+    """
+    The default DjangoJSONEncoder inherits from the odd behavior of Python's own isoformat
+    serializer: it includes milliseconds in the output in all cases EXCEPT those where the value of
+    the milliseconds are .000, in which case it removes them completely. This makes it difficult and
+    flaky to do simple string comparison between two dates.
+
+    Here, we make sure that date times always get milliseconds appended, even if they are `.000`.
+    """
+
+    def test_always_add_milliseconds(self):
+        Option.objects.create(
+            key="sentry:with-millis", last_updated="2023-06-22T00:00:00.000Z", value="foo"
+        )
+        Option.objects.create(
+            key="sentry:without-millis", last_updated="2023-06-22T00:00:00Z", value="bar"
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Config,
+            )
+
+            assert self.count(data, Option) == 2
+            assert self.exists(data, Option, "key", "sentry:with-millis")
+            assert self.exists(data, Option, "key", "sentry:without-millis")
+            assert self.exists(data, Option, "value", '"foo"')
+            assert self.exists(data, Option, "value", '"bar"')
+            assert self.exists(data, Option, "last_updated", "2023-06-22T00:00:00.000Z")
+            assert not self.exists(data, Option, "last_updated", "2023-06-22T00:00:00Z")

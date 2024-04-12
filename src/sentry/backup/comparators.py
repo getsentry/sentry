@@ -797,7 +797,7 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
-            if isinstance(f, models.DateTimeField) and name in comps:
+            if isinstance(f, models.DateTimeField):
                 # Only auto assign the `DatetimeEqualityComparator` if this field is not mentioned
                 # by a conflicting comparator.
                 possibly_conflicting = [

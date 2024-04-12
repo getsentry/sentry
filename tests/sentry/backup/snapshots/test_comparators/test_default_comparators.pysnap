@@ -103,6 +103,9 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.alertrule
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule
@@ -114,6 +117,9 @@ source: tests/sentry/backup/test_comparators.py
     - query_subscription
   model_name: sentry.alertruleactivations
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule
@@ -121,23 +127,35 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.alertruleactivity
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule
     - project
   model_name: sentry.alertruleexcludedprojects
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule
     - project
   model_name: sentry.alertruleprojects
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule
   model_name: sentry.alertruletrigger
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule_trigger
@@ -145,6 +163,9 @@ source: tests/sentry/backup/test_comparators.py
     - sentry_app_id
   model_name: sentry.alertruletriggeraction
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - alert_rule_trigger
@@ -163,18 +184,27 @@ source: tests/sentry/backup/test_comparators.py
     - owner
   model_name: sentry.apiapplication
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - application
     - user
   model_name: sentry.apiauthorization
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - expires_at
   - class: ForeignKeyComparator
     fields:
     - application
     - user
   model_name: sentry.apigrant
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization_id
@@ -232,6 +262,10 @@ source: tests/sentry/backup/test_comparators.py
     - target_user
   model_name: sentry.auditlogentry
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - created_at
+    - last_used_at
   - class: ForeignKeyComparator
     fields:
     - user
@@ -259,6 +293,10 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.authidentityreplica
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - last_sync
   - class: ForeignKeyComparator
     fields:
     - organization_id
@@ -332,6 +370,9 @@ source: tests/sentry/backup/test_comparators.py
     fields: []
   model_name: sentry.controlimportchunkreplica
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - last_updated
   - class: ForeignKeyComparator
     fields: []
   model_name: sentry.controloption
@@ -349,6 +390,11 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.counter
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - end_date
+    - start_date
   - class: ForeignKeyComparator
     fields:
     - created_by_id
@@ -361,6 +407,10 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.customdynamicsamplingruleproject
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - last_visited
   - class: ForeignKeyComparator
     fields:
     - created_by_id
@@ -373,11 +423,17 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.dashboardproject
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization
   model_name: sentry.dashboardtombstone
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - dashboard
@@ -461,6 +517,9 @@ source: tests/sentry/backup/test_comparators.py
     - file_id
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email
@@ -468,6 +527,9 @@ source: tests/sentry/backup/test_comparators.py
     fields: []
   model_name: sentry.email
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization_id
@@ -734,12 +796,18 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.incidentseen
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - event_stats_snapshot
     - incident
   model_name: sentry.incidentsnapshot
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - incident
@@ -844,6 +912,11 @@ source: tests/sentry/backup/test_comparators.py
     fields: []
   model_name: sentry.monitorlocation
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - disable_date
+    - sent_final_email_date
+    - sent_initial_email_date
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1010,6 +1083,10 @@ source: tests/sentry/backup/test_comparators.py
     - project_last_used_id
   model_name: sentry.orgauthtoken
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - target_run_date
   - class: ForeignKeyComparator
     fields:
     - incident
@@ -1038,6 +1115,10 @@ source: tests/sentry/backup/test_comparators.py
     - project_id
   model_name: sentry.proguardartifactrelease
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - first_event
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1050,6 +1131,9 @@ source: tests/sentry/backup/test_comparators.py
     - project_id
   model_name: sentry.projectartifactbundle
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - project
@@ -1095,6 +1179,10 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.projectoption
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_created
+    - last_updated
   - class: ForeignKeyComparator
     fields:
     - project
@@ -1105,6 +1193,9 @@ source: tests/sentry/backup/test_comparators.py
     - project_id
   model_name: sentry.projectplatform
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1176,6 +1267,10 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.rawevent
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - last_seen
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1317,6 +1412,9 @@ source: tests/sentry/backup/test_comparators.py
     - relocation_validation
   model_name: sentry.relocationvalidationattempt
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - integration_id
@@ -1337,6 +1435,9 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.reprocessingreport
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - environment_id
@@ -1344,6 +1445,9 @@ source: tests/sentry/backup/test_comparators.py
     - project
   model_name: sentry.rule
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - rule
@@ -1357,6 +1461,10 @@ source: tests/sentry/backup/test_comparators.py
     - rule
   model_name: sentry.rulefirehistory
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - until
   - class: ForeignKeyComparator
     fields:
     - alert_rule
@@ -1365,6 +1473,9 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.rulesnooze
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1463,6 +1574,9 @@ source: tests/sentry/backup/test_comparators.py
     - service_hook
   model_name: sentry.servicehookproject
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - environment
@@ -1505,6 +1619,11 @@ source: tests/sentry/backup/test_comparators.py
     - team_id
   model_name: sentry.teamreplica
 - comparators:
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+    - end
+    - start
   - class: ForeignKeyComparator
     fields: []
   model_name: sentry.timeseriessnapshot
