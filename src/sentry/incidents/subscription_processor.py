@@ -394,9 +394,7 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
-        elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )

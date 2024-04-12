@@ -281,13 +281,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
-        # If metric based crash rate alerts are enabled, coerce sessions over
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
             "organizations:custom-metrics",
@@ -413,7 +406,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     @staticmethod
     def _validate_time_window(dataset, time_window):
-        if dataset in [Dataset.Sessions, Dataset.Metrics]:
+        if dataset == Dataset.Metrics:
             # Validate time window
             if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
