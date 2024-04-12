@@ -62,6 +62,11 @@ describe('HTTPSamplesPanel', () => {
     eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+        }),
+      ],
       body: {
         data: [
           {
@@ -93,8 +98,8 @@ describe('HTTPSamplesPanel', () => {
     jest.resetAllMocks();
   });
 
-  describe('status panel', () => {
-    let eventsStatsRequestMock;
+  describe('Status panel', () => {
+    let eventsStatsRequestMock, samplesRequestMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -135,6 +140,32 @@ describe('HTTPSamplesPanel', () => {
               [1699908000, [{count: 78.12}]],
             ],
           },
+        },
+      });
+
+      samplesRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+          }),
+        ],
+        body: {
+          data: [
+            {
+              span_id: 'b1bf1acde131623a',
+              trace: '2b60b2eb415c4bfba3efeaf65c21c605',
+              'span.description':
+                'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
+              project: 'javascript',
+              timestamp: '2024-03-25T20:31:36+00:00',
+              'span.status_code': '200',
+              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'span.self_time': 320.300102,
+            },
+          ],
+          meta: {},
         },
       });
     });
@@ -195,8 +226,8 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      expect(eventsRequestMock).toHaveBeenNthCalledWith(
-        2,
+      expect(samplesRequestMock).toHaveBeenNthCalledWith(
+        1,
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           method: 'GET',
@@ -288,6 +319,7 @@ describe('HTTPSamplesPanel', () => {
           data: [
             {
               span_id: 'b1bf1acde131623a',
+              trace: '2b60b2eb415c4bfba3efeaf65c21c605',
               'span.description':
                 'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
               project: 'javascript',
