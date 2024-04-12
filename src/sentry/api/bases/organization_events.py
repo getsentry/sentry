@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -125,7 +126,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return params, filter_params
 
     def get_snuba_params(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self, request: HttpRequest, organization: Organization, check_global_views: bool = True
     ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
