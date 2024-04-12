@@ -13,7 +13,7 @@ class ProjectSimilarIssuesEmbeddingsRecords(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.url = reverse(
-            "sentry-api-0-project-similar-embeddings-records",
+            "sentry-api-0-project-backfill-similar-embeddings-records",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_slug": self.project.slug,
