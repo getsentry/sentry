@@ -24,7 +24,7 @@ class NewIssueForm(forms.Form):
 
 class IssueTrackingPlugin(Plugin):
     # project_conf_form = BaseIssueOptionsForm
-    new_issue_form = NewIssueForm
+    new_issue_form: type[forms.Form] = NewIssueForm
     link_issue_form = None
 
     create_issue_template = "sentry/plugins/bases/issue/create_issue.html"
