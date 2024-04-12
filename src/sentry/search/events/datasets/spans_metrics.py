@@ -853,9 +853,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )
@@ -966,7 +968,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
         self.builder = builder
         self.total_span_duration: float | None = None
 
-    def resolve_mri(self, value) -> Column:
+    def resolve_mri(self, value: str) -> Column:
         """Given the public facing column name resolve it to the MRI and return a Column"""
         # If the query builder has not detected a transaction use the light self time metric to get a performance boost
         if value == "span.self_time" and not self.builder.has_transaction:
