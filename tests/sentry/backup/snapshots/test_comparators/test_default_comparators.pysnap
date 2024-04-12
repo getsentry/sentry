@@ -1,5 +1,5 @@
 ---
-created: '2024-04-12T19:46:00.491186+00:00'
+created: '2024-04-12T21:38:00.083515+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -955,13 +955,13 @@ source: tests/sentry/backup/test_comparators.py
     - user
   model_name: sentry.notificationsettingprovider
 - comparators:
-  - class: DateUpdatedComparator
-    fields:
-    - last_updated
   - class: KeyValueComparator
     fields:
     - key
     - value
+  - class: DatetimeEqualityComparator
+    fields:
+    - last_updated
   - class: ForeignKeyComparator
     fields: []
   model_name: sentry.option
