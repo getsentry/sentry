@@ -114,7 +114,12 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventFrequencyCondition
 
     def test_batch_query(self):
-        condition_inst = self.rule_cls(self.event.group.project)
+        data = {"interval": "1m", "value": 6}
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment.id),
+        )
         batch_query = condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -126,6 +131,11 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             self.event2.group_id: 1,
             self.perf_event.group_id: 1,
         }
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment2.id),
+        )
 
         batch_query = condition_inst.batch_query_hook(
             group_ids=[self.event3.group_id],
@@ -140,7 +150,12 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventUniqueUserFrequencyCondition
 
     def test_batch_query_user(self):
-        condition_inst = self.rule_cls(self.event.group.project)
+        data = {"interval": "1m", "value": 6}
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment.id),
+        )
         batch_query = condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -152,6 +167,11 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             self.event2.group_id: 1,
             self.perf_event.group_id: 1,
         }
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment2.id),
+        )
 
         batch_query = condition_inst.batch_query_hook(
             group_ids=[self.event3.group_id],
@@ -168,9 +188,14 @@ class EventFrequencyPercentConditionQueryTest(
     rule_cls = EventFrequencyPercentCondition
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    @patch("sentry.rules.base.RuleBase.get_option", return_value="10m")
-    def test_batch_query_percent(self, mock_get_option):
-        condition_inst = self.rule_cls(self.event.group.project)
+    def test_batch_query_percent(self):
+        data = {"interval": "5m", "value": 30}
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment.id),
+        )
+
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
         batch_query = condition_inst.batch_query_hook(
@@ -180,9 +205,14 @@ class EventFrequencyPercentConditionQueryTest(
             environment_id=self.environment.id,
         )
         assert batch_query == {
-            self.event.group_id: 10,
-            self.event2.group_id: 10,
+            self.event.group_id: 20,
+            self.event2.group_id: 20,
         }
+        condition_inst = self.get_rule(
+            data=data,
+            project=self.event.group.project,
+            rule=Rule(environment_id=self.environment2.id),
+        )
 
         batch_query = condition_inst.batch_query_hook(
             group_ids=[self.event3.group_id],
@@ -190,7 +220,7 @@ class EventFrequencyPercentConditionQueryTest(
             end=self.end,
             environment_id=self.environment2.id,
         )
-        assert batch_query == {self.event3.group_id: 10}
+        assert batch_query == {self.event3.group_id: 20}
 
 
 class ErrorEventMixin(SnubaTestCase):
