@@ -192,14 +192,20 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         form = form_cls(request.POST, user=user)
         if form.is_valid():
             if mode == "relocate":
-                # Relocation form required users to accept TOS and privacy policy
-                # Only need first membership, since all of user's orgs will be in the same region.
+                # Relocation form requires users to accept TOS and privacy policy with an org
+                # associated. We only need the first membership, since all of user's orgs will be in
+                # the same region.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
                 mapping = OrganizationMapping.objects.get(
                     organization_id=membership.organization_id
                 )
-                # These service calls need to be outside of the transaction block
+
+                # These service calls need to be outside of the transaction block. Claiming an
+                # account constitutes an email verifying action. We'll verify the primary email
+                # associated with this account in particular, since that is the only one the user
+                # claiming email could have been sent to.
                 rpc_user = user_service.get_user(user_id=user.id)
+                user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
                     region_name=mapping.region_name, user=rpc_user
                 )

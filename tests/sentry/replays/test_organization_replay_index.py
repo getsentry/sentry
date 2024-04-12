@@ -1042,6 +1042,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "info_ids": None,
                     "count_warnings": None,
                     "count_infos": None,
+                    "has_viewed": None,
                 }
             ]
 

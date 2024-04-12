@@ -278,6 +278,7 @@ function ProviderNonMemo({
   const [rootEl, setRoot] = useState<HTMLDivElement | null>(null);
 
   const durationMs = replay?.getDurationMs() ?? 0;
+  const clipWindow = replay?.getClipWindow() ?? undefined;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const videoEvents = replay?.getVideoEvents();
   const startTimestampMs = replay?.getStartTimestampMs();
@@ -493,6 +494,7 @@ function ProviderNonMemo({
         onBuffer: buffering => {
           setVideoBuffering(buffering);
         },
+        clipWindow,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -518,6 +520,7 @@ function ProviderNonMemo({
       setReplayFinished,
       startTimestampMs,
       startTimeOffsetMs,
+      clipWindow,
     ]
   );
 
