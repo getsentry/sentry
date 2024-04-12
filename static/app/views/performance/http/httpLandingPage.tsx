@@ -41,12 +41,10 @@ export function HTTPLandingPage() {
 
   const chartFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
   };
 
   const tableFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
