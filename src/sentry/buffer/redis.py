@@ -88,6 +88,8 @@ class RedisOperation(Enum):
     SET_GET = "smembers"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
+    HASH_DELETE = "hdel"
+    DELETE = "delete"
 
 
 class PendingBuffer:
@@ -276,6 +278,18 @@ class RedisBuffer(Buffer):
 
     def get_set(self, key: str) -> list[set[int]]:
         return self._execute_redis_operation(key, RedisOperation.SET_GET)
+
+    def delete_key(self, key: str) -> None:
+        self._execute_redis_operation(key, RedisOperation.DELETE)
+
+    def delete_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+    ) -> None:
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, RedisOperation.HASH_DELETE, field)
 
     def push_to_hash(
         self,

@@ -350,6 +350,42 @@ class TestRedisBuffer:
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.buf
 
+    def test_delete_batch(self):
+        """Test that after we add things to redis we can clean it up"""
+        project_id = 1
+        rule_id = 2
+        group_id = 3
+        event_id = 4
+
+        # add a set and a hash to the buffer
+        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+            value=event_id,
+        )
+
+        # retrieve them
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert len(project_ids)
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert len(rule_group_pairs)
+
+        # delete them
+        self.buf.delete_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+        )
+        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY)
+
+        # attempt to retrieve again to make sure it's empty
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert project_ids == [set()]
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert rule_group_pairs == [{}]
+
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
