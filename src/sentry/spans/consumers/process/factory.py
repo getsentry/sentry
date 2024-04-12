@@ -163,7 +163,7 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
                     for segment in segments:
-                        if not len(segment):
+                        if not segment:
                             continue
 
                         payload_data = prepare_buffered_segment_payload(segment)

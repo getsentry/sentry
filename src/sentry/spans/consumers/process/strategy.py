@@ -1,35 +1,25 @@
-import time
-from typing import Any, Generic, TypeVar, Union
+from typing import Any, TypeVar
 
 from arroyo.processing.strategies.abstract import ProcessingStrategy
+from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, FilteredPayload, Message
-from arroyo.utils.metrics import get_metrics
 
 TPayload = TypeVar("TPayload")
 
 
-class CommitSpanOffsets(ProcessingStrategy[Union[FilteredPayload, TPayload]], Generic[TPayload]):
+class CommitSpanOffsets(CommitOffsets):
     def __init__(
         self, commit: Commit, next_step: ProcessingStrategy[FilteredPayload | TPayload]
     ) -> None:
-        self.__commit = commit
-        self.__metrics = get_metrics()
-        self.__last_record_time: float | None = None
+        super().__init__(commit=commit)
         self.__next_step = next_step
 
     def poll(self) -> None:
-        self.__commit({})
+        super().poll()
         self.__next_step.poll()
 
-    def submit(self, message: Message[Any]) -> None:
-        now = time.time()
-        if self.__last_record_time is None or now - self.__last_record_time > 1:
-            if message.timestamp is not None:
-                self.__metrics.timing(
-                    "arroyo.consumer.latency", now - message.timestamp.timestamp()
-                )
-                self.__last_record_time = now
-        self.__commit(message.committable)
+    def submit(self, message: Message[TPayload]) -> None:
+        super().submit(message)
         self.__next_step.submit(message)
 
     def close(self) -> None:
@@ -40,7 +30,7 @@ class CommitSpanOffsets(ProcessingStrategy[Union[FilteredPayload, TPayload]], Ge
 
     def join(self, timeout: float | None = None) -> None:
         # Commit all previously staged offsets
-        self.__commit({}, force=True)
+        super().join(timeout)
         self.__next_step.join(timeout=timeout)
 
 
