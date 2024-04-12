@@ -18,7 +18,8 @@ export default function ReplayUnsupportedAlert({projectSlug}: Props) {
       {tct(
         `Currently, [docsLink:Web is supported], and Mobile is being developed. Join our [waitlistLink:waitlist].`,
         {
-          link,
+          docsLink,
+          waitlistLink
         }
       )}
     </Alert>
