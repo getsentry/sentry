@@ -6,15 +6,18 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+from sentry.api.base import ONE_DAY
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -146,7 +149,6 @@ class BaseRequestParser(abc.ABC):
         self,
         regions: Sequence[Region],
         identifier: int | str | None = None,
-        shard_identifier_override: int | None = None,  # deprecated used in getsentry
         integration_id: int | None = None,
     ):
         """
@@ -156,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
                 region=region.name,
@@ -168,9 +170,6 @@ class BaseRequestParser(abc.ABC):
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    # Alias to prop up getsentry
-    get_response_from_outbox_creation = get_response_from_webhookpayload
-
     def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
     ):
@@ -180,6 +179,51 @@ class BaseRequestParser(abc.ABC):
         """
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
+        )
+
+    def get_mailbox_identifier(self, integration: RpcIntegration, data: Mapping[str, Any]) -> str:
+        """
+        Used by integrations with higher hook volumes to create smaller mailboxes
+        that can be delivered in parallel. Requires the integration to implement
+        `mailbox_bucket_id`
+        """
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        use_buckets_key = f"{ratelimit_key}:use_buckets"
+
+        use_buckets = cache.get(use_buckets_key)
+        if not use_buckets and ratelimiter.is_limited(
+            key=ratelimit_key, window=60 * 60, limit=3000
+        ):
+            # Once we have gone over the rate limit in a day, we use smaller
+            # buckets for the next day.
+            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
+            use_buckets = True
+            logger.info(
+                "integrations.parser.activate_buckets",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
+
+        if not use_buckets:
+            return str(integration.id)
+
+        mailbox_bucket_id = self.mailbox_bucket_id(data)
+        if mailbox_bucket_id is None:
+            logger.info(
+                "integrations.parser.no_bucket_id",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
+            return str(integration.id)
+
+        # Split high volume integrations into 100 buckets.
+        # 100 is arbitrary but we can't leave it unbounded.
+        bucket_number = mailbox_bucket_id % 100
+
+        return f"{integration.id}:{bucket_number}"
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        raise NotImplementedError(
+            "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
 
     def get_response_from_first_region(self):

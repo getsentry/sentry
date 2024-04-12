@@ -269,15 +269,5 @@ PATCH_PARSERS: dict[str, Any] = {
     "ts": JavascriptParser,
     "tsx": JavascriptParser,
     "php": PHPParser,
-}
-
-# for testing new parsers
-BETA_PATCH_PARSERS: dict[str, Any] = {
-    "py": PythonParser,
-    "js": JavascriptParser,
-    "jsx": JavascriptParser,
-    "ts": JavascriptParser,
-    "tsx": JavascriptParser,
-    "php": PHPParser,
     "rb": RubyParser,
 }

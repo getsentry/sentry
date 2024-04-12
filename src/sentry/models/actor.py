@@ -25,7 +25,10 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.models.user import User
 
-ACTOR_TYPES = {"team": 0, "user": 1}
+ACTOR_TYPES = {
+    "team": 0,
+    "user": 1,
+}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
@@ -156,7 +159,13 @@ class Actor(Model):
     def get_actor_tuple(self) -> ActorTuple:
         # Returns ActorTuple version of the Actor model.
         actor_type = actor_type_to_class(self.type)
-        return ActorTuple(self.resolve().id, actor_type)
+
+        if self.type == ACTOR_TYPES["user"]:
+            return ActorTuple(self.user_id, actor_type)
+        if self.type == ACTOR_TYPES["team"]:
+            return ActorTuple(self.team_id, actor_type)
+
+        raise ValueError("Unknown actor type")
 
     def get_actor_identifier(self):
         # Returns a string like "team:1"
@@ -194,10 +203,6 @@ class Actor(Model):
         return (self.pk, ImportKind.Inserted)
 
 
-def get_actor_id_for_user(user: User | RpcUser) -> int:
-    return get_actor_for_user(user).id
-
-
 def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     if isinstance(user, int):
         user_id = user
@@ -210,6 +215,21 @@ def get_actor_for_user(user: int | User | RpcUser) -> Actor:
         # Likely a race condition. Long term these need to be eliminated.
         sentry_sdk.capture_exception(err)
         actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user_id).first()
+    return actor
+
+
+def get_actor_for_team(team: int | Team) -> Actor:
+    if isinstance(team, int):
+        team_id = team
+    else:
+        team_id = team.id
+    try:
+        with transaction.atomic(router.db_for_write(Actor)):
+            actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["team"], team_id=team_id)
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
+        actor = Actor.objects.filter(type=ACTOR_TYPES["team"], team_id=team_id).first()
     return actor
 
 

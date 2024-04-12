@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.constants import ObjectStatus
+from sentry.models.actor import get_actor_for_team, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -158,6 +159,28 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             "brokenNotice": None,
         }
 
+    def test_owner_user(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "user",
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "name": self.user.email,
+        }
+
+    def test_owner_team(self):
+        team_actor = get_actor_for_team(self.team)
+        monitor = self._create_monitor(owner_actor_id=team_actor.id)
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "team",
+            "id": str(self.team.id),
+            "name": self.team.slug,
+        }
+
 
 @freeze_time()
 class BaseUpdateMonitorTest(MonitorTestCase):
@@ -194,6 +217,51 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
+
+    def test_owner(self):
+        monitor = self._create_monitor()
+        assert monitor.owner_actor_id == get_actor_for_user(self.user).id
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": f"team:{self.team.id}"}
+        )
+        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["owner"]["name"] == self.team.name
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_actor_id == get_actor_for_team(self.team).id
+
+        # Clear owner
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": None}
+        )
+        assert resp.data["owner"] is None
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_actor_id is None
+
+        # Validate error cases
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": "invalid"},
+        )
+        assert (
+            resp.data["owner"][0]
+            == "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+
+        new_user = self.create_user()
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": f"user:{new_user.id}"},
+        )
+        assert resp.data["owner"][0] == "User is not a member of this organization"
 
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
@@ -685,6 +753,64 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == ObjectStatus.ACTIVE
         assert assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_no_activate_if_already_activated(self, assign_monitor_seat, check_assign_monitor_seat):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        assert not assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.disable_monitor_seat")
+    def test_no_disable_if_already_disabled(self, disable_monitor_seat):
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+        monitor.update(status=ObjectStatus.DISABLED)
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.DISABLED
+        assert not disable_monitor_seat.called
+
+    @patch("sentry.quotas.backend.update_monitor_slug")
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_update_slug_sends_right_slug_to_assign(
+        self, assign_monitor_seat, check_assign_monitor_seat, update_monitor_slug
+    ):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+
+        def dummy_assign(monitor):
+            assert monitor.slug == old_slug
+            return Outcome.ACCEPTED
+
+        assign_monitor_seat.side_effect = dummy_assign
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+        old_slug = monitor.slug
+        new_slug = "new_slug"
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"status": "active", "slug": new_slug},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        update_call_args = update_monitor_slug.call_args
+        assert update_call_args[0] == (old_slug, new_slug, monitor.project_id)
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")

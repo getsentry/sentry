@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import concurrent.futures as cf
-import time
-import uuid
 from typing import Any
 
 from google.cloud.exceptions import NotFound
@@ -10,10 +8,11 @@ from google.cloud.exceptions import NotFound
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import filestore, make_video_filename, storage, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
 
 
@@ -82,33 +81,11 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
 
 def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
-    replay_payload: dict[str, Any] = {
-        "type": "replay_event",
-        "replay_id": replay_id,
-        "event_id": uuid.uuid4().hex,
-        "segment_id": None,
-        "trace_ids": [],
-        "error_ids": [],
-        "urls": [],
-        "timestamp": time.time(),
-        "is_archived": True,
-        "platform": "",
-    }
+    message = archive_event(project_id, replay_id)
 
-    publisher.publish(
-        "ingest-replay-events",
-        json.dumps(
-            {
-                "type": "replay_event",
-                "start_time": int(time.time()),
-                "replay_id": replay_id,
-                "project_id": project_id,
-                "segment_id": None,
-                "retention_days": 30,
-                "payload": list(bytes(json.dumps(replay_payload).encode())),
-            }
-        ),
-    )
+    # We publish manually here because we sometimes provide a managed Kafka
+    # publisher interface which has its own setup and teardown behavior.
+    publisher.publish("ingest-replay-events", message)
 
 
 def _delete_if_exists(filename: str) -> None:
