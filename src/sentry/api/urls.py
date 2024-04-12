@@ -465,6 +465,7 @@ from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_traces import OrganizationTracesEndpoint
 from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
@@ -1353,6 +1354,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/traces/$",
+        OrganizationTracesEndpoint.as_view(),
+        name="sentry-api-0-organization-traces",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",

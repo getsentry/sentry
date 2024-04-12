@@ -123,7 +123,7 @@ class AlertRuleIndexMixin(Endpoint):
                     alert_rule_created.send_robust(
                         user=request.user,
                         project=sub.project,
-                        rule=alert_rule,
+                        rule_id=alert_rule.id,
                         rule_type="metric",
                         sender=self,
                         referrer=referrer,
