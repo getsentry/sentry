@@ -67,7 +67,9 @@ export function TraceView() {
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
-    if (!slug) {
+    // null and undefined are not valid trace slugs, but they can be passed
+    // in the URL and need to check for their string coerced values.
+    if (!slug || slug === 'null' || slug === 'undefined') {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-null-slug']);
         Sentry.captureMessage(`Trace slug is empty, got ${slug}`);
