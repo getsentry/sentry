@@ -132,15 +132,15 @@ class TestFrameFilename:
     @pytest.mark.parametrize(
         "files,prefixes",
         [
-            ("FrameFilename('app:///utils/something.py').straight_path_prefix", "'app:///'"),
-            ("FrameFilename('./app/utils/something.py').straight_path_prefix", "'./'"),
+            ("FrameFilename('app:///utils/something.py').straight_path_prefix", "app:///"),
+            ("FrameFilename('./app/utils/something.py').straight_path_prefix", "./"),
             (
                 "FrameFilename('../../../../../../packages/something.py').straight_path_prefix",
-                "'../../../../../../'",
+                "../../../../../../",
             ),
             (
                 "FrameFilename('app:///../services/something.py').straight_path_prefix",
-                "'app:///../'",
+                "app:///../",
             ),
         ],
     )
