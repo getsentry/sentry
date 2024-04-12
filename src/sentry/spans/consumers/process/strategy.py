@@ -8,6 +8,13 @@ TPayload = TypeVar("TPayload")
 
 
 class CommitSpanOffsets(CommitOffsets):
+    """
+    Inherits from CommitOffsets so we can add a next step. We'd like to commit offsets for
+    processed spans before carrying on the work to build segments and produce them since
+    the processing messages and producing segments are two distinct operations. Span messages
+    should be committed once they are processed and put into redis.
+    """
+
     def __init__(
         self, commit: Commit, next_step: ProcessingStrategy[FilteredPayload | TPayload]
     ) -> None:

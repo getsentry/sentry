@@ -181,6 +181,14 @@ def expand_segments(context_dict: dict[int, ProduceSegmentContext]):
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    """
+    1. Process spans and push them to redis
+    2. Commit offsets for processed spans
+    3. Reduce the messages to find timestamps we need to process segments for
+    4. Fetch all segments that are ready to be processed
+    5. Produce segments to buffered-segments topic
+    """
+
     def __init__(
         self,
         max_batch_size: int,
