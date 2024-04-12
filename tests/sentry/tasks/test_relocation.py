@@ -686,7 +686,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         # Do a snapshot test of the cloudbuild config.
         cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
         cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
-        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
+        cb_conf["steps"][11]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
         self.insta_snapshot(cb_conf)
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
