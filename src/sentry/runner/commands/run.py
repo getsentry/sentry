@@ -300,7 +300,7 @@ def cron(**options: Any) -> None:
 @click.option(
     "--auto-offset-reset",
     "auto_offset_reset",
-    default="latest",
+    default="earliest",
     type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )

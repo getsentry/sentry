@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -72,6 +72,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     }
   }, [props.trace_state.search.status]);
 
+  const onSearchFocus = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
+  }, [trace_dispatch]);
+
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!event.target.value) {
@@ -118,10 +124,16 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   );
 
   const onNextSearchClick = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
     trace_dispatch({type: 'go to next match'});
   }, [trace_dispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
+    if (traceStateRef.current.rovingTabIndex.node) {
+      trace_dispatch({type: 'clear roving index'});
+    }
     trace_dispatch({type: 'go to previous match'});
   }, [trace_dispatch]);
 
@@ -148,6 +160,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         value={props.trace_state.search.query ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
@@ -161,31 +174,33 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
                 : ''
           }`}
         </StyledTrailingText>
-        <StyledSearchBarTrailingButton
-          size="zero"
-          borderless
-          icon={<IconChevron size="xs" />}
-          aria-label={t('Next')}
-          disabled={status?.[1] === 'loading'}
-          onClick={onPreviousSearchClick}
-        />
-        <StyledSearchBarTrailingButton
-          size="zero"
-          borderless
-          icon={<IconChevron size="xs" direction="down" />}
-          aria-label={t('Previous')}
-          disabled={status?.[1] === 'loading'}
-          onClick={onNextSearchClick}
-        />
         {props.trace_state.search.query ? (
-          <SearchBarTrailingButton
-            size="zero"
-            borderless
-            disabled={status?.[1] === 'loading'}
-            onClick={onSearchClear}
-            icon={<IconClose size="xs" />}
-            aria-label={t('Clear')}
-          />
+          <Fragment>
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" />}
+              aria-label={t('Next')}
+              disabled={status?.[1] === 'loading'}
+              onClick={onPreviousSearchClick}
+            />
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              icon={<IconChevron size="xs" direction="down" />}
+              aria-label={t('Previous')}
+              disabled={status?.[1] === 'loading'}
+              onClick={onNextSearchClick}
+            />
+            <StyledSearchBarTrailingButton
+              size="zero"
+              borderless
+              disabled={status?.[1] === 'loading'}
+              onClick={onSearchClear}
+              icon={<IconClose size="xs" />}
+              aria-label={t('Clear')}
+            />
+          </Fragment>
         ) : null}
       </InputGroup.TrailingItems>
     </StyledSearchBar>
@@ -246,6 +261,13 @@ const StyledSearchIcon = styled(IconSearch)`
 
 const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
   padding: 0;
+
+  &:last-child {
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const StyledTrailingText = styled('span')`

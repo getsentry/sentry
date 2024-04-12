@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {Button} from 'sentry/components/button';
 import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
@@ -25,9 +27,14 @@ export function SpanNodeDetails({
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
-  const {event, childTransaction, ...span} = node.value;
+  const span = node.value;
+  const {event} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
+
+  const childTransactions = useMemo(() => {
+    return node.value.childTransaction ? [node.value.childTransaction] : [];
+  }, [node.value.childTransaction]);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -44,7 +51,7 @@ export function SpanNodeDetails({
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {getSpanOperation(span)}
+              {getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
@@ -69,12 +76,12 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
+                  span={span}
                   node={node}
-                  childTransactions={childTransaction ? [childTransaction] : []}
                   event={event}
                   openPanel="open"
                   organization={organization}
-                  span={span}
+                  childTransactions={childTransactions}
                   trace={parseTrace(event)}
                   onParentClick={onParentClick}
                 />
