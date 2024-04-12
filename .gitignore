@@ -61,8 +61,3 @@ import-graph.dot
 bin/rrweb-output
 model-manifest.json
 .mypy_cache
-.yarn/install-state.gz
-.yarnrc.yml
-package.json
-package.json
-yarn.lock

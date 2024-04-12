@@ -212,6 +212,9 @@
   "optionalDependencies": {
     "fsevents": "^2.3.2"
   },
+  "resolutions": {
+    "**/ua-parser-js": "<=0.7.28"
+  },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
