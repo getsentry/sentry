@@ -35,7 +35,7 @@ function SentryMemberTeamSelectorField({
   // Ensure the current value of the fields members is loaded
   const ensureUserIds = useMemo(
     () =>
-      currentItems?.filter(item => item.startsWith('member:')).map(user => user.slice(7)),
+      currentItems?.filter(item => item.startsWith('user:')).map(user => user.slice(7)),
     [currentItems]
   );
   useMembers({ids: ensureUserIds});
@@ -51,7 +51,7 @@ function SentryMemberTeamSelectorField({
   // frustratingly that is difficult likely because we're recreating this
   // object on every re-render.
   const memberOptions = members?.map(member => ({
-    value: `member:${member.id}`,
+    value: `user:${member.id}`,
     label: member.name,
     leadingItems: <Avatar user={member} size={avatarSize} />,
   }));
