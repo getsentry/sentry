@@ -96,6 +96,7 @@ class OrganizationSerializerTest(TestCase):
             "relay",
             "shared-issues",
             "slack-block-kit",
+            "session-replay-video",
             "session-replay-ui",
             "sso-basic",
             "sso-saml2",
