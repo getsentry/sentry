@@ -27,6 +27,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
+from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka import delay_kafka_rebalance
 
@@ -75,8 +76,9 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         self.__next_step.terminate()
 
     def join(self, timeout: float | None = None) -> None:
-        self.__next_step.close()
-        self.__next_step.join(timeout)
+        with metrics.timer("metrics_consumer.join_time.unbatcher"):
+            self.__next_step.close()
+            self.__next_step.join(timeout)
 
 
 class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -188,7 +190,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return strategy
 
     def shutdown(self) -> None:
-        self.__pool.close()
+        with metrics.timer("metrics_consumer.strategy_factory.close"):
+            self.__pool.close()
 
 
 def get_metrics_producer_strategy(

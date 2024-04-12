@@ -146,13 +146,13 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__closed = True
 
     def join(self, timeout: float | None = None) -> None:
-        if self.__batch:
-            last = self.__batch.messages[-1]
-            logger.debug(
-                "Abandoning batch of %s messages...latest offset: %s",
-                len(self.__batch),
-                last.committable,
-            )
-
-        self.__next_step.close()
-        self.__next_step.join(timeout)
+        with metrics.timer("metrics_consumer.join_time.batch_messages"):
+            if self.__batch:
+                last = self.__batch.messages[-1]
+                logger.debug(
+                    "Abandoning batch of %s messages...latest offset: %s",
+                    len(self.__batch),
+                    last.committable,
+                )
+            self.__next_step.close()
+            self.__next_step.join(timeout)
