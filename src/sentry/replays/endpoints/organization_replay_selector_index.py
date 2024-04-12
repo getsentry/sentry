@@ -302,6 +302,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     def make_selector_name(row) -> str:
         selector = row["click_tag"]
+
         if row["click_id"]:
             selector = selector + f"#{row['click_id']}"
         if row["click_class_filtered"]:
