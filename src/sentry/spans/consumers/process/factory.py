@@ -8,7 +8,6 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.unfold import Unfold
@@ -28,6 +27,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import RedisSpansBuffer
+from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -135,7 +135,7 @@ def accumulator(
 
 
 def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
-    buffered_segments: list[KafkaPayload | FilteredPayload] = [FILTERED_PAYLOAD]
+    buffered_segments: list[KafkaPayload | FilteredPayload] = []
 
     for context in context_dict.values():
         if not context.should_process_segments:
@@ -177,7 +177,7 @@ def expand_segments(context_dict: dict[int, ProduceSegmentContext]):
         return _expand_segments(context_dict)
     except Exception:
         sentry_sdk.capture_exception()
-        return [FILTERED_PAYLOAD]
+        return []
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -215,7 +215,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         produce_step = Produce(
             producer=self.producer,
             topic=self.output_topic,
-            next_step=CommitOffsets(commit),
+            next_step=NoOp(),
         )
 
         unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
@@ -229,9 +229,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=unfold_step,
         )
 
+        commit_step = CommitSpanOffsets(commit=commit, next_step=reduce_step)
+
         return RunTaskWithMultiprocessing(
             function=process_message,
-            next_step=reduce_step,
+            next_step=commit_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.__pool,
