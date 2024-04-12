@@ -10,6 +10,7 @@ from sentry.tagstore.base import TagKeyStatus
 
 @functools.total_ordering
 class TagType:
+    __slots__: tuple[str, ...] = ()
     _sort_key: ClassVar[str]
 
     def __repr__(self):
@@ -38,7 +39,7 @@ class TagType:
 
 
 class TagKey(TagType):
-    __slots__ = ["key", "values_seen", "status"]
+    __slots__ = ("key", "values_seen", "status", "count", "top_values")
     _sort_key = "values_seen"
 
     def __init__(
@@ -55,7 +56,7 @@ class TagKey(TagType):
 
 
 class TagValue(TagType):
-    __slots__ = ["key", "value", "times_seen", "first_seen", "last_seen"]
+    __slots__ = ("key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
     def __init__(self, key, value, times_seen, first_seen, last_seen):
@@ -67,7 +68,7 @@ class TagValue(TagType):
 
 
 class GroupTagKey(TagType):
-    __slots__ = ["group_id", "key", "values_seen"]
+    __slots__ = ("group_id", "key", "values_seen", "count", "top_values")
     _sort_key = "values_seen"
 
     def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
@@ -79,7 +80,7 @@ class GroupTagKey(TagType):
 
 
 class GroupTagValue(TagType):
-    __slots__ = ["group_id", "key", "value", "times_seen", "first_seen", "last_seen"]
+    __slots__ = ("group_id", "key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
     def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
@@ -98,8 +99,8 @@ class TagKeySerializer(Serializer):
         from sentry import tagstore
 
         output = {
-            "key": tagstore.get_standardized_key(obj.key),
-            "name": tagstore.get_tag_key_label(obj.key),
+            "key": tagstore.backend.get_standardized_key(obj.key),
+            "name": tagstore.backend.get_tag_key_label(obj.key),
         }
         if obj.values_seen is not None:
             output["uniqueValues"] = obj.values_seen
@@ -116,10 +117,10 @@ class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import tagstore
 
-        key = tagstore.get_standardized_key(obj.key)
+        key = tagstore.backend.get_standardized_key(obj.key)
         serialized = {
             "key": key,
-            "name": tagstore.get_tag_value_label(obj.key, obj.value),
+            "name": tagstore.backend.get_tag_value_label(obj.key, obj.value),
             "value": obj.value,
             "count": obj.times_seen,
             "lastSeen": obj.last_seen,

@@ -451,7 +451,6 @@ module = [
     "sentry.snuba.spans_metrics",
     "sentry.stacktraces.functions",
     "sentry.tagstore.snuba.backend",
-    "sentry.tagstore.types",
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.tasks.codeowners.update_code_owners_schema",
