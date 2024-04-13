@@ -19,6 +19,8 @@ jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
+
+// TODO
 jest.mock('sentry/utils/replays/hooks/useReplayList', () => {
   return {
     __esModule: true,
