@@ -9,8 +9,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,7 +36,7 @@ export function HTTPLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
-  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const chartFilters = {
     'span.module': ModuleName.HTTP,

@@ -20,7 +20,6 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
-import {uniq} from 'sentry/utils/array/uniq';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -159,17 +158,6 @@ const decodeFields = (location: Location): Array<Field> => {
   });
 
   return parsed;
-};
-
-/**
- * @deprecated use `import {decodeSorts} from 'sentry/utils/queryString';` instead
- */
-export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
-  if (sorts === undefined) {
-    return [];
-  }
-
-  return decodeSorts(uniq(Array.isArray(sorts) ? sorts : [sorts]));
 };
 
 export const encodeSort = (sort: Sort): string => {
@@ -355,7 +343,7 @@ class EventView {
       id: decodeScalar(location.query.id),
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
-      sorts: decodeSorts(location),
+      sorts: decodeSorts(location.query.sort),
       query: decodeQuery(location),
       team: decodeTeams(location),
       project: decodeProjects(location),
@@ -443,7 +431,7 @@ class EventView {
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
       utc,
-      sorts: fromSorts(saved.orderby),
+      sorts: decodeSorts(saved.orderby),
       environment: collectQueryStringByKey(
         {
           environment: saved.environment as string[],
@@ -472,7 +460,7 @@ class EventView {
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
-    const sorts = decodeSorts(location);
+    const sorts = decodeSorts(location.query.sort);
     const environments = collectQueryStringByKey(location.query, 'environment');
 
     if (saved) {
@@ -501,7 +489,7 @@ class EventView {
           'query' in location.query
             ? decodeQuery(location)
             : queryStringFromSavedQuery(saved),
-        sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
+        sorts: sorts.length === 0 ? decodeSorts(saved.orderby) : sorts,
         yAxis:
           decodeScalar(location.query.yAxis) ||
           // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
