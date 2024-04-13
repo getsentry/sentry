@@ -20,11 +20,12 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
+
+logger = logging.getLogger("sentry.rules")
 
 SLOW_CONDITION_MATCHES = ["event_frequency"]
 
@@ -40,17 +41,39 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
 
 
 def is_condition_slow(
-    condition: EventFrequencyConditionData | Mapping[str, Any],
+    condition: Mapping[str, Any],
 ) -> bool:
+    """
+    Returns whether a condition is considered slow. Note that the slow condition
+    mapping take the form on EventFrequencyConditionData.
+    """
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
             return True
     return False
 
 
-class RuleProcessor:
-    logger = logging.getLogger("sentry.rules")
+def split_conditions_and_filters(
+    data: Mapping[str, Any],
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+    conditions_and_filters = data.get("conditions", [])
+    conditions = []
+    filters = []
+    for condition_or_filter in conditions_and_filters:
+        id = condition_or_filter["id"]
+        rule_cls = rules.get(id)
+        if rule_cls is None:
+            logger.warning("Unregistered condition or filter %r", id)
+            continue
 
+        if rule_cls.rule_type == EventFilter.rule_type:
+            filters.append(condition_or_filter)
+        elif rule_cls.rule_type == EventCondition.rule_type:
+            conditions.append(condition_or_filter)
+    return conditions, filters
+
+
+class RuleProcessor:
     def __init__(
         self,
         event: GroupEvent,
@@ -129,7 +152,7 @@ class RuleProcessor:
 
                 if missing_rule_ids:
                     # Shouldn't happen, but log just in case
-                    self.logger.error(
+                    logger.error(
                         "Failed to fetch some GroupRuleStatuses in RuleProcessor",
                         extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
                     )
@@ -142,20 +165,18 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: EventFrequencyConditionData | Mapping[str, Any],
+        condition: Mapping[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        # MyPy refuses to make TypedDict compatible with MutableMapping
-        # https://github.com/python/mypy/issues/4976
-        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)  # type: ignore[arg-type]
+        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
         passes: bool = safe_execute(
             condition_inst.passes,
@@ -195,6 +216,7 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
+        conditions_and_filters = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -211,8 +233,7 @@ class RuleProcessor:
 
         state = self.get_state()
 
-        condition_list = rule.conditions
-        filter_list = rule.filters
+        condition_list, filter_list = split_conditions_and_filters(conditions_and_filters)
 
         # Sort `condition_list` so that most expensive conditions run last.
         condition_list.sort(key=lambda condition: is_condition_slow(condition))
@@ -223,13 +244,13 @@ class RuleProcessor:
         ):
             if not predicate_list:
                 continue
-            predicate_iter = [self.condition_matches(f, state, rule) for f in predicate_list]  # type: ignore[attr-defined]
+            predicate_iter = [self.condition_matches(f, state, rule) for f in predicate_list]
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     return
             else:
-                self.logger.error(
+                logger.error(
                     f"Unsupported {name}_match {match!r} for rule {rule.id}",
                     filter_match,
                     rule.id,
@@ -279,7 +300,7 @@ class RuleProcessor:
                 notification_uuid=notification_uuid,
             )
             if results is None:
-                self.logger.warning("Action %s did not return any futures", action["id"])
+                logger.warning("Action %s did not return any futures", action["id"])
                 continue
 
             for future in results:

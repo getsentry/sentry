@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
@@ -36,7 +34,6 @@ class RuleSource(IntEnum):
 
 @region_silo_only_model
 class Rule(Model):
-
     __relocation_scope__ = RelocationScope.Organization
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all

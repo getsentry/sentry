@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired
 
 from django import forms
 from django.core.cache import cache
@@ -21,7 +21,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
-from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.base import EventCondition, GenericCondition
 from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -58,14 +58,12 @@ class ComparisonType(TextChoices):
     PERCENT = "percent"
 
 
-class EventFrequencyConditionData(TypedDict):
+class EventFrequencyConditionData(GenericCondition):
     """
     The base typed dict for all condition data representing EventFrequency issue
     alert rule conditions
     """
 
-    # The ID of the condition class
-    id: str
     # Either the count or percentage.
     value: int
     # The interval to compare the value against such as 5m, 1h, 3w, etc.
@@ -205,7 +203,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
-    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
+    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: int) -> int:
         """
         Queries Snuba for a unique condition for a single group.
         """
@@ -220,7 +218,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return query_result
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
         """
         Abstract method that specifies how to query Snuba for a single group
@@ -229,7 +227,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         raise NotImplementedError
 
     def batch_query(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         """
         Queries Snuba for a unique condition for multiple groups.
@@ -245,7 +243,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return batch_query_result
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -253,7 +251,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_rate(self, event: GroupEvent, interval: str, environment_id: str) -> int:
+    def get_rate(self, event: GroupEvent, interval: str, environment_id: int) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
@@ -285,7 +283,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         model: TSDBModel,
         start: datetime,
         end: datetime,
-        environment_id: str,
+        environment_id: int,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -308,7 +306,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         groups: list[Group],
         start: datetime,
         end: datetime,
-        environment_id: str,
+        environment_id: int,
         referrer_suffix: str,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -349,7 +347,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
         sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
@@ -364,7 +362,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         return sums[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
@@ -406,7 +404,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
         totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
@@ -421,7 +419,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         return totals[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
@@ -527,7 +525,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         }
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
         project_id = event.project_id
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
