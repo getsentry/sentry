@@ -20,6 +20,7 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
+import {uniq} from 'sentry/utils/array/uniq';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -39,7 +40,17 @@ import {
   DisplayModes,
   TOP_N,
 } from 'sentry/utils/discover/types';
+<<<<<<< HEAD
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+||||||| parent of 5cc30b94f3 (ref(decodeSorts): extract and simplify decodeSorts into queryString.tsx)
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+=======
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts as _decodeSorts,
+} from 'sentry/utils/queryString';
+>>>>>>> 5cc30b94f3 (ref(decodeSorts): extract and simplify decodeSorts into queryString.tsx)
 import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
