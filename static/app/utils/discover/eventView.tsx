@@ -40,11 +40,7 @@ import {
   DisplayModes,
   TOP_N,
 } from 'sentry/utils/discover/types';
-import {
-  decodeList,
-  decodeScalar,
-  decodeSorts as _decodeSorts,
-} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
@@ -173,15 +169,7 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
     return [];
   }
 
-  return _decodeSorts(uniq(Array.isArray(sorts) ? sorts : [sorts]));
-};
-
-/**
- * @deprecated use `import {decodeSorts} from 'sentry/utils/queryString';` instead
- */
-export const decodeSorts = (location: Location): Array<Sort> => {
-  const {query} = location;
-  return _decodeSorts(query.sort);
+  return decodeSorts(uniq(Array.isArray(sorts) ? sorts : [sorts]));
 };
 
 export const encodeSort = (sort: Sort): string => {
