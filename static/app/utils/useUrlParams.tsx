@@ -20,7 +20,9 @@ function useUrlParams(defaultKey?: string, defaultValue?: string) {
   const getParamValue = useCallback(
     (key: string) => {
       const location = browserHistory.getCurrentLocation();
-      return typeof location.query[key] === 'string' ? location.query[key] : defaultValue;
+      return Array.isArray(location.query[key])
+        ? location.query[key]?.[0] ?? defaultValue
+        : location.query[key] ?? defaultValue;
     },
     [defaultValue]
   );
