@@ -20,6 +20,7 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
+import {uniq} from 'sentry/utils/array/uniq';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -39,7 +40,11 @@ import {
   DisplayModes,
   TOP_N,
 } from 'sentry/utils/discover/types';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts as _decodeSorts,
+} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
@@ -160,46 +165,23 @@ const decodeFields = (location: Location): Array<Field> => {
   return parsed;
 };
 
-const parseSort = (sort: string): Sort => {
-  sort = sort.trim();
-
-  if (sort.startsWith('-')) {
-    return {
-      kind: 'desc',
-      field: sort.substring(1),
-    };
-  }
-
-  return {
-    kind: 'asc',
-    field: sort,
-  };
-};
-
+/**
+ * @deprecated use `import {decodeSorts} from 'sentry/utils/queryString';` instead
+ */
 export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
   if (sorts === undefined) {
     return [];
   }
 
-  sorts = typeof sorts === 'string' ? [sorts] : sorts;
-
-  // NOTE: sets are iterated in insertion order
-  const uniqueSorts = [...new Set(sorts)];
-
-  return uniqueSorts.reduce((acc: Array<Sort>, sort: string) => {
-    acc.push(parseSort(sort));
-    return acc;
-  }, []);
+  return _decodeSorts(uniq(Array.isArray(sorts) ? sorts : [sorts]));
 };
 
+/**
+ * @deprecated use `import {decodeSorts} from 'sentry/utils/queryString';` instead
+ */
 export const decodeSorts = (location: Location): Array<Sort> => {
   const {query} = location;
-
-  if (!query || !query.sort) {
-    return [];
-  }
-  const sorts = decodeList(query.sort);
-  return fromSorts(sorts);
+  return _decodeSorts(query.sort);
 };
 
 export const encodeSort = (sort: Sort): string => {
