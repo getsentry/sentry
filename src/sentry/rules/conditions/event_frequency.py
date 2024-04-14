@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired
 
@@ -32,7 +32,7 @@ from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
-standard_intervals = {
+STANDARD_INTERVALS = {
     "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
@@ -41,7 +41,7 @@ standard_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
-comparison_intervals = {
+COMPARISON_INTERVALS = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
@@ -79,7 +79,7 @@ class EventFrequencyConditionData(GenericCondition):
 
 
 class EventFrequencyForm(forms.Form):
-    intervals = standard_intervals
+    intervals = STANDARD_INTERVALS
     interval = forms.ChoiceField(
         choices=[
             (key, label)
@@ -96,7 +96,7 @@ class EventFrequencyForm(forms.Form):
     comparisonInterval = forms.ChoiceField(
         choices=[
             (key, label)
-            for key, (label, _) in sorted(comparison_intervals.items(), key=lambda item: item[1][1])
+            for key, (label, _) in sorted(COMPARISON_INTERVALS.items(), key=lambda item: item[1][1])
         ],
         required=False,
     )
@@ -120,7 +120,7 @@ class EventFrequencyForm(forms.Form):
 
 
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
-    intervals = standard_intervals
+    intervals = STANDARD_INTERVALS
     form_cls = EventFrequencyForm
 
     def __init__(
@@ -146,7 +146,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         # MyPy refuses to make TypedDict compatible with MutableMapping
         # https://github.com/python/mypy/issues/4976
-        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc, arg-type]
+        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc]
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
@@ -190,7 +190,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         result = bucket_count(activity.timestamp - interval_delta, activity.timestamp, buckets)
 
         if comparison_type == ComparisonType.PERCENT:
-            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+            comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
             comparison_end = activity.timestamp - comparison_interval
 
             comparison_result = bucket_count(
@@ -227,7 +227,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         raise NotImplementedError
 
     def batch_query(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         """
         Queries Snuba for a unique condition for multiple groups.
@@ -243,7 +243,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return batch_query_result
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -263,7 +263,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             result: int = self.query(event, end - duration, end, environment_id=environment_id)
             comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
             if comparison_type == ComparisonType.PERCENT:
-                comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+                comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
                 comparison_end = end - comparison_interval
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
@@ -362,7 +362,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         return sums[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
@@ -419,7 +419,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         return totals[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
@@ -456,7 +456,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         return "uniq", "user"
 
 
-percent_intervals = {
+PERCENT_INTERVALS = {
     "1m": ("1 minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
@@ -464,7 +464,7 @@ percent_intervals = {
     "1h": ("1 hour", timedelta(minutes=60)),
 }
 
-percent_intervals_to_display = {
+PERCENT_INTERVALS_TO_DISPLAY = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
@@ -474,12 +474,12 @@ MIN_SESSIONS_TO_FIRE = 50
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
-    intervals = percent_intervals_to_display
+    intervals = PERCENT_INTERVALS_TO_DISPLAY
     interval = forms.ChoiceField(
         choices=[
             (key, label)
             for key, (label, duration) in sorted(
-                percent_intervals_to_display.items(),
+                PERCENT_INTERVALS_TO_DISPLAY.items(),
                 key=lambda key____label__duration: key____label__duration[1][1],
             )
         ]
@@ -507,7 +507,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     logger = logging.getLogger("sentry.rules.event_frequency")
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.intervals = percent_intervals
+        self.intervals = PERCENT_INTERVALS
         self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
 
@@ -518,7 +518,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             "choices": [
                 (key, label)
                 for key, (label, duration) in sorted(
-                    percent_intervals_to_display.items(),
+                    PERCENT_INTERVALS_TO_DISPLAY.items(),
                     key=lambda key____label__duration: key____label__duration[1][1],
                 )
             ],
@@ -544,7 +544,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
 
         if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
             interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
+                PERCENT_INTERVALS[self.get_option("interval")][1].total_seconds() // 60
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
             issue_count = self.get_snuba_query_result(
