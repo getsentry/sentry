@@ -26,8 +26,8 @@ class AssignedNotificationAPITest(APITestCase):
     def validate_slack_message(self, msg, group, project, user_id, index=0):
         attachment, text = get_attachment(index)
         assert text == msg
-        assert attachment["title"] == group.title
-        assert project.slug in attachment["footer"]
+        assert group.title in attachment["text"]
+        assert project.slug in attachment["blocks"][-2]["elements"][0]["text"]
         channel = get_channel(index)
         assert channel == user_id
 
@@ -86,8 +86,8 @@ class AssignedNotificationAPITest(APITestCase):
         attachment, text = get_attachment()
 
         assert text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert attachment["title"] == self.group.title
-        assert self.project.slug in attachment["footer"]
+        assert self.group.title in attachment["text"]
+        assert self.project.slug in attachment["blocks"][-2]["elements"][0]["text"]
 
     @responses.activate
     @with_feature({"organizations:slack-block-kit": False})
