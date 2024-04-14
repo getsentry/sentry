@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useProjectCreationAccess} from './useProjectCreationAccess';
 
@@ -8,7 +8,7 @@ describe('ProjectCreationAccess', function () {
   const organization = OrganizationFixture();
 
   it('passes project creation eligibility for org-manager', function () {
-    const {result} = reactHooks.renderHook(useProjectCreationAccess, {
+    const {result} = renderHook(useProjectCreationAccess, {
       initialProps: {organization},
     });
     expect(result.current.canCreateProject).toBeTruthy();
@@ -20,7 +20,7 @@ describe('ProjectCreationAccess', function () {
       features: ['team-roles'],
     });
 
-    const {result} = reactHooks.renderHook(useProjectCreationAccess, {
+    const {result} = renderHook(useProjectCreationAccess, {
       initialProps: {organization: experiment_org},
     });
     expect(result.current.canCreateProject).toBeTruthy();
@@ -31,7 +31,7 @@ describe('ProjectCreationAccess', function () {
       access: ['org:read', 'team:read', 'project:read'],
     });
 
-    const {result} = reactHooks.renderHook(useProjectCreationAccess, {
+    const {result} = renderHook(useProjectCreationAccess, {
       initialProps: {organization: no_team_role_org},
     });
     expect(result.current.canCreateProject).toBeFalsy();

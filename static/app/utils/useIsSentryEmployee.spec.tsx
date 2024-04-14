@@ -1,7 +1,7 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -20,7 +20,7 @@ describe('useIsSentryEmployee', () => {
       }),
     });
 
-    const {result} = reactHooks.renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(() => useIsSentryEmployee());
 
     expect(result.current).toBe(true);
   });
@@ -39,7 +39,7 @@ describe('useIsSentryEmployee', () => {
       }),
     });
 
-    const {result} = reactHooks.renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(() => useIsSentryEmployee());
 
     expect(result.current).toBe(false);
   });
@@ -57,7 +57,7 @@ describe('useIsSentryEmployee', () => {
       }),
     });
 
-    const {result} = reactHooks.renderHook(() => useIsSentryEmployee());
+    const {result} = renderHook(() => useIsSentryEmployee());
 
     expect(result.current).toBe(false);
   });
