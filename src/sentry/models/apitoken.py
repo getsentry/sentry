@@ -16,6 +16,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
 from sentry.types.region import find_all_region_names
@@ -83,11 +84,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
 
     @classmethod
-    def from_grant(cls, grant):
+    def from_grant(cls, grant: ApiGrant):
         with transaction.atomic(router.db_for_write(cls)):
-            return cls.objects.create(
+            api_token = cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )
+
+            # remove the ApiGrant from the database to prevent reuse of the same
+            # authorization code
+            grant.delete()
+
+            return api_token
 
     def is_expired(self):
         if not self.expires_at:
