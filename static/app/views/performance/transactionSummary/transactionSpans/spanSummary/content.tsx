@@ -17,6 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
@@ -28,7 +29,6 @@ import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
-import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 
 type Props = {
   eventView: EventView;
