@@ -93,12 +93,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             "steps": [],
         }
 
-    def _respond_with_error(self, group: Group, metadata: dict, reason: str, status: int):
-        metadata["autofix"] = self._make_error_metadata(metadata["autofix"], reason)
-
-        group.data["metadata"] = metadata
-        group.save()
-
+    def _respond_with_error(self, reason: str, status: int):
         return Response(
             {
                 "detail": reason,
@@ -116,7 +111,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         timeout_secs: int,
     ):
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/start",
             data=json.dumps(
                 {
                     "organization_id": group.organization.id,
@@ -146,6 +141,26 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         response.raise_for_status()
 
+    def _call_get_autofix_state(self, group_id: int) -> dict[str, Any] | None:
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
+            data=json.dumps(
+                {
+                    "group_id": group_id,
+                }
+            ),
+            headers={"content-type": "application/json;charset=utf-8"},
+        )
+
+        response.raise_for_status()
+
+        result = response.json()
+
+        if result and result["group_id"] == group_id:
+            return result["state"]
+
+        return None
+
     def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
 
@@ -154,57 +169,32 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         if event_id is None:
             event = group.get_recommended_event_for_environments()
             if not event:
-                event = group.get_latest_event()
-
-            if not event:
                 return Response(
                     {
-                        "detail": "Could not find an event for the issue, please try providing an event_id"
+                        "detail": "Could not find recommended event for issue, please try providing an event_id"
                     },
                     status=400,
                 )
             event_id = event.event_id
 
         created_at = datetime.now().isoformat()
-        metadata = group.data.get("metadata", {})
-        metadata["autofix"] = {
-            "created_at": created_at,
-            "status": "PROCESSING",
-            "steps": [
-                {
-                    "id": "1",
-                    "index": 1,
-                    "title": "Waiting to be picked up...",
-                    "status": "PROCESSING",
-                    "progress": [],
-                }
-            ],
-        }
 
         if not features.has("projects:ai-autofix", group.project):
-            return self._respond_with_error(
-                group, metadata, "AI Autofix is not enabled for this project.", 403
-            )
+            return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
         # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
         serialized_event = self._get_serialized_event(event_id, group, request.user)
 
         if serialized_event is None:
-            return self._respond_with_error(
-                group, metadata, "Cannot fix issues without an event.", 400
-            )
+            return self._respond_with_error("Cannot fix issues without an event.", 400)
 
         if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
-            return self._respond_with_error(
-                group, metadata, "Cannot fix issues without a stacktrace.", 400
-            )
+            return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
         repos = self._get_repos_from_code_mapping(group)
 
         if not repos:
             return self._respond_with_error(
-                group,
-                metadata,
                 "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
                 400,
             )
@@ -238,21 +228,15 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
             return self._respond_with_error(
-                group,
-                metadata,
                 "Failed to send autofix to seer.",
                 500,
             )
-
-        group.data["metadata"] = metadata
-        group.save()
 
         return Response(
             status=202,
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        metadata = group.data.get("metadata", {})
-        autofix_data = metadata.get("autofix", None)
+        autofix_state = self._call_get_autofix_state(group.id)
 
-        return Response({"autofix": autofix_data})
+        return Response({"autofix": autofix_state})

@@ -230,6 +230,7 @@ from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_ai_autofix import GroupAiAutofixEndpoint
+from .endpoints.group_ai_autofix_update import GroupAiAutofixUpdateEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -767,6 +768,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAiAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/ai-autofix/update/$",
+            GroupAiAutofixUpdateEndpoint.as_view(),
+            name=f"{name_prefix}-group-ai-autofix-update",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
