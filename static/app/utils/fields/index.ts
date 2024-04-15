@@ -86,7 +86,7 @@ export enum FieldKey {
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
-  REPLAY_ID = 'replayId',
+  REPLAY_ID = 'replay.id',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   STACK_ABS_PATH = 'stack.abs_path',
@@ -863,7 +863,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.REPLAY_ID]: {
     desc: t('The ID of an associated Session Replay'),
-    kind: FieldKind.TAG,
+    kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [FieldKey.SDK_NAME]: {
@@ -1183,6 +1183,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.ERROR_RECEIVED,
   FieldKey.ERROR_MAIN_THREAD,
   FieldKey.LEVEL,
+  FieldKey.REPLAY_ID,
   FieldKey.STACK_ABS_PATH,
   FieldKey.STACK_FILENAME,
   FieldKey.STACK_PACKAGE,
