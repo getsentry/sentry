@@ -1,15 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {HTTPLandingPage} from 'sentry/views/performance/http/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useProjects');
 
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture();
@@ -36,7 +39,7 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d', 'span.domain': 'git'},
+    query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -44,6 +47,24 @@ describe('HTTPLandingPage', function () {
   });
 
   jest.mocked(useOrganization).mockReturnValue(organization);
+
+  jest.mocked(useProjects).mockReturnValue({
+    projects: [
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        platform: 'javascript',
+      }),
+    ],
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
 
   beforeEach(function () {
     jest.clearAllMocks();
