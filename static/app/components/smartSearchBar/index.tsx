@@ -473,6 +473,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     if (lastActionBar?.length !== actionBarItems?.length) {
       this.setState({numActionsVisible: actionBarItems?.length ?? 0});
     }
+
+    console.log(this.state.parsedQuery);
   }
 
   componentWillUnmount() {
