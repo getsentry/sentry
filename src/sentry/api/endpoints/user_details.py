@@ -93,11 +93,6 @@ class BaseUserSerializer(CamelSnakeModelSerializer):
             .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
         ):
             raise serializers.ValidationError("That username is already in use.")
-        verified_email_found = UserEmail.objects.filter(
-            user=self.instance, email=value, is_verified=True
-        )
-        if not verified_email_found:
-            raise serializers.ValidationError("Verified email address is not found.")
         return value
 
     def validate(self, attrs):
@@ -190,6 +185,13 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
+        if "username" in request.data:
+            verified_email_found = UserEmail.objects.filter(
+                user_id=user.id, email=request.data["username"], is_verified=True
+            ).exists()
+            if not verified_email_found:
+                return Response({"detail": "Verified email address is not found."}, status=400)
+
         # We want to prevent superusers from setting users to superuser or staff
         # because this is only done through _admin. This will always be enforced
         # once the feature flag is removed.

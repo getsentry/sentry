@@ -194,7 +194,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         self.create_useremail(user, "new@example.com", is_verified=False)
         resp = self.get_error_response("me", username="new@example.com", status_code=400)
-        assert resp.data["username"][0] == "Verified email address is not found."
+        assert resp.data["detail"] == "Verified email address is not found."
 
         user = User.objects.get(id=user.id)
 
