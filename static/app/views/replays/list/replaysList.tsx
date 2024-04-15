@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -31,9 +30,6 @@ function ReplaysList() {
       statsPeriod: decodeScalar,
     },
   });
-  const queryKey = useMemo<ApiQueryKey>(() => {
-    return [`/organizations/${organization.slug}/replays/`, {query}];
-  }, [organization, query]);
 
   const {
     data: replays,
@@ -41,7 +37,8 @@ function ReplaysList() {
     isLoading,
     error,
   } = useFetchReplayList({
-    queryKey,
+    options: {query},
+    organization,
     queryReferrer: 'replayList',
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;

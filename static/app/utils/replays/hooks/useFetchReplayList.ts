@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import type {Organization} from 'sentry/types';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -11,15 +12,20 @@ import {
 } from 'sentry/views/replays/types';
 
 type Options = {
-  queryKey: NonNullable<ApiQueryKey | undefined>;
+  options: ApiQueryKey[1];
+  organization: Organization;
   queryReferrer: ReplayListQueryReferrer;
 };
 
-export default function useReplayList({queryKey, queryReferrer}: Options) {
+export default function useFetchReplayList({
+  options,
+  organization,
+  queryReferrer,
+}: Options) {
   const fixedQueryKey = useMemo<ApiQueryKey>(() => {
-    const [url, options] = queryKey;
+    const url = `/organizations/${organization.slug}/replays/`;
     if (!options || !options.query) {
-      return queryKey;
+      return [url];
     }
 
     // HACK!!! Because the sort field needs to be in the eventView, but I cannot
@@ -47,7 +53,7 @@ export default function useReplayList({queryKey, queryReferrer}: Options) {
         },
       },
     ];
-  }, [queryKey, queryReferrer]);
+  }, [options, organization.slug, queryReferrer]);
 
   const {data, ...result} = useApiQuery<{data: any[]}>(fixedQueryKey, {
     staleTime: Infinity,
@@ -55,7 +61,7 @@ export default function useReplayList({queryKey, queryReferrer}: Options) {
   });
 
   return {
-    data: data?.data.map<ReplayListRecord>(mapResponseToReplayRecord),
+    data: data?.data?.map<ReplayListRecord>(mapResponseToReplayRecord),
     ...result,
   };
 }
