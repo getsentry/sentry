@@ -289,7 +289,7 @@ class RedisBuffer(Buffer):
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> dict[str, str]:
+    ) -> dict[str, int]:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
 

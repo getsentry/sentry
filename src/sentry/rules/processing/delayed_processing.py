@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from collections import defaultdict
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta
 from typing import DefaultDict, NamedTuple
 
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
@@ -75,7 +75,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     rules_to_groups: DefaultDict[str, set[int]] = defaultdict(set)
     for rule_group in rulegroup_to_event.keys():
         rule_id, group_id = rule_group.split(":")
-        rules_to_groups[rule_id].add(group_id)
+        rules_to_groups[rule_id].add(int(group_id))
 
     # STEP 3: Fetch the Rule models we need to check
     rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
@@ -137,7 +137,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        end = timezone.now()
+        end = datetime.now()
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
