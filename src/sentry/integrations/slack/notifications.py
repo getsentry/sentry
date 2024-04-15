@@ -9,7 +9,7 @@ import sentry_sdk
 
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.models.integrations.integration import Integration
@@ -46,7 +46,7 @@ def _get_attachments(
     recipient: RpcActor,
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
-) -> list[SlackAttachment] | SlackBlock:
+) -> SlackBlock:
     extra_context = (
         extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
     )
@@ -59,7 +59,7 @@ def _get_attachments(
 def _notify_recipient(
     notification: BaseNotification,
     recipient: RpcActor,
-    attachments: list[SlackAttachment] | SlackBlock,
+    attachments: SlackBlock,
     channel: str,
     integration: Integration,
     shared_context: Mapping[str, Any],
