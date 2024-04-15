@@ -7,6 +7,7 @@ describe('constructSelector', () => {
         alt: 'view more',
         aria_label: 'View More',
         class: ['classA'],
+        component_name: 'TestButton',
         id: 'ID1',
         role: 'button',
         tag: 'button',
@@ -14,22 +15,24 @@ describe('constructSelector', () => {
         title: 'cool title',
       },
       fullSelector:
-        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"][data-sentry-component="TestButton"]',
       selector:
-        'button#ID1.classA[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+        'TestButton#ID1[role="button"][aria="View More"][data-test-id="button-test"][alt="view more"][title="cool title"]',
     },
     {
       element: {
         alt: '',
         aria_label: '',
         class: ['', ''],
+        component_name: '',
         id: '',
         role: '',
         tag: 'a',
         testid: '',
         title: '',
       },
-      fullSelector: 'a[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a',
     },
     {
@@ -37,13 +40,15 @@ describe('constructSelector', () => {
         alt: '',
         aria_label: '',
         class: ['classA', ''],
+        component_name: '',
         id: '',
         role: '',
         tag: 'a',
         testid: '',
         title: '',
       },
-      fullSelector: 'a.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a.classA[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a.classA',
     },
     {
@@ -51,13 +56,15 @@ describe('constructSelector', () => {
         alt: '',
         aria_label: '',
         class: ['classA', ''],
+        component_name: '',
         id: 'ID2',
         role: '',
         tag: 'a',
         testid: '',
         title: '',
       },
-      fullSelector: 'a#ID2.classA[role=""][aria=""][data-test-id=""][alt=""][title=""]',
+      fullSelector:
+        'a#ID2.classA[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a#ID2.classA',
     },
     {
@@ -65,6 +72,7 @@ describe('constructSelector', () => {
         alt: '',
         aria_label: '',
         class: ['classA', 'classB'],
+        component_name: 'TestButton',
         id: 'ID2',
         role: '',
         tag: 'a',
@@ -72,14 +80,15 @@ describe('constructSelector', () => {
         title: '',
       },
       fullSelector:
-        'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""]',
-      selector: 'a#ID2.classA.classB',
+        'a#ID2.classA.classB[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="TestButton"]',
+      selector: 'TestButton#ID2',
     },
     {
       element: {
         alt: '',
         aria_label: 'hello',
         class: ['classA', 'classB'],
+        component_name: '',
         id: 'ID2',
         role: '',
         tag: 'a',
@@ -87,13 +96,14 @@ describe('constructSelector', () => {
         title: '',
       },
       fullSelector:
-        'a#ID2.classA.classB[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
+        'a#ID2.classA.classB[role=""][aria="hello"][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
       selector: 'a#ID2.classA.classB[aria="hello"]',
     },
     {
       element: {
         alt: '',
         aria_label: 'hello',
+        component_name: 'TestHello',
         class: [''],
         id: 'ID2',
         role: '',
@@ -101,13 +111,17 @@ describe('constructSelector', () => {
         testid: '',
         title: '',
       },
-      fullSelector: 'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""]',
-      selector: 'a#ID2[aria="hello"]',
+      fullSelector:
+        'a#ID2[role=""][aria="hello"][data-test-id=""][alt=""][title=""][data-sentry-component="TestHello"]',
+      selector: 'TestHello#ID2[aria="hello"]',
     },
   ])(
     'should construct the correct trimmed selector and full selector, for each element in the list',
     ({element, fullSelector, selector}) => {
-      expect(constructSelector(element)).toStrictEqual({fullSelector, selector});
+      expect(constructSelector(element)).toStrictEqual({
+        fullSelector,
+        selector,
+      });
     }
   );
 });
