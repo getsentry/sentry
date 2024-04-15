@@ -436,6 +436,7 @@ class RetrySkipTimeout(urllib3.Retry):
             method=method,
             url=url,
             response=response,
+
             error=error,
             _pool=_pool,
             _stacktrace=_stacktrace,
@@ -452,7 +453,7 @@ _snuba_pool = connection_from_url(
         # mutations.
         allowed_methods={"GET", "POST", "DELETE"},
     ),
-    timeout=settings.SENTRY_SNUBA_TIMEOUT,
+    timeout=60,
     maxsize=10,
 )
 _query_thread_pool = ThreadPoolExecutor(max_workers=10)
