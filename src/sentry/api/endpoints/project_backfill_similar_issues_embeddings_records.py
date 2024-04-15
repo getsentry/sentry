@@ -9,7 +9,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.auth.superuser import is_active_superuser
 from sentry.tasks.backfill_seer_grouping_records import backfill_seer_grouping_records
 
-region_silo_endpoint
 
 
 @region_silo_endpoint
