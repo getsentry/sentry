@@ -1,3 +1,35 @@
+24.4.0
+------
+
+### Various fixes & improvements
+
+- Revert "ref(stories): Collapse `app` root (#68939)" (13dcc607) by @getsentry-bot
+- feat(ui): Add `actor` to delegating Avatar component (#68933) by @evanpurkhiser
+- ref(ui): Consolidate TeamBadge (#68927) by @evanpurkhiser
+- ref(stories): Improve types on TreeMapping (#68940) by @evanpurkhiser
+- ref(stories): Collapse `app` root (#68939) by @evanpurkhiser
+- feat(perf): Use `@sentry/status-page-list` for domain status link (#68899) by @gggritso
+- deps(ui): Update react-router to latest v3, create-react-class (#68926) by @scttcper
+- fix(trace): fix drawer bg color (#68934) by @JonasBa
+- feat(issue-details): Revise Context UI behind feature flag (#68081) by @leeandher
+- Revert "feat(replay): Persist has-viewed state to the server when replays are seen (#68743)" (ad312261) by @getsentry-bot
+- feat(perf): Bump "Requests" module from "Alpha" to "Beta" (#68930) by @gggritso
+- feat(perf): Adjust HTTP sample table column widths (#68901) by @gggritso
+- chore(self-hosted): 24.3.0 release tests (#67091) by @hubertdeng123
+- deps(ui): Remove react-test-renderer (#68929) by @scttcper
+- fix(trace): fix text overlaps (#68928) by @JonasBa
+- fix(replay): Fix canvas replays when seeking without actively playing (#68646) by @billyvg
+- fix(perf): Link Response module domains to a specific project (#68905) by @gggritso
+-  chore(issues): Remove legacy browser flag from BE  (#67717) by @leeandher
+- ref(uI): Cleanup unused ts-ignore after update (#68924) by @scttcper
+- fix(replay): Fixes type error if same param is in url (#68851) by @c298lee
+- fix(bug): logging bug (#68919) by @ykamo001
+- fix(crons): Update slug in quotas when deleting monitors (#68917) by @evanpurkhiser
+- chore(relocation): Add server-side Sentry capture logging (#68906) by @azaslavsky
+- feat(replays): Delete videos on replay delete request (#68463) by @cmanallen
+
+_Plus 1311 more_
+
 24.3.0
 ------
 
