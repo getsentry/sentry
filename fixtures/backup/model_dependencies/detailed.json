@@ -3222,6 +3222,11 @@
         "model": "sentry.organization",
         "nullable": false
       },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "project_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.project",

@@ -84,6 +84,7 @@ brotli>=1.0.9
 pyuwsgi==2.0.23
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
+orjson>=3.10.0
 
 msgpack>=1.0.7
 cryptography>=38.0.3
