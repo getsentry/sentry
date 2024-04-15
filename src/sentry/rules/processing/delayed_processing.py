@@ -199,7 +199,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             # Store all rule/group pairs  we need to activate
 
     # Step 8: Bulk fetch the events of the rule/group pairs we need to trigger
-    # actions for
+    # actions for, then trigger those actions
 
     # Was thinking we could do something like this where we get futures,
     # then safe execute them
