@@ -41,11 +41,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        # XXX(CEO): when removing the feature flag, put `label` back up as a class var
-        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"  # type: ignore[misc]
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -95,10 +94,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 for block in additional_attachment:
                     blocks["blocks"].append(block)
 
-            if blocks.get("blocks"):
+            if payload_blocks := blocks.get("blocks"):
                 payload = {
                     "text": blocks.get("text"),
-                    "blocks": json.dumps(blocks.get("blocks")),
+                    "blocks": json.dumps(payload_blocks),
                     "channel": channel,
                     "unfurl_links": False,
                     "unfurl_media": False,
