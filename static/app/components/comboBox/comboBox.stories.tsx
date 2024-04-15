@@ -74,19 +74,31 @@ export default storyBook('ComboBox', story => {
   story('With list size limit', () => {
     const [value, setValue] = useState('opt_one');
     return (
-      <Fragment>
-        <SizingWindow display="block" style={{overflow: 'visible'}}>
-          <ComboBox
-            value={value}
-            onChange={({value: newValue}) => setValue(newValue)}
-            aria-label="ComboBox"
-            menuTrigger="focus"
-            placeholder="Select an Option"
-            sizeLimit={5}
-            options={options}
-          />
-        </SizingWindow>
-      </Fragment>
+      <SizingWindow display="block" style={{overflow: 'visible'}}>
+        <ComboBox
+          value={value}
+          onChange={({value: newValue}) => setValue(newValue)}
+          aria-label="ComboBox"
+          menuTrigger="focus"
+          placeholder="Select an Option"
+          sizeLimit={5}
+          options={options}
+        />
+      </SizingWindow>
+    );
+  });
+
+  story('With growing input', () => {
+    return (
+      <SizingWindow display="block" style={{overflow: 'visible'}}>
+        <ComboBox
+          aria-label="ComboBox"
+          menuTrigger="focus"
+          placeholder="Select an Option"
+          growingInput
+          options={options}
+        />
+      </SizingWindow>
     );
   });
 
