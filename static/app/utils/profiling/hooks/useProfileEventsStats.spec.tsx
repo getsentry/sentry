@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -33,7 +33,7 @@ describe('useProfileEvents', function () {
       match: [MockApiClient.matchQuery({dataset: 'profiles'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
+    const {result} = renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,
@@ -74,7 +74,7 @@ describe('useProfileEvents', function () {
       match: [MockApiClient.matchQuery({dataset: 'profiles'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
+    const {result} = renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,
@@ -129,7 +129,7 @@ describe('useProfileEvents', function () {
       match: [MockApiClient.matchQuery({dataset: 'profiles'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
+    const {result} = renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,

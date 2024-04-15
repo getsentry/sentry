@@ -3,7 +3,7 @@ import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';

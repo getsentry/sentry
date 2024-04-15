@@ -149,7 +149,6 @@ class BaseRequestParser(abc.ABC):
         self,
         regions: Sequence[Region],
         identifier: int | str | None = None,
-        shard_identifier_override: int | None = None,  # deprecated used in getsentry
         integration_id: int | None = None,
     ):
         """
@@ -159,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
                 region=region.name,
@@ -170,9 +169,6 @@ class BaseRequestParser(abc.ABC):
             )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-    # Alias to prop up getsentry
-    get_response_from_outbox_creation = get_response_from_webhookpayload
 
     def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
@@ -191,6 +187,9 @@ class BaseRequestParser(abc.ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
+        # One integration is misbehaving in saas, and only need logs from that instance
+        extra_logging = integration.id == 122177
+
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
@@ -203,17 +202,22 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
-            logging.info(
+            logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
 
+        if extra_logging:
+            logger.info(
+                "integrations.parser.use_buckets",
+                extra={"provider": self.provider, "result": use_buckets},
+            )
         if not use_buckets:
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            logging.info(
+            logger.info(
                 "integrations.parser.no_bucket_id",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
@@ -222,6 +226,16 @@ class BaseRequestParser(abc.ABC):
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
+
+        if extra_logging:
+            logger.info(
+                "integrations.parser.bucket_choice",
+                extra={
+                    "provider": self.provider,
+                    "integration_id": integration.id,
+                    "bucket": bucket_number,
+                },
+            )
 
         return f"{integration.id}:{bucket_number}"
 

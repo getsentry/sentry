@@ -14,6 +14,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.controlcacheversion": [],
   "hybridcloud.externalactorreplica": [
     "sentry.externalactor",
     "sentry.integration",
@@ -445,7 +446,8 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",

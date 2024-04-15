@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -23,6 +15,7 @@ import {
   getHiddenOptions,
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
+import {GrowingInput} from 'sentry/components/growingInput';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -45,7 +38,11 @@ interface ComboBoxProps<Value extends string>
   'aria-label': string;
   className?: string;
   disabled?: boolean;
+  growingInput?: boolean;
   isLoading?: boolean;
+  loadingMessage?: string;
+  menuSize?: FormSize;
+  menuWidth?: string;
   size?: FormSize;
   sizeLimit?: number;
   sizeLimitMessage?: string;
@@ -53,19 +50,22 @@ interface ComboBoxProps<Value extends string>
 
 function ComboBox<Value extends string>({
   size = 'md',
+  menuSize,
   className,
   placeholder,
   disabled,
   isLoading,
+  loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
+  growingInput = false,
+  menuWidth,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const sizingRef = useRef<HTMLDivElement>(null);
 
   const state = useComboBoxState({
     // Mapping our disabled prop to react-aria's isDisabled
@@ -77,34 +77,17 @@ function ComboBox<Value extends string>({
     state
   );
 
-  // Sync input width with sizing div
-  // TODO: think of making this configurable with a prop
-  // TODO: extract into separate component
-  useLayoutEffect(() => {
-    if (sizingRef.current && inputRef.current) {
-      const computedStyles = window.getComputedStyle(inputRef.current);
-
-      const newTotalInputSize =
-        sizingRef.current.offsetWidth +
-        parseInt(computedStyles.paddingLeft, 10) +
-        parseInt(computedStyles.paddingRight, 10) +
-        parseInt(computedStyles.borderWidth, 10) * 2;
-
-      inputRef.current.style.width = `${newTotalInputSize}px`;
-    }
-  }, [state.inputValue]);
-
   // Make popover width constant while it is open
   useEffect(() => {
-    if (listBoxRef.current && state.isOpen) {
-      const listBoxElement = listBoxRef.current;
-      listBoxElement.style.width = `${listBoxElement.offsetWidth + 4}px`;
+    if (!menuWidth && popoverRef.current && state.isOpen) {
+      const popoverElement = popoverRef.current;
+      popoverElement.style.width = `${popoverElement.offsetWidth + 4}px`;
       return () => {
-        listBoxElement.style.width = 'max-content';
+        popoverElement.style.width = 'max-content';
       };
     }
     return () => {};
-  }, [state.isOpen]);
+  }, [menuWidth, state.isOpen]);
 
   const selectContext = useContext(SelectContext);
 
@@ -130,6 +113,8 @@ function ComboBox<Value extends string>({
     }
   }, [state, menuTrigger]);
 
+  const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
+
   return (
     <SelectContext.Provider
       value={{
@@ -138,25 +123,22 @@ function ComboBox<Value extends string>({
       }}
     >
       <ControlWrapper className={className}>
-        <StyledInput
+        <InputComponent
           {...inputProps}
           onClick={handleInputClick}
           placeholder={placeholder}
           ref={mergeRefs([inputRef, triggerProps.ref])}
           size={size}
         />
-        <SizingDiv aria-hidden ref={sizingRef} size={size}>
-          {state.inputValue}
-        </SizingDiv>
         <StyledPositionWrapper
           {...overlayProps}
           zIndex={theme.zIndex?.tooltip}
           visible={state.isOpen}
         >
-          <StyledOverlay ref={popoverRef}>
+          <StyledOverlay ref={popoverRef} width={menuWidth}>
             {isLoading && (
-              <MenuHeader size={size}>
-                <MenuTitle>{t('Loading...')}</MenuTitle>
+              <MenuHeader size={menuSize ?? size}>
+                <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
                 <MenuHeaderTrailingItems>
                   {isLoading && <StyledLoadingIndicator size={12} mini />}
                 </MenuHeaderTrailingItems>
@@ -170,7 +152,7 @@ function ComboBox<Value extends string>({
                 ref={listBoxRef}
                 listState={state}
                 keyDownHandler={() => true}
-                size={size}
+                size={menuSize ?? size}
                 sizeLimitMessage={sizeLimitMessage}
               />
               <EmptyMessage>No items found</EmptyMessage>
@@ -192,6 +174,7 @@ function ControlledComboBox<Value extends string>({
   options,
   sizeLimit,
   value,
+  onOpenChange,
   ...props
 }: Omit<ComboBoxProps<Value>, 'items' | 'defaultItems' | 'children'> & {
   options: ComboBoxOptionOrSection<Value>[];
@@ -260,12 +243,16 @@ function ControlledComboBox<Value extends string>({
     setInputValue(newInputValue);
   }, []);
 
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    // Disable filtering right after the dropdown is opened
-    if (isOpen) {
-      setIsFiltering(false);
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      // Disable filtering right after the dropdown is opened
+      if (isOpen) {
+        setIsFiltering(false);
+      }
+      onOpenChange?.(isOpen);
+    },
+    [onOpenChange]
+  );
 
   return (
     // TODO: remove usage of SelectContext in ListBox
@@ -326,14 +313,9 @@ const StyledInput = styled(Input)`
   max-width: inherit;
   min-width: inherit;
 `;
-
-const SizingDiv = styled('div')<{size?: FormSize}>`
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-  position: absolute;
-  white-space: pre;
-  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+const StyledGrowingInput = styled(GrowingInput)`
+  max-width: inherit;
+  min-width: inherit;
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
@@ -343,16 +325,17 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
-const StyledOverlay = styled(Overlay)`
+const StyledOverlay = styled(Overlay)<{width?: string}>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
   ListBoxWrap/GridListWrap will also shrink to fit */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 32rem;
   position: absolute;
+  max-height: 32rem;
   min-width: 100%;
   overflow-y: auto;
+  width: ${p => p.width ?? 'auto'};
 `;
 
 export const EmptyMessage = styled('p')`

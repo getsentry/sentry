@@ -91,3 +91,24 @@ def test_span_duration_where(params, condition, op, value):
         selected_columns=["count"],
     )
     assert Condition(span_duration, op, value) in builder.where
+
+
+@pytest.mark.parametrize(
+    ["query", "result"],
+    [
+        pytest.param("span.op:params test", Condition(Column("description"), Op.EQ, "test")),
+        pytest.param("testing", Condition(Column("description"), Op.EQ, "testing")),
+        pytest.param(
+            "span.description:test1 test2", Condition(Column("description"), Op.EQ, "test2")
+        ),
+    ],
+)
+@django_db_all
+def test_free_text_search(params, query, result):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=query,
+        selected_columns=["count"],
+    )
+    assert result in builder.where

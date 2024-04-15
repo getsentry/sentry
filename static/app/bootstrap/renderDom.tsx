@@ -1,6 +1,8 @@
 import {render} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 
+import {USE_REACT_CONCURRENT_MODE} from 'sentry/constants';
+
 export function renderDom(
   Component: React.ComponentType,
   container: string,
@@ -18,7 +20,8 @@ export function renderDom(
   if (
     (window.__initialData.features as unknown as string[]).includes(
       'organizations:react-concurrent-renderer-enabled'
-    )
+    ) ||
+    USE_REACT_CONCURRENT_MODE
   ) {
     // Enable concurrent rendering
     const root = createRoot(rootEl);

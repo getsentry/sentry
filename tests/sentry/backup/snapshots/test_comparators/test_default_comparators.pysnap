@@ -1,5 +1,5 @@
 ---
-created: '2024-04-10T14:45:05.473571+00:00'
+created: '2024-04-12T19:46:00.491186+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -24,6 +24,10 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - user_id
   model_name: hybridcloud.apitokenreplica
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: hybridcloud.controlcacheversion
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -805,6 +809,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - organization_id
+    - owner_user_id
     - project_id
   model_name: sentry.monitor
 - comparators:

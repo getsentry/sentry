@@ -4,7 +4,9 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
@@ -12,9 +14,9 @@ import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktra
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {Tag} from 'sentry/components/tag';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
+import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -224,13 +226,13 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <ToggleContextButton
-        className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
         aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
+        borderless
       >
-        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+        <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
       </ToggleContextButton>
     );
   }
@@ -300,16 +302,8 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {
-      isHoverPreviewed,
-      data,
-      isANR,
-      threadId,
-      lockAddress,
-      isSubFrame,
-      hiddenFrameCount,
-      event,
-    } = this.props;
+    const {isHoverPreviewed, data, isANR, threadId, lockAddress, isSubFrame, event} =
+      this.props;
     const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
@@ -355,13 +349,14 @@ export class DeprecatedLine extends Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
-          className="title"
           data-test-id="title"
           isSubFrame={!!isSubFrame}
-          hasToggle={!!hiddenFrameCount}
           onMouseEnter={() => this.handleMouseEnter()}
           onMouseLeave={() => this.handleMouseLeave()}
+          isExpanded={this.state.isExpanded ?? false}
+          isExpandable={this.isExpandable()}
         >
+          {this.isExpandable() ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
               <div>
@@ -515,13 +510,24 @@ const RepeatedContent = styled(LeftLineTitle)`
 `;
 
 const DefaultLine = styled('div')<{
-  hasToggle: boolean;
+  isExpandable: boolean;
+  isExpanded: boolean;
   isSubFrame: boolean;
 }>`
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : '')};
+  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
+  min-height: 32px;
+  word-break: break-word;
+  padding: ${space(0.75)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 16px;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
+  code {
+    font-family: ${p => p.theme.text.family};
+  }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
@@ -534,11 +540,8 @@ const DefaultLineTagWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-// the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  span:first-child {
-    padding: 3px;
-  }
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLi = styled('li')`
