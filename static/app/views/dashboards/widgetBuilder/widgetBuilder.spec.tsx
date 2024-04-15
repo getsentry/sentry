@@ -1334,7 +1334,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
@@ -1360,7 +1360,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     const descriptionTextArea = await screen.findByRole('textbox', {
@@ -1391,7 +1391,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     // Click Cancel
