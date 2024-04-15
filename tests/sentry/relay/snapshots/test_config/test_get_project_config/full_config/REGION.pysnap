@@ -93,6 +93,7 @@ config:
       - '*/health'
       - '*/healthy'
       - '*/healthz'
+      - '*/\[_health\]'
       - '*/live'
       - '*/livez'
       - '*/ready'
