@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
+import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {makeGroupPriorityDropdownOptions} from 'sentry/components/group/groupPriority';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
