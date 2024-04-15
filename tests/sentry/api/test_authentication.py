@@ -185,7 +185,7 @@ class TestTokenAuthentication(TestCase):
             token_type=AuthTokenType.USER,
             user=self.user,
         )
-        self.token = self.api_token._plaintext_token
+        self.token = self.api_token.plaintext_token
 
     def test_authenticate(self):
         request = HttpRequest()

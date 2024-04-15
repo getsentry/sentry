@@ -140,7 +140,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         """
         existing_token = None
         try:
-            existing_token = self.__plaintext_token
+            existing_token = self.__plaintext_token  # type: ignore[has-type]
         except AttributeError:
             self.__plaintext_token = token
 
@@ -157,7 +157,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         """
         existing_refresh_token = None
         try:
-            existing_refresh_token = self.__plaintext_refresh_token
+            existing_refresh_token = self.__plaintext_refresh_token  # type: ignore[has-type]
         except AttributeError:
             self.__plaintext_refresh_token = token
 
