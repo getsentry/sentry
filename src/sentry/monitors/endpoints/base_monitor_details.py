@@ -256,7 +256,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
                 if isinstance(monitor_object, Monitor):
-                    monitor_object.update(slug=get_random_string(length=24))
+                    new_slug = get_random_string(length=24)
+                    quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
+                    monitor_object.update(slug=new_slug)
 
                 schedule = RegionScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user
