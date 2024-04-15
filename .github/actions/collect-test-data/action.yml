@@ -28,7 +28,7 @@ runs:
       uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
       with:
         path: ${{ inputs.artifact_path }}
-        gcs_path: ${{ inputs.gcs_bucket }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}${{ inputs.matrix_instance_number != '' && '/intance' || '' }}${{ inputs.matrix_instance_number != '' && inputs.matrix_instance_number || '' }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
+        gcs_path: ${{ inputs.gcs_bucket }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}${{ inputs.matrix_instance_number != '' && '/instance' || '' }}${{ inputs.matrix_instance_number != '' && inputs.matrix_instance_number || '' }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
         gcp_project_id: ${{ inputs.gcp_project_id }}
         workload_identity_provider: ${{ inputs.workload_identity_provider }}
         service_account_email: ${{ inputs.service_account_email }}

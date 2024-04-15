@@ -1,0 +1,40 @@
+name: 'Collect Test Data'
+
+on:
+  workflow_call:
+    inputs:
+      artifact_path:
+        description: 'Path to the test data artifact'
+        required: true
+        type: string
+      matrix_instance_number:
+        description: 'Matrix instance number'
+        required: false
+        type: string
+    secrets:
+      COLLECT_TEST_DATA_GCS_BUCKET:
+        description: 'GCS bucket'
+        required: true
+      COLLECT_TEST_DATA_GCP_PROJECT_ID:
+        description: 'GCP project ID'
+        required: true
+      SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL:
+        description: 'Workload identity provider'
+        required: true
+      COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL:
+        description: 'Service account email'
+        required: true
+
+jobs:
+  collect_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect test data
+        uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
+        with:
+          path: ${{ inputs.artifact_path }}
+          gcs_path: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}${{ inputs.matrix_instance_number != '' && '/instance' || '' }}${{ inputs.matrix_instance_number != '' && inputs.matrix_instance_number || '' }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+        continue-on-error: true
