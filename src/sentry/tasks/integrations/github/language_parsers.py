@@ -6,7 +6,7 @@ from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
-from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
+from sentry.tasks.integrations.github.constants import DEFAULT_STACKFRAME_COUNT
 
 stackframe_function_name = lambda i: Function(
     "arrayElement",
@@ -26,12 +26,14 @@ class SimpleLanguageParser(ABC):
         return functions
 
     @classmethod
-    def generate_multi_if(cls, function_names: list[str]) -> list[Function]:
+    def generate_multi_if(
+        cls, function_names: list[str], stackframe_count=DEFAULT_STACKFRAME_COUNT
+    ) -> list[Function]:
         """
         Fetch the function name from the stackframe that matches a name within the list of function names.
         """
         multi_if = []
-        for i in range(-STACKFRAME_COUNT, 0):
+        for i in range(-stackframe_count, 0):
             # if, then conditions
             multi_if.extend(
                 [
@@ -133,12 +135,14 @@ class LanguageParser(ABC):
         return function_name_conditions
 
     @classmethod
-    def generate_multi_if(cls, function_names: list[str]) -> list[Function]:
+    def generate_multi_if(
+        cls, function_names: list[str], stackframe_count=DEFAULT_STACKFRAME_COUNT
+    ) -> list[Function]:
         """
         Fetch the function name from the stackframe that matches a name within the list of function names.
         """
         multi_if = []
-        for i in range(-STACKFRAME_COUNT, 0):
+        for i in range(-stackframe_count, 0):
             # if, then conditions
             stackframe_function_name_conditions = cls._get_function_name_functions(
                 i, function_names

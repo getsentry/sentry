@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
+from sentry.tasks.integrations.github.constants import DEFAULT_STACKFRAME_COUNT
 from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.open_pr_comment import (
     format_issue_table,
@@ -512,14 +512,23 @@ class TestGetCommentIssues(CreateEventTestCase):
         assert function_names == ["world", "world"]
 
     def test_not_within_frame_limit(self):
-        function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
-        filenames = ["baz.py"] + ["foo.py" for _ in range(STACKFRAME_COUNT)]
+        function_names = ["world"] + ["a" for _ in range(DEFAULT_STACKFRAME_COUNT)]
+        filenames = ["baz.py"] + ["foo.py" for _ in range(DEFAULT_STACKFRAME_COUNT)]
         group_id = self._create_event(function_names=function_names, filenames=filenames).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
+
+    def test_raw_snql_query_error(self):
+        mock_raw_snql_query = MagicMock(side_effect=TypeError("error"))
+        with patch(
+            "sentry.tasks.integrations.github.open_pr_comment.raw_snql_query", mock_raw_snql_query
+        ):
+            top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+            assert len(top_5_issues) == 0
+            assert mock_raw_snql_query.call_count == 2
 
     def test_event_too_old(self):
         group_id = self._create_event(

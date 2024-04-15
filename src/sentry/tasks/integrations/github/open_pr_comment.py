@@ -36,9 +36,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations.github.constants import (
+    DEFAULT_STACKFRAME_COUNT,
     ISSUE_LOCKED_ERROR_MESSAGE,
     RATE_LIMITED_MESSAGE,
-    STACKFRAME_COUNT,
+    REDUCED_STACKFRAME_COUNT,
 )
 from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url
@@ -296,103 +297,108 @@ def get_top_5_issues_by_count_for_file(
         .values_list("id", flat=True)
     )[:MAX_RECENT_ISSUES]
     project_ids = [p.id for p in projects]
-
-    multi_if = language_parser.generate_multi_if(function_names)
-
     # fetch the count of events for each group_id
-    subquery = (
-        Query(Entity("events"))
-        .set_select(
-            [
-                Column("title"),
-                Column("culprit"),
-                Column("group_id"),
-                Function("count", [], "event_count"),
-                Function(
-                    "multiIf",
-                    multi_if,
-                    "function_name",
-                ),
-            ]
-        )
-        .set_groupby(
-            [
-                Column("title"),
-                Column("culprit"),
-                Column("group_id"),
-                Column("exception_frames.function"),
-            ]
-        )
-        .set_where(
-            [
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("group_id"), Op.IN, group_ids),
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                # NOTE: ideally this would follow suspect commit logic
-                BooleanCondition(
-                    BooleanOp.OR,
-                    [
-                        BooleanCondition(
-                            BooleanOp.AND,
-                            [
-                                Condition(
-                                    Function(
-                                        "arrayElement",
-                                        (Column("exception_frames.filename"), i),
-                                    ),
-                                    Op.IN,
-                                    sentry_filenames,
-                                ),
-                                language_parser.generate_function_name_conditions(
-                                    function_names, i
-                                ),
-                            ],
-                        )
-                        for i in range(-STACKFRAME_COUNT, 0)  # first n frames
-                    ],
-                ),
-                Condition(Function("notHandled", []), Op.EQ, 1),
-            ]
-        )
-        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-    )
+    for count in [DEFAULT_STACKFRAME_COUNT, REDUCED_STACKFRAME_COUNT]:
+        multi_if = language_parser.generate_multi_if(function_names, count)
 
-    # filter on the subquery to squash group_ids with the same title and culprit
-    # return the group_id with the greatest count of events
-    request = SnubaRequest(
-        dataset=Dataset.Events.value,
-        app_id="default",
-        tenant_ids={"organization_id": projects[0].organization_id},
-        query=(
-            Query(subquery)
-            .set_select(
-                [
-                    Column("function_name"),
-                    Function(
-                        "arrayElement",
-                        (Function("groupArray", [Column("group_id")]), 1),
-                        "group_id",
-                    ),
-                    Function(
-                        "arrayElement",
-                        (Function("groupArray", [Column("event_count")]), 1),
-                        "event_count",
-                    ),
-                ]
+        try:
+            subquery = (
+                Query(Entity("events"))
+                .set_select(
+                    [
+                        Column("title"),
+                        Column("culprit"),
+                        Column("group_id"),
+                        Function("count", [], "event_count"),
+                        Function(
+                            "multiIf",
+                            multi_if,
+                            "function_name",
+                        ),
+                    ]
+                )
+                .set_groupby(
+                    [
+                        Column("title"),
+                        Column("culprit"),
+                        Column("group_id"),
+                        Column("exception_frames.function"),
+                    ]
+                )
+                .set_where(
+                    [
+                        Condition(Column("project_id"), Op.IN, project_ids),
+                        Condition(Column("group_id"), Op.IN, group_ids),
+                        Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
+                        Condition(Column("timestamp"), Op.LT, datetime.now()),
+                        # NOTE: ideally this would follow suspect commit logic
+                        BooleanCondition(
+                            BooleanOp.OR,
+                            [
+                                BooleanCondition(
+                                    BooleanOp.AND,
+                                    [
+                                        Condition(
+                                            Function(
+                                                "arrayElement",
+                                                (Column("exception_frames.filename"), i),
+                                            ),
+                                            Op.IN,
+                                            sentry_filenames,
+                                        ),
+                                        language_parser.generate_function_name_conditions(
+                                            function_names, i
+                                        ),
+                                    ],
+                                )
+                                for i in range(-count, 0)  # first n frames
+                            ],
+                        ),
+                        Condition(Function("notHandled", []), Op.EQ, 1),
+                    ]
+                )
+                .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
             )
-            .set_groupby(
-                [
-                    Column("title"),
-                    Column("culprit"),
-                    Column("function_name"),
-                ]
+
+            # filter on the subquery to squash group_ids with the same title and culprit
+            # return the group_id with the greatest count of events
+            request = SnubaRequest(
+                dataset=Dataset.Events.value,
+                app_id="default",
+                tenant_ids={"organization_id": projects[0].organization_id},
+                query=(
+                    Query(subquery)
+                    .set_select(
+                        [
+                            Column("function_name"),
+                            Function(
+                                "arrayElement",
+                                (Function("groupArray", [Column("group_id")]), 1),
+                                "group_id",
+                            ),
+                            Function(
+                                "arrayElement",
+                                (Function("groupArray", [Column("event_count")]), 1),
+                                "event_count",
+                            ),
+                        ]
+                    )
+                    .set_groupby(
+                        [
+                            Column("title"),
+                            Column("culprit"),
+                            Column("function_name"),
+                        ]
+                    )
+                    .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+                    .set_limit(5)
+                ),
             )
-            .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-            .set_limit(5)
-        ),
-    )
-    return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
+            return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
+        except Exception as e:
+            logger.exception("github.open_pr_comment.snuba_query_error", extra={"error": str(e)})
+
+    return []
 
 
 @instrumented_task(
