@@ -1,7 +1,7 @@
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import storyBook from 'sentry/stories/storyBook';
-import {Member} from 'sentry/types';
+import type {Member} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
