@@ -187,6 +187,9 @@ class BaseRequestParser(abc.ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
+        # One integration is misbehaving in saas, and only need logs from that instance
+        extra_logging = integration.id == 122177
+
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
@@ -204,6 +207,11 @@ class BaseRequestParser(abc.ABC):
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
 
+        if extra_logging:
+            logger.info(
+                "integrations.parser.use_buckets",
+                extra={"provider": self.provider, "result": use_buckets},
+            )
         if not use_buckets:
             return str(integration.id)
 
@@ -218,6 +226,16 @@ class BaseRequestParser(abc.ABC):
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
+
+        if extra_logging:
+            logger.info(
+                "integrations.parser.bucket_choice",
+                extra={
+                    "provider": self.provider,
+                    "integration_id": integration.id,
+                    "bucket": bucket_number,
+                },
+            )
 
         return f"{integration.id}:{bucket_number}"
 
