@@ -1,4 +1,3 @@
-import {act} from 'react-test-renderer';
 import {
   ReplayNavigationFrameFixture,
   ReplayNavigationPushFrameFixture,
@@ -7,7 +6,7 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
