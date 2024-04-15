@@ -2,9 +2,10 @@ import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import {ComboBox} from 'sentry/components/comboBox';
+import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {Tag} from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,8 +19,9 @@ import {
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
@@ -29,6 +31,8 @@ import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {MetricListItemDetails} from 'sentry/views/metrics/metricListItemDetails';
 import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
 
 type QueryBuilderProps = {
@@ -68,20 +72,41 @@ function useMriMode() {
 
 export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
-  projects,
+  projects: projectIds,
   onChange,
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {data: meta} = useMetricsMeta(pageFilters.selection);
   const breakpoints = useBreakpoints();
+  const {projects} = useProjects();
+
+  const {
+    data: meta,
+    isLoading: isMetaLoading,
+    isRefetching: isMetaRefetching,
+    refetch: refetchMeta,
+  } = useMetricsMeta(pageFilters.selection);
   const mriMode = useMriMode();
+
+  const shouldUseComboBox = hasMetricsExperimentalFeature(organization);
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
     {
-      projects,
+      projects: projectIds,
     }
+  );
+
+  const selectedProjects = useMemo(
+    () =>
+      projects.filter(project =>
+        projectIds[0] === -1
+          ? true
+          : projectIds.length === 0
+            ? project.isMember
+            : projectIds.includes(parseInt(project.id, 10))
+      ),
+    [projectIds, projects]
   );
 
   const tags = useMemo(() => {
@@ -90,10 +115,28 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-    return meta
+    const result = meta
       .filter(metric => isShownByDefault(metric) || isSelected(metric))
       .sort(metric => (isSelected(metric) ? -1 : 1));
-  }, [meta, metricsQuery.mri]);
+
+    // Add the selected metric to the top of the list if it's not already there
+    if (shouldUseComboBox && result[0]?.mri !== metricsQuery.mri) {
+      const parsedMri = parseMRI(metricsQuery.mri)!;
+      return [
+        {
+          mri: metricsQuery.mri,
+          type: parsedMri.type,
+          unit: parsedMri.unit,
+          operations: [],
+          projectIds: [],
+          blockingStatus: [],
+        } satisfies MetricMeta,
+        ...result,
+      ];
+    }
+
+    return result;
+  }, [meta, metricsQuery.mri, shouldUseComboBox]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
@@ -158,42 +201,73 @@ export const QueryBuilder = memo(function QueryBuilder({
     [incrementQueryMetric, onChange, organization]
   );
 
+  const handleOpenMetricsMenu = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen && !isMetaLoading && !isMetaRefetching) {
+        refetchMeta();
+      }
+    },
+    [isMetaLoading, isMetaRefetching, refetchMeta]
+  );
+
   const mriOptions = useMemo(
     () =>
-      displayedMetrics.map<SelectOption<MRI>>(metric => ({
-        label: mriMode ? metric.mri : formatMRI(metric.mri),
+      displayedMetrics.map<ComboBoxOption<MRI>>(metric => ({
+        label: mriMode
+          ? metric.mri
+          : middleEllipsis(formatMRI(metric.mri) ?? '', 55, /\.|-|_/),
         // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
         textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
         value: metric.mri,
-        trailingItems: mriMode ? undefined : (
-          <Fragment>
-            <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-            <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-          </Fragment>
-        ),
+        details:
+          metric.projectIds.length > 0 ? (
+            <MetricListItemDetails metric={metric} selectedProjects={selectedProjects} />
+          ) : null,
+        showDetailsInOverlay: true,
+        trailingItems:
+          mriMode || parseMRI(metric.mri)?.useCase !== 'custom' ? undefined : (
+            <CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>
+          ),
       })),
-    [displayedMetrics, mriMode]
+    [displayedMetrics, mriMode, selectedProjects]
   );
 
-  const projectIdStrings = useMemo(() => projects.map(String), [projects]);
+  const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
-        <MetricSelect
-          searchable
-          sizeLimit={100}
-          size="md"
-          triggerLabel={middleEllipsis(
-            formatMRI(metricsQuery.mri) ?? '',
-            breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
-            /\.|-|_/
-          )}
-          options={mriOptions}
-          value={metricsQuery.mri}
-          onChange={handleMRIChange}
-          shouldUseVirtualFocus
-        />
+        {shouldUseComboBox ? (
+          <MetricComboBox
+            aria-label={t('Metric')}
+            placeholder={t('Select a metric')}
+            loadingMessage={t('Loading metrics...')}
+            sizeLimit={100}
+            size="md"
+            menuSize="sm"
+            isLoading={isMetaLoading}
+            onOpenChange={handleOpenMetricsMenu}
+            options={mriOptions}
+            value={metricsQuery.mri}
+            onChange={handleMRIChange}
+            growingInput
+            menuWidth="400px"
+          />
+        ) : (
+          <MetricSelect
+            searchable
+            sizeLimit={100}
+            size="md"
+            triggerLabel={middleEllipsis(
+              formatMRI(metricsQuery.mri) ?? '',
+              breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
+              /\.|-|_/
+            )}
+            options={mriOptions}
+            value={metricsQuery.mri}
+            onChange={handleMRIChange}
+          />
+        )}
         <FlexBlock>
           <OpSelect
             size="md"
@@ -243,6 +317,10 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 });
 
+const CustomMetricInfoText = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
 const QueryBuilderWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
@@ -256,6 +334,10 @@ const FlexBlock = styled('div')`
   flex-wrap: wrap;
 `;
 
+const MetricComboBox = styled(ComboBox)`
+  min-width: 200px;
+  max-width: min(500px, 100%);
+`;
 const MetricSelect = styled(CompactSelect)`
   min-width: 200px;
   & > button {

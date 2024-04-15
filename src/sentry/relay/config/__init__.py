@@ -54,6 +54,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
@@ -409,13 +410,6 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    if not features.has("organizations:performance-calculate-score-relay", organization):
-        return []
-
-    shouldIncludeFid = not features.has(
-        "organizations:deprecate-fid-from-performance-score", organization
-    )
-
     return [
         {
             "name": "Chrome",
@@ -433,13 +427,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -477,13 +464,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
                     "optional": True,
                 },
                 {
@@ -525,13 +505,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.0,
                     "p10": 0.1,
@@ -570,13 +543,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
@@ -613,13 +579,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",

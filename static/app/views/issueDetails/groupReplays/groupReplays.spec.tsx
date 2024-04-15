@@ -182,7 +182,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })
@@ -201,6 +201,7 @@ describe('GroupReplays', () => {
                 'count_rage_clicks',
                 'duration',
                 'finished_at',
+                'has_viewed',
                 'id',
                 'is_archived',
                 'os',
@@ -213,7 +214,7 @@ describe('GroupReplays', () => {
               queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
-              statsPeriod: '14d',
+              statsPeriod: '90d',
             }),
           })
         );
@@ -516,7 +517,7 @@ describe('GroupReplays', () => {
             returnIds: true,
             data_source: 'discover',
             query: `issue.id:[${mockGroup.id}]`,
-            statsPeriod: '14d',
+            statsPeriod: '90d',
             project: -1,
           },
         })
@@ -527,7 +528,7 @@ describe('GroupReplays', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
-        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+        organizationProps: {features: ['session-replay']},
       }));
       const mockGroup = GroupFixture();
 
@@ -589,7 +590,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })

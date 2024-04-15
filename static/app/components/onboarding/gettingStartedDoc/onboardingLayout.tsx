@@ -84,6 +84,7 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {

@@ -142,7 +142,7 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: str | None = None,
+        auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,

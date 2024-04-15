@@ -124,13 +124,16 @@ export default storyBook(GridEditable, story => {
   ));
 
   story('Row Mouse Events', () => {
-    const [activeRow, setActiveRow] = useState<ExampleDataItem | undefined>(undefined);
+    const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+    const activeRow = activeRowKey !== undefined ? data[activeRowKey] : undefined;
 
     return (
       <Fragment>
         <p>
           You can provide a <JSXProperty name="onRowMouseOver" value={Function} /> and a{' '}
-          <JSXProperty name="onRowMouseOut" value={Function} /> callback.
+          <JSXProperty name="onRowMouseOut" value={Function} /> callback. You can also
+          combine that with the <JSXProperty name="highlightedRowKey" value={Number} />{' '}
+          prop to highlight a row.
         </p>
         <p>
           Hovered Row: {activeRow?.category} {activeRow?.name}
@@ -141,12 +144,13 @@ export default storyBook(GridEditable, story => {
           columnSortBy={[]}
           grid={{}}
           location={mockLocation}
-          onRowMouseOver={dataRow => {
-            setActiveRow(dataRow);
+          onRowMouseOver={(_dataRow, key) => {
+            setActiveRowKey(key);
           }}
           onRowMouseOut={() => {
-            setActiveRow(undefined);
+            setActiveRowKey(undefined);
           }}
+          highlightedRowKey={activeRowKey}
         />
       </Fragment>
     );

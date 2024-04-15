@@ -244,9 +244,10 @@ class ScheduledQuery:
             limit += 1
             dynamic_limit = True
 
-        # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
-        # to keep that as it was supplied by the executor.
-        updated_metrics_query = updated_metrics_query.set_limit(limit)
+        if limit is not None:
+            # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
+            # to keep that as it was supplied by the executor.
+            updated_metrics_query = updated_metrics_query.set_limit(min(limit, SNUBA_QUERY_LIMIT))
 
         return updated_metrics_query, dynamic_limit
 
@@ -789,6 +790,12 @@ class QueryExecutor:
             key="ddm.metrics_api.execution.number_of_executed_queries",
             value=self._number_of_executed_queries,
         )
+
+        for query_result in self._query_results:
+            if not isinstance(query_result, QueryResult):
+                raise MetricsQueryExecutionError(
+                    "Not all queries were executed in the execution loop"
+                )
 
         return cast(Sequence[QueryResult], self._query_results)
 

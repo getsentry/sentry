@@ -18,11 +18,12 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
+  areResultsLimited,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
@@ -311,14 +312,21 @@ const MetricWidgetBody = memo(
       });
     }, [queries]);
 
+    // Pause refetching if focus area is drawn
+    const enableRefetch = !focusAreaProps.selection;
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsQuery(orderedQueries, filters, {
-      interval: interval,
-    });
+    } = useMetricsQuery(orderedQueries, filters, {interval}, enableRefetch);
+
+    const limitedResults = useMemo(() => {
+      if (!timeseriesData) {
+        return false;
+      }
+      return areResultsLimited(timeseriesData);
+    }, [timeseriesData]);
 
     const {chartRef, setHoveredSeries} = useSeriesHover();
 
@@ -473,6 +481,14 @@ const MetricWidgetBody = memo(
 
     return (
       <StyledMetricWidgetBody>
+        {limitedResults && (
+          <LimitAlert type="warning" showIcon>
+            {tct(
+              'Specified queries generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
+              {numOfGroups: chartSeries.length}
+            )}
+          </LimitAlert>
+        )}
         <TransparentLoadingMask visible={isLoading} />
         <MetricChart
           ref={chartRef}
@@ -623,6 +639,10 @@ const WidgetTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: inline-grid;
   grid-auto-flow: column;
+`;
+
+const LimitAlert = styled(Alert)`
+  margin-bottom: 0;
 `;
 
 const StyledTooltip = styled(Tooltip)`
