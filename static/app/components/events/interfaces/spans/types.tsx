@@ -66,7 +66,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<[string, string]>;
+  samples: Array<{
+    span: string;
+    timestamp: number;
+    trace: string;
+    transaction: string;
+  }>;
   total: number;
   type: 'aggregate';
 };
