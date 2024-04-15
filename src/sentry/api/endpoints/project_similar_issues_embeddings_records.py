@@ -1,4 +1,3 @@
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -16,7 +15,7 @@ class ProjectSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, project) -> Response:
         if not features.has("projects:similarity-embeddings-grouping", project):
             return Response(status=404)
         backfill_seer_grouping_records.delay(project)
