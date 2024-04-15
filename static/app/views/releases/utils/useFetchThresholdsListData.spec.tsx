@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {
@@ -58,7 +58,7 @@ describe('useFetchThresholdsListData', () => {
     const thresholds = [];
     const {thresholdMock, alertMock} = mockThresholdApis(thresholds);
 
-    const {result, waitFor} = reactHooks.renderHook(() => useFetchThresholdsListData(), {
+    const {result} = renderHook(() => useFetchThresholdsListData(), {
       wrapper: Wrapper(),
     });
 
@@ -83,7 +83,7 @@ describe('useFetchThresholdsListData', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(() => useFetchThresholdsListData(), {
+    const {result} = renderHook(() => useFetchThresholdsListData(), {
       wrapper: Wrapper(org),
     });
 
@@ -123,7 +123,7 @@ describe('useFetchThresholdsListData', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(() => useFetchThresholdsListData(), {
+    const {result} = renderHook(() => useFetchThresholdsListData(), {
       wrapper: Wrapper(org),
     });
 

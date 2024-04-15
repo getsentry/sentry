@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventOccurrence} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
@@ -60,7 +60,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    const {result} = renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -95,7 +95,7 @@ describe('useReplaysForRegressionIssue', () => {
       body: {},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    const {result} = renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -131,7 +131,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    reactHooks.renderHook(useReplaysForRegressionIssue, {
+    renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -165,7 +165,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    reactHooks.renderHook(useReplaysForRegressionIssue, {
+    renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,

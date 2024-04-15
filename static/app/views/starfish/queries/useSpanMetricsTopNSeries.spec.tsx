@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -74,7 +74,7 @@ describe('useSpanMetricsTopNSeries', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({filters, fields, topEvents, yAxis}) =>
         useSpanMetricsTopNSeries({
           search: MutableSearch.fromQueryObject(filters),

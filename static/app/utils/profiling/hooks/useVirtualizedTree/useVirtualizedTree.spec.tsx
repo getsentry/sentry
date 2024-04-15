@@ -1,4 +1,4 @@
-import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
@@ -46,7 +46,7 @@ const makeScrollContainerMock = ({height}: {height: number}) => {
 
 describe('useVirtualizedTree', () => {
   it('returns a tree', () => {
-    const results = reactHooks.renderHook(useVirtualizedTree, {
+    const results = renderHook(useVirtualizedTree, {
       initialProps: {
         overscroll: 0,
         rowHeight: 10,
@@ -64,7 +64,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 5)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         expanded: true,
         rowHeight: 10,
@@ -83,7 +83,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 10)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
@@ -93,7 +93,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -114,7 +114,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
@@ -124,7 +124,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -149,7 +149,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
@@ -159,7 +159,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -184,7 +184,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
@@ -194,7 +194,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -217,7 +217,7 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+    const {result} = renderHook(useVirtualizedTree, {
       initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
@@ -227,7 +227,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -240,7 +240,7 @@ describe('useVirtualizedTree', () => {
 
     const stableKeys = result.current.items.map(item => item.key);
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.dispatch({type: 'set scroll top', payload: 60});
     });
 

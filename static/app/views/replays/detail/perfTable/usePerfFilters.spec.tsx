@@ -7,7 +7,7 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
@@ -95,7 +95,7 @@ describe('usePerfFilters', () => {
         query: {f_p_type: [TYPE_OPTION.value]},
       } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {
+    const {result} = renderHook(usePerfFilters, {
       initialProps: {traceRows},
     });
 
@@ -114,7 +114,7 @@ describe('usePerfFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    const {result} = renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -126,7 +126,7 @@ describe('usePerfFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    const {result} = renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(1);
   });
 });
@@ -135,7 +135,7 @@ describe('getCrumbTypes', () => {
   it('should return a sorted list of crumb types', () => {
     const traceRows = [CRUMB_1_NAV, CRUMB_2_CLICK]; // ACTION_1_DEBUG, ACTION_2_CLICK];
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    const {result} = renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.getCrumbTypes()).toStrictEqual([
       {label: 'Page Load', qs: 'f_p_type', value: 'navigation.navigate'},
       {label: 'User Click', qs: 'f_p_type', value: 'ui.click'},
@@ -145,7 +145,7 @@ describe('getCrumbTypes', () => {
   it('should deduplicate crumb types', () => {
     const traceRows = [CRUMB_1_NAV, CRUMB_2_CLICK, CRUMB_2_CLICK];
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    const {result} = renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.getCrumbTypes()).toStrictEqual([
       {label: 'Page Load', qs: 'f_p_type', value: 'navigation.navigate'},
       {label: 'User Click', qs: 'f_p_type', value: 'ui.click'},
