@@ -16,12 +16,14 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
+    Profile,
     _calculate_profile_duration_ms,
     _deobfuscate,
     _deobfuscate_locally,
     _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
+    _set_frames_platform,
     _symbolicate_profile,
 )
 from sentry.testutils.cases import TransactionTestCase
@@ -865,3 +867,37 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
         _symbolicate_profile(js_profile, self.project)
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
+
+
+def test_set_frames_platform_sample():
+    js_prof: Profile = {
+        "version": "1",
+        "platform": "javascript",
+        "profile": {
+            "frames": [
+                {"function": "a"},
+                {"function": "b", "platform": "cocoa"},
+                {"function": "c"},
+            ]
+        },
+    }
+    _set_frames_platform(js_prof)
+
+    platforms = [f["platform"] for f in js_prof["profile"]["frames"]]
+    assert platforms == ["javascript", "cocoa", "javascript"]
+
+
+def test_set_frames_platform_android():
+    android_prof: Profile = {
+        "platform": "android",
+        "profile": {
+            "methods": [
+                {"name": "a"},
+                {"name": "b"},
+            ]
+        },
+    }
+    _set_frames_platform(android_prof)
+
+    platforms = [m["platform"] for m in android_prof["profile"]["methods"]]
+    assert platforms == ["android", "android"]
