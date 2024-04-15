@@ -1,5 +1,7 @@
 import copy
 from collections.abc import Mapping
+from random import choice
+from string import ascii_uppercase
 from typing import Any
 from unittest import TestCase
 from unittest.mock import patch
@@ -98,6 +100,12 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
                     "group_id": event.group_id,
                 }
             )
+            # Create 2 hashes per group
+            GroupHash.objects.create(
+                project_id=event.group.project.id,
+                group_id=event.group.id,
+                hash="".join(choice(ascii_uppercase) for i in range(32)),
+            )
         return {"rows": rows, "events": events, "messages": messages}
 
     def setUp(self):
@@ -111,7 +119,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         self.event = self.store_event(
             data={"exception": EXCEPTION}, project_id=self.project.id, assert_no_errors=False
         )
-        group_hashes = GroupHash.objects.all()
+        group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
     def tearDown(self):
@@ -566,7 +574,10 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         num_groups_records_created = backfill_seer_grouping_records(self.project)
 
         for group in Group.objects.all():
-            assert group.data["metadata"]["has_embeddings_record_v1"]
+            assert group.data["metadata"].get("embeddings_info") == {
+                "nn_model_version": 1,
+                "group_hash": json.dumps([self.group_hashes[group.id]]),
+            }
         assert num_groups_records_created == len(Group.objects.all())
 
     @with_feature("projects:similarity-embeddings-grouping")
@@ -586,7 +597,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
 
         assert last_processed_id == 0
         for group in Group.objects.all():
-            assert not group.data["metadata"].get("has_embeddings_record_v1")
+            assert not group.data["metadata"].get("embeddings_info")
         assert num_groups_records_created == 0
 
         with patch(
@@ -599,7 +610,10 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
 
         assert last_processed_id != 0
         for group in Group.objects.all():
-            assert group.data["metadata"]["has_embeddings_record_v1"]
+            assert group.data["metadata"]["embeddings_info"] == {
+                "nn_model_version": 1,
+                "group_hash": json.dumps([self.group_hashes[group.id]]),
+            }
         assert num_groups_records_created == len(Group.objects.all())
 
     def test_backfill_seer_grouping_records_no_feature(self):
@@ -610,7 +624,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         num_groups_records_created = backfill_seer_grouping_records(project)
         assert num_groups_records_created == 0
         for group in Group.objects.all():
-            assert not group.data["metadata"].get("has_embeddings_record_v1")
+            assert not group.data["metadata"].get("embeddings_info")
 
     @with_feature("projects:similarity-embeddings-grouping")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -619,11 +633,17 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         Test that the number of records created does not include the group that already has a record
         """
         events = copy.deepcopy(self.bulk_events)
-        events[-1].group.data["metadata"].update({"has_embeddings_record_v1": True})
+        events[-1].group.data["metadata"]["embeddings_info"] = {
+            "nn_model_version": 1,
+            "group_hash": json.dumps([self.group_hashes[events[-1].group.id]]),
+        }
         events[-1].group.save()
         mock_post_bulk_grouping_records.return_value = {"success": True}
         num_groups_records_created = backfill_seer_grouping_records(self.project)
 
         for group in Group.objects.all():
-            assert group.data["metadata"]["has_embeddings_record_v1"]
+            assert group.data["metadata"].get("embeddings_info") == {
+                "nn_model_version": 1,
+                "group_hash": json.dumps([self.group_hashes[group.id]]),
+            }
         assert num_groups_records_created == len(Group.objects.all()) - 1
