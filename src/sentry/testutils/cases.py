@@ -221,8 +221,6 @@ class BaseTestCase(Fixtures):
             body="not used",
             passthrough=True,
         )
-        with responses.mock:
-            yield
 
     def tasks(self):
         return TaskRunner()
