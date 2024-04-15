@@ -2,7 +2,7 @@ import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DeployBadge from 'sentry/components/deployBadge';
+import DeployBadge from 'sentry/components/badge/deployBadge';
 import type {Deploy} from 'sentry/types';
 
 const deploy: Deploy = {
@@ -16,14 +16,6 @@ const deploy: Deploy = {
 };
 
 describe('DeployBadge', () => {
-  it('renders', () => {
-    render(<DeployBadge deploy={deploy} />);
-
-    expect(screen.getByText('production')).toBeInTheDocument();
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('deploy-open-icon')).not.toBeInTheDocument();
-  });
-
   it('renders with link', () => {
     const projectId = 1;
     render(

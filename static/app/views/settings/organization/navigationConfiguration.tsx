@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {NavigationSection} from 'sentry/views/settings/types';
 

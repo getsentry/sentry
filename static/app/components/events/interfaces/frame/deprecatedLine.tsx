@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,7 +16,6 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {Tag} from 'sentry/components/tag';
 import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';

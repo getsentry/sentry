@@ -6,11 +6,11 @@ import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import {Tag} from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

@@ -1,4 +1,4 @@
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';

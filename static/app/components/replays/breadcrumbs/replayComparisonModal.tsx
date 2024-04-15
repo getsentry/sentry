@@ -4,8 +4,8 @@ import beautify from 'js-beautify';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import {Flex} from 'sentry/components/profiling/flex';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import Tag, {Background} from 'sentry/components/badge/tag';
 import Highlight from 'sentry/components/highlight';
-import {Background, Tag} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 

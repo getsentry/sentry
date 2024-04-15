@@ -3,8 +3,8 @@ import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
 import {Alert} from 'sentry/components/alert';
+import Tag from 'sentry/components/badge/tag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {Tag} from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ProjectSdkUpdates, SDKUpdatesSuggestion} from 'sentry/types';
