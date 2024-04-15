@@ -1,4 +1,8 @@
-import {AutofixDefaultStep, AutofixStep, AutofixStepType} from 'sentry/components/events/autofix/types';
+import {
+  AutofixDefaultStep,
+  AutofixStep,
+  AutofixStepType,
+} from 'sentry/components/events/autofix/types';
 
 export function AutofixStepFixture(params: Partial<AutofixStep>): AutofixStep {
   return {
