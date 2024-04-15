@@ -28,8 +28,10 @@ export function EncryptBackup(props: StepProps) {
       >
         <p>
           {t(
-            'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your `self-hosted` install when you execute it.'
+            'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your '
           )}
+          <mark>self-hosted</mark>
+          {t('install when you execute it.')}
         </p>
         <RelocationCodeBlock
           dark
@@ -44,35 +46,32 @@ export function EncryptBackup(props: StepProps) {
           <b>{t('Understanding the command:')}</b>
         </p>
         <p>
-          <mark>{'SENTRY_DOCKER_IO_DIR=/path/to/key'}</mark>
-          {t('Map local directory to ')}
-          <mark>{'/sentry-admin'}</mark>
-          {t('in your Docker container.')}
-        </p>
-        <p>
-          <mark>{'./sentry-admin.sh'}</mark>
+          {t('The ')}
+          <mark>{'SENTRY_DOCKER_IO_DIR=/path/to/key/dir'}</mark>
           {t(
-            'This is a script present in your self-hosted installation containing admin tools.'
+            'environment variable maps the local directory where you saved your public key in the previous step to a '
           )}
-        </p>
-        <p>
-          <mark>{'export global'}</mark>
-          {t('Perform a global export of your entire self-hosted instance.')}
-        </p>
-        <p>
-          <mark>{'--encrypt-with /sentry-admin/key.pub'}</mark>
-          {t('Encrypts the export with the public key created in the last step.')}
-        </p>
-        <p>
-          <mark>{'/sentry-admin/file.tar'}</mark>
+          <mark>{'/sentry-admin'}</mark>
+          {t('volume in your Docker container. ')}
+          <mark>{'./sentry-admin.sh'}</mark>
+          {t('is a script included by default with your ')}
+          <mark>{'self-hosted'}</mark>
           {t(
-            'Writes the export file into the same directory where the public key file is located.'
+            'installation which contains a number of administrative tools. One of these is the'
+          )}
+          <mark>{'export global'}</mark>
+          {t('command for backing up all Sentry data. ')}
+          <mark>{'--encrypt-with /sentry-admin/key.pub'}</mark>
+          {t('encrypts the data using our public key, and ')}
+          <mark>{'/sentry-admin/export.tar'}</mark>
+          {t(
+            "is the name of the output tarball. This is what you'll upload in the next step."
           )}
         </p>
         <p className="encrypt-note">
           <i>
-            {t('Note: Depending on your configuration, you may need to use ')}
-            <mark>sudo</mark>
+            {t('Note: Depending on your system configuration, you may need to use ')}
+            <mark>sudo -E</mark>
             {t('for this command.')}
           </i>
         </p>

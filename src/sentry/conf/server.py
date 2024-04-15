@@ -1497,6 +1497,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Enables ownership features for cron monitors
+    "organizations:crons-ownership": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1674,8 +1676,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
-    # Enable Monitors (Crons) view
-    "organizations:monitors": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1711,10 +1711,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable mobile performance score calculation for transactions in relay
     "organizations:performance-calculate-mobile-perf-score-relay": False,
-    # Enable performance score calculation for transactions in relay
-    "organizations:performance-calculate-score-relay": False,
-    # Deprecate fid from performance score calculation
-    "organizations:deprecate-fid-from-performance-score": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1978,6 +1974,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:widget-viewer-modal-minimap": False,
     # Enable playing replays from the replay tab
     "organizations:replay-play-from-replay-tab": False,
+    # Mobile replay killswitch
+    # TODO: Delete me on or before public beta.
+    "organizations:session-replay-video": True,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1997,7 +1996,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
     # Enable setting priority for issues
-    "projects:issue-priority": False,
+    "projects:issue-priority": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -3533,7 +3532,8 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
 # This can be as fine-grained as using a different pool for normal "native"
-# symbolication, `js` symbolication, and for `lpq` / `lpq-js`.
+# symbolication, `js` symbolication, `jvm` symbolication,
+# and `lpq` variants`of each of them.
 # (See `SENTRY_LPQ_OPTIONS` and related settings)
 # The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
@@ -3543,10 +3543,12 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The settings here are intentionally empty and will fall back to
 # `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
-    # "js": "...",
     # "default": "...",
+    # "js": "...",
+    # "jvm": "...",
     # "lpq": "...",
     # "lpq_js": "...",
+    # "lpq_jvm": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (

@@ -87,6 +87,22 @@
     "table_name": "hybridcloud_apitokenreplica",
     "uniques": []
   },
+  "hybridcloud.controlcacheversion": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "hybridcloud.controlcacheversion",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_controlcacheversion",
+    "uniques": [
+      [
+        "key"
+      ]
+    ]
+  },
   "hybridcloud.externalactorreplica": {
     "dangling": false,
     "foreign_keys": {
@@ -3205,6 +3221,11 @@
         "kind": "ImplicitForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       },
       "project_id": {
         "kind": "ImplicitForeignKey",

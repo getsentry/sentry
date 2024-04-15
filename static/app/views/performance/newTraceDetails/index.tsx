@@ -1,7 +1,16 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -14,6 +23,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -64,7 +74,25 @@ export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
 
-  const traceSlug = useMemo(() => params.traceSlug?.trim() ?? '', [params.traceSlug]);
+  const traceSlug = useMemo(() => {
+    const slug = params.traceSlug?.trim() ?? '';
+    // null and undefined are not valid trace slugs, but they can be passed
+    // in the URL and need to check for their string coerced values.
+    if (!slug || slug === 'null' || slug === 'undefined') {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-null-slug']);
+        Sentry.captureMessage(`Trace slug is empty`);
+      });
+    }
+    return slug;
+  }, [params.traceSlug]);
+
+  useEffect(() => {
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization,
+    });
+  }, [organization]);
+
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
@@ -665,8 +693,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     traceDispatch({type: 'clear'});
   }, [tree, traceDispatch]);
 
+  const [clickOutsideRef, setClickOutsideRef] = useState<HTMLElement | null>(null);
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
-  useOnClickOutside(traceGridRef, onOutsideTraceContainerClick);
+
+  useOnClickOutside(clickOutsideRef, onOutsideTraceContainerClick);
 
   return (
     <TraceExternalLayout>
@@ -678,15 +708,15 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceInnerLayout>
-        <TraceHeader
-          tree={tree}
-          rootEventResults={rootEvent}
-          metaResults={props.metaResults}
-          organization={props.organization}
-          traces={props.trace}
-          traceID={props.traceSlug}
-        />
+      <TraceHeader
+        tree={tree}
+        rootEventResults={rootEvent}
+        metaResults={props.metaResults}
+        organization={props.organization}
+        traces={props.trace}
+        traceID={props.traceSlug}
+      />
+      <TraceInnerLayout ref={setClickOutsideRef}>
         <TraceToolbar>
           <TraceSearchInput
             trace_state={traceState}
@@ -758,8 +788,18 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: 0 ${space(2)} 0 ${space(2)};
   background-color: ${p => p.theme.background};
+
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
 `;
 
 const TraceToolbar = styled('div')`

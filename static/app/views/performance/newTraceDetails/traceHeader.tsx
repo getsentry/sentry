@@ -256,6 +256,8 @@ const FlexBox = styled('div')`
 
 const TraceHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
+  background-color: ${p => p.theme.background};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
 `;
 
 const TraceHeaderRow = styled(FlexBox)<{textAlign: 'left' | 'right'}>`
