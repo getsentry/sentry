@@ -245,7 +245,7 @@ function Sidebar() {
       {(() => {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
-          organization.features.includes('performance-database-view') ||
+          organization.features.includes('spans-first-ui') ||
           organization.features.includes('starfish-browser-webvitals') ||
           organization.features.includes('performance-screens-view') ||
           organization.features.includes('performance-http-view') ||
@@ -260,7 +260,7 @@ function Sidebar() {
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
             >
-              <Feature features="performance-database-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={

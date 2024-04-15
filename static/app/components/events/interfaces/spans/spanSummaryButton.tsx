@@ -29,7 +29,7 @@ function SpanSummaryButton(props: Props) {
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
 
   if (
-    organization.features.includes('performance-database-view') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
