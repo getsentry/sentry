@@ -26,6 +26,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
@@ -92,6 +93,11 @@ class BaseUserSerializer(CamelSnakeModelSerializer):
             .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
         ):
             raise serializers.ValidationError("That username is already in use.")
+        verified_email_found = UserEmail.objects.filter(
+            user=self.instance, email=value, is_verified=True
+        )
+        if not verified_email_found:
+            raise serializers.ValidationError("Verified email address is not found.")
         return value
 
     def validate(self, attrs):
