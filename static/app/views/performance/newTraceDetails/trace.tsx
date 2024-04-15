@@ -102,6 +102,19 @@ const CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME = [
   'Orphaned',
 ].join(' ');
 
+const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
+  sample: t('Sample'),
+  info: t('Info'),
+  warning: t('Warning'),
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: t('Error'),
+  fatal: t('Fatal'),
+  default: t('Default'),
+  unknown: t('Unknown'),
+};
+
 function maybeFocusRow(
   ref: HTMLDivElement | null,
   node: TraceTreeNode<TraceTree.NodeValue>,
@@ -564,7 +577,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex}
-        className={`Autogrouped TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
+        className={`Autogrouped TraceRow ${rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -593,7 +606,6 @@ function RenderRow(props: {
                 status={props.node.fetchStatus}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                errored={props.node.has_errors}
               >
                 {COUNT_FORMATTER.format(props.node.groupCount)}
               </ChildrenButton>
@@ -645,10 +657,6 @@ function RenderRow(props: {
   }
 
   if (isTransactionNode(props.node)) {
-    const errored =
-      props.node.value.errors.length > 0 ||
-      props.node.value.performance_issues.length > 0;
-
     return (
       <div
         key={props.index}
@@ -658,7 +666,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex}
-        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -704,7 +712,6 @@ function RenderRow(props: {
                       ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
                       : props.onExpand(e, props.node, !props.node.expanded);
                   }}
-                  errored={errored}
                 >
                   {props.node.children.length > 0
                     ? COUNT_FORMATTER.format(props.node.children.length)
@@ -760,7 +767,6 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
-    const errored = props.node.errors.size > 0 || props.node.performance_issues.size > 0;
     return (
       <div
         key={props.index}
@@ -770,7 +776,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex}
-        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -816,7 +822,6 @@ function RenderRow(props: {
                       ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
                       : props.onExpand(e, props.node, !props.node.expanded)
                   }
-                  errored={errored}
                 >
                   {props.node.children.length > 0
                     ? COUNT_FORMATTER.format(props.node.children.length)
@@ -959,7 +964,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex}
-        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -1044,7 +1049,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex}
-        className={`TraceRow ${rowSearchClassName} Errored`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.max_severity}`}
         onClick={e => props.onRowClick(props.node, e, props.index)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -1070,7 +1075,9 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            <span className="TraceOperation">{t('Error')}</span>
+            <span className="TraceOperation">
+              {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
+            </span>
             <strong className="TraceEmDash"> — </strong>
             <span className="TraceDescription">{props.node.value.title}</span>
           </div>
@@ -1095,8 +1102,8 @@ function RenderRow(props: {
             virtualizedIndex={virtualized_index}
           >
             {typeof props.node.value.timestamp === 'number' ? (
-              <div className="TraceError">
-                <TraceIcons.Fire />
+              <div className={`TraceIcon ${props.node.value.level}`}>
+                <TraceIcons.Icon event={props.node.value} />
               </div>
             ) : null}
           </InvisibleTraceBar>
@@ -1302,13 +1309,9 @@ function ChildrenButton(props: {
   icon: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
   status: TraceTreeNode<any>['fetchStatus'] | undefined;
-  errored?: boolean;
 }) {
   return (
-    <button
-      className={`TraceChildrenCount ${props.errored ? 'Errored' : ''}`}
-      onClick={props.onClick}
-    >
+    <button className={`TraceChildrenCount`} onClick={props.onClick}>
       <div className="TraceChildrenCountContent">{props.children}</div>
       <div className="TraceChildrenCountAction">
         {props.icon}
@@ -1374,9 +1377,9 @@ function TraceBar(props: TraceBarProps) {
         ) : null}
         {props.performance_issues.size > 0 ? (
           <PerformanceIssues
+            manager={props.manager}
             node_space={props.node_space}
             performance_issues={props.performance_issues}
-            manager={props.manager}
           />
         ) : null}
       </div>
@@ -1481,8 +1484,8 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
             className="TracePerformanceIssue"
             style={{left: left * 100 + '%', width: width + '%'}}
           >
-            <div className="TraceError" style={{left: 0}}>
-              <TraceIcons.Fire />
+            <div className={`TraceIcon performance_issue`} style={{left: 0}}>
+              <TraceIcons.Icon event={issue} />
             </div>
           </div>
         );
@@ -1523,10 +1526,10 @@ function Errors(props: ErrorsProps) {
         return (
           <div
             key={error.event_id}
-            className="TraceError"
+            className={`TraceIcon ${error.level}`}
             style={{left: left * 100 + '%'}}
           >
-            <TraceIcons.Fire />
+            <TraceIcons.Icon event={error} />
           </div>
         );
       })}
@@ -1561,10 +1564,10 @@ function Profiles(props: ProfilesProps) {
         return (
           <div
             key={profile.profile_id}
-            className="TraceProfile"
+            className="TraceIcon profile"
             style={{left: left * 100 + '%'}}
           >
-            <TraceIcons.Profile />
+            <TraceIcons.Icon event={profile} />
           </div>
         );
       })}
@@ -1906,6 +1909,26 @@ const TraceStylingWrapper = styled('div')`
     --row-background-odd: ${p => p.theme.translucentSurface100};
     --row-background-hover: ${p => p.theme.translucentSurface100};
     --row-background-focused: ${p => p.theme.translucentSurface200};
+    --row-outline: ${p => p.theme.blue300};
+    --row-children-button-border-color: ${p => p.theme.border};
+
+    /* false positive for grid layout */
+    /* stylelint-disable */
+    &.info {
+    }
+    &.warning {
+    }
+    &.error,
+    &.fatal,
+    &.performance_issue {
+      --autogrouped: ${p => p.theme.error};
+      --row-children-button-border-color: ${p => p.theme.error};
+      --row-outline: ${p => p.theme.error};
+    }
+    &.default {
+    }
+    &.unknown {
+    }
 
     &.Hidden {
       position: absolute;
@@ -1921,42 +1944,59 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    .TraceError {
+    .TraceIcon {
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
-      background: ${p => p.theme.background};
+      background-color: ${p => p.theme.background};
       width: 18px !important;
       height: 18px !important;
-      background-color: ${p => p.theme.error};
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
 
-      svg {
-        fill: ${p => p.theme.white};
+      &.info {
+        background-color: var(--info);
       }
-    }
-
-    .TraceProfile {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
-      background: ${p => p.theme.background};
-      width: 18px !important;
-      height: 18px !important;
-      background-color: ${p => p.theme.purple300};
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      &.warning {
+        background-color: var(--warning);
+      }
+      &.error,
+      &.fatal {
+        background-color: var(--error);
+      }
+      &.performance_issue {
+        background-color: var(--performance-issue);
+      }
+      &.default {
+        background-color: var(--default);
+      }
+      &.unknown {
+        background-color: var(--unknown);
+      }
+      &.profile {
+        background-color: var(--profile);
+      }
 
       svg {
         width: 12px;
         height: 12px;
-        margin-left: 2px;
         fill: ${p => p.theme.white};
+      }
+
+      &.profile svg {
+        margin-left: 2px;
+      }
+
+      &.info,
+      &.warning,
+      &.performance_issue,
+      &.default,
+      &.unknown {
+        svg {
+          transform: translateY(-1px);
+        }
       }
     }
 
@@ -1966,7 +2006,7 @@ const TraceStylingWrapper = styled('div')`
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      background-color: ${p => p.theme.error};
+      background-color: var(--performance-issue);
       height: 16px;
     }
 
@@ -2000,33 +2040,13 @@ const TraceStylingWrapper = styled('div')`
     &:focus,
     &[tabindex='0'] {
       background-color: var(--row-background-focused);
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
+      box-shadow: inset 0 0 0 1px var(--row-outline) !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
+        box-shadow: inset 0px 0 0px 1px var(--row-outline) !important;
       }
       .TraceRightColumn.Odd {
         background-color: transparent !important;
-      }
-    }
-
-    &.Errored {
-      color: ${p => p.theme.error};
-
-      .TraceChildrenCount {
-        border: 2px solid ${p => p.theme.error};
-
-        svg {
-          fill: ${p => p.theme.error};
-        }
-      }
-
-      &:focus {
-        box-shadow: inset 0 0 0 1px ${p => p.theme.red300} !important;
-
-        .TraceLeftColumn {
-          box-shadow: inset 0px 0 0px 1px ${p => p.theme.red300} !important;
-        }
       }
     }
 
@@ -2040,14 +2060,6 @@ const TraceStylingWrapper = styled('div')`
 
     &.Autogrouped {
       color: ${p => p.theme.blue300};
-
-      &.Errored {
-        color: ${p => p.theme.error};
-
-        .TraceChildrenCount {
-          background-color: ${p => p.theme.error} !important;
-        }
-      }
 
       .TraceDescription {
         font-weight: bold;
@@ -2185,7 +2197,7 @@ const TraceStylingWrapper = styled('div')`
     padding: 0px 4px;
     transition: all 0.15s ease-in-out;
     background: ${p => p.theme.background};
-    border: 2px solid ${p => p.theme.border};
+    border: 2px solid var(--row-children-button-border-color);
     line-height: 0;
     z-index: 1;
     font-size: 10px;
@@ -2238,7 +2250,6 @@ const TraceStylingWrapper = styled('div')`
     svg {
       width: 7px;
       transition: none;
-      fill: ${p => p.theme.textColor};
     }
   }
 
@@ -2252,6 +2263,10 @@ const TraceStylingWrapper = styled('div')`
 
     button {
       transition: none;
+    }
+
+    svg {
+      fill: currentColor;
     }
 
     &.Orphaned {

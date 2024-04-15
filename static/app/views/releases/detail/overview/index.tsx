@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
@@ -665,7 +665,7 @@ function generateTransactionLink(
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query
+    _location: Location
   ): LocationDescriptor => {
     const {transaction} = tableRow;
     const trendTransaction = ['regression', 'improved'].includes(value);

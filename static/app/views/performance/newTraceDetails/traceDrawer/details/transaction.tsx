@@ -323,7 +323,10 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink node={node} />
+          <TraceDrawerComponents.EventDetailsLink
+            node={node}
+            organization={organization}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
@@ -351,7 +354,7 @@ export function TransactionNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>
