@@ -39,7 +39,7 @@ from snuba_sdk.expressions import Expression
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
-from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
+from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
@@ -112,7 +112,7 @@ def search_filter_to_condition(
     search_filter: SearchFilter,
 ) -> Condition | None:
     field = search_config.get(search_filter.key.name)
-    if isinstance(field, (ColumnField, ComputedField)):
+    if isinstance(field, (ColumnField, ExpressionField, ComputedField)):
         return field.apply(search_filter)
 
     if "*" in search_config:
