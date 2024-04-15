@@ -81,8 +81,9 @@ function getTagTreeRows({
   tagKey,
   content,
   spacerCount = 0,
+  uniqueKey,
   ...props
-}: EventTagsTreeRowProps) {
+}: EventTagsTreeRowProps & {uniqueKey: string}) {
   const subtreeTags = Object.keys(content.subtree);
   const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
     const branchRows = getTagTreeRows({
@@ -91,13 +92,14 @@ function getTagTreeRows({
       content: content.subtree[tag],
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
+      // Encoding the trunk index with the branch index ensures uniqueness for the key
+      uniqueKey: `${uniqueKey}-${i}`,
     });
     return rows.concat(branchRows);
   }, []);
-
   return [
     <EventTagsTreeRow
-      key={`${tagKey}-${spacerCount}`}
+      key={`${tagKey}-${spacerCount}-${uniqueKey}`}
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
@@ -126,7 +128,8 @@ function TagTreeColumns({
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
-      ([tagKey, content]) => getTagTreeRows({tagKey, content, ...props})
+      ([tagKey, content], i) =>
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
