@@ -8,6 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {NULL_DOMAIN_DESCRIPTION} from 'sentry/views/performance/http/settings';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
@@ -24,6 +25,7 @@ export function DomainCell({projectId, domain}: Props) {
 
   const queryString = {
     ...location.query,
+    'span.domain': undefined,
     domain,
   };
 
@@ -37,7 +39,7 @@ export function DomainCell({projectId, domain}: Props) {
             `/organizations/${organization.slug}/performance/http/domains/?${qs.stringify(queryString)}`
           )}
         >
-          {domain && domain.length > 0 ? domain : NULL_DESCRIPTION}
+          {domain && domain.length > 0 ? domain : NULL_DOMAIN_DESCRIPTION}
         </Link>
       </OverflowEllipsisTextContainer>
     </DomainDescription>
@@ -50,5 +52,3 @@ const DomainDescription = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;

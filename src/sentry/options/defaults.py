@@ -450,6 +450,12 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "replay.organizations.video-slug-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -1213,6 +1219,12 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Option to enable orjson for JSON parsing
+register("sentry-metrics.indexer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "sentry-metrics.ingest-consumer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1724,6 +1736,18 @@ register(
 )  # days
 register(
     "performance.traces.span_query_timebuffer_hours",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+register(
+    "performance.traces.query_timestamp_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-buffer-hours",
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2382,5 +2406,11 @@ register(
     "profiling.deobfuscate-using-symbolicator.enable-for-project",
     type=Sequence,
     default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "traces.sample-list.sample-rate",
+    type=Float,
+    default=100_000.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

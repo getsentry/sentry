@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -95,7 +94,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             </Row>
 
             <TextOverflow style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
+              <strong>
+                {feedbackItem.metadata.name ??
+                  feedbackItem.metadata.contact_email ??
+                  t('Anonymous User')}
+              </strong>
             </TextOverflow>
 
             <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />

@@ -761,7 +761,14 @@ def post_process_group(
             if duration and duration > 604_800:  # 7 days (7*24*60*60)
                 logger.warning(
                     "tasks.post_process.old_time_to_post_process",
-                    extra={"group_id": group_id, "project_id": project_id, "duration": duration},
+                    extra={
+                        "group_id": group_id,
+                        "project_id": project_id,
+                        "duration": duration,
+                        "original_issue_id": get_path(
+                            event.data, "contexts", "reprocessing", "original_issue_id"
+                        ),
+                    },
                 )
 
 
@@ -1091,7 +1098,7 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.rules.processor import RuleProcessor
+    from sentry.rules.processing.processor import RuleProcessor
 
     group_event = job["event"]
     if isinstance(group_event, Event):

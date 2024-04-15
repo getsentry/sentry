@@ -36,7 +36,7 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d'},
+    query: {statsPeriod: '10d', 'span.domain': 'git'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -188,7 +188,7 @@ describe('HTTPLandingPage', function () {
           ],
           per_page: 10,
           project: [],
-          query: 'span.module:http',
+          query: 'span.module:http span.domain:*git*',
           referrer: 'api.starfish.http-module-landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',

@@ -17,7 +17,7 @@ from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
-from sentry.rules.processor import RuleProcessor
+from sentry.rules.processing.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
@@ -37,7 +37,7 @@ EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCo
 
 
 class MockConditionTrue(EventCondition):
-    id = "tests.sentry.rules.test_processor.MockConditionTrue"
+    id = "tests.sentry.rules.processing.test_processor.MockConditionTrue"
     label = "Mock condition which always passes."
 
     def passes(self, event, state):
@@ -317,7 +317,9 @@ class RuleProcessorTest(TestCase):
 
         # Test that we don't get errors if we try to create statuses that already exist due to a
         # race condition
-        with mock.patch("sentry.rules.processor.GroupRuleStatus") as mocked_GroupRuleStatus:
+        with mock.patch(
+            "sentry.rules.processing.processor.GroupRuleStatus"
+        ) as mocked_GroupRuleStatus:
             call_count = 0
 
             def mock_filter(*args, **kwargs):
@@ -339,7 +341,7 @@ class RuleProcessorTest(TestCase):
         [
             "sentry.mail.actions.NotifyEmailAction",
             "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "tests.sentry.rules.test_processor.MockConditionTrue",
+            "tests.sentry.rules.processing.test_processor.MockConditionTrue",
         ],
     )
     def test_slow_conditions_evaluate_last(self):
@@ -349,14 +351,14 @@ class RuleProcessorTest(TestCase):
             data={
                 "conditions": [
                     {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"},
-                    {"id": "tests.sentry.rules.test_processor.MockConditionTrue"},
+                    {"id": "tests.sentry.rules.processing.test_processor.MockConditionTrue"},
                 ],
                 "action_match": "any",
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
         with (
-            patch("sentry.rules.processor.rules", init_registry()),
+            patch("sentry.rules.processing.processor.rules", init_registry()),
             patch(
                 "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
             ) as passes,
@@ -376,7 +378,7 @@ class RuleProcessorTest(TestCase):
 
 
 class MockFilterTrue(EventFilter):
-    id = "tests.sentry.rules.test_processor.MockFilterTrue"
+    id = "tests.sentry.rules.processing.test_processor.MockFilterTrue"
     label = "Mock filter which always passes."
 
     def passes(self, event, state):
@@ -384,7 +386,7 @@ class MockFilterTrue(EventFilter):
 
 
 class MockFilterFalse(EventFilter):
-    id = "tests.sentry.rules.test_processor.MockFilterFalse"
+    id = "tests.sentry.rules.processing.test_processor.MockFilterFalse"
     label = "Mock filter which never passes."
 
     def passes(self, event, state):
@@ -395,8 +397,8 @@ class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
         "sentry.rules.conditions.every_event.EveryEventCondition",
-        "tests.sentry.rules.test_processor.MockFilterTrue",
-        "tests.sentry.rules.test_processor.MockFilterFalse",
+        "tests.sentry.rules.processing.test_processor.MockFilterTrue",
+        "tests.sentry.rules.processing.test_processor.MockFilterFalse",
     )
 
     def setUp(self):
@@ -406,7 +408,7 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -418,7 +420,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with patch("sentry.rules.processor.rules", init_registry()):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -436,7 +438,7 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterFalse"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterFalse"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         self.rule = Rule.objects.create(
@@ -447,7 +449,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
         # patch the rule registry to contain the mocked rules
-        with patch("sentry.rules.processor.rules", init_registry()):
+        with patch("sentry.rules.processing.processor.rules", init_registry()):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -553,15 +555,15 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         with mock.patch(
-            "sentry.rules.processor.RuleProcessor.bulk_get_rule_status",
+            "sentry.rules.processing.processor.RuleProcessor.bulk_get_rule_status",
             return_value={self.rule.id: grs},
         ):
             results = list(rp.apply())
             assert len(results) == 0
 
-    @mock.patch("sentry.rules.processor.RuleProcessor.logger")
+    @mock.patch("sentry.rules.processing.processor.RuleProcessor.logger")
     def test_invalid_predicate(self, mock_logger):
-        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+        filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -573,7 +575,7 @@ class RuleProcessorTestFilters(TestCase):
             },
         )
 
-        with patch("sentry.rules.processor.get_match_function", return_value=None):
+        with patch("sentry.rules.processing.processor.get_match_function", return_value=None):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -698,7 +700,9 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["title_link"]
+            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["blocks"][0]["text"][
+                "text"
+            ]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
