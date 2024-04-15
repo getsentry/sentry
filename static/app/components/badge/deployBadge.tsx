@@ -2,6 +2,7 @@ import Link from 'sentry/components/links/link';
 import {Tag} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
   deploy: Deploy;
@@ -18,7 +19,7 @@ export default function DeployBadge({deploy, orgSlug, projectId, version}: Props
         query: {
           project: projectId,
           environment: deploy.environment,
-          query: {release: version},
+          query: new MutableSearch([`release:${version!}`]).formatString(),
         },
       }}
     >
