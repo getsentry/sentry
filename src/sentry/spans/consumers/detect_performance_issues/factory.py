@@ -13,7 +13,6 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegme
 
 from sentry import options
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
-from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_codec("buffered-segments")
@@ -28,16 +27,15 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 def process_message(message: Message[KafkaPayload]):
     value = message.payload.value
     segment = _deserialize_segment(value)
-    metrics.incr("detect_performance_issues.spans.count", len(segment["spans"]))
 
-    assert len(segment["spans"]) > 0
+    assert segment["spans"]
 
     process_segment(segment["spans"])
 
 
 def _process_message(message: Message[KafkaPayload]):
     if not options.get("standalone-spans.detect-performance-issues-consumer.enable"):
-        return None
+        return
 
     assert isinstance(message.value, BrokerValue)
 
@@ -81,3 +79,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             input_block_size=self.input_block_size,
             output_block_size=self.output_block_size,
         )
+
+    def shutdown(self):
+        self.pool.close()

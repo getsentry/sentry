@@ -70,7 +70,6 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.mediators.project_rules.creator import Creator
-from sentry.models.actor import get_actor_for_user
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -2853,14 +2852,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
-        assert attachment["title"] == "N+1 Query"
+        assert "N+1 Query" in attachment["text"]
         assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in attachment["blocks"][1]["text"]["text"]
         )
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
+            attachment["blocks"][-2]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -3061,8 +3061,8 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
-        if "owner_actor_id" not in kwargs:
-            kwargs["owner_actor_id"] = get_actor_for_user(self.user).id
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
 
         return Monitor.objects.create(
             organization_id=self.organization.id,

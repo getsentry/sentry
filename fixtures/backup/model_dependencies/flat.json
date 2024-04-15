@@ -446,7 +446,8 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
