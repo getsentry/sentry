@@ -1741,12 +1741,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
-    "performance.spans-first-ui.enable",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,
