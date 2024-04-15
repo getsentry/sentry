@@ -5,8 +5,7 @@ function trimAttribute(elementAttribute, fullAlltribute) {
 }
 
 // fullSelector is used for searches since searching without all attributes returns too many replays
-// selector is shown when you hover on a selector and used to show what gets searched
-// displaySelector is the selector shown in the selector widget/table
+// selector is the selector shown in the selector widget/table and when you hover
 export default function constructSelector(element: ReplayClickElement) {
   const tag = element.tag;
 
@@ -46,10 +45,12 @@ export default function constructSelector(element: ReplayClickElement) {
     fullTitle +
     fullComponentName;
   const selector =
-    tag + id + classes + role + ariaLabel + testId + alt + title + componentName;
-  const displaySelector = componentName
-    ? element.component_name + id + role + ariaLabel + testId + alt + title
-    : selector;
+    (componentName ? element.component_name + id : tag + id + classes) +
+    role +
+    ariaLabel +
+    testId +
+    alt +
+    title;
 
-  return {fullSelector, selector, displaySelector};
+  return {fullSelector, selector};
 }

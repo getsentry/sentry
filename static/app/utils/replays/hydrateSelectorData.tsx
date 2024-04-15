@@ -13,7 +13,6 @@ export default function hydratedSelectorData(data, clickType?): DeadRageSelector
     dom_element: {
       fullSelector: constructSelector(d.element).fullSelector,
       selector: constructSelector(d.element).selector,
-      displaySelector: constructSelector(d.element).displaySelector,
       projectId: d.project_id,
     },
     element: d.dom_element.split(/[#.[]+/)[0],

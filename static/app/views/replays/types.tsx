@@ -177,7 +177,6 @@ export interface ReplayError {
 export type DeadRageSelectorItem = {
   aria_label: string;
   dom_element: {
-    displaySelector: string;
     fullSelector: string;
     projectId: number;
     selector: string;
