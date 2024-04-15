@@ -5,6 +5,7 @@
 
 import traceback
 
+import sentry_sdk
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
@@ -325,6 +326,7 @@ class UniversalImportExportService(ImportExportService):
                 )
 
         except DeserializationError:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
                 on=InstanceID(model_name),
@@ -349,6 +351,7 @@ class UniversalImportExportService(ImportExportService):
                             )
                         return existing_import_chunk
                     except Exception:
+                        sentry_sdk.capture_exception()
                         return RpcImportError(
                             kind=RpcImportErrorKind.Unknown,
                             on=InstanceID(model_name),
@@ -358,6 +361,7 @@ class UniversalImportExportService(ImportExportService):
             # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
             # not properly sanitized against collision. This could be the fault of either the import
             # logic, or the user's data itself.
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.IntegrityError,
                 on=InstanceID(model_name),
@@ -365,6 +369,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except DatabaseError as e:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DatabaseError,
                 on=InstanceID(model_name),
@@ -372,6 +377,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.Unknown,
                 on=InstanceID(model_name),
@@ -509,6 +515,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return RpcExportError(
                 kind=RpcExportErrorKind.Unknown,
                 on=InstanceID(model_name),
