@@ -1340,10 +1340,6 @@ function TraceBar(props: TraceBarProps) {
 
   const duration = formatTraceDuration(props.node_space[1]);
   const spanTransform = props.manager.computeSpanCSSMatrixTransform(props.node_space);
-  const [inside, textTransform] = props.manager.computeSpanTextPlacement(
-    props.node_space,
-    duration
-  );
 
   return (
     <Fragment>
@@ -1393,10 +1389,6 @@ function TraceBar(props: TraceBarProps) {
           )
         }
         className="TraceBarDuration"
-        style={{
-          color: inside ? 'white' : '',
-          transform: `translate(${textTransform ?? 0}px, 0)`,
-        }}
       >
         {duration}
       </div>
@@ -1607,10 +1599,6 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
 
   const duration = formatTraceDuration(props.entire_space[1]);
   const spanTransform = props.manager.computeSpanCSSMatrixTransform(props.entire_space);
-  const [inside, textTransform] = props.manager.computeSpanTextPlacement(
-    props.entire_space,
-    duration
-  );
 
   return (
     <Fragment>
@@ -1678,10 +1666,6 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
           )
         }
         className="TraceBarDuration"
-        style={{
-          color: inside ? 'white' : '',
-          transform: `translate(${textTransform ?? 0}px, 0)`,
-        }}
       >
         {duration}
       </div>
