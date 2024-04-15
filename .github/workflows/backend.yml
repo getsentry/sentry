@@ -110,7 +110,7 @@ jobs:
           make test-python-ci
 
       - name: Collect test data
-        uses: ./.github/workflows/collect-test-data.yml
+        uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.json
@@ -275,7 +275,7 @@ jobs:
           make test-monolith-dbs
 
       - name: Collect test data
-        uses: ./.github/workflows/collect-test-data.yml
+        uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.monolith-dbs.json

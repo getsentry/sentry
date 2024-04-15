@@ -114,7 +114,7 @@ jobs:
         run: make run-acceptance
 
       - name: Collect test data
-        uses: ./.github/workflows/collect-test-data.yml
+        uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
         with:
           artifact_path: .artifacts/pytest.acceptance.json
