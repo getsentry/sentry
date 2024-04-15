@@ -21,9 +21,6 @@ from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import options_override
 
-# XXX: Where should the safe_execute part go? Is it even needed for tasks?
-# from sentry.utils.safe import safe_execute
-
 logger = logging.getLogger("sentry.rules.delayed_processing")
 
 
@@ -65,6 +62,18 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
 )
 def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     """ """
+
+    # XXX(schew2381): This is from
+    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
+    # Do we need to check this before we start the steps (ask dan, I think the
+    # answer is now b/c we check it before triggering actions))
+
+    # frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+    # now = datetime.now()
+    # freq_offset = now - timedelta(minutes=frequency)
+    # if status.last_active and status.last_active > freq_offset:
+    #     return
+
     # STEP 1: Fetch the rulegroup_to_event mapping for the project from redis
 
     # The mapping looks like: {rule.id}:{group.id} -> {event.id}
@@ -72,10 +81,10 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     rulegroup_to_event = buffer.get_hash(model=Project, field={"id": project.id})
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
-    rules_to_groups: DefaultDict[str, set[int]] = defaultdict(set)
+    rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
     for rule_group in rulegroup_to_event.keys():
         rule_id, group_id = rule_group.split(":")
-        rules_to_groups[rule_id].add(int(group_id))
+        rules_to_groups[int(rule_id)].add(int(group_id))
 
     # STEP 3: Fetch the Rule models we need to check
     rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
@@ -121,6 +130,9 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
+
+    # XXX: Probably want to safe execute somewhere in this step before making
+    # the query
     condition_group_results: dict[UniqueCondition, dict[int, int]] = {}
     for unique_condition, (condition_data, group_ids) in condition_groups.items():
         condition_cls = rules.get(unique_condition.cls_id)
@@ -148,6 +160,9 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             results = condition_inst.batch_query(
                 group_ids, end - duration, end, environment_id=unique_condition.environment_id
             )
+
+            # If the condition is a percent comparison, we need to query the
+            # previous interval to compare against the current interval
             comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
             if comparison_type == ComparisonType.PERCENT:
                 comparison_interval = condition_inst.intervals[unique_condition.interval][1]
@@ -160,20 +175,35 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
                     environment_id=unique_condition.environment_id,
                 )
 
-            results = {
-                group_id: percent_increase(results[group_id], comparison_results[group_id])
-                for group_id in group_ids
-            }
+                results = {
+                    group_id: percent_increase(results[group_id], comparison_results[group_id])
+                    for group_id in group_ids
+                }
 
         condition_group_results[unique_condition] = results
 
-        # group_results: dict[int, int] = cond.batch_query(group_ids)
-        # for group_id, result in group_results.items():
-        #     condition_group_results[(cond, group_id)] = result
+    # Step 6: For each rule and group applying to that rule, check if the group
+    # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
+    for rule in rules:
+        # don't know why mypy is complaining : (expression has type "int", variable has type "str")
+        for group_id in rules_to_groups[rule.id]:  # type: ignore[assignment]
+            pass
 
-        # safe_execute(
-        #     apply_delayed,
-        #     project,
-        #     rulegroup_event_mapping,
-        #     _with_transaction=False,
-        # )
+            # get:
+            # 1. rule conditions + result of condition check in results dict
+            # 2. the predicate func (any, all) to iterate over for conditions
+            # 3. The interval rules value to compare the result of the query
+            #    against (e.g. # issues is > 50, 50 is the value). This is
+            #    stored in DataAndGroups.data["value"], see EventFrequencyConditionData
+
+            # Store all rule/group pairs  we need to activate
+
+    # Step 8: Bulk fetch the events of the rule/group pairs we need to trigger
+    # actions for
+
+    # Was thinking we could do something like this where we get futures,
+    # then safe execute them
+    # https://github.com/getsentry/sentry/blob/3075c03e0819dd2c974897cc3014764c43151db5/src/sentry/tasks/post_process.py#L1115-L1128
+
+    # XXX: Be sure to do this before triggering actions!
+    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L247-L254
