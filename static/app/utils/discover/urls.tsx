@@ -48,6 +48,7 @@ export function generateLinkToEventInTraceView({
   location,
   spanId,
   eventSlug,
+  transactionName,
   type = 'performance',
 }: {
   dataRow: TableDataRow;
@@ -57,6 +58,7 @@ export function generateLinkToEventInTraceView({
   organization: Organization;
   isHomepage?: boolean;
   spanId?: string;
+  transactionName?: string;
   type?: 'performance' | 'discover';
 }) {
   const dateSelection = eventView.normalizeDateSelection(location);
@@ -78,7 +80,7 @@ export function generateLinkToEventInTraceView({
     return getTransactionDetailsUrl(
       organization.slug,
       eventSlug,
-      undefined,
+      transactionName,
       location.query,
       spanId
     );
