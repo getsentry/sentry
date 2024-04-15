@@ -5,6 +5,7 @@ import abc
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -45,6 +46,19 @@ class BaseOption(OverwritableConfigMixin, Model):
     value = PickledObjectField()
 
     __repr__ = sane_repr("key", "value")
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # These ping options change too frequently, or necessarily with each install, to be useful
+        # in exports. More broadly, we don't really care about comparing them for accuracy.
+        return q & ~models.Q(
+            key__in={
+                "sentry:install-id",  # Only used on self-hosted
+                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
+                "sentry:last_worker_ping",  # Changes very frequently
+                "sentry:last_worker_version",  # Changes very frequently
+            }
+        )
 
 
 @region_silo_only_model

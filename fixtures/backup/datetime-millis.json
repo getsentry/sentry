@@ -1,0 +1,22 @@
+[
+  {
+    "model": "sentry.option",
+    "pk": 1,
+    "fields": {
+      "key": "sentry:option-with-unzeroed-millis",
+      "last_updated": "2023-06-22T00:00:00.000Z",
+      "last_updated_by": "unknown",
+      "value": "\"23.6.1\""
+    }
+  },
+  {
+    "model": "sentry.option",
+    "pk": 2,
+    "fields": {
+      "key": "sentry:option-with-zeroed-millis",
+      "last_updated": "2023-06-22T00:00:00Z",
+      "last_updated_by": "unknown",
+      "value": "\"23.6.1\""
+    }
+  }
+]
