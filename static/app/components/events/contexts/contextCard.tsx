@@ -54,7 +54,6 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
           depth={0}
           maxDefaultDepth={0}
           meta={contextMeta}
-          config={{}}
           withAnnotatedText
           withOnlyFormattedText
         />
@@ -69,8 +68,10 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
             ) : (
               dataComponent
             )}
-            <AnnotatedTextErrors errors={contextErrors} />
           </ContextValue>
+          <ContextErrors>
+            <AnnotatedTextErrors errors={contextErrors} />
+          </ContextErrors>
         </ContextContent>
       );
     }
@@ -88,7 +89,7 @@ const Card = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr;
+  grid-template-columns: minmax(100px, auto) 1fr 30px;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -103,7 +104,8 @@ const ContextTitle = styled('p')`
 const ContextContent = styled('div')<{hasErrors: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
-  grid-column: span 2;
+  grid-column: span 3;
+  column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
@@ -117,16 +119,18 @@ const ContextContent = styled('div')<{hasErrors: boolean}>`
 `;
 
 const ContextSubject = styled('div')`
-  grid-column: 1 / 2;
+  grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
+  word-wrap: break-word;
 `;
 
-const ContextValue = styled('div')<{hasErrors: boolean}>`
-  grid-column: 2 / 3;
+const ContextValue = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
-  font-family: ${p => p.theme.text.familyMono};
-  display: flex;
-  justify-content: space-between;
+  grid-column: span ${p => (p.hasErrors ? 1 : 2)};
+  /* justify-content: space-between;
+  display: inline-flex; */
 `;
+
+const ContextErrors = styled('div')``;
 
 export default ContextCard;

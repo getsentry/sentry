@@ -23,7 +23,7 @@ describe('ContextCard', function () {
       book: {
         title: 'This Is How You Lose the Time War',
         pages: 208,
-        published: new Date('2018-07-21'),
+        published: '2018-07-21T00:00:00.000Z',
       },
     };
     const customContext = {

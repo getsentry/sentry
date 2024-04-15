@@ -86,11 +86,11 @@ export function StructuredData({
   meta,
   objectKey,
 }: {
-  config: StructedEventDataConfig | undefined;
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
+  config?: StructedEventDataConfig;
   objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
