@@ -34,6 +34,7 @@ export default function Stories({location}: Props) {
             <StoryTree
               files={storiesContext()
                 .files()
+                .map(s => s.replace(/^app\//, ''))
                 .filter(s => s.toLowerCase().includes(searchTerm))}
             />
           </TreeContainer>
