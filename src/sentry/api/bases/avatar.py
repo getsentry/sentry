@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.models.avatars.base import AvatarBase
+from sentry.models.avatars.control_base import ControlAvatarBase
 
 AvatarT = TypeVar("AvatarT", bound=AvatarBase)
 
@@ -27,9 +28,15 @@ class AvatarSerializer(serializers.Serializer):
             if "user" in kwargs_copy:
                 user = kwargs_copy.pop("user")
                 kwargs_copy["user_id"] = user.id
-            has_existing_file = model_type.objects.filter(
-                file_id__isnull=False, **kwargs_copy
-            ).exists()
+
+            if issubclass(model_type, ControlAvatarBase):
+                has_existing_file = model_type.objects.filter(
+                    control_file_id__isnull=False, **kwargs_copy
+                ).exists()
+            else:
+                has_existing_file = model_type.objects.filter(
+                    file_id__isnull=False, **kwargs_copy
+                ).exists()
             if not has_existing_file and not attrs.get("avatar_photo"):
                 raise serializers.ValidationError(
                     {"avatar_type": "Cannot set avatar_type to upload without avatar_photo"}
