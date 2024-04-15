@@ -80,12 +80,41 @@ describe('HTTPLandingPage', function () {
       body: {
         data: [
           {
-            'span.domain': '*.sentry.io',
+            'span.domain': ['*.sentry.io'],
+            'project.id': 1,
+            'sum(span.self_time)': 815833579.659315,
+            'spm()': 40767.0,
+            'time_spent_percentage()': 0.33634048399458855,
+            'http_response_rate(3)': 0.00035567983908553485,
+            'http_response_rate(4)': 0.3931893443226139,
+            'http_response_rate(5)': 0.0037624385736829626,
+            'avg(span.self_time)': 333.53512222275975,
           },
           {
-            'span.domain': '*.github.com',
+            'span.domain': ['*.github.com'],
+            'project.id': 2,
+            'sum(span.self_time)': 473552338.9970339,
+            'spm()': 29912.133333333335,
+            'time_spent_percentage()': 0.19522955032268177,
+            'http_response_rate(3)': 0.0,
+            'http_response_rate(4)': 0.0012324987407562593,
+            'http_response_rate(5)': 0.004054096219594279,
+            'avg(span.self_time)': 263.857441905979,
           },
         ],
+        meta: {
+          fields: {
+            'project.id': 'integer',
+            'span.domain': 'array',
+            'sum(span.self_time)': 'duration',
+            'http_response_rate(3)': 'percentage',
+            'spm()': 'rate',
+            'time_spent_percentage()': 'percentage',
+            'http_response_rate(4)': 'percentage',
+            'http_response_rate(5)': 'percentage',
+            'avg(span.self_time)': 'duration',
+          },
+        },
       },
     });
 
@@ -225,13 +254,32 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
+    expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
+
+    expect(screen.getByRole('columnheader', {name: 'Domain'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Requests Per Minute'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: '3XXs'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: '4XXs'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: '5XXs'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Avg Duration'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
+
+    expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.io&statsPeriod=10d'
+      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
     expect(screen.getByRole('link', {name: '*.github.com'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/performance/http/domains/?domain=%2A.github.com&statsPeriod=10d'
     );
+    expect(screen.getByRole('cell', {name: '40.8K/s'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0.04%'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '39.32%'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0.38%'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '333.54ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '1.35wk'})).toBeInTheDocument();
   });
 });

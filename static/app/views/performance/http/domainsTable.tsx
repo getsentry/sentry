@@ -128,6 +128,7 @@ export function DomainsTable({response, sort}: Props) {
       isLoading={isLoading}
     >
       <GridEditable
+        aria-label={t('Domains')}
         isLoading={isLoading}
         error={response.error}
         data={data}
