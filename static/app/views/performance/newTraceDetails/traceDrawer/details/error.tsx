@@ -10,11 +10,11 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
@@ -68,10 +68,10 @@ export function ErrorNodeDetails({
           <TraceDrawerComponents.IconBorder
             backgroundColor={makeTraceNodeBarColor(theme, node)}
           >
-            <IconFire size="md" />
+            <TraceIcons.Icon event={node.value} />
           </TraceDrawerComponents.IconBorder>
           <TraceDrawerComponents.TitleText>
-            <div>{t('error')}</div>
+            <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value.title}
