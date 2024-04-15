@@ -87,6 +87,11 @@ repos:
         entry: python3 -m tools.mypy_helpers.sort_stronger_modules
         files: ^pyproject\.toml$
         language: python
+      - id: check-mypy-stronglist
+        name: check mypy stronglist
+        entry: python3 -m tools.mypy_helpers.check_stronglist
+        files: ^pyproject\.toml$
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
