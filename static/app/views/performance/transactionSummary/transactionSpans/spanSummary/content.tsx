@@ -28,6 +28,7 @@ import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
+import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 
 type Props = {
   eventView: EventView;
@@ -185,16 +186,12 @@ function SpanSummaryContent(props: ContentProps) {
         />
       </Feature>
       <SpanSummaryHeader
+        avgDuration={0}
         spanSlug={spanSlug}
         totalCount={totalCount}
         suspectSpan={suspectSpan}
       />
-      <SpanChart
-        totalCount={transactionCountContainingSpan}
-        organization={organization}
-        eventView={eventView}
-        spanSlug={spanSlug}
-      />
+      <SpanSummaryCharts />
       <SpanTable
         location={location}
         organization={organization}

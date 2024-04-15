@@ -238,6 +238,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     const transactionName = event.title;
+    console.dir(span);
 
     return (
       <ButtonGroup>

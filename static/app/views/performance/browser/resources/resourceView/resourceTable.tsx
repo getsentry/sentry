@@ -117,6 +117,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
     if (key === SPAN_DESCRIPTION) {
       const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
+      console.dir(row);
 
       return (
         <DescriptionWrapper>

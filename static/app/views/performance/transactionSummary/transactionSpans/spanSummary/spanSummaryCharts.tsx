@@ -4,6 +4,7 @@ import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useParams} from 'sentry/utils/useParams';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -18,47 +19,44 @@ import {
 } from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-const {
-  SPAN_SELF_TIME,
-  HTTP_RESPONSE_CONTENT_LENGTH,
-  HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
-  HTTP_RESPONSE_TRANSFER_SIZE,
-  RESOURCE_RENDER_BLOCKING_STATUS,
-} = SpanMetricsField;
-
-function SpanSummaryCharts(props: {groupId: string}) {
-  const filters = useResourceModuleFilters();
+function SpanSummaryCharts() {
+  const {spanSlug} = useParams();
+  const [spanOp, groupId] = spanSlug.split(':');
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries({
       search: MutableSearch.fromQueryObject({
-        'span.group': props.groupId,
-        ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
-          ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
-          : {}),
+        'span.group': groupId,
       }),
-      yAxis: [
-        `spm()`,
-        `avg(${SPAN_SELF_TIME})`,
-        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-      ],
-      enabled: Boolean(props.groupId),
+      yAxis: [`spm()`, `avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      enabled: Boolean(groupId),
     });
 
-  if (spanMetricsSeriesData) {
-    spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
-      type: 'dashed',
-    };
-    spanMetricsSeriesData[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`].lineStyle = {
-      type: 'dashed',
-    };
-  }
+  console.dir(spanMetricsSeriesData);
+
+  // const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
+  //   useSpanMetricsSeries({
+  //     search: MutableSearch.fromQueryObject({
+  //       'span.group': groupId,
+  //     }),
+  //     yAxis: [`spm()`, `avg(${SPAN_SELF_TIME})`],
+  //     enabled: Boolean(groupId),
+  //   });
+
+  // if (spanMetricsSeriesData) {
+  //   // spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
+  //   //   type: 'dashed',
+  //   // };
+  //   // spanMetricsSeriesData[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`].lineStyle = {
+  //   //   type: 'dashed',
+  //   // };
+  // }
+
+  // console.dir(spanMetricsSeriesData);
 
   return (
     <BlockContainer>
-      <Block>
+      {/* <Block>
         <ChartPanel title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}>
           <Chart
             height={160}
@@ -113,7 +111,7 @@ function SpanSummaryCharts(props: {groupId: string}) {
             }}
           />
         </ChartPanel>
-      </Block>
+      </Block> */}
     </BlockContainer>
   );
 }

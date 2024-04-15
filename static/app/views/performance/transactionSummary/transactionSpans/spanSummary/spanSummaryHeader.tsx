@@ -13,7 +13,6 @@ interface HeaderProps {
   avgDuration: number;
   spanSlug: SpanSlug;
   totalCount: number | null;
-  totalSelfTime: number;
   suspectSpan?: SuspectSpan;
 }
 
