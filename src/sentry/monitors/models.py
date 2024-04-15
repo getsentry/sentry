@@ -251,13 +251,6 @@ class Monitor(Model):
     Type of monitor. Currently there are only CRON_JOB monitors.
     """
 
-    owner_actor_id = BoundedBigIntegerField(null=True, db_index=True)
-    """
-    The owner of the monitors actor_id.
-
-    @deprecated Will be replaced with user_id / team_id
-    """
-
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
     """
     The user assigned as the owner of this model.
