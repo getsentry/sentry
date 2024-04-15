@@ -451,11 +451,15 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/metrics/                                                           @getsentry/telemetry-experience
+/static/app/views/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
+
+/static/app/components/metrics/                                                  @getsentry/telemetry-experience
+/static/app/components/modals/metricWidgetViewerModal*                           @getsentry/telemetry-experience
+/static/app/views/dashboards/metrics/                                            @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
