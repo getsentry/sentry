@@ -42,13 +42,15 @@ class BigtableNodeStorage(NodeStorage):
         table: str = "nodestore",
         automatic_expiry: bool = False,
         default_ttl: timedelta | None = None,
-        compression: bool = False,
+        compression: bool | str = False,
         **client_options: object,
     ):
         if compression is True:
             _compression = "zlib"
-        else:
+        elif compression is False:
             _compression = None
+        else:
+            _compression = compression
 
         self.store = self.store_class(
             project=project,
