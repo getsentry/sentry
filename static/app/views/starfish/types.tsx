@@ -52,7 +52,6 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
-  | 'span.domain'
   | 'span.group'
   | 'transaction'
   | 'transaction.method'
@@ -64,6 +63,7 @@ export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
 } & {
   [SpanMetricsField.PROJECT_ID]?: string;
+  [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';

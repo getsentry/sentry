@@ -12,7 +12,11 @@ import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  EMPTY_OPTION_VALUE,
+  escapeFilterValue,
+  MutableSearch,
+} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,12 +79,9 @@ export function HTTPSamplesPanel() {
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
-  const detailKey =
-    query.transaction && query.domain
-      ? [query.domain, query.transactionMethod, query.transaction]
-          .filter(Boolean)
-          .join(':')
-      : undefined;
+  const detailKey = query.transaction
+    ? [query.domain, query.transactionMethod, query.transaction].filter(Boolean).join(':')
+    : undefined;
 
   const handlePanelChange = newPanelName => {
     router.replace({
@@ -107,14 +108,16 @@ export function HTTPSamplesPanel() {
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': escapeFilterValue(query.domain), // Exact match on domains with asterisks
+    'span.domain':
+      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': escapeFilterValue(query.domain), // Exact match on domains with asterisks
+    'span.domain':
+      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
   };
 
