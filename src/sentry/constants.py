@@ -705,7 +705,7 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
-    "*/[_health]",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",
