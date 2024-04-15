@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {getDateTimeParams, getDDMInterval} from 'sentry/utils/metrics';
+import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,7 +60,7 @@ const getQueryInterval = (
   intervalLadder?: MetricsDataIntervalLadder
 ) => {
   const useCase = getUseCaseFromMRI(query.mri) ?? 'custom';
-  return getDDMInterval(datetime, useCase, intervalLadder);
+  return getMetricsInterval(datetime, useCase, intervalLadder);
 };
 
 export function isMetricFormula(

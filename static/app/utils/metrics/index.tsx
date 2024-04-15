@@ -101,7 +101,7 @@ export function getMetricsUrl(
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
-  ddm: new GranularityLadder([
+  metrics: new GranularityLadder([
     [SIXTY_DAYS, '1d'],
     [THIRTY_DAYS, '2h'],
     [TWO_WEEKS, '1h'],
@@ -131,14 +131,14 @@ const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
 };
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getDDMInterval(
+export function getMetricsInterval(
   datetimeObj: DateTimeObject,
   useCase: UseCase,
-  ladder: MetricsDataIntervalLadder = 'ddm'
+  ladder: MetricsDataIntervalLadder = 'metrics'
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'ddm') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'metrics') {
     return '10s';
   }
 
