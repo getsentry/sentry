@@ -8,6 +8,12 @@ const TabItemContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
 
+  .beforeCurrentTime,
+  .afterCurrentTime {
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+  }
+
   .beforeHoverTime + .afterHoverTime {
     border-top-color: ${p => p.theme.purple200};
   }
