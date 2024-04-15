@@ -514,16 +514,22 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             cache.set(cache_key, session_count_last_hour, 600)
         return session_count_last_hour
 
+    def get_session_interval(self, session_count: int, interval: int) -> int | None:
+        if session_count >= MIN_SESSIONS_TO_FIRE:
+            # interval_in_minutes = percent_intervals[interval][1].total_seconds()
+            interval_in_minutes = percent_intervals[interval][1].total_seconds() // 60
+            return session_count / (60 / interval_in_minutes)
+        return None
+
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         project_id = event.project_id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
-        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
-            )
-            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
             issue_count = self.get_snuba_query_result(
                 tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
@@ -557,12 +563,10 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         groups = Group.objects.filter(id__in=group_ids)
         project_id = groups[0].project.id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
-
-        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
-            )
-            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
             error_issues = [
                 group for group in groups if group.issue_category == GroupCategory.ERROR
             ]
