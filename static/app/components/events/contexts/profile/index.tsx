@@ -113,6 +113,7 @@ function getProfileKnownDataDetails({
       return {
         subject: t('Profile ID'),
         value: data.profile_id,
+        action: {link: target},
         actionButton: target && (
           <Button
             size="xs"

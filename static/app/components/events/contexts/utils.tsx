@@ -310,7 +310,7 @@ export function getFormattedContextData({
   event: Event;
   organization: Organization;
   project?: Project;
-}) {
+}): KeyValueListData {
   const meta = getContextMeta(event, contextType);
 
   switch (contextType) {
