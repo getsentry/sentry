@@ -48,7 +48,7 @@ function SpanSummaryButton(props: Props) {
   }
 
   if (
-    organization.features.includes('starfish-browser-resource-module-ui') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(sentryTags.op)
   ) {

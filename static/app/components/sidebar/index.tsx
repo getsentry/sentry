@@ -335,7 +335,7 @@ function Sidebar() {
                   isNew
                 />
               </Feature>
-              <Feature features="starfish-browser-resource-module-ui">
+              <Feature features="spans-first-ui">
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}

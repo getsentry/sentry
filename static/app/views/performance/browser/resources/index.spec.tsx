@@ -29,7 +29,7 @@ const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-browser-resource-module-ui', 'starfish-view', 'spans-first-ui'],
+    features: ['spans-first-ui', 'starfish-view'],
   });
 
   beforeEach(() => {
