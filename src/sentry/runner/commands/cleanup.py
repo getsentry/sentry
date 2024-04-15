@@ -76,14 +76,15 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     while True:
         j = task_queue.get()
         if j == _STOP_WORKER:
+            debug_output("Received STOP_WORKER task")
             task_queue.task_done()
 
             return
 
-        model, chunk = j
-        debug_output(f"Starting deletion work for {model}:{chunk}")
+        model_name, chunk = j
+        debug_output(f"Starting deletion work for {model_name}:{chunk}")
 
-        model = import_string(model)
+        model = import_string(model_name)
         try:
             task = deletions.get(
                 model=model,
@@ -93,11 +94,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             )
 
             while True:
+                debug_output(f"Running chunk for {model_name}")
                 if not task.chunk():
                     break
         except Exception as e:
             logger.exception(e)
         finally:
+            debug_output(f"Completed deletion work for {model_name}:{chunk}")
             task_queue.task_done()
 
 
