@@ -7,16 +7,16 @@ inputs:
     required: true
   gcs_bucket:
     description: 'The GCS bucket to upload the test data to'
-    required: true
+    default: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
   gcp_project_id:
     description: 'The GCP project ID to use for uploading the test data'
-    required: true
+    default: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
   workload_identity_provider:
     description: 'The workload identity provider to use for uploading the test data'
-    required: true
+    default: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
   service_account_email:
     description: 'The service account email to use for uploading the test data'
-    required: true
+    default: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
   matrix_instance_number:
     description: 'The instance number of the matrix job'
     required: false

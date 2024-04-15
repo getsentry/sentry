@@ -114,10 +114,6 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
       # Upload coverage data even if running the tests step fails since
@@ -283,10 +279,6 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.monolith-dbs.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
