@@ -250,6 +250,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             options={mriOptions}
             value={metricsQuery.mri}
             onChange={handleMRIChange}
+            growingInput
             menuWidth="400px"
           />
         ) : (
