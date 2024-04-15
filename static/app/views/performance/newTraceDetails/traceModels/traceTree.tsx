@@ -260,14 +260,14 @@ export function makeTraceNodeBarColor(
     return theme.yellow300;
   }
   if (isTraceErrorNode(node)) {
-    switch (node.value.level) {
-      case 'error':
-      case 'fatal':
-        return theme.red300;
-      default: {
-        return theme.purple300;
-      }
+    // Theme defines this as orange, yet everywhere in our product we show red for errors
+    if (node.value.level === 'error' || node.value.level === 'fatal') {
+      return theme.red300;
     }
+    if (node.value.level) {
+      return theme.level[node.value.level] ?? theme.red300;
+    }
+    return theme.red300;
   }
   return pickBarColor('default');
 }
