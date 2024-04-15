@@ -51,13 +51,26 @@ class DatabaseBackedLogService(LogService):
             ).update(last_active=event.last_seen)
 
     def find_last_log(
-        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+        self,
+        *,
+        organization_id: int | None,
+        target_object_id: int | None,
+        event: int | None,
+        data: dict[str, str] | None,
     ) -> AuditLogEvent | None:
-        last_entry: AuditLogEntry | None = AuditLogEntry.objects.filter(
-            organization_id=organization_id,
-            target_object=target_object_id,
-            event=event,
-        ).last()
+        if data:  # Only use data field for fitlering if it isn't None
+            last_entry: AuditLogEntry | None = AuditLogEntry.objects.filter(
+                organization_id=organization_id,
+                target_object=target_object_id,
+                event=event,
+                data=data,
+            ).last()
+        else:
+            last_entry: AuditLogEntry | None = AuditLogEntry.objects.filter(
+                organization_id=organization_id,
+                target_object=target_object_id,
+                event=event,
+            ).last()
 
         if last_entry is None:
             return None
@@ -87,6 +100,11 @@ class OutboxBackedLogService(LogService):
         outbox.save()
 
     def find_last_log(
-        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+        self,
+        *,
+        organization_id: int | None,
+        target_object_id: int | None,
+        event: int | None,
+        data: dict[str, str] | None,
     ) -> AuditLogEvent | None:
         return None
