@@ -1,6 +1,13 @@
 // These are the icons used in the TraceDetails component - their SVGs path values have been copied
 // and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the
 // components rerended, which causes frame drops and performance issues that result in white
+import type {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
+
+import type {TraceTree} from './traceModels/traceTree';
+
 // row flashes when scrolling.
 function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
@@ -30,8 +37,41 @@ function Profile() {
     </svg>
   );
 }
+
+function Warning() {
+  return (
+    <svg viewBox="0 0 16 16">
+      <path d="M13.87 15.26H2.13A2.1 2.1 0 0 1 0 13.16a2.07 2.07 0 0 1 .27-1L6.17 1.8a2.1 2.1 0 0 1 1.27-1 2.11 2.11 0 0 1 2.39 1l5.87 10.31a2.1 2.1 0 0 1-1.83 3.15ZM8 2.24a.44.44 0 0 0-.16 0 .58.58 0 0 0-.37.28L1.61 12.86a.52.52 0 0 0-.08.3.6.6 0 0 0 .6.6h11.74a.54.54 0 0 0 .3-.08.59.59 0 0 0 .22-.82L8.53 2.54a.61.61 0 0 0-.23-.22.54.54 0 0 0-.3-.08Z" />
+      <path d="M8 10.37a.75.75 0 0 1-.75-.75v-3.7a.75.75 0 0 1 1.5 0v3.7a.74.74 0 0 1-.75.75Z" />
+      <circle cx="8" cy="11.79" r=".76" />
+    </svg>
+  );
+}
+
+interface EventTypeIconProps {
+  event: TracePerformanceIssue | TraceError | TraceTree.Profile;
+}
+
+function EventTypeIcon(props: EventTypeIconProps) {
+  if ('profile_id' in props.event) {
+    return <Profile />;
+  }
+
+  switch (props.event.level) {
+    case 'error':
+    case 'fatal': {
+      return <Fire />;
+    }
+    default: {
+      return <Warning />;
+    }
+  }
+}
+
 export const TraceIcons = {
+  Icon: EventTypeIcon,
   Chevron,
   Fire,
   Profile,
+  Warning,
 };

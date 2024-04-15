@@ -176,6 +176,16 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     return {start, end, statsPeriod};
   }, []);
 
+  const [singular, plural] = useMemo((): [string, string] => {
+    const label = [t('Issue'), t('Issues')] as [string, string];
+    for (const event of errors) {
+      if (event.level === 'error' || event.level === 'fatal') {
+        return [t('Error'), t('Errors')];
+      }
+    }
+    return label;
+  }, [errors]);
+
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
@@ -201,7 +211,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
           : errors.size > 0 && performance_issues.size === 0
             ? tct('[count] [text]', {
                 count: errors.size,
-                text: tn('Error', 'Errors', errors.size),
+                text: errors.size > 1 ? plural : singular,
               })
             : performance_issues.size > 0 && errors.size === 0
               ? tct('[count] [text]', {
@@ -217,7 +227,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                   {
                     errors: errors.size,
                     performance_issues: performance_issues.size,
-                    errorsText: tn('Error', 'Errors', errors.size),
+                    errorsText: errors.size > 1 ? plural : singular,
                     performanceIssuesText: tn(
                       'performance issue',
                       'performance issues',
@@ -271,15 +281,12 @@ const UsersHeading = styled(Heading)`
 `;
 
 const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-  border: 1px solid ${p => p.theme.red200};
   container-type: inline-size;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.red200};
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
