@@ -8,7 +8,7 @@ import useUrlParams from './useUrlParams';
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-type Query = {limit: string; page: string};
+type Query = {array: string[]; limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
@@ -16,6 +16,7 @@ describe('useUrlParams', () => {
       query: {
         page: '3',
         limit: '50',
+        array: ['first', 'second'],
       },
     } as Location<Query>);
   });
@@ -25,6 +26,7 @@ describe('useUrlParams', () => {
 
     expect(result.current.getParamValue('page')).toBe('3');
     expect(result.current.getParamValue('limit')).toBe('50');
+    expect(result.current.getParamValue('array')).toBe('first');
     expect(result.current.getParamValue('foo')).toBeUndefined();
   });
 
@@ -54,6 +56,7 @@ describe('useUrlParams', () => {
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: {
+        array: ['first', 'second'],
         page: '4',
         limit: '50',
       },
@@ -69,6 +72,7 @@ describe('useUrlParams', () => {
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: {
+        array: ['first', 'second'],
         page: '4',
         limit: '50',
       },
