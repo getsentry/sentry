@@ -90,9 +90,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )
 
-            # remove the ApiGrant from the database to prevent reuse of the same
-            # authorization code
-            grant.delete()
+            with transaction.atomic(router.db_for_write(ApiGrant)):
+                # remove the ApiGrant from the database to prevent reuse of the same
+                # authorization code
+                grant.delete()
 
             return api_token
 
