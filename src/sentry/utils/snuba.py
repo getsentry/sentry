@@ -436,7 +436,6 @@ class RetrySkipTimeout(urllib3.Retry):
             method=method,
             url=url,
             response=response,
-
             error=error,
             _pool=_pool,
             _stacktrace=_stacktrace,
