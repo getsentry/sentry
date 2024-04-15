@@ -46,5 +46,6 @@ class RelatedIssuesTest(APITestCase):
         assert response.json() == {
             "data": [
                 {"type": "same_root_cause", "data": [1, 5]},
+                {"type": "trace_connected", "data": []},
             ],
         }

@@ -160,7 +160,7 @@ class TraceEvent:
         parent: str | None,
         generation: int | None,
         light: bool = False,
-        snuba_params: ParamsType | None = None,
+        snuba_params: Mapping[str, str] | None = None,
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
@@ -543,28 +543,7 @@ def query_trace_data(
     )
     occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
 
-    error_query = QueryBuilder(
-        Dataset.Events,
-        params,
-        query=f"trace:{trace_id}",
-        selected_columns=[
-            "id",
-            "project",
-            "project.id",
-            "timestamp",
-            "trace.span",
-            "transaction",
-            "issue",
-            "title",
-            "tags[level]",
-        ],
-        # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
-        orderby=["id"],
-        limit=limit,
-        config=QueryBuilderConfig(
-            auto_fields=False,
-        ),
-    )
+    error_query = find_errors_for_trace_id(params, trace_id, limit)
     results = bulk_snql_query(
         [
             transaction_query.get_snql_query(),
@@ -1521,3 +1500,36 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
         }
+
+
+def find_errors_for_trace_id(
+    params: Mapping[str, str],
+    trace_id: int,
+    selected_columns: Sequence[str] | None = None,
+    limit: int | None = MAX_TRACE_SIZE,
+) -> QueryBuilder:
+    _columns = (
+        [
+            "id",
+            "project",
+            "project.id",
+            "timestamp",
+            "trace.span",
+            "transaction",
+            "issue",
+            "title",
+            "tags[level]",
+        ]
+        if selected_columns is None
+        else selected_columns
+    )
+    return QueryBuilder(
+        Dataset.Events,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=_columns,
+        # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
+        orderby=["id"],
+        limit=limit,
+        config=QueryBuilderConfig(auto_fields=False),
+    )
