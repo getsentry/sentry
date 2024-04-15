@@ -191,7 +191,6 @@ class DiscordClient(ApiClient):
         metrics.incr(
             metrics_key,
             sample_rate=1.0,
-            tags=log_params,
         )
         self.logger.info("handled discord error", extra=log_params)
 
@@ -202,7 +201,6 @@ class DiscordClient(ApiClient):
         metrics.incr(
             self._METRICS_SUCCESS_KEY,
             sample_rate=1.0,
-            tags=log_params,
         )
         self.logger.info("handled discord success", extra=log_params)
 
