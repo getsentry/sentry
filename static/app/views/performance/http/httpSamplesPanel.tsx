@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,14 +107,14 @@ export function HTTPSamplesPanel() {
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': query.domain,
+    'span.domain': escapeFilterValue(query.domain), // Exact match on domains with asterisks
     transaction: query.transaction,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': query.domain,
+    'span.domain': escapeFilterValue(query.domain), // Exact match on domains with asterisks
     transaction: query.transaction,
   };
 
@@ -183,6 +183,7 @@ export function HTTPSamplesPanel() {
   } = useSpanSamples({
     search,
     fields: [
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
@@ -202,10 +203,12 @@ export function HTTPSamplesPanel() {
     filters,
     fields: [
       SpanIndexedField.PROJECT,
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.ID,
+      SpanIndexedField.TIMESTAMP,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
-      SpanIndexedField.ID,
     ],
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,

@@ -1,4 +1,5 @@
 import React, {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -8,10 +9,12 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -37,7 +40,14 @@ export function HTTPLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
+  // TODO: Pull this using `useLocationQuery` below
   const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+
+  const query = useLocationQuery({
+    fields: {
+      'span.domain': decodeScalar,
+    },
+  });
 
   const chartFilters = {
     'span.module': ModuleName.HTTP,
@@ -46,10 +56,22 @@ export function HTTPLandingPage() {
 
   const tableFilters = {
     'span.module': ModuleName.HTTP,
+    'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
     has: 'span.domain',
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
+
+  const handleSearch = (newDomain: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.domain': newDomain === '' ? undefined : newDomain,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
+      },
+    });
+  };
 
   const {
     isLoading: isThroughputDataLoading,
@@ -181,6 +203,14 @@ export function HTTPLandingPage() {
                     error={responseCodeError}
                   />
                 </ModuleLayout.Third>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={query['span.domain']}
+                    placeholder={t('Search for more domains')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
 
                 <ModuleLayout.Full>
                   <DomainsTable response={domainsListResponse} sort={sort} />

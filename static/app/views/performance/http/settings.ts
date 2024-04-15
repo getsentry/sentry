@@ -11,3 +11,5 @@ export const releaseLevelAsBadgeProps = {
   isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
+
+export const SPAN_ID_DISPLAY_LENGTH = 16;
