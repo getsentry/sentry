@@ -17,11 +17,7 @@ export function AnnotatedText({
 }: Props) {
   return (
     <span className={className} {...props}>
-      <AnnotatedTextValue
-        value={value}
-        meta={meta}
-        withoutBackground={withOnlyFormattedText}
-      />
+      <AnnotatedTextValue value={value} meta={meta} />
       {!withOnlyFormattedText && <AnnotatedTextErrors errors={meta?.err} />}
     </span>
   );
