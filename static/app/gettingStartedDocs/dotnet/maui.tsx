@@ -38,14 +38,14 @@ dotnet add package Sentry.Maui -v ${getPackageVersion(
 const getInstallProfilingSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
-  'sentry.dotnet.maui',
+  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
-  'sentry.dotnet.maui',
+  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 

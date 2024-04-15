@@ -42,14 +42,14 @@ dotnet add package Sentry -v ${getPackageVersion(
 const getInstallProfilingSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
-  'sentry.dotnet',
+  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
-  'sentry.dotnet',
+  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
