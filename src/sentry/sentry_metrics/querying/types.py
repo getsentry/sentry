@@ -32,6 +32,10 @@ QueryCondition = Union[BooleanCondition, Condition]
 
 
 class QueryOrder(Enum):
+    """
+    Represents the order of the query.
+    """
+
     ASC = "asc"
     DESC = "desc"
 
@@ -54,5 +58,12 @@ class QueryOrder(Enum):
 
 
 class QueryType(Enum):
+    """
+    Represents the type of query that can be run.
+
+    Due to storage limitations we are not allowing querying series only, but we might work around this limitation in
+    case there will be a product need for it.
+    """
+
     TOTALS_AND_SERIES = 0
     TOTALS = 1

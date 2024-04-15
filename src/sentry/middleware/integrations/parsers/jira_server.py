@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.http import HttpResponse
 
@@ -40,9 +42,25 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("missing-changelog", extra={"integration_id": integration.id})
             return HttpResponse(status=200)
 
-        return self.get_response_from_outbox_creation_for_integration(
-            regions=regions, integration=integration
+        return self.get_response_from_webhookpayload(
+            regions=regions,
+            identifier=self.get_mailbox_identifier(integration, data),
+            integration_id=integration.id,
         )
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """
+        Used by get_mailbox_identifier to find the issue.id a payload is for.
+        In high volume jira_server instances we shard messages by issue for greater
+        delivery throughput.
+        """
+        issue_id = data.get("issue", {}).get("id", None)
+        if not issue_id:
+            return None
+        try:
+            return int(issue_id)
+        except ValueError:
+            return None
 
     def get_response(self):
         if self.view_class == JiraServerIssueUpdatedWebhook:

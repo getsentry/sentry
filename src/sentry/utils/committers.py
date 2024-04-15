@@ -255,7 +255,7 @@ def get_event_file_committers(
     munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
     if munged:
         frames = munged[1]
-    app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
+    app_frames = [frame for frame in frames if frame and frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 

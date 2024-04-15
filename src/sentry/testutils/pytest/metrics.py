@@ -66,7 +66,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_performance_metrics = False
             is_metrics = False
             if not isinstance(query, MetricsQuery) and not isinstance(query.match, Join):
-                is_performance_metrics = query.match.name.startswith("generic_metrics")
+                is_performance_metrics = query.match.name.startswith("generic")
                 is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:
@@ -85,7 +85,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_performance_metrics = False
             is_metrics = False
             if isinstance(query.match, Entity):
-                is_performance_metrics = query.match.name.startswith("generic_metrics")
+                is_performance_metrics = query.match.name.startswith("generic")
                 is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:

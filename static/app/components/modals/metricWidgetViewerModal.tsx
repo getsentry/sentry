@@ -13,9 +13,9 @@ import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerMo
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DashboardMetricsEquation,
@@ -32,7 +32,7 @@ import {
   getMetricWidgetTitle,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
-import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
+import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
@@ -51,6 +51,7 @@ function MetricWidgetViewerModal({
 }: Props) {
   const {selection} = usePageFilters();
   const [displayType, setDisplayType] = useState(widget.displayType);
+  const [interval, setInterval] = useState<string>(widget.interval);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
   );
@@ -145,17 +146,21 @@ function MetricWidgetViewerModal({
     [filteredEquations, filteredQueries]
   );
 
-  const addQuery = useCallback(() => {
-    setMetricQueries(curr => {
-      return [
-        ...curr,
-        {
-          ...metricQueries[metricQueries.length - 1],
-          id: generateQueryId(),
-        },
-      ];
-    });
-  }, [generateQueryId, metricQueries]);
+  const addQuery = useCallback(
+    (queryIndex?: number) => {
+      setMetricQueries(curr => {
+        const query = metricQueries[queryIndex ?? metricQueries.length - 1];
+        return [
+          ...curr,
+          {
+            ...query,
+            id: generateQueryId(),
+          },
+        ];
+      });
+    },
+    [generateQueryId, metricQueries]
+  );
 
   const addEquation = useCallback(() => {
     setMetricEquations(curr => {
@@ -165,7 +170,7 @@ function MetricWidgetViewerModal({
           formula: '',
           name: '',
           id: generateEquationId(),
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           isHidden: false,
         },
       ];
@@ -198,7 +203,11 @@ function MetricWidgetViewerModal({
     const convertedWidget = expressionsToWidget(
       [...filteredQueries, ...filteredEquations],
       title.edited,
-      toDisplayType(displayType)
+      toDisplayType(displayType),
+      // TODO(metrics): for now we do not persist the interval by default
+      // as we need to find a way to handle per widget interval perferences
+      // with the dashboard interval preferences
+      widget.interval ?? interval
     );
 
     onMetricWidgetEdit?.(convertedWidget);
@@ -211,6 +220,8 @@ function MetricWidgetViewerModal({
     displayType,
     onMetricWidgetEdit,
     closeModal,
+    interval,
+    widget.interval,
   ]);
 
   return (
@@ -241,13 +252,15 @@ function MetricWidgetViewerModal({
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
             onOrderChange={handleOrderChange}
+            onIntervalChange={setInterval}
+            interval={interval}
           />
           <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
-              to={getDdmUrl(organization.slug, {
+              to={getMetricsUrl(organization.slug, {
                 widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,

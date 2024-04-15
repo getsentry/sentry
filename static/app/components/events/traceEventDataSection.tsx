@@ -247,7 +247,12 @@ export function TraceEventDataSection({
     disabled?: boolean;
     tooltip?: string;
   }[] {
-    if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+    if (
+      platform === 'objc' ||
+      platform === 'native' ||
+      platform === 'cocoa' ||
+      platform === 'nintendo-switch'
+    ) {
       return [
         {
           label: displayOptions['absolute-addresses'],

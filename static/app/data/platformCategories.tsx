@@ -194,6 +194,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
+  'nintendo-switch',
 ]);
 
 export const profiling: PlatformKey[] = [

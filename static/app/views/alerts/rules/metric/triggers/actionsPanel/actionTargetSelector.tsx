@@ -66,7 +66,6 @@ export default function ActionTargetSelector(props: Props) {
         <SelectMembers
           disabled={disabled}
           key="member"
-          project={project}
           organization={organization}
           value={action.targetIdentifier}
           onChange={handleChangeTargetIdentifier}

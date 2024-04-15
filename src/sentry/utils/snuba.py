@@ -136,6 +136,7 @@ SPAN_COLUMN_MAP = {
     "user": "user",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
+    "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -143,6 +144,7 @@ SPAN_COLUMN_MAP = {
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
     "category": "sentry_tags[category]",
+    "span.category": "sentry_tags[category]",
     "span.status_code": "sentry_tags[status_code]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
@@ -152,6 +154,7 @@ SPAN_COLUMN_MAP = {
     "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -977,9 +980,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+        scope = sentry_sdk.Scope.get_current_scope()
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(

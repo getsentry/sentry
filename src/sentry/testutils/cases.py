@@ -967,9 +967,9 @@ class DRFPermissionTestCase(TestCase):
         return drf_request
 
     def setUp(self):
-        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
-        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
         self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 
@@ -1290,14 +1290,6 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def bulk_store_sessions(self, sessions):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
-            ).status_code
-            == 200
-        )
-
     def build_session(self, **kwargs):
         session = {
             "session_id": str(uuid4()),
@@ -1324,9 +1316,6 @@ class SnubaTestCase(BaseTestCase):
             kwargs[key] = getattr(val, attr, val)
         session.update(kwargs)
         return session
-
-    def store_session(self, session):
-        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
@@ -1480,6 +1469,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         duration: int = 10,
@@ -1516,6 +1506,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         self.store_span(payload)
 
@@ -1525,6 +1517,7 @@ class BaseSpansTestCase(SnubaTestCase):
         trace_id: str,
         transaction_id: str,
         span_id: str | None = None,
+        parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
         op: str | None = None,
@@ -1571,6 +1564,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if store_metrics_summary:
             payload["_metrics_summary"] = store_metrics_summary
+        if parent_span_id:
+            payload["parent_span_id"] = parent_span_id
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2856,14 +2851,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
-        assert attachment["title"] == "N+1 Query"
+        assert "N+1 Query" in attachment["text"]
         assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in attachment["blocks"][1]["text"]["text"]
         )
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
+            attachment["blocks"][-2]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -3064,6 +3060,9 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 class MonitorTestCase(APITestCase):
     def _create_monitor(self, **kwargs):
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -3143,14 +3142,6 @@ class MonitorIngestTestCase(MonitorTestCase):
     """
 
     @property
-    def endpoint_with_org(self):
-        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
-
-    @property
-    def dsn_auth_headers(self):
-        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
-
-    @property
     def token_auth_headers(self):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
 
@@ -3168,17 +3159,6 @@ class MonitorIngestTestCase(MonitorTestCase):
             slug=sentry_app.slug, organization=self.organization
         )
         self.token = self.create_internal_integration_token(install=app, user=self.user)
-
-    def _get_path_functions(self):
-        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
-        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
-        # decision to permanently remove either path schema is a TODO.
-        return (
-            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
-            lambda monitor_slug: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
-            ),
-        )
 
 
 class IntegratedApiTestCase(BaseTestCase):

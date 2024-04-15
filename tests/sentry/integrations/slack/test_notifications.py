@@ -6,8 +6,8 @@ import responses
 from sentry.integrations.slack.notifications import _get_attachments, send_notification_as_slack
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import DummyNotification
-from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -24,32 +24,10 @@ def additional_attachment_generator_block_kit(integration, organization):
     ]
 
 
-@region_silo_test
 class SlackNotificationsTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()
         self.notification = DummyNotification(self.organization)
-
-    @responses.activate
-    def test_additional_attachment(self):
-        with mock.patch.dict(
-            manager.attachment_generators,
-            {ExternalProviders.SLACK: additional_attachment_generator},
-        ):
-            with self.tasks():
-                send_notification_as_slack(self.notification, [self.user], {}, {})
-
-            data = parse_qs(responses.calls[0].request.body)
-
-            assert "attachments" in data
-            assert data["text"][0] == "Notification Title"
-
-            attachments = json.loads(data["attachments"][0])
-            assert len(attachments) == 2
-
-            assert attachments[0]["title"] == "My Title"
-            assert attachments[1]["title"] == self.organization.slug
-            assert attachments[1]["text"] == self.integration.id
 
     @responses.activate
     def test_additional_attachment_block_kit(self):
@@ -96,6 +74,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert blocks[4]["text"]["text"] == self.integration.id
 
     @responses.activate
+    @with_feature({"organizations:slack-block-kit": False})
     def test_no_additional_attachment(self):
         with self.tasks():
             send_notification_as_slack(self.notification, [self.user], {}, {})
@@ -153,7 +132,8 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         Tests that notifications built with the legacy system can still send successfully with
         the block kit flag enabled.
         """
-        mock_attachment.return_value = _get_attachments(self.notification, self.user, {}, {})
+        with self.feature({"organizations:slack-block-kit": False}):
+            mock_attachment.return_value = _get_attachments(self.notification, self.user, {}, {})
 
         with self.feature("organizations:slack-block-kit"):
             with self.tasks():

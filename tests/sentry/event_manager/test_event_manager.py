@@ -38,10 +38,10 @@ from sentry.dynamic_sampling import (
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
-    _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
@@ -90,10 +90,11 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
@@ -123,7 +124,6 @@ class EventManagerTestMixin:
         return event
 
 
-@region_silo_test
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -1387,6 +1387,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("metadata") == {
             "type": "Foo",
             "value": "bar",
+            "initial_priority": PriorityLevel.HIGH,
             "display_title_with_tree_label": False,
         }
 
@@ -1412,6 +1413,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("type") == "csp"
         assert group.data.get("metadata") == {
             "directive": "script-src",
+            "initial_priority": PriorityLevel.HIGH,
             "uri": "example.com",
             "message": "Blocked 'script' from 'example.com'",
         }
@@ -1716,7 +1718,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(self.project.id, cache_key=cache_key)
+                        event = manager.save(
+                            self.project.id, cache_key=cache_key, has_attachments=True
+                        )
 
         assert mock_track_outcome.call_count == 3
 
@@ -1753,7 +1757,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key)
+                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         # The first minidump should be accepted, since the limit is 1
         assert mock_track_outcome.call_count == 3
@@ -1774,7 +1778,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    event = manager.save(self.project.id, cache_key=cache_key)
+                    event = manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert event.data["metadata"]["stripped_crash"] is True
 
@@ -1813,7 +1817,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1842,7 +1846,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -2290,6 +2294,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": description,
+                "initial_priority": PriorityLevel.LOW,
             }
             assert (
                 event.search_message
@@ -2365,6 +2370,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "initial_priority": PriorityLevel.LOW,
             }
             assert group.location() == "/books/"
             assert group.message == "nope"
@@ -2550,7 +2556,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
 
-@region_silo_test
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
         super().setUp()
@@ -2614,7 +2619,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
         )
 
 
-@region_silo_test
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -2744,7 +2748,6 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):
@@ -3389,13 +3392,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group, created = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = _save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1

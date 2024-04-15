@@ -109,20 +109,49 @@ def deobfuscate_signature(signature: str, mapper=None) -> tuple[list[str], str] 
 
 
 def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
-    return [
-        {
+    frames = []
+    for i, m in enumerate(methods):
+        f = {
             "function": m["name"],
+            "index": i,
             "module": m["class_name"],
-            "signature": m["signature"],
         }
-        for m in methods
-    ]
+        if "signature" in m:
+            f["signature"] = m["signature"]
+        if "source_line" in m:
+            f["lineno"] = m["source_line"]
+        if "source_file" in m:
+            f["filename"] = m["source_file"]
+        frames.append(f)
+    return frames
+
+
+def _merge_jvm_frame_and_android_method(f: dict, m: dict) -> None:
+    m["class_name"] = f["module"]
+    m["data"] = {"deobfuscation_status": "deobfuscated"}
+    m["name"] = f["function"]
+    if "signature" in f:
+        m["signature"] = f["signature"]
+    if "filename" in f:
+        m["source_file"] = f["filename"]
+    if "lineno" in f and f["lineno"] != 0:
+        m["source_line"] = f["lineno"]
+    if "in_app" in f:
+        m["in_app"] = f["in_app"]
 
 
 def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
-    assert len(frames) == len(methods)
-    for f, m in zip(frames, methods):
-        m["class_name"] = f["module"]
-        m["name"] = f["function"]
-        if "signature" in f:
-            m["signature"] = f["signature"]
+    for f in frames:
+        m = methods[f["index"]]
+        # Update the method if it's the first time we see it.
+        if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
+            _merge_jvm_frame_and_android_method(f, m)
+        # Otherwise, it's an additional method returned, we add it to the inline frames.
+        else:
+            # We copy the frame triggering the inline ones so we only have to
+            # look at this field later one to construct a stack trace.
+            if "inline_frames" not in m:
+                m["inline_frames"] = [m.copy()]
+            im: dict = {}
+            _merge_jvm_frame_and_android_method(f, im)
+            m["inline_frames"].append(im)

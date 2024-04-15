@@ -286,6 +286,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -300,8 +311,18 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
-            # a metric alert is only associated with one project at a time
-            project = alert_rule.snuba_query.subscriptions.get().project
+            project = None
+
+            try:
+                # check to see if there's a project associated with the alert rule
+                project = alert_rule.projects.get()
+            except Exception:
+                pass
+
+            # TODO - Cleanup Subscription Project Mapping
+            # if not, check to see if there's a project associated with the snuba query
+            if project is None:
+                project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)

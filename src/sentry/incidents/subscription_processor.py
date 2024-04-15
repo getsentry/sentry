@@ -394,9 +394,7 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
-        elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
@@ -448,11 +446,6 @@ class SubscriptionProcessor:
             # TODO: Delete subscription here.
             return
 
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorType(self.alert_rule.monitor_type), self.subscription
-        )
-
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
@@ -475,22 +468,14 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update)
 
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            try:
-                # Temporarily logging results from session updates for comparison with data from metric
-                # updates
-                logger.info(
-                    "subscription_processor.message",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.subscription.snuba_query.dataset,
-                        "snuba_subscription_id": self.subscription.subscription_id,
-                        "result": subscription_update,
-                        "aggregation_value": aggregation_value,
-                    },
-                )
-            except Exception:
-                logger.exception("Failed to log subscription results for session subscription")
+        # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        # TODO: register over/under triggers as alert rule callbacks as well
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type),
+            subscription=self.subscription,
+            alert_rule=self.alert_rule,
+            value=aggregation_value,
+        )
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")

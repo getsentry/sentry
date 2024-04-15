@@ -77,7 +77,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage, None, None]:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
-            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
         )
 
     ns = BigtableNodeStorage(project="test")
@@ -155,3 +155,12 @@ def test_cache(ns):
         ns.get("node_4")
         ns.get("node_4")
         assert mock_read_row.call_count == 2
+
+
+def test_compression() -> None:
+    ns = BigtableNodeStorage(compression="zstd")
+    assert ns.store.compression == "zstd"
+    ns = BigtableNodeStorage(compression=True)
+    assert ns.store.compression == "zlib"
+    ns = BigtableNodeStorage(compression=False)
+    assert ns.store.compression is None

@@ -1,4 +1,9 @@
 import type {BadgeType} from 'sentry/components/featureBadge';
+import {t} from 'sentry/locale';
+
+export const MODULE_TITLE = t('Requests');
+
+export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
 export const RELEASE_LEVEL: BadgeType = 'alpha';
 
@@ -8,3 +13,5 @@ export const releaseLevelAsBadgeProps = {
   isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
+
+export const SPAN_ID_DISPLAY_LENGTH = 16;

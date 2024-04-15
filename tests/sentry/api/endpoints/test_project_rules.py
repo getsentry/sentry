@@ -15,7 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
-from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -23,7 +23,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
@@ -74,7 +74,6 @@ class ProjectRuleBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -85,7 +84,6 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
@@ -741,7 +739,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
-            "owner": get_actor_id_for_user(self.user),
+            "owner": get_actor_for_user(self.user).id,
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),

@@ -1,6 +1,5 @@
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -9,7 +8,6 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class DynamicAssignmentDropdownTest(BaseEventTest):
     def setUp(self):
         super().setUp()
@@ -102,6 +100,7 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert len(resp.data["option_groups"][0]["options"]) == 3
         assert len(resp.data["option_groups"][1]["options"]) == 3
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_no_flag(self):
         self.group = self.create_group(project=self.project)
         self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": self.group.id})

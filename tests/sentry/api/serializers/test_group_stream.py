@@ -8,15 +8,13 @@ from sentry.api.serializers.models.group_stream import (
 )
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.environment import Environment
-from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
 class StreamGroupSerializerTestCase(
-    TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
+    TestCase, BaseMetricsTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
     def test_environment(self):
         group = self.group

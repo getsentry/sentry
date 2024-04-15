@@ -37,6 +37,7 @@ export enum SpanMetricsField {
   OS_NAME = 'os.name',
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
+  CACHE_HIT = 'cache.hit',
 }
 
 export type SpanNumberFields =
@@ -51,7 +52,6 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
-  | 'span.domain'
   | 'span.group'
   | 'transaction'
   | 'transaction.method'
@@ -63,6 +63,7 @@ export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
 } & {
   [SpanMetricsField.PROJECT_ID]?: string;
+  [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';
@@ -112,6 +113,7 @@ export type MetricsProperty = keyof MetricsResponse;
 export enum SpanIndexedField {
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_MODULE = 'span.module',
@@ -119,6 +121,7 @@ export enum SpanIndexedField {
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
+  TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
@@ -138,9 +141,11 @@ export enum SpanIndexedField {
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
+  CACHE_HIT = 'cache.hit',
 }
 
-export type SpanIndexedFieldTypes = {
+export type IndexedResponse = {
+  [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
   [SpanIndexedField.SPAN_MODULE]: string;
@@ -148,6 +153,8 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
+  [SpanIndexedField.TRACE]: string;
+  [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
@@ -166,7 +173,14 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
+  [SpanIndexedField.RESPONSE_CODE]: string;
+  [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
 };
+
+export type IndexedProperty = keyof IndexedResponse;
+
+// TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
+export type SpanIndexedFieldTypes = IndexedResponse;
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 

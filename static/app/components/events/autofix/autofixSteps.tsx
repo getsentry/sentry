@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -13,6 +13,7 @@ import Panel from 'sentry/components/panels/panel';
 import {IconCheckmark, IconChevron, IconClose, IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import usePrevious from 'sentry/utils/usePrevious';
 
 interface StepIconProps {
   status: AutofixStep['status'];
@@ -67,21 +68,32 @@ function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
 }
 
 export function Step({step, isChild}: StepProps) {
+  const previousStepStatus = usePrevious(step.status);
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(step.status !== 'COMPLETED');
 
-  const logs = step.progress?.filter(isProgressLog) ?? [];
+  useEffect(() => {
+    if (
+      previousStepStatus &&
+      previousStepStatus !== step.status &&
+      step.status === 'COMPLETED'
+    ) {
+      setIsExpanded(false);
+    }
+  }, [previousStepStatus, step.status]);
 
+  const logs: AutofixProgressItem[] = step.progress?.filter(isProgressLog) ?? [];
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
-  const hasContent = step.completedMessage || step.progress?.length;
+  const hasContent = Boolean(step.completedMessage || step.progress?.length);
+  const canToggle = Boolean(isActive && hasContent);
 
   return (
     <StepCard active={isActive}>
       <StepHeader
-        isActive={isActive}
+        canToggle={canToggle}
         isChild={isChild}
         onClick={() => {
-          if (isActive && hasContent) {
+          if (canToggle) {
             setIsExpanded(value => !value);
           }
         }}
@@ -96,7 +108,7 @@ export function Step({step, isChild}: StepProps) {
           )}
         </StepHeaderLeft>
         <StepHeaderRight>
-          {isActive && hasContent ? (
+          {canToggle ? (
             <Button
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={t('Toggle step details')}
@@ -142,14 +154,14 @@ const StepCard = styled(Panel)<{active?: boolean}>`
   }
 `;
 
-const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
+const StepHeader = styled('div')<{canToggle: boolean; isChild?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-family: ${p => p.theme.text.family};
-  cursor: ${p => (p.isActive ? 'pointer' : 'default')};
+  cursor: ${p => (p.canToggle ? 'pointer' : 'default')};
 
   &:last-child {
     padding-bottom: ${space(2)};

@@ -24,6 +24,7 @@ import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
@@ -35,7 +36,6 @@ import {
   DEFAULT_TRENDS_STATS_PERIOD,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   modifyTransactionNameTrendsQuery,
   modifyTrendsViewDefaultPeriod,
   resetCursors,

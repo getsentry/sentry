@@ -32,9 +32,10 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
-from sentry.rules.processor import is_condition_slow
+from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
@@ -372,12 +373,14 @@ A list of actions that take place when all required conditions and filters for t
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
     "workspace": 293854098,
     "channel": "#warning",
     "tags": "environment,level"
+    "notes": "Please <http://example.com|click here> for triage information"
 }
 ```
 
@@ -443,6 +446,25 @@ A list of actions that take place when all required conditions and filters for t
 ```json
 {
     "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+    "integration": 93749,
+    "repo": default,
+    "title": "My Test Issue",
+    "assignee": "Baxter the Hacker",
+    "labels": ["bug", "p1"]
+    ""
+}
+```
+
+**Create a GitHub Enterprise Issue**
+- `integration` - The integration ID associated with GitHub Enterprise.
+- `repo` - The name of the repository to create the issue in.
+- `title` - The title of the issue.
+- `body` (optional) - The contents of the issue.
+- `assignee` (optional) - The GitHub user to assign the issue to.
+- `labels` (optional) - A list of labels to assign to the issue.
+```json
+{
+    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     "integration": 93749,
     "repo": default,
     "title": "My Test Issue",
@@ -838,7 +860,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         alert_rule_created.send_robust(
             user=request.user,
             project=project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=self,
             is_api_token=request.auth is not None,
@@ -850,5 +872,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:rule-create-edit-confirm-notification", project.organization
         ):
             send_confirmation_notification(rule=rule, new=True)
+            metrics.incr(
+                "rule_confirmation.create.notification.sent",
+                skip_internal=False,
+            )
 
         return Response(serialize(rule, request.user))

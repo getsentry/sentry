@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {Button} from 'sentry/components/button';
 import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
@@ -7,30 +9,32 @@ import {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
 export function SpanNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
-  const {event, childTransaction, ...span} = node.value;
+  const span = node.value;
+  const {event} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
+
+  const childTransactions = useMemo(() => {
+    return node.value.childTransaction ? [node.value.childTransaction] : [];
+  }, [node.value.childTransaction]);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -43,22 +47,19 @@ export function SpanNodeDetails({
               hideName
             />
           </Tooltip>
-          <div>
+          <TraceDrawerComponents.TitleText>
             <div>{t('span')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {getSpanOperation(span)}
+              {getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event.eventID}
-            projectSlug={node.metadata.project_slug}
-          />
+          <TraceDrawerComponents.EventDetailsLink node={node} />
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug ? (
@@ -75,12 +76,12 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
+                  span={span}
                   node={node}
-                  childTransactions={childTransaction ? [childTransaction] : []}
                   event={event}
                   openPanel="open"
                   organization={organization}
-                  span={span}
+                  childTransactions={childTransactions}
                   trace={parseTrace(event)}
                   onParentClick={onParentClick}
                 />

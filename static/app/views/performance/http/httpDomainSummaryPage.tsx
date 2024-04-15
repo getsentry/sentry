@@ -14,12 +14,17 @@ import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  EMPTY_OPTION_VALUE,
+  escapeFilterValue,
+  MutableSearch,
+} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
 import {
   DomainTransactionsTable,
   isAValidSort,
@@ -27,7 +32,11 @@ import {
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
-import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_TITLE,
+  NULL_DOMAIN_DESCRIPTION,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -67,7 +76,7 @@ export function HTTPDomainSummaryPage() {
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': domain,
+    'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
@@ -83,7 +92,6 @@ export function HTTPDomainSummaryPage() {
       'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
   });
 
@@ -94,7 +102,6 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
   });
 
@@ -105,7 +112,6 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
 
@@ -159,7 +165,7 @@ export function HTTPDomainSummaryPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'HTTP',
+                label: MODULE_TITLE,
                 to: normalizeUrl(`/organizations/${organization.slug}/performance/http`),
                 preservePageFilters: true,
               },
@@ -170,7 +176,8 @@ export function HTTPDomainSummaryPage() {
           />
           <Layout.Title>
             {project && <ProjectAvatar project={project} size={36} />}
-            {domain}
+            {domain || NULL_DOMAIN_DESCRIPTION}
+            <DomainStatusLink domain={domain} />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -250,7 +257,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Third>
               <DurationChart
-                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
@@ -320,7 +327,7 @@ function LandingPageWithProviders() {
   return (
     <ModulePageProviders
       baseURL="/performance/http"
-      title={[t('Performance'), t('HTTP'), t('Domain Summary')].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="performance-http-view"
     >
       <HTTPDomainSummaryPage />

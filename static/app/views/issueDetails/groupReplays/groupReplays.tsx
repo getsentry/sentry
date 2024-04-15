@@ -149,7 +149,9 @@ function GroupReplaysTable({
   );
   const location = useLocation();
   const urlParams = useUrlParams();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
 
   const replayListData = useReplayList({
     eventView,
@@ -211,16 +213,16 @@ function GroupReplaysTable({
             setSelectedReplayIndex(selectedReplayIndex + 1);
           }}
           icon={<IconPlay size="md" />}
+          analyticsEventKey="issue_details.replay_tab.play_next_replay"
+          analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"
         >
           {t('Play Now')}
         </Button>
       </Fragment>
     ) : undefined;
 
-  const hasFeature = organization.features.includes('replay-play-from-replay-tab');
-
   const inner =
-    hasFeature && selectedReplay && !forceHideReplay ? (
+    selectedReplay && !forceHideReplay ? (
       <GroupReplaysTableInner
         setSelectedReplayIndex={setSelectedReplayIndex}
         selectedReplayIndex={selectedReplayIndex}
@@ -238,7 +240,7 @@ function GroupReplaysTable({
         sort={undefined}
         visibleColumns={VISIBLE_COLUMNS}
         showDropdownFilters={false}
-        onClickPlay={hasFeature ? setSelectedReplayIndex : undefined}
+        onClickPlay={setSelectedReplayIndex}
         fetchError={replayListData.fetchError}
         isFetching={replayListData.isFetching}
         replays={replays}

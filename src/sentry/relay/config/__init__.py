@@ -54,6 +54,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
@@ -71,6 +72,7 @@ EXPOSABLE_FEATURES = [
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
+    "organizations:continuous-profiling",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -248,6 +250,11 @@ class CardinalityLimit(TypedDict):
     namespace: str | None
 
 
+class CardinalityLimitOption(TypedDict):
+    rollout_rate: NotRequired[float]
+    limit: CardinalityLimit
+
+
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
@@ -280,6 +287,18 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             if id in passive_limits:
                 limit["passive"] = True
             cardinality_limits.append(limit)
+
+        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
+        for clo in clos:
+            rollout_rate = clo.get("rollout_rate", 1.0)
+            if (project.organization.id % 100000) / 100000 >= rollout_rate:
+                continue
+
+            try:
+                cardinality_limits.append(clo["limit"])
+            except KeyError:
+                pass
+
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
@@ -391,13 +410,6 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    if not features.has("organizations:performance-calculate-score-relay", organization):
-        return []
-
-    shouldIncludeFid = not features.has(
-        "organizations:deprecate-fid-from-performance-score", organization
-    )
-
     return [
         {
             "name": "Chrome",
@@ -415,13 +427,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -459,13 +464,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
                     "optional": True,
                 },
                 {
@@ -507,13 +505,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.0,
                     "p10": 0.1,
@@ -552,13 +543,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
@@ -595,13 +579,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -827,9 +804,6 @@ def _get_project_config(
                 EXTRACT_ABNORMAL_MECHANISM_VERSION
                 if _should_extract_abnormal_mechanism(project)
                 else EXTRACT_METRICS_VERSION
-            ),
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
             ),
         }
 
