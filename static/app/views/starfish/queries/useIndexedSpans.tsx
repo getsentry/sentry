@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {ALLOWED_WILDCARD_FIELDS, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
@@ -48,15 +48,17 @@ function getEventView(
   fields: SpanIndexedField[],
   sorts?: Sort[]
 ) {
-  // TODO: Add a `MutableSearch` constructor that accept a key-value mapping
+  // TODO: Use `MutableSearch.fromQueryObject` instead
   const search = new MutableSearch([]);
 
   for (const filterName in filters) {
+    const shouldEscape = !ALLOWED_WILDCARD_FIELDS.includes(filterName);
     const filter = filters[filterName];
+
     if (Array.isArray(filter)) {
-      search.addFilterValues(filterName, filter);
+      search.addFilterValues(filterName, filter, shouldEscape);
     } else {
-      search.addFilterValue(filterName, filter);
+      search.addFilterValue(filterName, filter, shouldEscape);
     }
   }
 
