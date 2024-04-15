@@ -198,6 +198,7 @@ SHARED_TAG_STRINGS = {
     "outcome.id": PREFIX + 276,
     "outcome.reason": PREFIX + 277,
     "cardinality.window": PREFIX + 278,
+    "cache.hit": PREFIX + 279,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
