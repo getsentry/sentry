@@ -3079,6 +3079,11 @@
     "@sentry/types" "7.109.0"
     "@sentry/utils" "7.109.0"
 
+"@sentry/status-page-list@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.0.1.tgz#fb65dc67496067798dcd9b3285589ded63f0ecd1"
+  integrity sha512-LQSBWck49vqHdnt9gGKshlwtzhHLqTCAc7H1AIOF66BMmEkpsOzXjhloE7tJ8ufbuIHnPGvBseydA2CcSzwQTQ==
+
 "@sentry/types@7.109.0", "@sentry/types@^7.109.0":
   version "7.109.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-7.109.0.tgz#d8778358114ed05be734661cc9e1e261f4494947"

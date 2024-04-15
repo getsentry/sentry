@@ -4,19 +4,27 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DOMAIN_STATUS_PAGE_URLS} from 'sentry/views/performance/http/domainStatusPageURLs';
+import {useStatusPageList} from 'sentry/views/performance/http/useStatusPageList';
 
 interface Props {
   domain?: string;
 }
 
 export function DomainStatusLink({domain}: Props) {
+  const statusPageList = useStatusPageList();
+
   if (!domain) {
     return null;
   }
 
+  const statusPageURL = statusPageList?.domainToStatusPageUrls?.[domain];
+
+  if (!statusPageURL) {
+    return null;
+  }
+
   return (
-    <ExternalDomainLink href={DOMAIN_STATUS_PAGE_URLS[domain]}>
+    <ExternalDomainLink href={statusPageURL}>
       {t('Status')}
       <IconOpen />
     </ExternalDomainLink>
