@@ -32,7 +32,7 @@ from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
-STANDARD_INTERVALS = {
+STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
@@ -41,7 +41,7 @@ STANDARD_INTERVALS = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
-COMPARISON_INTERVALS = {
+COMPARISON_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
@@ -456,7 +456,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         return "uniq", "user"
 
 
-PERCENT_INTERVALS = {
+PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("1 minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
@@ -464,7 +464,7 @@ PERCENT_INTERVALS = {
     "1h": ("1 hour", timedelta(minutes=60)),
 }
 
-PERCENT_INTERVALS_TO_DISPLAY = {
+PERCENT_INTERVALS_TO_DISPLAY: dict[str, tuple[str, timedelta]] = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
