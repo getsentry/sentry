@@ -42,6 +42,12 @@ _WorkQueue: TypeAlias = (
 API_TOKEN_TTL_IN_DAYS = 30
 
 
+def debug_output(msg: str) -> None:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+        return
+    click.echo(msg)
+
+
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
@@ -71,11 +77,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         j = task_queue.get()
         if j == _STOP_WORKER:
             task_queue.task_done()
+
             return
 
         model, chunk = j
-        model = import_string(model)
+        debug_output(f"Starting deletion work for {model}:{chunk}")
 
+        model = import_string(model)
         try:
             task = deletions.get(
                 model=model,
@@ -138,11 +146,8 @@ def cleanup(
         raise click.Abort()
 
     os.environ["_SENTRY_CLEANUP"] = "1"
-
-    def debug_output(msg: str) -> None:
-        if silent:
-            return
-        click.echo(msg)
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
@@ -368,6 +373,7 @@ def cleanup(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
 
+        debug_output("Waiting for task_queue to drain")
         task_queue.join()
 
         # Clean up FileBlob instances which are no longer used and aren't super
