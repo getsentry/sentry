@@ -613,6 +613,7 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+    // @ts-ignore TODO(scttcper): Remove after typescript 5.4 update
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
