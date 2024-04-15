@@ -36,18 +36,20 @@ export function IssueSearchWithSavedSearches({
   }
 
   return (
-    <SearchBarWithButtonContainer>
-      <StyledButton onClick={onSavedSearchesToggleClicked}>
-        {selectedSavedSearch?.name ?? t('Custom Search')}
-      </StyledButton>
-      <StyledIssueListSearchBarWithButton
-        searchSource="main_search"
-        organization={organization}
-        query={query || ''}
-        onSearch={onSearch}
-        excludedTags={['environment']}
-      />
-    </SearchBarWithButtonContainer>
+    <div>
+      <SearchBarWithButtonContainer>
+        <StyledButton onClick={onSavedSearchesToggleClicked}>
+          {selectedSavedSearch?.name ?? t('Custom Search')}
+        </StyledButton>
+        <StyledIssueListSearchBarWithButton
+          searchSource="main_search"
+          organization={organization}
+          query={query || ''}
+          onSearch={onSearch}
+          excludedTags={['environment']}
+        />
+      </SearchBarWithButtonContainer>
+    </div>
   );
 }
 

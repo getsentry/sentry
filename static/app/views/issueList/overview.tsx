@@ -1241,6 +1241,8 @@ class IssueListOverview extends Component<Props, State> {
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
+    debugger;
+
     return (
       <Layout.Page>
         <IssueListHeader

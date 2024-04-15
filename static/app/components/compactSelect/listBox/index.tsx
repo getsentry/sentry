@@ -30,7 +30,6 @@ interface ListBoxProps
       | 'selectedKeys'
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
-      | 'autoFocus'
     > {
   /**
    * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
@@ -85,6 +84,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
     sizeLimitMessage,
     keyDownHandler,
     label,
+    autoFocus,
     ...props
   }: ListBoxProps,
   forwarderdRef
@@ -97,6 +97,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       shouldFocusWrap,
       shouldFocusOnHover,
       shouldSelectOnPressUp: true,
+      autoFocus,
     },
     listState,
     ref

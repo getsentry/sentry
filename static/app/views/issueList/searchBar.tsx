@@ -147,17 +147,19 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   };
 
   return (
-    <SmartSearchBar
-      hasRecentSearches
-      savedSearchType={SavedSearchType.ISSUE}
-      onGetTagValues={getTagValues}
-      excludedTags={EXCLUDED_TAGS}
-      maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags, organization)}
-      defaultSearchGroup={recommendedGroup}
-      organization={organization}
-      {...props}
-    />
+    <div>
+      <SmartSearchBar
+        hasRecentSearches
+        savedSearchType={SavedSearchType.ISSUE}
+        onGetTagValues={getTagValues}
+        excludedTags={EXCLUDED_TAGS}
+        maxMenuHeight={500}
+        supportedTags={getSupportedTags(tags, organization)}
+        defaultSearchGroup={recommendedGroup}
+        organization={organization}
+        {...props}
+      />
+    </div>
   );
 }
 
