@@ -31,7 +31,7 @@ repos:
         name: black
         entry: black
         language: system
-        types: [python]
+        types_or: [python, pyi]
         require_serial: true
       # Configuration for isort exists in pyproject.toml,
       # but we let pre-commit take care of the file filtering.
@@ -85,6 +85,11 @@ repos:
       - id: sort-stronger-mypy-list
         name: sort stronger mypy list
         entry: python3 -m tools.mypy_helpers.sort_stronger_modules
+        files: ^pyproject\.toml$
+        language: python
+      - id: check-mypy-stronglist
+        name: check mypy stronglist
+        entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python
       - id: prevent-push

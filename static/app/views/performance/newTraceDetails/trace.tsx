@@ -1820,6 +1820,10 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     position: absolute;
 
+    &:hover {
+      z-index: 10;
+    }
+
     .TraceIndicatorLabel {
       min-width: 34px;
       text-align: center;
@@ -2038,6 +2042,8 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       &.Errored {
+        color: ${p => p.theme.error};
+
         .TraceChildrenCount {
           background-color: ${p => p.theme.error} !important;
         }
