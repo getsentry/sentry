@@ -7,7 +7,6 @@ from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class TeamProjectsListTest(APITestCase):
@@ -179,32 +178,6 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert javascript_filter_states["browser-extensions"]
         assert set(javascript_filter_states["legacy-browsers"]) == {
-            "ie_pre_9",
-            "ie9",
-            "ie10",
-            "ie11",
-            "safari_pre_6",
-            "opera_pre_15",
-            "opera_mini_pre_8",
-            "android_pre_4",
-            "edge_pre_79",
-        }
-        assert javascript_filter_states["web-crawlers"]
-        assert javascript_filter_states["filtered-transaction"]
-
-    @with_feature("organizations:legacy-browser-update")
-    def test_updated_legacy_browser_default(self):
-        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
-        javascript_response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **project_data,
-            status_code=201,
-        )
-
-        javascript_project = Project.objects.get(id=javascript_response.data["id"])
-
-        assert set(inbound_filters.get_filter_state("legacy-browsers", javascript_project)) == {
             "ie",
             "firefox",
             "chrome",
@@ -214,3 +187,5 @@ class TeamProjectsCreateTest(APITestCase):
             "android",
             "edge",
         }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]
