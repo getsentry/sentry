@@ -1892,18 +1892,18 @@ export class NoDataNode extends TraceTreeNode<null> {
 
 // Generates a ID of the tree node based on its type
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
-  if (isTransactionNode(n)) {
-    if (isAutogroupedNode(n)) {
-      if (isParentAutogroupedNode(n)) {
-        return `ag-${n.head.value.span_id}`;
-      }
-      if (isSiblingAutogroupedNode(n)) {
-        const child = n.children[0];
-        if (isSpanNode(child)) {
-          return `ag-${child.value.span_id}`;
-        }
+  if (isAutogroupedNode(n)) {
+    if (isParentAutogroupedNode(n)) {
+      return `ag-${n.head.value.span_id}`;
+    }
+    if (isSiblingAutogroupedNode(n)) {
+      const child = n.children[0];
+      if (isSpanNode(child)) {
+        return `ag-${child.value.span_id}`;
       }
     }
+  }
+  if (isTransactionNode(n)) {
     return `txn-${n.value.event_id}`;
   }
   if (isSpanNode(n)) {
