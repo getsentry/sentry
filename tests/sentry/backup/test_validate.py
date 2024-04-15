@@ -537,10 +537,10 @@ def test_bad_unequal_custom_ordinal():
         """
             [
                 {
-                    "model": "sentry.controloption",
+                    "model": "sentry.option",
                     "pk": 1,
                     "fields": {
-                        "key": "sentry:some_version",
+                        "key": "sentry:latest_version",
                         "last_updated": "2023-06-22T00:00:00.000Z",
                         "last_updated_by": "unknown",
                         "value": "1.2.3"
@@ -553,10 +553,10 @@ def test_bad_unequal_custom_ordinal():
         """
             [
                 {
-                    "model": "sentry.controloption",
+                    "model": "sentry.option",
                     "pk": 1,
                     "fields": {
-                        "key": "sentry:some_version",
+                        "key": "sentry:latest_version",
                         "last_updated": "2023-06-22T00:00:00.000Z",
                         "last_updated_by": "unknown",
                         "value": "4.5.6"

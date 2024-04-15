@@ -1,6 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
@@ -58,7 +57,7 @@ export default function BreadcrumbRow({
     currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
-    <StyledTimeBorder
+    <BreadcrumbItem
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -66,25 +65,16 @@ export default function BreadcrumbRow({
         afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
       })}
       style={style}
-    >
-      <BreadcrumbItem
-        frame={frame}
-        traces={traces}
-        extraction={extraction}
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        startTimestampMs={startTimestampMs}
-        expandPaths={expandPaths}
-        onDimensionChange={handleDimensionChange}
-        onInspectorExpanded={handleObjectInspectorExpanded}
-      />
-    </StyledTimeBorder>
+      frame={frame}
+      traces={traces}
+      extraction={extraction}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      startTimestampMs={startTimestampMs}
+      expandPaths={expandPaths}
+      onDimensionChange={handleDimensionChange}
+      onInspectorExpanded={handleObjectInspectorExpanded}
+    />
   );
 }
-
-const StyledTimeBorder = styled('div')`
-  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-`;
