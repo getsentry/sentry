@@ -19,7 +19,6 @@ describe('useHotkeys', function () {
     events = {};
 
     // Define the addEventListener method with a Jest mock function
-    // @ts-ignore TODO(scttcper): Remove after typescript 5.4 update
     document.addEventListener = jest.fn((event: string, callback: () => any) => {
       events[event] = callback;
     });
