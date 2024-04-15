@@ -119,7 +119,7 @@ describe('ProjectFilters', function () {
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 10'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer Verison 11 and lower'})
     ).not.toBeChecked();
   });
 
@@ -131,7 +131,7 @@ describe('ProjectFilters', function () {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Safari (Deprecated) Version 5 and lower',
+        name: 'Safari Version 11 and lower',
       })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
@@ -139,18 +139,18 @@ describe('ProjectFilters', function () {
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'safari_pre_6',
+      'safari',
     ]);
 
     // Toggle filter off
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 11'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer Verison 11 and lower'})
     );
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'safari_pre_6',
-      'ie11',
+      'safari',
+      'ie',
     ]);
 
     mock.mockReset();
@@ -159,16 +159,23 @@ describe('ProjectFilters', function () {
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
     );
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 9',
+      })
+    ).not.toBeInTheDocument();
     await userEvent.click(
       screen.getByRole('checkbox', {
         name: 'Internet Explorer (Deprecated) Version 8 and lower',
       })
     );
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+      })
+    ).not.toBeInTheDocument();
 
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'safari_pre_6',
-      'ie11',
-    ]);
+    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['safari', 'ie']);
   });
 
   it('can toggle all/none for legacy browser', async function () {
@@ -180,15 +187,14 @@ describe('ProjectFilters', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'safari_pre_6',
-      'android_pre_4',
-      'edge_pre_79',
-      'ie_pre_9',
-      'ie9',
-      'ie10',
-      'ie11',
-      'opera_pre_15',
-      'opera_mini_pre_8',
+      'chrome',
+      'safari',
+      'firefox',
+      'android',
+      'edge',
+      'ie',
+      'opera',
+      'opera_mini',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
