@@ -1902,6 +1902,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sso-saml2": True,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
+    # A single flag for all the new performance UI that relies on span ingestion
+    "organizations:spans-first-ui": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
