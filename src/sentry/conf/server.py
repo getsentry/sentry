@@ -1711,10 +1711,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable mobile performance score calculation for transactions in relay
     "organizations:performance-calculate-mobile-perf-score-relay": False,
-    # Enable performance score calculation for transactions in relay
-    "organizations:performance-calculate-score-relay": False,
-    # Deprecate fid from performance score calculation
-    "organizations:deprecate-fid-from-performance-score": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
