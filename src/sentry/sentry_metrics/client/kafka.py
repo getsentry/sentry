@@ -90,37 +90,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         self.__produce(counter_metric, use_case_id)
 
-    def set(
-        self,
-        use_case_id: UseCaseID,
-        org_id: int,
-        project_id: int,
-        metric_name: str,
-        value: Sequence[int],
-        tags: dict[str, str],
-        unit: str | None,
-    ) -> None:
-
-        """
-        Emit a set metric for internal use cases only. Can support
-        a sequence of values. Note that, as of now, this function
-        will return immediately even if the metric message has not been
-        produced to the broker yet.
-        """
-
-        set_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "s", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "s",
-        }
-
-        self.__produce(set_metric, use_case_id)
-
     def distribution(
         self,
         use_case_id: UseCaseID,
