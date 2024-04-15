@@ -3,9 +3,12 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry_relay.auth import PublicKey
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
+from sentry.utils.json import JSONData
 
 
 @region_silo_model
@@ -23,6 +26,15 @@ class RelayUsage(OverwritableConfigMixin, Model):
         unique_together = (("relay_id", "version"),)
         app_label = "sentry"
         db_table = "sentry_relayusage"
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
+        sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
+        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 @region_silo_model
@@ -66,3 +78,12 @@ class Relay(OverwritableConfigMixin, Model):
         Returns all the relays that are configured with one of the specified keys
         """
         return Relay.objects.filter(public_key__in=keys)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
+        sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
+        return super().sanitize_relocation_json(json, sanitizer, model_name)

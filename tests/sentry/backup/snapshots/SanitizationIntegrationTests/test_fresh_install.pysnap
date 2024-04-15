@@ -1,5 +1,5 @@
 ---
-created: '2024-04-17T17:41:21.647153+00:00'
+created: '2024-04-17T17:43:34.680028+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -46,6 +46,7 @@ source: tests/sentry/backup/test_sanitize.py
   - last_active
   - last_password_change
   - name
+  - password
 - model_name: sentry.user
   ordinal: 2
   sanitized_fields:
@@ -54,14 +55,19 @@ source: tests/sentry/backup/test_sanitize.py
   - last_active
   - last_password_change
   - name
+  - password
 - model_name: sentry.relayusage
   ordinal: 1
   sanitized_fields:
   - first_seen
   - last_seen
+  - public_key
+  - relay_id
 - model_name: sentry.relay
   ordinal: 1
-  sanitized_fields: []
+  sanitized_fields:
+  - public_key
+  - relay_id
 - model_name: sentry.authenticator
   ordinal: 1
   sanitized_fields:
@@ -75,11 +81,13 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 2
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.userrole
   ordinal: 1
   sanitized_fields:
@@ -115,6 +123,7 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - secret_key
 - model_name: sentry.rule
   ordinal: 1
   sanitized_fields:
@@ -143,5 +152,6 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.apiapplication
   ordinal: 1
   sanitized_fields:
+  - client_secret
   - date_added
   - name
