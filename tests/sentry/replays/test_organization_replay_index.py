@@ -1729,14 +1729,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "activity:2",
-                "!activity:1",
-                "activity:>1",
-                "activity:<3",
-                "activity:>=2",
-                "activity:<=2",
+                "activity:1",
+                "!activity:0",
+                "activity:>0",
+                "activity:<2",
+                "activity:>=1",
+                "activity:<=1",
                 "activity:[1,2]",
-                "!activity:[1,3]",
+                "!activity:[0,2]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
