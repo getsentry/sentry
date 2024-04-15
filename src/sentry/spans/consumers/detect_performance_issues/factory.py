@@ -28,7 +28,7 @@ def process_message(message: Message[KafkaPayload]):
     value = message.payload.value
     segment = _deserialize_segment(value)
 
-    assert len(segment["spans"]) > 0
+    assert segment["spans"]
 
     process_segment(segment["spans"])
 
