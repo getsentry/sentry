@@ -126,7 +126,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     query=f"trace:[{', '.join(spans_by_trace.keys())}]",
                     selected_columns=["trace", "count()", "trace_name()", "elapsed()"],
                     limit=len(spans_by_trace),
-                    limitby=("trace", serialized["maxSpansPerTrace"]),
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "elapsed"],
                         transform_alias_to_input_format=True,
