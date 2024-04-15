@@ -51,7 +51,9 @@ export const getDartMetricsOnboarding = ({
   configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
-      description: t('To enable capturing metrics, you need to enable the metrics feature.'),
+      description: t(
+        'To enable capturing metrics, you need to enable the metrics feature.'
+      ),
       configurations: [
         {
           code: [
@@ -155,7 +157,9 @@ export const getFlutterMetricsOnboarding = ({
   configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
-      description: t('To enable capturing metrics, you need to enable the metrics feature.'),
+      description: t(
+        'To enable capturing metrics, you need to enable the metrics feature.'
+      ),
       configurations: [
         {
           code: [
