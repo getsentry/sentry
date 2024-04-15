@@ -699,7 +699,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*zz",
                 "urls:example.com",
                 "url:example.com",
-                "activity:3",
+                "activity:8",
                 "activity:>2",
                 "count_warnings:1",
                 "count_warnings:>0",
@@ -755,7 +755,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
-                "!activity:3",
+                "!activity:8",
                 "activity:<2",
                 "viewed_by_id:2",
             ]
