@@ -351,7 +351,7 @@ export function TransactionNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>
