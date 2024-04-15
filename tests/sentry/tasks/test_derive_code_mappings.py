@@ -105,7 +105,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             [
                 {"in_app": True, "filename": "\\sentry\\mouse.py"},
                 {"in_app": True, "filename": "\\sentry\\dog\\cat\\parrot.py"},
-                {"in_app": True, "filename": "C:\\sentry\\tasks.py"},
+                {"in_app": True, "filename": "C:sentry\\tasks.py"},
                 {"in_app": True, "filename": "D:\\Users\\code\\sentry\\models\\release.py"},
             ]
         )
@@ -136,8 +136,8 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "C:\\"
-            assert code_mapping.source_root == ""
+            assert code_mapping.stack_root == "C:sentry\\"
+            assert code_mapping.source_root == "sentry/"
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
@@ -151,8 +151,8 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "C:\\sentry\\"
-            assert code_mapping.source_root == "src/"
+            assert code_mapping.stack_root == "C:sentry\\"
+            assert code_mapping.source_root == "src/sentry/"
             assert code_mapping.repository.name == repo_name
 
     @responses.activate

@@ -86,6 +86,10 @@ class FrameFilename:
         # Remove drive letter if it exists
         if is_windows_path and frame_file_path[1] == ":":
             frame_file_path = frame_file_path[2:]
+            # windows drive letters can be like C:\ or C:
+            # so we need to remove the slash if it exists
+            if frame_file_path[0] == "/":
+                frame_file_path = frame_file_path[1:]
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         self.straight_path_prefix = frame_file_path[:start_at_index]
@@ -157,7 +161,7 @@ class CodeMappingTreesHelper:
                     )
                     continue
 
-                if stack_path.replace(stack_root, source_root, 1) != source_path:
+                if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
                     logger.info(
                         "Unexpected stack_path/source_path found. A code mapping was not generated.",
                         extra={
@@ -271,7 +275,7 @@ class CodeMappingTreesHelper:
             )
             return []
 
-        if stack_path.replace(stack_root, source_root, 1) != source_path:
+        if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
             logger.info(
                 "Unexpected stack_path/source_path found. A code mapping was not generated.",
                 extra={
@@ -521,8 +525,8 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     If there is no overlap, raise an exception since this should not happen
     """
     stack_root = ""
-    if stack_path[0] == "/":
-        stack_root += "/"
+    if stack_path[0] == "/" or stack_path[0] == "\\":
+        stack_root += stack_path[0]
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
@@ -550,7 +554,7 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
             source_root = source_path.rpartition(overlap)[0]
             stack_root += stack_path_delim.join(stack_root_items)
 
-            if stack_root and stack_root[-1] != SLASH:  # append trailing slash
+            if stack_root and stack_root[-1] != stack_path_delim:  # append trailing slash
                 stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
