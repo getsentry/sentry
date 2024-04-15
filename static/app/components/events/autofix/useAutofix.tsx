@@ -24,8 +24,49 @@ export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
   `/issues/${groupId}/ai-autofix/`,
 ];
 
+const makeInitialAutofixData = (): AutofixResponse => ({
+  autofix: {
+    status: 'PROCESSING',
+    run_id: '',
+    steps: [
+      {
+        type: AutofixStepType.DEFAULT,
+        id: '1',
+        index: 0,
+        status: 'PROCESSING',
+        title: 'Starting Autofix...',
+        progress: [],
+      },
+    ],
+    created_at: new Date().toISOString(),
+  },
+});
+
+const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
+  const data = makeInitialAutofixData();
+
+  if (data.autofix) {
+    data.autofix.status = 'ERROR';
+    data.autofix.steps = [
+      {
+        type: AutofixStepType.DEFAULT,
+        id: '1',
+        index: 0,
+        status: 'ERROR',
+        title: 'Something went wrong',
+        completedMessage: errorMessage,
+        progress: [],
+      },
+    ];
+  }
+
+  return data;
+};
+
 const isPolling = (autofixData?: AutofixData | null) =>
-  autofixData?.status === 'PROCESSING';
+  autofixData?.status === 'PROCESSING' ||
+  autofixData?.status === 'PENDING' ||
+  autofixData?.status === 'NEED_MORE_INFORMATION';
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
@@ -43,11 +84,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   const [isReset, setIsReset] = useState<boolean>(false);
 
-  const {
-    data: apiData,
-    isError,
-    error,
-  } = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
+  const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
     retry: false,
     refetchInterval: data => {
@@ -61,23 +98,11 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const triggerAutofix = useCallback(
     async (instruction: string) => {
       setIsReset(false);
-      setApiQueryData<AutofixResponse>(queryClient, makeAutofixQueryKey(group.id), {
-        autofix: {
-          status: 'PROCESSING',
-          run_id: '',
-          steps: [
-            {
-              type: AutofixStepType.DEFAULT,
-              id: '1',
-              index: 0,
-              status: 'PROCESSING',
-              title: 'Starting Autofix...',
-              progress: [],
-            },
-          ],
-          created_at: new Date().toISOString(),
-        },
-      });
+      setApiQueryData<AutofixResponse>(
+        queryClient,
+        makeAutofixQueryKey(group.id),
+        makeInitialAutofixData()
+      );
 
       try {
         await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
@@ -88,7 +113,11 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
           },
         });
       } catch (e) {
-        // Don't need to do anything, error should be in the metadata
+        setApiQueryData<AutofixResponse>(
+          queryClient,
+          makeAutofixQueryKey(group.id),
+          makeErrorAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
+        );
       }
     },
     [queryClient, group.id, api, event.id]
@@ -102,8 +131,6 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   return {
     autofixData,
-    error,
-    isError,
     isPolling: isPolling(autofixData),
     triggerAutofix,
     reset,

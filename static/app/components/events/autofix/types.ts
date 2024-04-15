@@ -26,7 +26,13 @@ export type AutofixPullRequestDetails = {
 export type AutofixData = {
   created_at: string;
   run_id: string;
-  status: 'PROCESSING' | 'COMPLETED' | 'NOFIX' | 'ERROR' | 'NEED_MORE_INFORMATION';
+  status:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'NOFIX'
+    | 'ERROR'
+    | 'NEED_MORE_INFORMATION';
   codebase_indexing?: {
     status: 'COMPLETED';
   };

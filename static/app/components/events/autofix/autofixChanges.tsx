@@ -4,11 +4,9 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button, LinkButton} from 'sentry/components/button';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import {
-  type AutofixChangesStep,
-  type AutofixCodebaseChange,
-  type AutofixPullRequestDetails,
-  AutofixStepType,
+import type {
+  AutofixChangesStep,
+  AutofixCodebaseChange,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
@@ -38,17 +36,20 @@ function AutofixRepoChange({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {mutate: createPr, isLoading} = useMutation<AutofixPullRequestDetails>({
+  const {mutate: createPr, isLoading} = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/issues/${groupId}/ai-autofix/create-pr/`, {
+      return api.requestPromise(`/issues/${groupId}/ai-autofix/update/`, {
         method: 'POST',
         data: {
           run_id: autofixData?.run_id,
-          repo_id: change.repo_id,
+          payload: {
+            type: 'create_pr',
+            repo_id: change.repo_id,
+          },
         },
       });
     },
-    onSuccess: pullRequestDetails => {
+    onSuccess: () => {
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(groupId),
@@ -61,25 +62,7 @@ function AutofixRepoChange({
             ...data,
             autofix: {
               ...data.autofix,
-              steps: data.autofix.steps?.map(step => {
-                if (step.type !== AutofixStepType.CHANGES) {
-                  return step;
-                }
-
-                return {
-                  ...step,
-                  changes: step.changes.map(c => {
-                    if (c.repo_id !== change.repo_id) {
-                      return c;
-                    }
-
-                    return {
-                      ...c,
-                      pull_request: pullRequestDetails,
-                    };
-                  }),
-                };
-              }),
+              status: 'PROCESSING',
             },
           };
         }

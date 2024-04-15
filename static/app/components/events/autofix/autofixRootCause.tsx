@@ -57,18 +57,24 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
             customRootCause: string;
           }
     ) => {
-      return api.requestPromise(`/issues/${groupId}/ai-autofix/select-cause/`, {
+      return api.requestPromise(`/issues/${groupId}/ai-autofix/update/`, {
         method: 'POST',
         data:
           'customRootCause' in params
             ? {
                 run_id: runId,
-                custom_root_cause: params.customRootCause,
+                payload: {
+                  type: 'select_root_cause',
+                  custom_root_cause: params.customRootCause,
+                },
               }
             : {
                 run_id: runId,
-                cause_id: params.causeId,
-                fix_id: params.fixId,
+                payload: {
+                  type: 'select_root_cause',
+                  cause_id: params.causeId,
+                  fix_id: params.fixId,
+                },
               },
       });
     },
