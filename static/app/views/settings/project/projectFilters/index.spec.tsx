@@ -110,16 +110,18 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+        name: 'Internet Explorer Verison 11 and lower',
       })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
+      await screen.findByRole('checkbox', {
+        name: 'Safari Version 11 and lower',
+      })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Verison 11 and lower'})
+      screen.getByRole('checkbox', {name: 'Firefox Version 66 and lower'})
     ).not.toBeChecked();
   });
 
@@ -131,51 +133,22 @@ describe('ProjectFilters', function () {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Safari Version 11 and lower',
+        name: 'Firefox Version 66 and lower',
       })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
+      'ie',
       'safari',
+      'firefox',
     ]);
 
     // Toggle filter off
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Verison 11 and lower'})
+      await screen.findByRole('checkbox', {name: 'Firefox Version 66 and lower'})
     );
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
-      'safari',
-      'ie',
-    ]);
-
-    mock.mockReset();
-
-    // Click ie9 and < ie9
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
-    );
-    expect(
-      screen.queryByRole('checkbox', {
-        name: 'Internet Explorer (Deprecated) Version 9',
-      })
-    ).not.toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Internet Explorer (Deprecated) Version 8 and lower',
-      })
-    );
-    expect(
-      screen.queryByRole('checkbox', {
-        name: 'Internet Explorer (Deprecated) Version 8 and lower',
-      })
-    ).not.toBeInTheDocument();
-
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['safari', 'ie']);
+    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
   });
 
   it('can toggle all/none for legacy browser', async function () {
