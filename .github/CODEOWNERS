@@ -459,7 +459,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 /static/app/components/metrics/                                                  @getsentry/telemetry-experience
 /static/app/components/modals/metricWidgetViewerModal*                           @getsentry/telemetry-experience
-/static/app/views/dashboards/metrics                                             @getsentry/telemetry-experience
+/static/app/views/dashboards/metrics/                                            @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
