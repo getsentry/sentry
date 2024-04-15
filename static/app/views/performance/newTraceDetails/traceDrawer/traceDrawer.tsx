@@ -714,7 +714,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 66ch;
+  max-width: 28ch;
 
   overflow: hidden;
   text-overflow: ellipsis;
