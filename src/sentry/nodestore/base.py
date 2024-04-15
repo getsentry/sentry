@@ -8,7 +8,6 @@ import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
-from sentry import options
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
 
@@ -231,18 +230,28 @@ class NodeStorage(local, Service):
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError
 
-    def set(self, item_id: str, data: dict[str, str], ttl: timedelta | None = None) -> None:
+    def set(
+        self,
+        item_id: str,
+        data: dict[str, str],
+        ttl: timedelta | None = None,
+        override_cache: bool = False,
+    ) -> None:
         """
         Set value for `item_id`. Note that this deletes existing subkeys for `item_id` as
         well, use `set_subkeys` to write a value + subkeys.
 
         >>> nodestore.set('key1', {'foo': 'bar'})
         """
-        return self.set_subkeys(item_id, {None: data}, ttl=ttl)
+        return self.set_subkeys(item_id, {None: data}, ttl=ttl, override_cache=override_cache)
 
     @sentry_sdk.tracing.trace
     def set_subkeys(
-        self, item_id: str, data: dict[str | None, dict[str, str]], ttl: timedelta | None = None
+        self,
+        item_id: str,
+        data: dict[str | None, dict[str, str]],
+        ttl: timedelta | None = None,
+        override_cache: bool = False,
     ) -> None:
         """
         Set value for `item_id` and its subkeys.
@@ -261,7 +270,7 @@ class NodeStorage(local, Service):
         bytes_data = self._encode(data)
         self.set_bytes(item_id, bytes_data, ttl=ttl)
         # set cache only after encoding and write to nodestore has succeeded
-        if options.get("nodestore.set-subkeys.enable-set-cache-item"):
+        if override_cache:
             self._set_cache_item(item_id, cache_item)
 
     def cleanup(self, cutoff_timestamp: datetime) -> None:

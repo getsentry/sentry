@@ -156,7 +156,7 @@ class NodeData(MutableMapping):
         subkeys = subkeys or {}
         subkeys[None] = to_write
 
-        nodestore.backend.set_subkeys(self.id, subkeys)
+        nodestore.backend.set_subkeys(self.id, subkeys, override_cache=True)
 
 
 class NodeField(GzippedDictField):

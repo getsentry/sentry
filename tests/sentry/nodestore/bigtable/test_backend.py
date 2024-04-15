@@ -104,7 +104,7 @@ def test_cache(ns):
     node_3 = ("c" * 32, {"foo": "c"})
 
     for node_id, data in [node_1, node_2, node_3]:
-        ns.set(node_id, data)
+        ns.set(node_id, data, override_cache=True)
 
     # Get / get multi populates cache
     assert ns.get(node_1[0]) == node_1[1]
@@ -140,13 +140,6 @@ def test_cache(ns):
     assert ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: node_2[1]}
     ns.delete_multi([node_1[0], node_2[0]])
     assert ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: None}
-
-    # Setting the item updates cache
-    new_value = {"event_id": "d" * 32}
-    ns.set(node_1[0], new_value)
-    with mock.patch.object(table, "read_row") as mock_read_row:
-        assert ns.get(node_1[0]) == new_value
-        assert mock_read_row.call_count == 0
 
     # Missing rows are never cached
     assert ns.get("node_4") is None

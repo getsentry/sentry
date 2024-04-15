@@ -119,13 +119,6 @@ class TestDjangoNodeStorage:
         self.ns.delete_multi([node_1[0], node_2[0]])
         assert self.ns.get_multi([node_1[0], node_2[0]]) == {}
 
-        # Setting the item updates cache
-        new_value = {"event_id": "d" * 32}
-        self.ns.set(node_1[0], new_value)
-        with mock.patch.object(Node.objects, "get") as mock_get:
-            assert self.ns.get(node_1[0]) == new_value
-            assert mock_get.call_count == 0
-
         # Missing rows are never cached
         assert self.ns.get("node_4") is None
         with mock.patch.object(Node.objects, "get") as mock_get:
