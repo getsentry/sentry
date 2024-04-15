@@ -7,6 +7,8 @@ import {DataSection} from 'sentry/components/events/styles';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
@@ -107,6 +109,7 @@ const HeaderContainer = styled(Title)`
 
 interface EventDetailsLinkProps {
   node: TraceTreeNode<TraceTree.NodeValue>;
+  organization: Organization;
 }
 
 function EventDetailsLink(props: EventDetailsLinkProps) {
@@ -154,6 +157,11 @@ function EventDetailsLink(props: EventDetailsLinkProps) {
       }
       size="xs"
       to={locationDescriptor}
+      onClick={() => {
+        trackAnalytics('performance_views.trace_details.view_event_details', {
+          organization: props.organization,
+        });
+      }}
     >
       {t('View Event Details')}
     </LinkButton>

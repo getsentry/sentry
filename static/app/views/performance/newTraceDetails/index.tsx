@@ -1,5 +1,13 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -15,6 +23,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -77,6 +86,12 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
+
+  useEffect(() => {
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization,
+    });
+  }, [organization]);
 
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
