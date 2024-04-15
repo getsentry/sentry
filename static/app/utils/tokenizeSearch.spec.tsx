@@ -6,7 +6,7 @@ describe('utils/tokenizeSearch', function () {
       [{transaction: '/index'}, 'transaction:/index'],
       [{transaction: '/index', has: 'span.domain'}, 'transaction:/index has:span.domain'],
       [{transaction: '/index', 'span.domain': undefined}, 'transaction:/index'],
-      [{'span.domain': '*hello*'}, 'span.domain:"\\*hello\\*"'],
+      [{'span.domain': '*hello*'}, 'span.domain:*hello*'],
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
       [{transaction: '(empty)'}, '!has:transaction'],
     ])('converts %s to search string', (query, result) => {
