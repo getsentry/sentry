@@ -61,8 +61,10 @@ class MQLQuery:
         # We sort query names by length and content with the goal of trying to always match the longest queries first.
         sorted_query_names = sorted(sub_queries.keys(), key=lambda q: (len(q), q), reverse=True)
         for query_name in sorted_query_names:
+            # We pass a lambda to the sub, because of how escaping is handled by `re.sub`. More information
+            # can be found at https://stackoverflow.com/questions/280435/escaping-regex-string.
             replaced_mql_formula = re.sub(
-                rf"\${query_name}", sub_queries[query_name].mql, replaced_mql_formula
+                rf"\${query_name}", lambda _: sub_queries[query_name].mql, replaced_mql_formula
             )
 
         return MQLQuery(mql=replaced_mql_formula, order=self.order, limit=self.limit)
