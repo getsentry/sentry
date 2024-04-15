@@ -8,10 +8,10 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatSpanOperation} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -59,7 +59,7 @@ function SpanSummaryPage({params, location}: Props) {
   }
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
+    decodeSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
       isAValidSort
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
