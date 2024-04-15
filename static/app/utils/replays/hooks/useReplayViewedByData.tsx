@@ -1,12 +1,8 @@
 import type {User} from 'sentry/types';
-import {
-  type ApiQueryKey,
-  useApiQuery,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  orgSlug: string;
   projectSlug: undefined | string;
   replayId: undefined | string;
 }
@@ -17,17 +13,18 @@ type TResponseData = {
   };
 };
 
-function getQueryKey({orgSlug, projectSlug, replayId}: Props): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/viewed-by/`];
-}
-
 export default function useReplayViewedByData(
-  props: Props,
+  {projectSlug, replayId}: Props,
   options: Partial<UseApiQueryOptions<TResponseData>> = {}
 ) {
-  return useApiQuery<TResponseData>(getQueryKey(props), {
-    staleTime: Infinity,
-    retry: false,
-    ...options,
-  });
+  const organization = useOrganization();
+  return useApiQuery<TResponseData>(
+    [`/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`],
+    {
+      enabled: Boolean(projectSlug && replayId),
+      staleTime: Infinity,
+      retry: false,
+      ...options,
+    }
+  );
 }

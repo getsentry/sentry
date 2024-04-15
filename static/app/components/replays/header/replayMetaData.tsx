@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
@@ -13,7 +14,6 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayViewedByData from 'sentry/utils/replays/hooks/useReplayViewedByData';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -24,15 +24,19 @@ type Props = {
 };
 
 function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
-  const organization = useOrganization();
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
-  const {data: viewers} = useReplayViewedByData({
-    orgSlug: organization.slug,
+  const viewersResult = useReplayViewedByData({
     projectSlug: replayRecord?.project_id,
     replayId: replayRecord?.id,
+  });
+
+  useEffect(() => {
+    if (viewersResult.isError) {
+      Sentry.captureException(viewersResult.error);
+    }
   });
 
   const breadcrumbTab = {
@@ -93,8 +97,8 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
       </KeyMetricData>
       <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
       <KeyMetricData>
-        {viewers ? (
-          <AvatarList avatarSize={25} users={viewers.data.viewed_by} />
+        {viewersResult.data ? (
+          <AvatarList avatarSize={25} users={viewersResult.data.data.viewed_by} />
         ) : (
           <HeaderPlaceholder width="55px" height="27px" />
         )}
