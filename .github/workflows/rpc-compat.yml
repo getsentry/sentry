@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - src/sentry/services/hybrid_cloud/**
   pull_request:
 
 jobs:
