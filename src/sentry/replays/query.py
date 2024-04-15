@@ -41,7 +41,7 @@ ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 # Compatibility function for getsentry code.
 def query_replays_collection(*args, **kwargs):
-    return query_replays_collection_raw(*args, **kwargs)[0]
+    return query_replays_collection_raw(*args, **kwargs).response
 
 
 def query_replays_collection_raw(

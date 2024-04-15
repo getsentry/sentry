@@ -142,6 +142,13 @@ class Paginators:
     offset: int
 
 
+@dataclasses.dataclass
+class QueryResponse:
+    response: list[Any]
+    has_more: bool
+    source: str
+
+
 def query_using_optimized_search(
     fields: list[str],
     search_filters: Sequence[SearchFilter | str | ParenExpression],
@@ -177,6 +184,7 @@ def query_using_optimized_search(
             period_stop=period_stop,
         )
         referrer = "replays.query.browse_materialized_view_conditions_subquery"
+        source = "materialized-view"
     elif can_scalar_sort and can_scalar_search:
         query = make_scalar_search_conditions_query(
             search_filters=search_filters,
@@ -186,6 +194,7 @@ def query_using_optimized_search(
             period_stop=period_stop,
         )
         referrer = "replays.query.browse_scalar_conditions_subquery"
+        source = "scalar-subquery"
     else:
         query = make_aggregate_search_conditions_query(
             search_filters=search_filters,
@@ -195,6 +204,7 @@ def query_using_optimized_search(
             period_stop=period_stop,
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
+        source = "aggregated-subquery"
 
     query = query.set_limit(pagination.limit)
     query = query.set_offset(pagination.offset)
@@ -210,7 +220,11 @@ def query_using_optimized_search(
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return [], has_more
+        return QueryResponse(
+            response=[],
+            has_more=has_more,
+            source=source,
+        )
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -230,7 +244,11 @@ def query_using_optimized_search(
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results), has_more
+    return QueryResponse(
+        response=_make_ordered(replay_ids, results),
+        has_more=has_more,
+        source=source,
+    )
 
 
 def make_materialized_view_search_query(
