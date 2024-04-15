@@ -3,6 +3,8 @@ import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Requests');
 
+export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
+
 export const RELEASE_LEVEL: BadgeType = 'alpha';
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
