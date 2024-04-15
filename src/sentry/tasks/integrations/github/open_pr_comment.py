@@ -5,6 +5,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Value
 from django.db.models.functions import StrIndex
 from snuba_sdk import (
@@ -397,6 +398,7 @@ def get_top_5_issues_by_count_for_file(
             return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
         except Exception as e:
             logger.exception("github.open_pr_comment.snuba_query_error", extra={"error": str(e)})
+            sentry_sdk.capture_exception(e)
 
     return []
 
