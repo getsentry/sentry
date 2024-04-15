@@ -194,6 +194,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
+  'nintendo-switch',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -504,6 +505,9 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'node-express',
   'node-gcpfunctions',
   'node-koa',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
@@ -525,6 +529,7 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
   'javascript',
   'react-native',
+  'unity',
 ];
 
 // These are all the platforms that can set up custom metrics.

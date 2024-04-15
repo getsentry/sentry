@@ -17,11 +17,11 @@ import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
   },
 }));
 
@@ -95,31 +95,31 @@ describe('Incident Rules Form', () => {
   describe('Viewing the rule', () => {
     const rule = MetricRuleFixture();
 
-    it('is enabled without org-level alerts:write', () => {
+    it('is enabled without org-level alerts:write', async () => {
       organization.access = [];
       project.access = [];
       createWrapper({rule});
 
-      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
-    it('is enabled with org-level alerts:write', () => {
+    it('is enabled with org-level alerts:write', async () => {
       organization.access = ['alerts:write'];
       project.access = [];
       createWrapper({rule});
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
 
-    it('is enabled with project-level alerts:write', () => {
+    it('is enabled with project-level alerts:write', async () => {
       organization.access = [];
       project.access = ['alerts:write'];
       createWrapper({rule});
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
   });
 
@@ -182,7 +182,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('can create a rule for a different project', async () => {
@@ -219,7 +219,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('creates a rule with generic_metrics dataset', async () => {
@@ -453,7 +453,6 @@ describe('Incident Rules Form', () => {
     });
 
     afterEach(() => {
-      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 
@@ -480,8 +479,9 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
+      act(jest.runAllTimers);
       await userEvent.type(
-        screen.getByPlaceholderText('Enter Alert Name'),
+        await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );
@@ -504,7 +504,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', () => {
+    it('pending status keeps loading true', async () => {
       const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
@@ -526,7 +526,8 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      act(jest.runAllTimers);
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
 
@@ -552,8 +553,9 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
+      act(jest.runAllTimers);
       await userEvent.type(
-        screen.getByPlaceholderText('Enter Alert Name'),
+        await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );

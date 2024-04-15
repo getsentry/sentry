@@ -8,17 +8,16 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import OpenFeedbackButton from 'sentry/components/replays/breadcrumbs/openFeedbackButton';
+import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -28,7 +27,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-const FRAMES_WITH_BUTTONS = ['replay.hydrate-error', 'sentry.feedback'];
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   extraction: Extraction | undefined;
@@ -42,7 +41,6 @@ interface Props {
   ) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
-  projectSlug: string | undefined;
   startTimestampMs: number;
   traces: ReplayTraceRow | undefined;
   className?: string;
@@ -60,7 +58,6 @@ function BreadcrumbItem({
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
-  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -84,38 +81,36 @@ function BreadcrumbItem({
         {icon}
       </IconWrapper>
       <CrumbDetails>
-        <TitleContainer>
-          {isErrorFrame(frame) ? (
-            <CrumbErrorTitle frame={frame} />
-          ) : (
-            <Title>{title}</Title>
-          )}
-          {onClick ? (
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          ) : null}
-        </TitleContainer>
+        <Flex column>
+          <TitleContainer>
+            {<Title>{title}</Title>}
+            {onClick ? (
+              <TimestampButton
+                startTimestampMs={startTimestampMs}
+                timestampMs={frame.timestampMs}
+              />
+            ) : null}
+          </TitleContainer>
 
-        {typeof description === 'string' ||
-        (description !== undefined && isValidElement(description)) ? (
-          <Description title={description} showOnlyOnOverflow isHoverable>
-            {description}
-          </Description>
-        ) : (
-          <InspectorWrapper>
-            <ObjectInspector
-              data={description}
-              expandPaths={expandPaths}
-              onExpand={onInspectorExpanded}
-              theme={{
-                TREENODE_FONT_SIZE: '0.7rem',
-                ARROW_FONT_SIZE: '0.5rem',
-              }}
-            />
-          </InspectorWrapper>
-        )}
+          {typeof description === 'string' ||
+          (description !== undefined && isValidElement(description)) ? (
+            <Description title={description} showOnlyOnOverflow isHoverable>
+              {description}
+            </Description>
+          ) : (
+            <InspectorWrapper>
+              <ObjectInspector
+                data={description}
+                expandPaths={expandPaths}
+                onExpand={onInspectorExpanded}
+                theme={{
+                  TREENODE_FONT_SIZE: '0.7rem',
+                  ARROW_FONT_SIZE: '0.5rem',
+                }}
+              />
+            </InspectorWrapper>
+          )}
+        </Flex>
 
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
           <div>
@@ -126,15 +121,6 @@ function BreadcrumbItem({
                 (frame.data.mutations.next?.timestamp ?? 0) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
-            />
-          </div>
-        ) : null}
-
-        {projectSlug && 'data' in frame && frame.data && 'feedbackId' in frame.data ? (
-          <div>
-            <OpenFeedbackButton
-              projectSlug={projectSlug}
-              eventId={frame.data.feedbackId}
             />
           </div>
         ) : null}
@@ -155,33 +141,15 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
+        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+          <CrumbErrorIssue frame={frame} />
+        ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
 }
 
-function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
-  const organization = useOrganization();
-  const {eventId} = useReplayGroupContext();
-
-  if (eventId === frame.data.eventId) {
-    return <Title>Error: This Event</Title>;
-  }
-
-  return (
-    <Title>
-      Error:{' '}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
-      >
-        {getShortEventId(frame.data.eventId)}
-      </Link>
-    </Title>
-  );
-}
-
-function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
@@ -190,7 +158,7 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
   ) : null;
 
-  if (`${frame.data.groupId}` === groupId) {
+  if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
         {projectBadge}
@@ -202,7 +170,16 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
   return (
     <CrumbIssueWrapper>
       {projectBadge}
-      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
+      <Link
+        to={
+          isFeedbackFrame(frame)
+            ? {
+                pathname: `/organizations/${organization.slug}/feedback/`,
+                query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
+              }
+            : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
+        }
+      >
         {frame.data.groupShortId}
       </Link>
     </CrumbIssueWrapper>
@@ -214,7 +191,6 @@ const CrumbIssueWrapper = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
 `;
 
 const InspectorWrapper = styled('div')`
@@ -225,6 +201,7 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: ${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
@@ -297,7 +274,6 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
 `;
 
 const CodeContainer = styled('div')`
-  margin-top: ${space(1)};
   max-height: 400px;
   max-width: 100%;
   overflow: auto;

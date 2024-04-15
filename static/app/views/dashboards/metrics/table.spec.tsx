@@ -123,15 +123,17 @@ describe('getTableSeries', () => {
       {order: undefined, label: 'event_type', name: 'event_type', type: 'tag'},
       {
         order: undefined,
-        label: 'p50(d:custom/sentry.event_manager.save@second)',
+        label: 'p50(sentry.event_manager.save)',
         name: 'a',
         type: 'field',
+        id: undefined,
       },
       {
         order: undefined,
-        label: 'p90(d:custom/sentry.event_manager.save_attachments@second)',
+        label: 'p90(sentry.event_manager.save_attachments)',
         name: 'b',
         type: 'field',
+        id: undefined,
       },
     ]);
 

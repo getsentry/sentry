@@ -8,7 +8,7 @@ import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
@@ -32,7 +32,6 @@ from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_activation,
-    create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
@@ -144,7 +143,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1351,7 +1349,7 @@ class Factories:
     def create_userreport(project, event_id=None, **kwargs):
         event = Factories.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "event_id": event_id or "a" * 32,
                 "message": "testing",
             },
@@ -1490,6 +1488,7 @@ class Factories:
         event_types=None,
         comparison_delta=None,
         monitor_type=AlertRuleMonitorType.CONTINUOUS,
+        activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1517,6 +1516,7 @@ class Factories:
             event_types=event_types,
             comparison_delta=comparison_delta,
             monitor_type=monitor_type,
+            activation_condition=activation_condition,
         )
 
         if date_added is not None:
@@ -1526,24 +1526,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_activation_condition(
-        alert_rule,
-        label=None,
-        condition_type=AlertRuleActivationConditionType.RELEASE_CREATION,
-    ):
-        if not label:
-            label = petname.generate(2, " ", letters=10).title()
-
-        return create_alert_rule_activation_condition(alert_rule, label, condition_type)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_activation(
         alert_rule,
+        query_subscription,
         **kwargs,
     ):
 
-        return create_alert_rule_activation(alert_rule, **kwargs)
+        return create_alert_rule_activation(
+            alert_rule=alert_rule, query_subscription=query_subscription, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

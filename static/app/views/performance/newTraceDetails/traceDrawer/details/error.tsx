@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -10,27 +10,35 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, Organization} from 'sentry/types';
+import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../../traceModels/traceTree';
 
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails({
   node,
   organization,
-  location,
-  scrollToNode,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.TraceError>;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+  onTabScrollToNode,
+  onParentClick,
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
+  const location = useLocation();
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
   const {isLoading, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -48,36 +56,57 @@ export function ErrorNodeDetails({
     return null;
   }, [data]);
 
+  const theme = useTheme();
+  const parentTransaction = node.parent_transaction;
+
   return isLoading ? (
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
-        <TraceDrawerComponents.IconTitleWrapper>
-          <TraceDrawerComponents.IconBorder errored>
-            <IconFire color="errorText" size="md" />
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.IconBorder
+            backgroundColor={makeTraceNodeBarColor(theme, node)}
+          >
+            <TraceIcons.Icon event={node.value} />
           </TraceDrawerComponents.IconBorder>
-          <div style={{fontWeight: 'bold'}}>{t('Error')}</div>
-        </TraceDrawerComponents.IconTitleWrapper>
+          <TraceDrawerComponents.TitleText>
+            <div>{node.value.level ?? t('error')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {node.value.title}
+            </TraceDrawerComponents.TitleOp>
+          </TraceDrawerComponents.TitleText>
+        </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            node={node}
+            organization={organization}
+          />
           <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
           </Button>
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
+      <IssueList issues={issues} node={node} organization={organization} />
+
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          {stackTrace && (
+          {stackTrace ? (
             <tr>
               <StackTraceTitle>{t('Stack Trace')}</StackTraceTitle>
               <StackTraceWrapper>
                 <StackTracePreviewContent event={data} stacktrace={stackTrace} />
               </StackTraceWrapper>
             </tr>
+          ) : (
+            <Row title={t('Stack Trace')}>
+              {t('No stack trace has been reported with this error')}
+            </Row>
           )}
           <Tags
             enableHiding
@@ -92,6 +121,15 @@ export function ErrorNodeDetails({
           >
             {node.value.title}
           </Row>
+          {parentTransaction ? (
+            <Row title="Parent Transaction">
+              <td className="value">
+                <a onClick={() => onParentClick(parentTransaction)}>
+                  {getTraceTabTitle(parentTransaction)}
+                </a>
+              </td>
+            </Row>
+          ) : null}
         </tbody>
       </TraceDrawerComponents.Table>
     </TraceDrawerComponents.DetailContainer>

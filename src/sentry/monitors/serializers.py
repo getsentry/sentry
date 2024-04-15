@@ -6,12 +6,66 @@ from typing import Any, Literal, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.models.actor import ActorTuple
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 
 from ..models import Environment
-from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from .models import (
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvBrokenDetection,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+)
+
+
+class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
+    userNotifiedTimestamp: datetime
+    environmentMutedTimestamp: datetime
+
+
+@register(MonitorEnvBrokenDetection)
+class MonitorEnvBrokenDetectionSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvBrokenDetectionSerializerResponse:
+        return {
+            "userNotifiedTimestamp": obj.user_notified_timestamp,
+            "environmentMutedTimestamp": obj.env_muted_timestamp,
+        }
+
+
+class MonitorIncidentSerializerResponse(TypedDict):
+    startingTimestamp: datetime
+    resolvingTimestamp: datetime
+    brokenNotice: MonitorEnvBrokenDetectionSerializerResponse | None
+
+
+@register(MonitorIncident)
+class MonitorIncidentSerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
+        broken_detections = list(
+            MonitorEnvBrokenDetection.objects.filter(monitor_incident__in=item_list)
+        )
+        serialized_broken_detections = {
+            detection.monitor_incident_id: serialized
+            for serialized, detection in zip(serialize(broken_detections, user), broken_detections)
+        }
+        return {
+            incident: {"broken_detection": serialized_broken_detections.get(incident.id)}
+            for incident in item_list
+        }
+
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorIncidentSerializerResponse:
+        return {
+            "startingTimestamp": obj.starting_timestamp,
+            "resolvingTimestamp": obj.resolving_timestamp,
+            "brokenNotice": attrs["broken_detection"],
+        }
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
@@ -22,6 +76,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     lastCheckIn: datetime
     nextCheckIn: datetime
     nextCheckInLatest: datetime
+    activeIncident: MonitorIncidentSerializerResponse | None
 
 
 @register(MonitorEnvironment)
@@ -34,8 +89,24 @@ class MonitorEnvironmentSerializer(Serializer):
         ]
         environments = {env.id: env for env in Environment.objects.filter(id__in=env_ids)}
 
+        active_incidents = list(
+            MonitorIncident.objects.filter(
+                monitor_environment__in=item_list,
+                resolving_checkin=None,
+            )
+        )
+        serialized_incidents = {
+            incident.monitor_environment_id: serialized_incident
+            for incident, serialized_incident in zip(
+                active_incidents, serialize(active_incidents, user)
+            )
+        }
+
         return {
-            monitor_env: {"environment": environments[monitor_env.environment_id]}
+            monitor_env: {
+                "environment": environments[monitor_env.environment_id],
+                "active_incident": serialized_incidents.get(monitor_env.id),
+            }
             for monitor_env in item_list
         }
 
@@ -48,6 +119,7 @@ class MonitorEnvironmentSerializer(Serializer):
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
             "nextCheckInLatest": obj.next_checkin_latest,
+            "activeIncident": attrs["active_incident"],
         }
 
 
@@ -87,6 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+    owner: ActorSerializerResponse
 
 
 class MonitorBulkEditResponse:
@@ -102,11 +175,19 @@ class MonitorSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
-        projects = {
-            p["id"]: p
-            for p in serialize(
-                list(Project.objects.filter(id__in=[i.project_id for i in item_list])), user
-            )
+        projects = Project.objects.filter(id__in=[i.project_id for i in item_list])
+        projects_data = {
+            project.id: serialized_project
+            for project, serialized_project in zip(projects, serialize(list(projects), user))
+        }
+
+        actors = ActorTuple.from_ids(
+            [m.owner_user_id for m in item_list if m.owner_user_id],
+            [m.owner_team_id for m in item_list if m.owner_team_id],
+        )
+        actors_serialized = serialize(ActorTuple.resolve_many(actors), user, ActorSerializer())
+        actor_data = {
+            actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -129,13 +210,14 @@ class MonitorSerializer(Serializer):
             serialized_monitor_environments[monitor_env.monitor_id].append(serialized)
 
         environment_data = {
-            str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
+            item.id: serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
         attrs = {
             item: {
-                "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": environment_data[str(item.id)],
+                "project": projects_data[item.project_id] if item.project_id else None,
+                "environments": environment_data[item.id],
+                "owner": actor_data.get(item.owner_actor),
             }
             for item in item_list
         }
@@ -162,6 +244,7 @@ class MonitorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
+            "owner": attrs["owner"],
         }
 
         if self._expand("alertRule"):

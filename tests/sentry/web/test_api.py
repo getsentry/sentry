@@ -15,12 +15,11 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):
@@ -163,6 +162,24 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == ["organizations:create", "organizations:customer-domains"]
 
+    def test_react_concurrent_feature(self):
+        with override_options({"frontend.react-concurrent-renderer-enabled": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:react-concurrent-renderer-enabled",
+            ]
+
+        with override_options({"frontend.react-concurrent-renderer-enabled": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -273,11 +290,11 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff(self):
         self._run_test_with_privileges(is_superuser=False, is_staff=True)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_superuser_and_staff(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=True)
 

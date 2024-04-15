@@ -344,11 +344,15 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS = (
+        "api.performance.transactions.statistical-detector-root-cause-analysis"
+    )
     API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
         "api.performance.transactions.statistical-detector-stats"
     )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
+    API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
@@ -430,6 +434,8 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -438,6 +444,7 @@ class Referrer(Enum):
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
+    API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
@@ -628,6 +635,8 @@ class Referrer(Enum):
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
+    SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
+    SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

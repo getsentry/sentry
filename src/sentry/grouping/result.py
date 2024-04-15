@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Optional, TypedDict
 
 from sentry.db.models import NodeData
+from sentry.grouping.variants import KeyedVariants
 from sentry.utils.safe import get_path, safe_execute, set_path
 
 EventMetadata = dict[str, Any]
@@ -54,10 +55,10 @@ MAX_ISSUE_TREE_LABELS = 2
 def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
-        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
+        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore[assignment]
         # TODO(markus): Remove more stuff here if we never use it in group
         # title
-        stripped_part.pop("datapath", None)  # type: ignore
+        stripped_part.pop("datapath", None)  # type: ignore[typeddict-item]
         rv.append(stripped_part)
 
         if truncate and len(rv) == MAX_ISSUE_TREE_LABELS:
@@ -99,6 +100,7 @@ class CalculatedHashes:
     hashes: Sequence[str]
     hierarchical_hashes: Sequence[str]
     tree_labels: Sequence[TreeLabel | None]
+    variants: KeyedVariants | None = None
 
     def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes

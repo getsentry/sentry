@@ -13,7 +13,7 @@ from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import jwt
 
 from .test_helpers import (
@@ -34,7 +34,6 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
-@region_silo_test
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):

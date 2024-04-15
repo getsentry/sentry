@@ -32,6 +32,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -92,6 +93,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
     monitor_type = serializers.IntegerField(required=False, min_value=0)
+    activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
 
     class Meta:
         model = AlertRule
@@ -114,6 +116,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "triggers",
             "event_types",
             "monitor_type",
+            "activation_condition",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
@@ -211,6 +214,18 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         return AlertRuleMonitorType(monitor_type)
 
+    def validate_activation_condition(self, activation_condition):
+        if activation_condition is None:
+            return activation_condition
+
+        try:
+            return AlertRuleActivationConditionType(activation_condition)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid activation condition, valid values are %s"
+                % [item.value for item in AlertRuleActivationConditionType]
+            )
+
     def validate(self, data):
         """
         Performs validation on an alert rule's data.
@@ -266,13 +281,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
-        # If metric based crash rate alerts are enabled, coerce sessions over
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
             "organizations:custom-metrics",
@@ -398,7 +406,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     @staticmethod
     def _validate_time_window(dataset, time_window):
-        if dataset in [Dataset.Sessions, Dataset.Metrics]:
+        if dataset == Dataset.Metrics:
             # Validate time window
             if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(

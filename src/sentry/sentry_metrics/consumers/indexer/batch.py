@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Mutable
 from dataclasses import dataclass
 from typing import Any, cast
 
+import orjson
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
@@ -17,6 +18,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
+from sentry.features.rollout import in_random_rollout
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -27,7 +29,8 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -164,11 +167,16 @@ class IndexerBatch:
         msg: Message[KafkaPayload],
     ) -> ParsedMessage:
         assert isinstance(msg.value, BrokerValue)
+        decoded_str = msg.payload.value.decode()
+
         try:
-            parsed_payload: ParsedMessage = json.loads(
-                msg.payload.value.decode("utf-8"), use_rapid_json=True
-            )
-        except rapidjson.JSONDecodeError:
+            if in_random_rollout("sentry-metrics.indexer.enable-orjson"):
+                # Always create a span because json.loads passes skip_trace=False
+                with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+                    parsed_payload: ParsedMessage = orjson.loads(decoded_str)
+            else:
+                parsed_payload = json.loads(decoded_str, use_rapid_json=True)
+        except (orjson.JSONDecodeError, rapidjson.JSONDecodeError):
             logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},
@@ -505,7 +513,7 @@ class IndexerBatch:
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),
                             # XXX: type mismatch, but seems to work fine in prod
-                            ("metric_type", new_payload_value["type"]),  # type: ignore
+                            ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
                         ],
                     )
                 if self.is_output_sliced:

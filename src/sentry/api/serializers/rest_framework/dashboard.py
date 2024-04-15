@@ -1,4 +1,5 @@
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import TypedDict
@@ -150,6 +151,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
+
+    is_hidden = serializers.BooleanField(required=False)
 
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
@@ -333,7 +336,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 else:
                     query_errors.append({})
 
-                if ondemand_feature and not query.get("on_demand_extraction_disabled", False):
+                if (
+                    ondemand_feature
+                    and data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    and not query.get("on_demand_extraction_disabled", False)
+                ):
                     if query.get("columns"):
                         all_columns = all_columns.union(query.get("columns"))
                     # If this query wants ondemand check if we'll go over spec
@@ -347,6 +354,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                         orderby=query.get("orderby", ""),
                     )
                     # Get widget specs if we haven't yet
+
                     if current_widget_specs is None:
                         current_widget_specs = get_current_widget_specs(organization)
                     widget_specs = _get_widget_on_demand_specs(widget_query, organization)
@@ -577,14 +585,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
     def create_widget(self, dashboard, widget_data, order):
-        organization = self.context["organization"]
-        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
-        # To match the format of the extraction state function in ondemand
-        ondemand_feature = features.has(
-            "organizations:on-demand-metrics-extraction-widgets", organization
-        )
-
-        current_widget_specs = get_current_widget_specs(organization)
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             display_type=widget_data["display_type"],
@@ -598,6 +598,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
         )
+
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
             new_queries.append(
@@ -611,9 +612,24 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
                     order=i,
+                    is_hidden=query.get("is_hidden", False),
                 )
             )
+
         DashboardWidgetQuery.objects.bulk_create(new_queries)
+
+        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+            self._check_query_cardinality(new_queries)
+
+    def _check_query_cardinality(self, new_queries: Sequence[DashboardWidgetQuery]):
+        organization = self.context["organization"]
+
+        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
+        # To match the format of the extraction state function in ondemand
+        ondemand_feature = features.has(
+            "organizations:on-demand-metrics-extraction-widgets", organization
+        )
+        current_widget_specs = get_current_widget_specs(organization)
 
         for new_query in new_queries:
             query_cardinality = all(
@@ -645,14 +661,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widget_queries(widget, data["queries"])
 
     def update_widget_queries(self, widget, data):
-        organization = self.context["organization"]
-        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
-        # To match the format of the extraction state function in ondemand
-        ondemand_feature = features.has(
-            "organizations:on-demand-metrics-extraction-widgets", organization
-        )
-        current_widget_specs = get_current_widget_specs(organization)
-
         query_ids = [query["id"] for query in data if "id" in query]
         self.remove_missing_queries(widget.id, query_ids)
 
@@ -680,6 +688,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         field_aliases=query_data.get("field_aliases"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
+                        is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
                     )
@@ -688,15 +697,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        for new_query in new_queries + update_queries:
-            query_cardinality = all(
-                check_field_cardinality(
-                    new_query.columns, organization, max_cardinality_allowed
-                ).values()
-            )
-            set_or_create_on_demand_state(
-                new_query, organization, query_cardinality, ondemand_feature, current_widget_specs
-            )
+        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+            self._check_query_cardinality(new_queries + update_queries)
 
     def update_widget_query(self, query, data, order):
         query.name = data.get("name", query.name)
@@ -706,6 +708,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.aggregates = data.get("aggregates", query.aggregates)
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
+        query.is_hidden = data.get("is_hidden", query.is_hidden)
+
         query.order = order
         query.save()
         return query

@@ -268,6 +268,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+    verify_ssl = project.get_option("sentry:verify_ssl", True)
 
     allowed_origins = []
     scraping_headers = {}
@@ -283,6 +284,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
         "enabled": allow_scraping,
         "headers": scraping_headers,
         "allowed_origins": allowed_origins,
+        "verify_ssl": verify_ssl,
     }
 
 
@@ -723,6 +725,10 @@ def capture_apple_symbol_stats(json):
             # For now, we are only interested in rough numbers.
 
     if eligible_symbols:
+        # This metric was added to test some discrepancy between internal metrics. We want to remove this after the
+        # investigation is done.
+        metrics.incr("symbol_test_metric", amount=1, sample_rate=1.0)
+
         metrics.incr(
             "apple_symbol_availability",
             amount=neither_has_symbol,

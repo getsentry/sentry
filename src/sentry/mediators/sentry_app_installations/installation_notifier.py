@@ -1,4 +1,5 @@
 from django.db import router
+from django.utils.functional import cached_property
 
 from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer, serialize
 from sentry.coreapi import APIUnauthorized
@@ -6,7 +7,6 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.utils.cache import memoize
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 
@@ -41,10 +41,10 @@ class InstallationNotifier(Mediator):
             actor=self.user,
         )
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app
 
-    @memoize
+    @cached_property
     def api_grant(self):
         return self.install.api_grant_id and self.install.api_grant

@@ -4,6 +4,7 @@ import rb
 import sentry_sdk
 from rediscluster import RedisCluster
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -12,11 +13,11 @@ from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
-    load_script,
+    load_redis_script,
     validate_dynamic_cluster,
 )
 
-is_rate_limited = load_script("quotas/is_rate_limited.lua")
+is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
 
 class RedisQuota(Quota):
@@ -66,6 +67,30 @@ class RedisQuota(Quota):
             key.project = project
 
         results = [*self.get_abuse_quotas(project.organization)]
+
+        # If the organization belongs to the disabled list, we want to stop ingesting custom metrics.
+        if project.organization.id in (options.get("custom-metrics-ingestion-disabled-orgs") or ()):
+            results.append(
+                QuotaConfig(
+                    limit=0,
+                    scope=QuotaScope.ORGANIZATION,
+                    categories=[DataCategory.METRIC_BUCKET],
+                    reason_code="custom_metrics_ingestion_disabled",
+                    namespace="custom",
+                )
+            )
+
+        # If the project belongs to the disabled list, we want to stop ingesting custom metrics.
+        if project.id in (options.get("custom-metrics-ingestion-disabled-projects") or ()):
+            results.append(
+                QuotaConfig(
+                    limit=0,
+                    scope=QuotaScope.PROJECT,
+                    categories=[DataCategory.METRIC_BUCKET],
+                    reason_code="custom_metrics_ingestion_disabled",
+                    namespace="custom",
+                )
+            )
 
         with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
             span.set_tag("project.id", project.id)
@@ -281,7 +306,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         client = self.__get_redis_client(str(project.organization_id))
-        rejections = is_rate_limited(client, keys, args)
+        rejections = is_rate_limited(keys, args, client)
 
         if not any(rejections):
             return NotRateLimited()

@@ -6,13 +6,11 @@ from django.urls import reverse
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()

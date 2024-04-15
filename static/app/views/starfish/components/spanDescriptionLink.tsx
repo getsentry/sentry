@@ -47,7 +47,7 @@ export function SpanDescriptionLink({
           to={normalizeUrl(
             `/organizations/${organization.slug}${routingContext.baseURL}/${
               extractRoute(location) ?? 'spans'
-            }/span/${group}?${qs.stringify(queryString)}`
+            }/span/${group}/?${qs.stringify(queryString)}`
           )}
         >
           {description}

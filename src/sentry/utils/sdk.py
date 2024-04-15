@@ -24,11 +24,12 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
+    from sentry_sdk.types import Event, Hint
+
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.organization import RpcOrganization
 
@@ -37,9 +38,10 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
+    "sentry/spans/consumers/process/factory.py",
+    "sentry/spans/consumers/detect_performance_issues/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
-    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -65,6 +67,7 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
@@ -198,7 +201,7 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def before_send_transaction(event, _):
+def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
     if (
@@ -209,17 +212,17 @@ def before_send_transaction(event, _):
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
-    event["tags"]["spans_over_limit"] = num_of_spans >= 1000
+    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
     event["measurements"]["num_of_spans"] = {"value": num_of_spans}
     return event
 
 
-def before_send(event, _):
+def before_send(event: Event, _: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = settings.SILO_MODE
+            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
     return event
@@ -269,8 +272,6 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    assert sentry_sdk.Hub.main.client is None
-
     sdk_options, dsns = _get_sdk_options()
 
     internal_project_key = get_project_key()
@@ -433,6 +434,7 @@ def configure_sdk():
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "deliver-from-outbox-control",
+        "deliver-webhooks-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
@@ -467,7 +469,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
-            OpenAiIntegration(capture_prompts=True),
         ],
         spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
@@ -565,21 +566,20 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
+    scope = sentry_sdk.Scope.get_current_scope()
+    transaction_from_request = get_transaction_name_from_request(request)
 
-    with configure_scope() as scope:
-        transaction_from_request = get_transaction_name_from_request(request)
-
-        if (
-            scope._transaction is not None
-            and scope._transaction != transaction_from_request
-            and scope._transaction_info.get("source") != "custom"
-        ):
-            return {
-                "scope_transaction": scope._transaction,
-                "request_transaction": transaction_from_request,
-            }
-        else:
-            return None
+    if (
+        scope._transaction is not None
+        and scope._transaction != transaction_from_request
+        and scope._transaction_info.get("source") != "custom"
+    ):
+        return {
+            "scope_transaction": scope._transaction,
+            "request_transaction": transaction_from_request,
+        }
+    else:
+        return None
 
 
 def capture_exception_with_scope_check(
@@ -612,9 +612,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with configure_scope() as scope, sentry_sdk.start_span(
-        op="other", description="bind_organization_context"
-    ):
+    # fmt: off
+    with configure_scope() as scope, \
+         sentry_sdk.start_span(op="other", description="bind_organization_context"):
+        # fmt: on
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -677,7 +678,7 @@ def bind_ambiguous_org_context(
 
 def set_measurement(measurement_name, value, unit=None):
     try:
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:

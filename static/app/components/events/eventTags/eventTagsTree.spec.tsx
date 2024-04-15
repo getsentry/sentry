@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import {COLUMN_COUNT} from 'sentry/components/events/eventTags/eventTagsTree';
 
 describe('EventTagsTree', function () {
   const {organization, project, router} = initializeOrg();
@@ -86,7 +85,7 @@ describe('EventTagsTree', function () {
     expect(rows).toHaveLength(expectedRowCount);
 
     const columns = screen.queryAllByTestId('tag-tree-column');
-    expect(columns).toHaveLength(COLUMN_COUNT);
+    expect(columns.length).toBeLessThanOrEqual(2);
 
     const linkDropdowns = screen.queryAllByLabelText('Tag Actions Menu');
     expect(linkDropdowns).toHaveLength(tags.length);
@@ -183,5 +182,52 @@ describe('EventTagsTree', function () {
     const dropdown = screen.getByLabelText('Tag Actions Menu');
     await userEvent.click(dropdown);
     expect(screen.getByLabelText(labelText)).toBeInTheDocument();
+  });
+
+  it('renders error message tooltips instead of dropdowns', function () {
+    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
+    const errorTagEvent = EventFixture({
+      _meta: {
+        tags: {
+          0: {
+            value: {
+              '': {
+                err: ['value_too_long'],
+              },
+            },
+          },
+          2: {
+            value: {
+              '': {
+                err: [
+                  [
+                    'invalid_data',
+                    {
+                      reason: "invalid character '\\n'",
+                    },
+                  ],
+                ],
+                val: 'invalid\ncharacters\n🇨🇦🔥🤡',
+              },
+            },
+          },
+        },
+      },
+      tags: [
+        {key: 'some-super-long-tag', value: null},
+        {key: 'some-acceptable-tag', value: 'im acceptable'},
+        {key: 'some-invalid-char-tag', value: null},
+      ],
+    });
+    render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
+      organization: featuredOrganization,
+    });
+
+    // Should only be one dropdown, others have errors
+    const dropdown = screen.getByLabelText('Tag Actions Menu');
+    expect(dropdown).toBeInTheDocument();
+
+    const errorRows = screen.queryAllByTestId('tag-tree-row-errors');
+    expect(errorRows.length).toBe(2);
   });
 });

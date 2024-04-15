@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -39,6 +39,7 @@ type Props = {
   emptyMessage?: ReactNode;
   gridRows?: string;
   onClickPlay?: (index: number) => void;
+  referrerLocation?: string;
   showDropdownFilters?: boolean;
 };
 
@@ -54,6 +55,7 @@ const ReplayTable = memo(
     gridRows,
     showDropdownFilters,
     onClickPlay,
+    referrerLocation,
   }: Props) => {
     const routes = useRoutes();
     const location = useLocation();
@@ -105,11 +107,18 @@ const ReplayTable = memo(
         emptyMessage={emptyMessage}
         gridRows={isFetching ? undefined : gridRows}
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
+        disableHeaderBorderBottom
       >
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
             return (
-              <Row key={replay.id} isPlaying={index === selectedReplayIndex}>
+              <Row
+                key={replay.id}
+                isPlaying={index === selectedReplayIndex && referrerLocation !== 'replay'}
+                onClick={() => onClickPlay?.(index)}
+                showCursor={onClickPlay !== undefined}
+                referrerLocation={referrerLocation}
+              >
                 {visibleColumns.map(column => {
                   switch (column) {
                     case ReplayColumn.ACTIVITY:
@@ -241,12 +250,30 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-const Row = styled('div')<{isPlaying?: boolean}>`
-  display: contents;
+const Row = styled('div')<{
+  isPlaying?: boolean;
+  referrerLocation?: string;
+  showCursor?: boolean;
+}>`
+  ${p =>
+    p.referrerLocation === 'replay'
+      ? `display: contents;
+         & > * {
+          border-top: 1px solid ${p.theme.border};
+          }`
+      : `display: contents;
   & > * {
-    background-color: ${p => (p.isPlaying ? p.theme.translucentInnerBorder : 'inherit')};
-    border-bottom: 1px solid ${p => p.theme.border};
+    background-color: ${p.isPlaying ? p.theme.translucentGray200 : 'inherit'};
+    border-top: 1px solid ${p.theme.border};
+    cursor: ${p.showCursor ? 'pointer' : 'default'};
   }
+  :hover {
+    background-color: ${p.showCursor ? p.theme.translucentInnerBorder : 'inherit'};
+  }
+  :active {
+    background-color: ${p.theme.translucentGray200};
+  }
+  `}
 `;
 
 export default ReplayTable;

@@ -1,7 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {MemberRole} from 'sentry/types';
+import type {BaseRole} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -68,7 +68,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },
@@ -99,7 +99,7 @@ const formGroups: JsonFormObject[] = [
         name: 'attachmentsRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
           'Role required to download event attachments, such as native crash reports or log files.'
@@ -110,7 +110,7 @@ const formGroups: JsonFormObject[] = [
         name: 'debugFilesRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),
         help: t(
           'Role required to download debug information files, proguard mappings and source maps.'

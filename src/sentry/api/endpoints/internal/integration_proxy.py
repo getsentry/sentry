@@ -2,16 +2,23 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
+from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DRFResponse
+from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -34,12 +41,16 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: dict[str, str | int] = {}
+    log_extra: dict[str, str | int]
     enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.log_extra = dict()
 
     @property
     def client(self):
@@ -202,18 +213,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
-        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
-        if response.status_code != 200 and self.integration.provider == "slack":
-            logger.info(
-                "slack.response",
-                extra={
-                    **self.log_extra,
-                    "integration_id": self.integration.id,
-                    "status_code": response.status_code,
-                    "response_text": response.content.decode("utf8"),
-                },
-            )
-
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
             tags={"status": response.status_code},
@@ -221,3 +220,24 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         logger.info("proxy_success", extra=self.log_extra)
         return response
+
+    def handle_exception(  # type: ignore[override]
+        self,
+        request: DRFRequest,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> DRFResponse:
+        if isinstance(exc, IdentityNotValid):
+            logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
+            return self.respond(status=400)
+        elif isinstance(exc, ApiHostError):
+            logger.info(
+                "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
+            )
+            return self.respond(status=exc.code)
+        elif isinstance(exc, ApiTimeoutError):
+            logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
+            return self.respond(status=exc.code)
+
+        return super().handle_exception(request, exc, handler_context, scope)

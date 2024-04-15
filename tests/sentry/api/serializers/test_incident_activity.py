@@ -9,10 +9,8 @@ from sentry.incidents.models.incident import IncidentActivityType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         activity = create_incident_activity(

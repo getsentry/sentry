@@ -12,7 +12,9 @@ class MemberAddAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined the organization"
-        return f"add member {audit_log_entry.target_user.get_display_name()}"
+
+        member = audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        return f"add member {member}"
 
 
 class MemberEditAuditLogEvent(AuditLogEvent):

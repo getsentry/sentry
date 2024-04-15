@@ -18,7 +18,6 @@ from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -89,7 +88,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
 
-@region_silo_test
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -216,7 +214,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
 
 
-@region_silo_test
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         response = self.do_request("delete", self.url(self.dashboard.id))
@@ -269,7 +266,6 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
 
-@region_silo_test
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
@@ -1868,8 +1864,39 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert current_version is not None
             assert current_version.extraction_state == "disabled:high-cardinality"
 
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
+    def test_cardinality_skips_non_discover_widget_types(self, mock_get_specs):
+        widget = {
+            "title": "issues widget",
+            "displayType": "table",
+            "interval": "5m",
+            "widgetType": "issue",
+            "queries": [
+                {
+                    "name": "errors",
+                    "fields": ["count()", "sometag"],
+                    "columns": ["sometag"],
+                    "aggregates": ["count()"],
+                    "conditions": "event.type:transaction",
+                }
+            ],
+        }
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {**widget, "widgetType": "issue"},
+                {**widget, "widgetType": "metrics"},
+                {**widget, "widgetType": "custom-metrics"},
+            ],
+        }
 
-@region_silo_test
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert mock_get_specs.call_count == 0
+
+
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(

@@ -2,9 +2,9 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery, Project} from 'sentry/types';
-import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -83,7 +83,7 @@ export function ScreenLoadEventSamples({
     return mutableQuery;
   }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
 
-  const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
+  const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
     id: t(
@@ -99,6 +99,7 @@ export function ScreenLoadEventSamples({
     name: '',
     fields: [
       'id',
+      'trace',
       'project.name',
       'profile.id',
       'measurements.time_to_initial_display',

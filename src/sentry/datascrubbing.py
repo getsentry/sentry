@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.processing import (
     convert_datascrubbing_config,
@@ -13,16 +14,6 @@ from sentry_relay.processing import (
 
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
-
-
-def _escape_key(key: str) -> str:
-    """
-    Attempt to escape the key for PII config path selectors.
-
-    If this fails and we cannot represent the key, return None
-    """
-
-    return "'{}'".format(key.replace("'", "''"))
 
 
 def get_pii_config(project):
@@ -90,6 +81,7 @@ def get_all_pii_configs(project):
     yield convert_datascrubbing_config(get_datascrubbing_settings(project))
 
 
+@sentry_sdk.tracing.trace
 def scrub_data(project, event):
     for config in get_all_pii_configs(project):
         metrics.distribution(

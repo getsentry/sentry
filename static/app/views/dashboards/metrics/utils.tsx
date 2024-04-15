@@ -4,7 +4,7 @@ import type {MRI} from 'sentry/types';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
-import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {
   DashboardMetricsEquation,
@@ -18,9 +18,9 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
-import {getUniqueQueryIdGenerator} from 'sentry/views/ddm/utils/uniqueQueryId';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
+import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
@@ -49,7 +49,7 @@ function getReleaseQuery(dashboardFilters: DashboardFilters) {
 export function isMetricsFormula(
   query: DashboardMetricsExpression
 ): query is DashboardMetricsEquation {
-  return query.type === MetricQueryType.FORMULA;
+  return query.type === MetricExpressionType.EQUATION;
 }
 
 function getExpressionIdFromWidgetQuery(query: WidgetQuery): number {
@@ -102,12 +102,13 @@ export function getMetricQueries(
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
       id: id,
-      type: MetricQueryType.QUERY,
+      type: MetricExpressionType.QUERY,
       mri: parsed.mri,
       op: parsed.op,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
+      isHidden: !!query.isHidden,
     };
   });
 
@@ -118,7 +119,7 @@ export function getMetricQueries(
 
 export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
   const usedIds = new Set<number>();
-  const indizesWithoutId: number[] = [];
+  const indicesWithoutId: number[] = [];
 
   const equations = widget.queries.map(
     (query, index): DashboardMetricsEquation | null => {
@@ -128,20 +129,21 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
       const id = getExpressionIdFromWidgetQuery(query);
       if (id === NO_QUERY_ID) {
-        indizesWithoutId.push(index);
+        indicesWithoutId.push(index);
       } else {
         usedIds.add(id);
       }
 
       return {
         id: id,
-        type: MetricQueryType.FORMULA,
+        type: MetricExpressionType.EQUATION,
         formula: query.aggregates[0].slice(9),
+        isHidden: !!query.isHidden,
       } satisfies DashboardMetricsEquation;
     }
   );
 
-  return fillMissingExpressionIds(equations, indizesWithoutId, usedIds).filter(
+  return fillMissingExpressionIds(equations, indicesWithoutId, usedIds).filter(
     (query): query is DashboardMetricsEquation => query !== null
   );
 }
@@ -163,14 +165,16 @@ export function useGenerateExpressionId(expressions: DashboardMetricsExpression[
 export function expressionsToApiQueries(
   expressions: DashboardMetricsExpression[]
 ): MetricsQueryApiQueryParams[] {
-  return expressions.map(e =>
-    isMetricsFormula(e)
-      ? {
-          formula: e.formula,
-          name: getEquationSymbol(e.id),
-        }
-      : {...e, name: getQuerySymbol(e.id)}
-  );
+  return expressions
+    .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
+    .map(e =>
+      isMetricsFormula(e)
+        ? {
+            formula: e.formula,
+            name: getEquationSymbol(e.id),
+          }
+        : {...e, name: getQuerySymbol(e.id), isQueryOnly: e.isHidden}
+    );
 }
 
 export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
@@ -190,30 +194,32 @@ function getWidgetQuery(metricsQuery: DashboardMetricsQuery): WidgetQuery {
     fields: [field],
     conditions: metricsQuery.query ?? '',
     orderby: metricsQuery.orderBy ?? '',
+    isHidden: metricsQuery.isHidden,
   };
 }
 
-function getWidgetEquation(metricsFormula: DashboardMetricsEquation): WidgetQuery {
+function getWidgetEquation(metricsEquation: DashboardMetricsEquation): WidgetQuery {
   return {
-    name: `${metricsFormula.id}`,
-    aggregates: [`equation|${metricsFormula.formula}`],
+    name: `${metricsEquation.id}`,
+    aggregates: [`equation|${metricsEquation.formula}`],
     columns: [],
-    fields: [`equation|${metricsFormula.formula}`],
+    fields: [`equation|${metricsEquation.formula}`],
     // Not used for equations
     conditions: '',
     orderby: '',
+    isHidden: metricsEquation.isHidden,
   };
 }
 
 export function expressionsToWidget(
   expressions: DashboardMetricsExpression[],
   title: string,
-  displayType: DisplayType
+  displayType: DisplayType,
+  interval = '5m'
 ): Widget {
   return {
     title,
-    // The interval has no effect on metrics widgets but the BE requires it
-    interval: '5m',
+    interval,
     displayType: displayType,
     widgetType: WidgetType.METRICS,
     limit: 10,
@@ -236,6 +242,24 @@ export function getMetricWidgetTitle(queries: DashboardMetricsExpression[]) {
     .join(', ');
 }
 
+export function defaultMetricWidget(): Widget {
+  return expressionsToWidget(
+    [
+      {
+        id: 0,
+        type: MetricExpressionType.QUERY,
+        mri: 'd:transactions/duration@millisecond',
+        op: 'avg',
+        query: '',
+        orderBy: 'desc',
+        isHidden: false,
+      },
+    ],
+    '',
+    DisplayType.LINE
+  );
+}
+
 export function filterQueriesByDisplayType(
   queries: DashboardMetricsQuery[],
   displayType: DisplayType
@@ -253,10 +277,6 @@ export function filterEquationsByDisplayType(
 ) {
   // Big number can display only one query
   if (displayType === DisplayType.BIG_NUMBER) {
-    return [];
-  }
-  // TODO: Add support for table
-  if (displayType === DisplayType.TABLE) {
     return [];
   }
   return equations;

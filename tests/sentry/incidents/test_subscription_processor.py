@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, timedelta
+from datetime import timedelta
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -49,7 +49,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 EMPTY = object()
@@ -177,7 +176,6 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert last_incident == incident
 
 
-@region_silo_test
 @freeze_time()
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     @pytest.fixture(autouse=True)
@@ -257,7 +255,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         data = {}
 
@@ -2270,7 +2268,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),
@@ -2780,7 +2778,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),

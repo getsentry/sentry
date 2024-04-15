@@ -13,8 +13,8 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -48,7 +48,7 @@ export function DatabaseLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
   }
@@ -80,7 +80,7 @@ export function DatabaseLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const queryListResponse = useSpanMetrics({
-    filters: tableFilters,
+    search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
       'project.id',
       'span.group',
@@ -101,7 +101,7 @@ export function DatabaseLandingPage() {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
     referrer: 'api.starfish.span-landing-page-metrics-chart',
   });
@@ -111,7 +111,7 @@ export function DatabaseLandingPage() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     referrer: 'api.starfish.span-landing-page-metrics-chart',
   });
@@ -188,7 +188,7 @@ export function DatabaseLandingPage() {
 
                 <ModuleLayout.Half>
                   <DurationChart
-                    series={durationData[`${selectedAggregate}(span.self_time)`]}
+                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />

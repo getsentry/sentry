@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -32,6 +33,9 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
+_default_logger = logging.getLogger(__name__)
+
+
 class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
@@ -42,7 +46,10 @@ class ActivityManager(BaseManager["Activity"]):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
             # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_value = group.get_event_metadata().get("initial_priority")
+            initial_priority_value = group.get_event_metadata().get(
+                "initial_priority", None
+            ) or group.get_event_metadata().get("initial_priority", None)
+
             initial_priority = (
                 PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
             )
@@ -143,6 +150,23 @@ class Activity(Model):
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
+
+        # The receiver for the post_save signal was not working in production, so just execute directly and safely
+        try:
+            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+                activity_created_receiver,
+            )
+
+            activity_created_receiver(self, created)
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
+            pass
 
         if not created:
             return

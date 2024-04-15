@@ -46,6 +46,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -53,7 +54,6 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -389,32 +389,33 @@ class OrganizationMember(ReplicatedRegionModel):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
+    def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
-
-        email = self.get_email()
-
-        recover_uri = "{path}?{query}".format(
-            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
-        )
 
         # Nothing to send if this member isn't associated to a user
         if not self.user_id:
             return
 
+        email = self.get_email()
+        recover_uri = "{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
+        )
         user = user_service.get_user(user_id=self.user_id)
         if not user:
             return
 
         has_password = user.has_usable_password()
+        actor_email = disabling_user
+        if isinstance(disabling_user, RpcUser):
+            actor_email = disabling_user.email
 
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "actor_email": disabling_user.email,
+            "actor_email": actor_email,
             "provider": provider,
         }
 
@@ -653,5 +654,11 @@ class OrganizationMember(ReplicatedRegionModel):
             and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
         ):
             self.inviter_id = None
+
+        # If there is a token collision, just wipe the token. The user can always make a new one.
+        matching_token = self.__class__.objects.filter(token=self.token).first()
+        if matching_token is not None:
+            self.token = None
+            self.token_expires_at = None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)

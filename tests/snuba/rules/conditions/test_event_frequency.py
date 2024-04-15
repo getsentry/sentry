@@ -1,11 +1,11 @@
 import time
 from copy import deepcopy
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from django.utils.timezone import now
+from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.rule import Rule
@@ -15,13 +15,126 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    BaseMetricsTestCase,
+    PerformanceIssueTestCase,
+    RuleTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.start = before_now(minutes=1)
+        self.end = timezone.now()
+
+        self.event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=30)),
+                "fingerprint": ["group-1"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        self.event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-2"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        self.environment2 = self.create_environment(name="staging")
+        self.event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": self.environment2.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-3"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
+        perf_event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(seconds=12),
+            start_timestamp=before_now(seconds=13),
+            fingerprint=[fingerprint],
+        )
+        perf_event_data["user"] = {"id": uuid4().hex}
+        perf_event_data["environment"] = self.environment.name
+
+        # Store a performance event
+        self.perf_event = self.create_performance_issue(
+            event_data=perf_event_data,
+            project_id=self.project.id,
+            fingerprint=fingerprint,
+        )
+
+
+class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
+    rule_cls = EventFrequencyCondition
+
+    def test_batch_query(self):
+        condition_inst = self.rule_cls(self.event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 1,
+        }
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 1}
+
+
+class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
+    rule_cls = EventUniqueUserFrequencyCondition
+
+    def test_batch_query_user(self):
+        condition_inst = self.rule_cls(self.event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 1,
+        }
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 1}
 
 
 class ErrorEventMixin(SnubaTestCase):
@@ -45,8 +158,8 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
         )
         event_data = load_data(
             "transaction-n-plus-one",
-            timestamp=timestamp.replace(tzinfo=timezone.utc),
-            start_timestamp=timestamp.replace(tzinfo=timezone.utc),
+            timestamp=timestamp,
+            start_timestamp=timestamp,
             fingerprint=[fingerprint],
         )
         event_data["user"] = {"id": uuid4().hex}
@@ -68,7 +181,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 
 @pytest.mark.snuba_ci
-class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
+class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):
@@ -97,12 +210,12 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
                 event,
                 data["value"] + 1,
                 environment=self.environment.name,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
             self.increment(
                 event,
                 data["value"] + 1,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
 
         if passes:
@@ -166,12 +279,12 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
         self.increment(
             event,
             3,
-            timestamp=now() - timedelta(minutes=1),
+            timestamp=timezone.now() - timedelta(minutes=1),
         )
         self.increment(
             event,
             2,
-            timestamp=now() - timedelta(days=1, minutes=20),
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
         )
         data = {
             "interval": "1h",
@@ -282,7 +395,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
+class EventFrequencyPercentConditionTestCase(BaseMetricsTestCase, RuleTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
@@ -307,7 +420,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
                 duration=None,
                 errors=0,
                 # The line below is crucial to spread sessions throughout the time period.
-                started=received - i,
+                started=received - i - 1,
                 received=received,
             )
 
@@ -331,7 +444,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
                 self.test_event,
                 max(1, int(minutes / 2)) - 1,
                 environment=self.environment.name,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
@@ -423,7 +536,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 
         # Test data is 2 events in the current period and 1 events in the comparison period.
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
-        # is 10%. Overall a 100% increase comparitively.
+        # is 10%. Overall a 100% increase comparatively.
         event = self.add_event(
             data={"fingerprint": ["something_random"]},
             project_id=self.project.id,
@@ -432,12 +545,12 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
         self.increment(
             event,
             1,
-            timestamp=now() - timedelta(minutes=1),
+            timestamp=timezone.now() - timedelta(minutes=1),
         )
         self.increment(
             event,
             1,
-            timestamp=now() - timedelta(days=1, minutes=20),
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
         )
         data = {
             "interval": "1h",
@@ -458,14 +571,16 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
         self.assertDoesNotPass(rule, event, is_new=False)
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
@@ -473,8 +588,9 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -482,8 +598,9 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -491,16 +608,18 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,

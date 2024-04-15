@@ -17,12 +17,14 @@ from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -35,7 +37,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
@@ -152,7 +154,6 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -297,13 +298,23 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_with_snooze_rule(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
+        rule_snooze = self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule
+        )
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == "You"
+            assert response.data["snooze"]
+            assert response.data["snoozeCreatedBy"] == "You"
+
+            rule_snooze.owner_id = None
+            rule_snooze.save()
+
+            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+            assert response.data["snooze"]
+            assert "snoozeCreatedBy" not in response.data
 
     def test_with_snooze_rule_everyone(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -319,7 +330,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
-@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -354,6 +364,39 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_monitor_type_with_condition(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["monitorType"] = AlertRuleMonitorType.ACTIVATED.value
+        serialized_alert_rule[
+            "activationCondition"
+        ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        alert_rule.monitorType = AlertRuleMonitorType.ACTIVATED.value
+        alert_rule.activationCondition = AlertRuleActivationConditionType.RELEASE_CREATION.value
+        alert_rule.date_modified = resp.data["dateModified"]
+        assert resp.data == serialize(alert_rule)
+
+        # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
+        # assert resp.data["monitorType"] == AlertRuleMonitorType.ACTIVATED.value
+        # assert (
+        #     resp.data["activationCondition"]
+        #     == AlertRuleActivationConditionType.RELEASE_CREATION.value
+        # )
+        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
     def test_not_updated_fields(self):
         self.create_member(
@@ -657,7 +700,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(audit_log_entry) == 1
 
 
-@region_silo_test
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -995,7 +1037,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-@region_silo_test
 class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -1180,7 +1221,6 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 

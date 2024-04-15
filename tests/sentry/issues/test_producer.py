@@ -117,7 +117,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
 
         with pytest.raises(NotImplementedError, match="Unknown payload type: invalid"):
             # Should raise an error because the payload type is not supported.
-            produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
+            produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore[arg-type]
 
     def test_with_no_status_change(self) -> None:
         status_change = StatusChangeMessage(

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
@@ -26,7 +25,7 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
   const activeRepo = activeRepository?.name;
 
   return (
-    <StyledCompactSelect
+    <CompactSelect
       triggerLabel={activeRepo}
       triggerProps={{prefix: t('Filter')}}
       value={activeRepo}
@@ -41,10 +40,6 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
 }
 
 export default RepositorySwitcher;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  margin-bottom: ${space(1)};
-`;
 
 const RepoLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}

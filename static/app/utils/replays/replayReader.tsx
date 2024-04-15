@@ -22,6 +22,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
+  ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
   MemoryFrame,
@@ -41,11 +42,6 @@ import {
   isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
-
-interface ClipWindow {
-  endTimestampMs: number;
-  startTimestampMs: number;
-}
 
 interface ReplayReaderParams {
   /**
@@ -143,8 +139,8 @@ export default class ReplayReader {
       this._replayRecord = replayRecord;
       const archivedReader = new Proxy(this, {
         get(_target, prop, _receiver) {
-          if (prop === '_replayRecord') {
-            return replayRecord;
+          if (prop === 'getReplay') {
+            return () => replayRecord;
           }
           return () => {};
         },
@@ -181,7 +177,8 @@ export default class ReplayReader {
     this._replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
-    this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
+    const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
+    this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
     this._videoEvents = videoFrames;
@@ -192,7 +189,9 @@ export default class ReplayReader {
       replayRecord,
       breadcrumbFrames,
       this._sortedRRWebEvents
-    ).sort(sortFrames);
+    )
+      .concat(feedbackFrames)
+      .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
     this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
@@ -222,6 +221,7 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
+  private _clipWindow: ClipWindow | undefined = undefined;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -235,6 +235,44 @@ export default class ReplayReader {
       this._replayRecord.finished_at.getTime()
     );
 
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+
+    // For video replays, we need to bypass setting the global offset (_startOffsetMs)
+    // because it messes with the playback time by causing it
+    // to become negative sometimes. Instead we pass a clip window directly into
+    // the video player, which runs on an external timer
+    if (this.isVideoReplay()) {
+      this._clipWindow = {
+        startTimestampMs: clipStartTimestampMs,
+        endTimestampMs: clipEndTimestampMs,
+      };
+
+      // Trim error frames and update offsets so they show inside the clip window
+      // Do this in here since we bypass setting the global offset
+      // Eventually when we have video breadcrumbs we'll probably need to trim them here too
+
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
+        frames: Array<T>
+      ) => {
+        const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+
+        return frames.map(frame => ({
+          ...frame,
+          offsetMs: frame.offsetMs - offset,
+        }));
+      };
+
+      this._errors = updateVideoFrameOffsets(
+        this._trimFramesToClipWindow(
+          this._errors,
+          clipStartTimestampMs,
+          clipEndTimestampMs
+        )
+      );
+
+      return;
+    }
+
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
     // the correct time.
@@ -244,7 +282,6 @@ export default class ReplayReader {
     this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
 
     this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -308,6 +345,8 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
+  getClipWindow = () => this._clipWindow;
+
   /**
    * @returns Duration of Replay (milliseonds)
    */
@@ -317,8 +356,17 @@ export default class ReplayReader {
 
   getStartOffsetMs = () => this._startOffsetMs;
 
-  getStartTimestampMs = () =>
-    this._replayRecord.started_at.getTime() + this._startOffsetMs;
+  getStartTimestampMs = () => {
+    // For video replays we bypass setting the global _startOffsetMs
+    // because it messes with the player time by causing it to
+    // be negative in some cases, but we still need that calculated value here
+    const start =
+      this.isVideoReplay() && this._clipWindow
+        ? this._clipWindow?.startTimestampMs - this._replayRecord.started_at.getTime()
+        : this._startOffsetMs;
+
+    return this._replayRecord.started_at.getTime() + start;
+  };
 
   getReplay = () => {
     return this._replayRecord;
@@ -388,7 +436,7 @@ export default class ReplayReader {
             'replay.hydrate-error',
             'replay.init',
             'replay.mutations',
-            'sentry.feedback',
+            'feedback',
           ].includes(frame.category)
         ),
         ...this._errors,

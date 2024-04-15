@@ -121,7 +121,7 @@ def resolve_project_threshold_config(
         constants.PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     )
 
-    def _project_threshold_config(alias=None):
+    def _project_threshold_config(alias: str | None = None) -> SelectType:
         if project_threshold_config_keys and project_threshold_config_values:
             return Function(
                 "if",
@@ -277,7 +277,7 @@ def resolve_metrics_layer_percentile(
     alias: str,
     resolve_mri: Callable[[str], Column],
     fixed_percentile: float | None = None,
-):
+) -> SelectType:
     # TODO: rename to just resolve_metrics_percentile once the non layer code can be retired
     if fixed_percentile is None:
         fixed_percentile = args["percentile"]
@@ -326,7 +326,9 @@ def resolve_division(
     )
 
 
-def resolve_rounded_timestamp(interval: int, alias: str, timestamp_column: str = "timestamp"):
+def resolve_rounded_timestamp(
+    interval: int, alias: str, timestamp_column: str = "timestamp"
+) -> SelectType:
     return Function(
         "toUInt32",
         [
@@ -351,7 +353,7 @@ def resolve_random_samples(
     offset: int,
     limit: int,
     size: int = 1,
-):
+) -> SelectType:
     seed_str = f"{offset}-{limit}"
     seed = fnv1a_32(seed_str.encode("utf-8"))
     return Function(

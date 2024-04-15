@@ -13,7 +13,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {IssueOwnership, Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
@@ -33,7 +33,7 @@ type Props = {
    */
   page: 'issue_details' | 'project_settings';
   project: Project;
-  onSave?: (text: string | null) => void;
+  onSave?: (ownership: IssueOwnership) => void;
 } & typeof defaultProps;
 
 type State = {
@@ -82,14 +82,14 @@ class OwnerInput extends Component<Props, State> {
     );
 
     request
-      .then(() => {
+      .then(ownership => {
         addSuccessMessage(t('Updated issue ownership rules'));
         this.setState(
           {
             hasChanges: false,
             text,
           },
-          () => onSave?.(text)
+          () => onSave?.(ownership)
         );
         trackIntegrationAnalytics('project_ownership.saved', {
           page,

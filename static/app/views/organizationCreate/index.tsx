@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -43,6 +43,9 @@ function OrganizationCreate() {
         return;
       }
       const regionUrl = data.dataStorageLocation;
+
+      addLoadingMessage(t('Creating Organization\u2026'));
+      formModel.setFormSaving();
 
       client.request('/organizations/', {
         method: 'POST',

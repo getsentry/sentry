@@ -164,7 +164,8 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
+
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",

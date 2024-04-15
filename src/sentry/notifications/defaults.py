@@ -21,6 +21,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.QUOTA_MONITOR_SEATS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_THRESHOLDS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.ALWAYS,
 }

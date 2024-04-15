@@ -27,10 +27,6 @@ export function MetricBigNumberContainer({
     return timeseriesData ? getBigNumberData(timeseriesData, metricQueries) : undefined;
   }, [timeseriesData, metricQueries]);
 
-  if (!bigNumberData) {
-    return null;
-  }
-
   return (
     <BigNumberWrapper>
       <LoadingScreen loading={isLoading} />

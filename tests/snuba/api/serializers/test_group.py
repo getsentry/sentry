@@ -21,13 +21,12 @@ from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaT
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -46,13 +45,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
-
-    def test_priority_no_ff(self):
-        outside_user = self.create_user()
-        group = self.create_group()
-        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
-        assert "priority" not in result
-        assert "priorityLockedAt" not in result
 
     @with_feature("projects:issue-priority")
     def test_priority_high(self):
@@ -484,7 +476,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["id"] == str(group.id)
 
 
-@region_silo_test
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
@@ -536,7 +527,6 @@ class PerformanceGroupSerializerSnubaTest(
         assert result["count"] == str(times + 1)
 
 
-@region_silo_test
 class ProfilingGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,

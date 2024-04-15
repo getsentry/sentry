@@ -14,6 +14,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.controlcacheversion": [],
   "hybridcloud.externalactorreplica": [
     "sentry.externalactor",
     "sentry.integration",
@@ -58,7 +59,8 @@
     "sentry.alertrule"
   ],
   "sentry.alertruleactivations": [
-    "sentry.alertrule"
+    "sentry.alertrule",
+    "sentry.querysubscription"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
@@ -444,7 +446,8 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
@@ -569,10 +572,6 @@
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization",
-    "sentry.project"
-  ],
-  "sentry.projectavatar": [
-    "sentry.file",
     "sentry.project"
   ],
   "sentry.projectbookmark": [
@@ -811,10 +810,6 @@
   ],
   "sentry.team": [
     "sentry.organization"
-  ],
-  "sentry.teamavatar": [
-    "sentry.file",
-    "sentry.team"
   ],
   "sentry.teamkeytransaction": [
     "sentry.organization",

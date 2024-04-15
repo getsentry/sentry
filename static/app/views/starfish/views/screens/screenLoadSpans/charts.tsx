@@ -21,7 +21,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
@@ -269,7 +269,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                     }}
                     showLegend
                     definedAxisTicks={2}
-                    isLineChart
+                    type={ChartType.LINE}
                     aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
                     tooltipFormatterOptions={{
                       valueFormatter: value =>
@@ -337,7 +337,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                     }}
                     showLegend
                     definedAxisTicks={2}
-                    isLineChart
+                    type={ChartType.LINE}
                     aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTFD]}
                     tooltipFormatterOptions={{
                       valueFormatter: value =>
@@ -379,7 +379,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                 }}
                 showLegend
                 definedAxisTicks={2}
-                isLineChart
+                type={ChartType.LINE}
                 aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
                 tooltipFormatterOptions={{
                   valueFormatter: value =>

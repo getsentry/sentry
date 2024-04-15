@@ -2,14 +2,11 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Button} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -20,8 +17,7 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   isPreview?: boolean;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
 }
 
 function useVideoSizeLogger({
@@ -62,19 +58,16 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({
-  className,
-  overlayText,
-  onClickNextReplay,
-  isPreview = false,
-}: Props) {
+function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
-    initRoot,
+    setRoot,
     isBuffering,
+    isVideoBuffering,
     isFetching,
     isFinished,
+    isVideoReplay,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -87,8 +80,25 @@ function BasePlayerRoot({
 
   useVideoSizeLogger({videoDimensions, windowDimensions});
 
-  // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [initRoot]);
+  // Sets the parent element where the player
+  // instance will use as root (i.e. where it will
+  // create an iframe)
+  useEffect(() => {
+    // XXX: This is smelly, but without the
+    // dependence on `isFetching` here, will result
+    // in ReplayContext creating a new Replayer
+    // instance before events are hydrated. This
+    // resulted in the `recording(Start/End)Frame`
+    // as the only two events when we instanciated
+    // Replayer and the rrweb Replayer requires all
+    // events to be present when instanciated.
+    if (!isFetching) {
+      setRoot(viewEl.current);
+    }
+    return () => {
+      setRoot(null);
+    };
+  }, [setRoot, isFetching]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -129,22 +139,16 @@ function BasePlayerRoot({
 
   return (
     <Fragment>
-      {isFinished && overlayText && (
+      {isFinished && overlayContent && (
         <Overlay>
-          <OverlayInnerWrapper>
-            <UpNext>{t('Up Next')}</UpNext>
-            <OverlayText>{overlayText}</OverlayText>
-            <Button onClick={onClickNextReplay} icon={<IconPlay size="md" />}>
-              {t('Play Now')}
-            </Button>
-          </OverlayInnerWrapper>
+          <OverlayInnerWrapper>{overlayContent}</OverlayInnerWrapper>
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-        {isBuffering ? <PositionedBuffering /> : null}
-        {isPreview ? null : <PlayerDOMAlert />}
+        {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
+        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
@@ -307,14 +311,6 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   position: relative;
   width: 100%;
   height: 100%;
-`;
-
-const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const UpNext = styled('div')`
-  line-height: 0;
 `;
 
 export default SentryPlayerRoot;

@@ -83,18 +83,20 @@ class BaseGuideAnchor extends Component<Props, State> {
   componentDidMount() {
     const {target} = this.props;
     registerAnchor(target);
+    this.unsubscribe = GuideStore.listen(
+      (data: GuideStoreState) => this.onGuideStateChange(data),
+      undefined
+    );
   }
 
   componentWillUnmount() {
     const {target} = this.props;
     unregisterAnchor(target);
-    this.unsubscribe();
+    this.unsubscribe?.();
   }
 
-  unsubscribe = GuideStore.listen(
-    (data: GuideStoreState) => this.onGuideStateChange(data),
-    undefined
-  );
+  // TODO(TS): Reflux returns "Function" instead of () => void
+  unsubscribe: Function | undefined;
 
   onGuideStateChange(data: GuideStoreState) {
     const active =

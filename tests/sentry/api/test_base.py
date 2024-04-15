@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -15,11 +16,14 @@ from sentry.api.permissions import SuperuserPermission
 from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import subdomain_is_region
 from sentry.utils.cursors import Cursor
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 # Though it looks weird to have a method outside a class, this isn't a mistake but rather
@@ -289,6 +293,30 @@ class EndpointTest(APITestCase):
             "Endpoint, Retry-After, Link"
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+
+    def test_update_token_access_record_is_called(self):
+        token_str = generate_token(self.organization.slug, "")
+        token_hashed = hash_token(token_str)
+        token = self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=token_hashed,
+            organization_id=self.organization.id,
+            token_last_characters="xyz",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        assert token.date_last_used is None
+
+        with outbox_runner():
+            request = self.make_request(method="GET")
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
+            _dummy_endpoint(request=request)
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        token.refresh_from_db()
+        assert isinstance(token.date_last_used, datetime)
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")
     def test_method_not_allowed(self, mock_convert_args):

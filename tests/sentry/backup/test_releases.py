@@ -19,14 +19,13 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.pytest.fixtures import read_snapshot_file
-from sentry.testutils.silo import region_silo_test, strip_silo_mode_test_suffix
+from sentry.testutils.silo import strip_silo_mode_test_suffix
 from sentry.utils import json
 from tests.sentry.backup import expect_models, verify_models_in_output
 
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test
 class ReleaseTests(BackupTestCase):
     """
     Ensure that exports from the last two released versions of self-hosted are still able to be

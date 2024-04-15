@@ -4,7 +4,6 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
 import sentry_sdk
-from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import (
     Column,
     Condition,
@@ -83,8 +82,6 @@ PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
     time_limit=2 * 60 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-# TODO(rjo100): dual write check-ins for debugging
-@monitor(monitor_slug="dynamic-sampling-boost-low-volume-transactions-test")
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
@@ -198,7 +195,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,

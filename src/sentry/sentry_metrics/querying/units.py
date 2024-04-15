@@ -42,7 +42,7 @@ MeasurementUnit = Union[DurationUnit, InformationUnit, FractionUnit, str]
 
 class UnitFamily(Enum):
     """
-    A family of units contains all units that are coercible between each other.
+    Represents family of units contains all units that are coercible between each other.
     """
 
     DURATION = "duration"
@@ -52,16 +52,33 @@ class UnitFamily(Enum):
 @dataclass(frozen=True)
 class Unit:
     """
-    A unit of measurement that has a scaling factor towards one reference unit.
+    Represents a unit of measurement that has a scaling factor towards one reference unit.
+
+    Attributes:
+        name: Name of the unit.
+        scaling_factor: Scaling factor that a value of this unit needs to apply in order to be scaled on the same scale
+            as another reference unit.
     """
 
     name: MeasurementUnit
     scaling_factor: float | int
 
     def convert(self, value: float | int) -> float | int:
+        """
+        Applies the scaling factor on the supplied value.
+
+        Returns:
+            The value scaled with the scaling factor.
+        """
         return value * self.scaling_factor
 
     def apply_on_query_expression(self, query_expression: QueryExpression) -> QueryExpression:
+        """
+        Applies the scaling factor on a QueryExpression.
+
+        Returns:
+            A new QueryExpression which contains the scaling operation applied or the value scaled directly.
+        """
         # In case the factor is the identity of the multiplication, we do not apply any formula.
         if self.scaling_factor in {1.0, 1}:
             return query_expression
@@ -83,7 +100,7 @@ class Unit:
 @dataclass(frozen=True)
 class UnitsSpec:
     """
-    The specification of multiple units which has a common reference unit.
+    Represents the specification of multiple units which has a common reference unit.
     """
 
     reference_unit: MeasurementUnit
@@ -92,21 +109,40 @@ class UnitsSpec:
 
 @dataclass(frozen=True)
 class UnitMetadata:
+    """
+    Represents a placeholder object for the unit metadata of a given QueryExpression.
+    """
+
     pass
 
 
 @dataclass(frozen=True)
 class WithNoUnit(UnitMetadata):
+    """
+    Represents the unit metadata of a QueryExpression with no unit.
+    """
+
     pass
 
 
 @dataclass(frozen=True)
 class WithFutureUnit(UnitMetadata):
+    """
+    Represents the unit metadata of a QueryExpression with a unit that need to be computed in the future.
+
+    A future unit tells the unit normalization algorithm that it needs to apply the normalization to all downstream
+    units once a unit in a formula has been determined. More details can be found in the UnitsNormalizationV2Visitor.
+    """
+
     pass
 
 
 @dataclass(frozen=True)
 class WithUnit(UnitMetadata):
+    """
+    Represents the unit medata of a QueryExpression with a unit.
+    """
+
     unit_family: UnitFamily
     reference_unit: str
     unit: Unit
@@ -159,6 +195,10 @@ FAMILY_TO_UNITS = {
 def get_unit_family_and_unit(
     unit: MeasurementUnit,
 ) -> tuple[UnitFamily, MeasurementUnit, Unit] | None:
+    """
+    Returns:
+        The unit family, the reference unit and the Unit objects of a given unit.
+    """
     for unit_family, units_spec in FAMILY_TO_UNITS.items():
         for inner_unit in units_spec.units:
             if inner_unit.name == unit:
@@ -168,6 +208,10 @@ def get_unit_family_and_unit(
 
 
 def get_reference_unit_for_unit_family(unit_family: UnitFamily) -> Unit | None:
+    """
+    Returns:
+        The Unit object of the reference unit of a given unit family
+    """
     units_spec = FAMILY_TO_UNITS.get(unit_family)
     if units_spec is None:
         return None

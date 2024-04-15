@@ -1,15 +1,19 @@
 import React, {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -17,6 +21,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -34,26 +39,43 @@ export function HTTPLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
-  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  // TODO: Pull this using `useLocationQuery` below
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+
+  const query = useLocationQuery({
+    fields: {
+      'span.domain': decodeScalar,
+    },
+  });
 
   const chartFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
   };
 
   const tableFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
+    'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
+
+  const handleSearch = (newDomain: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.domain': newDomain === '' ? undefined : newDomain,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
+      },
+    });
+  };
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
     referrer: 'api.starfish.http-module-landing-throughput-chart',
   });
@@ -63,7 +85,7 @@ export function HTTPLandingPage() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
     referrer: 'api.starfish.http-module-landing-duration-chart',
   });
@@ -73,18 +95,18 @@ export function HTTPLandingPage() {
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     referrer: 'api.starfish.http-module-landing-response-code-chart',
   });
 
   const domainsListResponse = useSpanMetrics({
-    filters: tableFilters,
+    search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
       'project.id',
       'span.domain',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',
@@ -111,12 +133,15 @@ export function HTTPLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: t('HTTP'),
+                label: MODULE_TITLE,
               },
             ]}
           />
 
-          <Layout.Title>{t('HTTP')}</Layout.Title>
+          <Layout.Title>
+            {MODULE_TITLE}
+            <FeatureBadge type={RELEASE_LEVEL} />
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
@@ -149,7 +174,7 @@ export function HTTPLandingPage() {
 
                 <ModuleLayout.Third>
                   <DurationChart
-                    series={durationData[`avg(span.self_time)`]}
+                    series={[durationData[`avg(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />
@@ -177,6 +202,14 @@ export function HTTPLandingPage() {
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Full>
+                  <SearchBar
+                    query={query['span.domain']}
+                    placeholder={t('Search for more domains')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
                   <DomainsTable response={domainsListResponse} sort={sort} />
                 </ModuleLayout.Full>
               </Fragment>
@@ -198,7 +231,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 function LandingPageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('HTTP')].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
       features="performance-http-view"
     >

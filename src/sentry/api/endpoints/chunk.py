@@ -70,11 +70,23 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         # User-Agent: sentry-cli/1.70.1
         user_agent = request.headers.get("User-Agent", "")
         sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
-        supports_relative_url = (sentrycli_version is not None) and (
-            int(sentrycli_version.group("major")),
-            int(sentrycli_version.group("minor")),
-            int(sentrycli_version.group("patch")),
-        ) >= (1, 70, 1)
+        sentrycli_version_split = None
+        if sentrycli_version is not None:
+            sentrycli_version_split = (
+                int(sentrycli_version.group("major")),
+                int(sentrycli_version.group("minor")),
+                int(sentrycli_version.group("patch")),
+            )
+
+        relative_urls_disabled = options.get("hybrid_cloud.disable_relative_upload_urls")
+        requires_region_url = sentrycli_version_split and sentrycli_version_split >= (2, 30, 0)
+
+        supports_relative_url = (
+            not relative_urls_disabled
+            and not requires_region_url
+            and sentrycli_version_split
+            and sentrycli_version_split >= (1, 70, 1)
+        )
 
         # If user do not overwritten upload url prefix
         if len(endpoint) == 0:
@@ -85,10 +97,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             else:
                 # We need to generate region specific upload URLs when possible to avoid hitting the API proxy
                 # which tends to cause timeouts and performance issues for uploads.
-                base_url = None
-                if options.get("hybrid_cloud.use_region_specific_upload_url"):
-                    base_url = generate_region_url()
-                url = absolute_uri(relative_url, base_url)
+                url = absolute_uri(relative_url, generate_region_url())
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)

@@ -9,6 +9,7 @@ from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
+from django.utils.functional import cached_property
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
@@ -32,6 +33,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -71,7 +73,6 @@ from sentry.services.organization.provisioning import (
     organization_provisioning_service,
 )
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -173,6 +174,8 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
+    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -216,10 +219,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    customMetricsAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    aggregatedDataConsent = serializers.BooleanField(required=False)
+    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
@@ -227,7 +231,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
-    @memoize
+    @cached_property
     def _has_legacy_rate_limits(self):
         org = self.context["organization"]
         return OrganizationOption.objects.filter(
@@ -432,10 +436,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
-        # This option is temporary since we will control custom metrics via a single feature flag in the future. This
-        # organization option is used just for people to opt-in to try out custom metrics.
-        if "customMetricsAccess" in data:
-            org.update_option("sentry:custom_metrics_access", data["customMetricsAccess"])
         if (
             features.has("organizations:required-email-verification", org)
             and "requireEmailVerification" in data

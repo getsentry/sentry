@@ -3,10 +3,11 @@ import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -35,12 +36,12 @@ function ResourceSummaryCharts(props: {groupId: string}) {
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries({
-      filters: {
+      search: MutableSearch.fromQueryObject({
         'span.group': props.groupId,
         ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
           ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
           : {}),
-      },
+      }),
       yAxis: [
         `spm()`,
         `avg(${SPAN_SELF_TIME})`,
@@ -68,7 +69,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             height={160}
             data={[spanMetricsSeriesData?.[`spm()`]]}
             loading={areSpanMetricsSeriesLoading}
-            isLineChart
+            type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RESOURCE_THROUGHPUT_UNIT}
@@ -88,7 +89,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
             loading={areSpanMetricsSeriesLoading}
             chartColors={[AVG_COLOR]}
-            isLineChart
+            type={ChartType.LINE}
             definedAxisTicks={4}
           />
         </ChartPanel>
@@ -105,7 +106,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             ]}
             loading={areSpanMetricsSeriesLoading}
             chartColors={[AVG_COLOR]}
-            isLineChart
+            type={ChartType.LINE}
             definedAxisTicks={4}
             tooltipFormatterOptions={{
               valueFormatter: bytes =>

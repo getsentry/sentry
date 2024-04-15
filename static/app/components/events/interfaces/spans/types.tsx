@@ -58,6 +58,7 @@ export type RawSpanType = {
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
+  'span.average_time'?: number;
   status?: string;
   tags?: {[key: string]: string};
 };
@@ -65,7 +66,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<[string, string]>;
+  samples: Array<{
+    span: string;
+    timestamp: number;
+    trace: string;
+    transaction: string;
+  }>;
   total: number;
   type: 'aggregate';
 };

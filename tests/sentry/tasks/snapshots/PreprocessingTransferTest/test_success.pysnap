@@ -1,5 +1,5 @@
 ---
-created: '2024-02-22T23:36:40.296487Z'
+created: '2024-04-12T19:20:04.888623+00:00'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -188,7 +188,7 @@ steps:
   - testing
   id: import-raw-relocation-data
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 2400s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -259,39 +259,6 @@ steps:
   - import-colliding-users
   - export-baseline-config
 - args:
-  - compose
-  - -f
-  - /workspace/self-hosted/docker-compose.yml
-  - -f
-  - /workspace/self-hosted/docker-compose.override.yml
-  - run
-  - --rm
-  - -T
-  - -v
-  - /workspace/in:/in
-  - -v
-  - /workspace/out:/out
-  - -v
-  - /workspace/findings:/findings
-  - -e
-  - SENTRY_LOG_LEVEL=CRITICAL
-  - web
-  - export
-  - organizations
-  - /out/raw-relocation-data.tar
-  - --encrypt-with-gcp-kms
-  - /in/kms-config.json
-  - --findings-file
-  - /findings/export-raw-relocation-data.json
-  - --filter-org-slugs
-  - testing
-  id: export-raw-relocation-data
-  name: gcr.io/cloud-builders/docker
-  timeout: 300s
-  waitFor:
-  - import-raw-relocation-data
-  - export-colliding-users
-- args:
   - cp
   - -r
   - /workspace/out
@@ -300,7 +267,7 @@ steps:
   name: gcr.io/cloud-builders/gsutil
   timeout: 30s
   waitFor:
-  - export-raw-relocation-data
+  - export-baseline-config
 - args:
   - compose
   - -f
@@ -329,10 +296,10 @@ steps:
   - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 120s
   waitFor:
   - export-baseline-config
-  - export-raw-relocation-data
+  - copy-out-dir
 - args:
   - compose
   - -f
@@ -361,7 +328,7 @@ steps:
   - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 120s
   waitFor:
   - export-colliding-users
   - compare-baseline-config

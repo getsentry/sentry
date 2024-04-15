@@ -56,11 +56,7 @@ class PagerDutyClientTest(APITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
 
-    @responses.activate
-    def test_send_trigger(self):
-        integration_key = self.service["integration_key"]
-
-        event = self.store_event(
+        self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "message",
@@ -69,23 +65,30 @@ class PagerDutyClientTest(APITestCase):
             },
             project_id=self.project.id,
         )
-        custom_details = serialize(event, None, ExternalEventSerializer())
-        assert event.group is not None
-        group = event.group
+
+        self.integration_key = self.service["integration_key"]
+        self.custom_details = serialize(self.event, None, ExternalEventSerializer())
+        assert self.event.group is not None
+        self.group = self.event.group
+
+    @responses.activate
+    def test_send_trigger(self):
         expected_data = {
-            "routing_key": integration_key,
+            "routing_key": self.integration_key,
             "event_action": "trigger",
-            "dedup_key": group.qualified_short_id,
+            "dedup_key": self.group.qualified_short_id,
             "payload": {
-                "summary": event.message,
+                "summary": self.event.message,
                 "severity": "error",
-                "source": event.transaction or event.culprit,
+                "source": self.event.transaction or self.event.culprit,
                 "component": self.project.slug,
-                "custom_details": custom_details,
+                "custom_details": self.custom_details,
             },
             "links": [
                 {
-                    "href": group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
+                    "href": self.group.get_absolute_url(
+                        params={"referrer": "pagerduty_integration"}
+                    ),
                     "text": "View Sentry Issue Details",
                 }
             ],
@@ -106,7 +109,62 @@ class PagerDutyClientTest(APITestCase):
         )
 
         client = self.installation.get_keyring_client(self.service["id"])
-        client.send_trigger(event)
+        client.send_trigger(self.event, severity="default")
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert "https://events.pagerduty.com/v2/enqueue/" == request.url
+        assert client.base_url and (client.base_url.lower() in request.url)
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "pagerduty", "status": 200},
+            )
+        ]
+        assert self.metrics.incr.mock_calls == calls
+
+    @responses.activate
+    def test_send_trigger_custom_severity(self):
+        expected_data = {
+            "routing_key": self.integration_key,
+            "event_action": "trigger",
+            "dedup_key": self.group.qualified_short_id,
+            "payload": {
+                "summary": self.event.message,
+                "severity": "info",
+                "source": self.event.transaction or self.event.culprit,
+                "component": self.project.slug,
+                "custom_details": self.custom_details,
+            },
+            "links": [
+                {
+                    "href": self.group.get_absolute_url(
+                        params={"referrer": "pagerduty_integration"}
+                    ),
+                    "text": "View Sentry Issue Details",
+                }
+            ],
+        }
+
+        responses.add(
+            responses.POST,
+            "https://events.pagerduty.com/v2/enqueue/",
+            body=b"{}",
+            match=[
+                matchers.header_matcher(
+                    {
+                        "Content-Type": "application/json",
+                    }
+                ),
+                matchers.json_params_matcher(expected_data),
+            ],
+        )
+
+        client = self.installation.get_keyring_client(self.service["id"])
+        client.send_trigger(self.event, severity="info")
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request

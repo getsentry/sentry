@@ -5,12 +5,10 @@ import pytest
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-query"
@@ -52,8 +50,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
@@ -75,24 +74,25 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
-        assert "intervals" not in response.data
         assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
                 },
             ]
         ]
+        assert response.data["intervals"] == []
 
-    def test_query_with_killswitched_org(self):
-        with self.options({"custom-metrics-querying-killswitched-orgs": [self.organization.id]}):
+    def test_query_with_disabled_org(self):
+        with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):
             self.get_error_response(
                 self.project.organization.slug,
                 status_code=401,
@@ -106,3 +106,20 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "includeSeries": "false",
                 },
             )
+
+    def test_recursion_error_query(self):
+        conds = " OR ".join([f'transaction:"{e}"' for e in range(500)])
+        error_mql = f"avg(d:transactions/duration@millisecond) by (transaction){{({conds})}}"
+        self.get_success_response(
+            self.project.organization.slug,
+            status_code=200,
+            queries=[{"name": "query_1", "mql": error_mql}],
+            formulas=[{"mql": "$query_1"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )

@@ -36,7 +36,7 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d'},
+    query: {statsPeriod: '10d', 'span.domain': 'git'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -46,6 +46,8 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
+    jest.clearAllMocks();
+
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -103,7 +105,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http has:span.domain',
+          query: 'span.module:http',
           referrer: 'api.starfish.http-module-landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -128,7 +130,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http has:span.domain',
+          query: 'span.module:http',
           referrer: 'api.starfish.http-module-landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -153,7 +155,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http has:span.domain',
+          query: 'span.module:http',
           referrer: 'api.starfish.http-module-landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -177,7 +179,7 @@ describe('HTTPLandingPage', function () {
             'project.id',
             'span.domain',
             'spm()',
-            'http_response_rate(2)',
+            'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
             'avg(span.self_time)',
@@ -186,7 +188,7 @@ describe('HTTPLandingPage', function () {
           ],
           per_page: 10,
           project: [],
-          query: 'span.module:http has:span.domain',
+          query: 'span.module:http span.domain:*git*',
           referrer: 'api.starfish.http-module-landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',

@@ -88,8 +88,10 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    free_text_key = "message"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    entity: Entity | None = None
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -194,11 +196,16 @@ class BaseQueryBuilder:
         turbo: bool = False,
         sample_rate: float | None = None,
         array_join: str | None = None,
+        entity: Entity | None = None,
     ):
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
+        if self.builder_config.parser_config_overrides is None:
+            self.builder_config.parser_config_overrides = {}
+        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
+
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore
@@ -280,6 +287,7 @@ class BaseQueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+        self.entity = entity
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
@@ -1109,6 +1117,8 @@ class BaseQueryBuilder:
         :param name: The unresolved sentry name.
         """
         resolved_column = self.resolve_column_name(name)
+        if self.entity:
+            return Column(resolved_column, entity=self.entity)
         return Column(resolved_column)
 
     # Query filter helper methods

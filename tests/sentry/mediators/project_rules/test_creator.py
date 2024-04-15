@@ -1,12 +1,11 @@
 from sentry.mediators.project_rules.creator import Creator
-from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@region_silo_test
 class TestCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -19,7 +18,7 @@ class TestCreator(TestCase):
             self.user = User.objects.get(id=self.user.id)
         self.creator = Creator(
             name="New Cool Rule",
-            owner=get_actor_id_for_user(self.user),
+            owner=get_actor_for_user(self.user).id,
             project=self.project,
             action_match="all",
             filter_match="any",

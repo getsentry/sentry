@@ -44,7 +44,7 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
           external
           href="https://docs.sentry.io/product/user-feedback/setup/"
           priority="primary"
-          analyticsEventName="Clicked Feedback Onboarding Setup Button"
+          analyticsEventName="Clicked Feedback What's New Banner"
           analyticsEventKey="feedback.whats-new-banner-clicked"
           analyticsParams={{surface: 'whats-new-banner'}}
         >

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import BinaryIO
+from typing import IO
 from uuid import uuid4
 
 from django.core import serializers
@@ -77,7 +77,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore
+        manager.all().delete()  # type: ignore[attr-defined]
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.
@@ -89,7 +89,7 @@ def _clear_model_tables_before_import():
 
 
 def _import(
-    src: BinaryIO,
+    src: IO[bytes],
     scope: ImportScope,
     *,
     decryptor: Decryptor | None = None,
@@ -158,7 +158,7 @@ def _import(
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore
+        content_as_json = json.loads(content)  # type: ignore[arg-type]
         for json_model in content_as_json:
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
@@ -381,14 +381,6 @@ def _import(
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             if scope == ImportScope.Global:
-                confirmed = printer.confirm(
-                    """Proceeding with this operation will irrecoverably delete all existing
-                    low-volume data - are you sure want to continue?"""
-                )
-                if not confirmed:
-                    printer.echo("Import cancelled.")
-                    return
-
                 try:
                     _clear_model_tables_before_import()
                 except DatabaseError:
@@ -405,7 +397,7 @@ def _import(
 
 
 def import_in_user_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -434,7 +426,7 @@ def import_in_user_scope(
 
 
 def import_in_organization_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -465,7 +457,7 @@ def import_in_organization_scope(
 
 
 def import_in_config_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -497,7 +489,7 @@ def import_in_config_scope(
 
 
 def import_in_global_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,

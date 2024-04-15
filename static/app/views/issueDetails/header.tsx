@@ -58,7 +58,9 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 
   const projectFeatures = new Set(project ? project.features : []);
@@ -138,6 +140,13 @@ function GroupHeaderTabs({
         to={`${baseUrl}merged/${location.search}`}
       >
         {t('Merged Issues')}
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.RELATED_ISSUES}
+        hidden={!organizationFeatures.has('related-issues')}
+        to={`${baseUrl}related/${location.search}`}
+      >
+        {t('Related Issues')}
       </TabList.Item>
       <TabList.Item
         key={Tab.SIMILAR_ISSUES}

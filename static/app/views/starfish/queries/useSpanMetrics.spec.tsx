@@ -3,9 +3,10 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -57,7 +58,7 @@ describe('useSpanMetrics', () => {
       body: {data: []},
     });
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({fields, enabled}) => useSpanMetrics({fields, enabled}),
       {
         wrapper: Wrapper,
@@ -87,9 +88,16 @@ describe('useSpanMetrics', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
+        useSpanMetrics({
+          search: MutableSearch.fromQueryObject(filters),
+          fields,
+          sorts,
+          limit,
+          cursor,
+          referrer,
+        }),
       {
         wrapper: Wrapper,
         initialProps: {

@@ -5,10 +5,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
@@ -51,7 +55,7 @@ export function SpanSummaryView({groupId}: Props) {
   }
 
   const {data} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
@@ -92,7 +96,10 @@ export function SpanSummaryView({groupId}: Props) {
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries({
-      filters: {'span.group': groupId, ...seriesQueryFilter},
+      search: MutableSearch.fromQueryObject({
+        'span.group': groupId,
+        ...seriesQueryFilter,
+      }),
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       enabled: Boolean(groupId),
       referrer: 'api.starfish.span-summary-page-metrics-chart',
@@ -166,7 +173,7 @@ export function SpanSummaryView({groupId}: Props) {
               data={[spanMetricsThroughputSeries]}
               loading={areSpanMetricsSeriesLoading}
               chartColors={[THROUGHPUT_COLOR]}
-              isLineChart
+              type={ChartType.LINE}
               definedAxisTicks={4}
               aggregateOutputFormat="rate"
               rateUnit={RateUnit.PER_MINUTE}
@@ -184,7 +191,7 @@ export function SpanSummaryView({groupId}: Props) {
               data={[spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
               loading={areSpanMetricsSeriesLoading}
               chartColors={[AVG_COLOR]}
-              isLineChart
+              type={ChartType.LINE}
               definedAxisTicks={4}
             />
           </ChartPanel>
@@ -198,7 +205,7 @@ export function SpanSummaryView({groupId}: Props) {
                 data={[spanMetricsSeriesData?.[`http_error_count()`]]}
                 loading={areSpanMetricsSeriesLoading}
                 chartColors={[ERRORS_COLOR]}
-                isLineChart
+                type={ChartType.LINE}
                 definedAxisTicks={4}
               />
             </ChartPanel>

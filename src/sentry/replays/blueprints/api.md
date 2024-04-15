@@ -94,6 +94,7 @@ Retrieve a collection of replays.
 | environment       | optional[string]              | -                                                      |
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
+| has_viewed        | bool                          | True if the authorized user has viewed the replay.     |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
@@ -140,6 +141,7 @@ Retrieve a collection of replays.
         "environment": "production",
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
+        "has_viewed": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
         "os": {
@@ -206,6 +208,7 @@ Retrieve a single replay instance.
       "environment": "production",
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
+      "has_viewed": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
       "os": {
         "name": "iOS",
@@ -366,20 +369,21 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column             | Type          | Description                                        |
-| ------------------ | ------------- | -------------------------------------------------- |
-| count_dead_clicks  | number        | The number of dead clicks for a given DOM element. |
-| count_rage_clicks  | number        | The number of rage clicks for a given DOM element. |
-| dom_element        | string        | -                                                  |
-| element.alt        | string        | -                                                  |
-| element.aria_label | string        | -                                                  |
-| element.class      | array[string] | -                                                  |
-| element.id         | string        | -                                                  |
-| element.role       | string        | -                                                  |
-| element.tag        | string        | -                                                  |
-| element.testid     | string        | -                                                  |
-| element.title      | string        | -                                                  |
-| project_id         | string        | -                                                  |
+| Column                 | Type          | Description                                        |
+| ---------------------- | ------------- | -------------------------------------------------- |
+| count_dead_clicks      | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks      | number        | The number of rage clicks for a given DOM element. |
+| dom_element            | string        | -                                                  |
+| element.alt            | string        | -                                                  |
+| element.aria_label     | string        | -                                                  |
+| element.class          | array[string] | -                                                  |
+| element.component_name | string        | -                                                  |
+| element.id             | string        | -                                                  |
+| element.role           | string        | -                                                  |
+| element.tag            | string        | -                                                  |
+| element.testid         | string        | -                                                  |
+| element.title          | string        | -                                                  |
+| project_id             | string        | -                                                  |
 
 - Response 200
 
@@ -394,6 +398,7 @@ Retrieve a collection of selectors.
           "alt": "",
           "aria_label": "",
           "class": ["class1", "class2"],
+          "component_name": "",
           "id": "myid",
           "role": "",
           "tag": "div",
@@ -608,3 +613,64 @@ Retrieve a collection of click events associated with a replay.
     ]
   }
   ```
+
+## Replay Viewed By [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/viewed-by/]
+
+### Fetch Replay Viewed By [GET]
+
+| Column    | Type        | Description                                        |
+| --------- | ----------- | -------------------------------------------------- |
+| viewed_by | array[User] | An array of user types who have viewed the replay. |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "viewed_by": [
+        {
+          "id": "884411",
+          "name": "some.body@sentry.io",
+          "username": "d93522a35cb64c13991104bd73d44519",
+          "email": "some.body@sentry.io",
+          "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+          "isActive": true,
+          "hasPasswordAuth": false,
+          "isManaged": false,
+          "dateJoined": "2022-07-25T23:36:29.593212Z",
+          "lastLogin": "2024-03-14T18:11:28.740309Z",
+          "has2fa": true,
+          "lastActive": "2024-03-15T22:22:06.925934Z",
+          "isSuperuser": true,
+          "isStaff": false,
+          "experiments": {},
+          "emails": [
+            {
+              "id": "2231333",
+              "email": "some.body@sentry.io",
+              "is_verified": true
+            }
+          ],
+          "avatar": {
+            "avatarType": "upload",
+            "avatarUuid": "499dcd0764da42a589654a2224086e67",
+            "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/"
+          },
+          "type": "user"
+        }
+      ]
+    }
+  }
+  ```
+
+### Create Replay Viewed [POST]
+
+A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 204

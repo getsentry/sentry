@@ -14,6 +14,7 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
     SlackRuleSaveEditMessageBuilder,
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -23,7 +24,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
@@ -121,7 +122,6 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -483,7 +483,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
-@region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
 
@@ -1003,8 +1002,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
+    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_confirmation_notification_contents(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        # TODO: make this a block kit test
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+        ]
+        filters = [
+            {
+                "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                "value": GroupCategory.PERFORMANCE.value,
+            }
+        ]
         actions = [
             {
                 "channel_id": "old_channel_id",
@@ -1014,7 +1023,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             }
         ]
         self.rule.update(
-            data={"conditions": conditions, "actions": actions, "frequency": 5}, label="my rule"
+            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5},
+            label="my rule",
         )
 
         actions[0]["channel"] = "#new_channel_name"
@@ -1066,6 +1076,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": actions,
             "conditions": conditions,
             "frequency": 180,
+            "filters": filters,
             "environment": staging_env.name,
             "owner": get_actor_for_user(self.user).get_actor_identifier(),
         }
@@ -1081,8 +1092,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rendered_blocks = json.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
-        changes += "• Added action 'Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification'\n"
-        changes += "• Removed action 'Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification'\n"
+        changes += "• Added condition 'The issue's category is equal to Performance'\n"
+        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification*\n"
         changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
         changes += f"• Added *{staging_env.name}* environment\n"
         changes += "• Changed rule name from *my rule* to *new rule*\n"
@@ -1354,7 +1365,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
 
-@region_silo_test
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 

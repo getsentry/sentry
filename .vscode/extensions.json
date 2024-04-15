@@ -4,6 +4,7 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "biomejs.biome",
+    "mkhl.direnv",
     "ms-python.python",
     "ms-python.black-formatter",
     "dbaeumer.vscode-eslint",

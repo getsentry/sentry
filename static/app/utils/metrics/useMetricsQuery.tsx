@@ -162,7 +162,8 @@ export function getMetricsQueryApiRequestPayload(
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
   {projects, environments, datetime}: PageFilters,
-  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
+  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {},
+  enableRefetch = true
 ) {
   const organization = useOrganization();
 
@@ -184,8 +185,8 @@ export function useMetricsQuery(
     {
       retry: 0,
       staleTime: 0,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: true,
+      refetchOnReconnect: enableRefetch,
+      refetchOnWindowFocus: enableRefetch,
       refetchInterval: false,
     }
   );

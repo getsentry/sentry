@@ -1,19 +1,15 @@
 from unittest import mock
 
-import pytest
-
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -221,7 +217,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
-    @pytest.mark.xfail(reason="fails in Snuba CI")
     def test_get_adjacent_event_ids(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
