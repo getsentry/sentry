@@ -655,4 +655,10 @@ class OrganizationMember(ReplicatedRegionModel):
         ):
             self.inviter_id = None
 
+        # If there is a token collision, just wipe the token. The user can always make a new one.
+        matching_token = self.__class__.objects.filter(token=self.token).first()
+        if matching_token is not None:
+            self.token = None
+            self.token_expires_at = None
+
         return super().normalize_before_relocation_import(pk_map, scope, flags)

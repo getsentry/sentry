@@ -484,9 +484,7 @@ export class VirtualizedViewManager {
 
       // Holding shift key allows for horizontal scrolling
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
-
-      // Prevent vertical scroll when holding shiftkey
-      if (event.shiftKey) {
+      if (event.shiftKey || Math.abs(event.deltaX) !== 0) {
         event.preventDefault();
       }
 
