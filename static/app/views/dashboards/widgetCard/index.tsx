@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-// import LazyLoad from 'react-lazyload';
 import type {WithRouterProps} from 'react-router';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -10,6 +9,7 @@ import {Alert} from 'sentry/components/alert';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {LazyRender} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -226,7 +226,7 @@ class WidgetCard extends Component<Props, State> {
       renderErrorMessage,
       tableItemLimit,
       windowWidth,
-      // noLazyLoad,
+      noLazyLoad,
       showStoredAlert,
       noDashboardsMEPProvider,
       dashboardFilters,
@@ -349,8 +349,7 @@ class WidgetCard extends Component<Props, State> {
                       <IconWarning color="gray500" size="lg" />
                     </StyledErrorPanel>
                   </Fragment>
-                ) : (
-                  // noLazyLoad ?
+                ) : noLazyLoad ? (
                   <WidgetCardChartContainer
                     location={location}
                     api={api}
@@ -365,28 +364,23 @@ class WidgetCard extends Component<Props, State> {
                     dashboardFilters={dashboardFilters}
                     chartGroup={DASHBOARD_CHART_GROUP}
                   />
-                  // )
-                  // : (
-                  //   <LazyLoad
-                  //     once
-                  //     resize
-                  //     height={200}
-                  //   >
-                  //     <WidgetCardChartContainer
-                  //       location={location}
-                  //       api={api}
-                  //       organization={organization}
-                  //       selection={selection}
-                  //       widget={widget}
-                  //       isMobile={isMobile}
-                  //       renderErrorMessage={renderErrorMessage}
-                  //       tableItemLimit={tableItemLimit}
-                  //       windowWidth={windowWidth}
-                  //       onDataFetched={this.setData}
-                  //       dashboardFilters={dashboardFilters}
-                  //       chartGroup={DASHBOARD_CHART_GROUP}
-                  //     />
-                  //   </LazyLoad>
+                ) : (
+                  <LazyRender containerHeight={200} withoutContainer>
+                    <WidgetCardChartContainer
+                      location={location}
+                      api={api}
+                      organization={organization}
+                      selection={selection}
+                      widget={widget}
+                      isMobile={isMobile}
+                      renderErrorMessage={renderErrorMessage}
+                      tableItemLimit={tableItemLimit}
+                      windowWidth={windowWidth}
+                      onDataFetched={this.setData}
+                      dashboardFilters={dashboardFilters}
+                      chartGroup={DASHBOARD_CHART_GROUP}
+                    />
+                  </LazyRender>
                 )}
                 {this.renderToolbar()}
               </WidgetCardPanel>
