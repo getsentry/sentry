@@ -5,6 +5,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
@@ -12,7 +13,7 @@ import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -24,17 +25,36 @@ function SpanSummaryCharts() {
   const {spanSlug} = useParams();
   const [spanOp, groupId] = spanSlug.split(':');
 
-  const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
-    useSpanMetricsSeries({
-      search: MutableSearch.fromQueryObject({
-        'span.group': groupId,
-      }),
-      yAxis: [`spm()`, `avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-      enabled: Boolean(groupId),
-    });
+  const location = useLocation();
+  const {transaction} = location.query;
 
-  console.dir(spanMetricsSeriesData);
-  console.dir([spanMetricsSeriesData?.[`spm()`]]);
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject(filters),
+    yAxis: ['spm()'],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
+  console.dir(throughputData);
+
+  const {
+    isLoading: isAvgDurationDataLoading,
+    data: avgDurationData,
+    error: avgDurationError,
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject(filters),
+    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
+  console.dir(avgDurationData);
 
   return (
     <BlockContainer>
@@ -43,8 +63,8 @@ function SpanSummaryCharts() {
           <ChartPanel title={t('Span Throughput')}>
             <Chart
               height={160}
-              data={[spanMetricsSeriesData?.[`spm()`]]}
-              loading={areSpanMetricsSeriesLoading}
+              data={[throughputData?.[`spm()`]]}
+              loading={isThroughputDataLoading}
               type={ChartType.LINE}
               definedAxisTicks={4}
               aggregateOutputFormat="rate"
@@ -57,44 +77,44 @@ function SpanSummaryCharts() {
             />
           </ChartPanel>
         </Block>
-        /*
-      <Block>
-        <ChartPanel title={getDurationChartTitle('http')}>
-          <Chart
-            height={160}
-            data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-          />
-        </ChartPanel>
-      </Block>
-      <Block>
-        <ChartPanel title={t('Average Resource Size')}>
-          <Chart
-            height={160}
-            aggregateOutputFormat="size"
-            data={[
-              spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
-            ]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-            tooltipFormatterOptions={{
-              valueFormatter: bytes =>
-                getDynamicText({
-                  value: formatBytesBase2(bytes),
-                  fixed: 'xx KiB',
-                }),
-              nameFormatter: name => DataTitles[name],
-            }}
-          />
-        </ChartPanel>
-      </Block> */
+        //
+        // <Block>
+        // <ChartPanel title={getDurationChartTitle('http')}>
+        // <Chart
+        //       height={160}
+        //       data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
+        //       loading={areSpanMetricsSeriesLoading}
+        //       chartColors={[AVG_COLOR]}
+        //       type={ChartType.LINE}
+        //       definedAxisTicks={4}
+        // />
+        // </ChartPanel>
+        // </Block>
+        // <Block>
+        // <ChartPanel title={t('Average Resource Size')}>
+        // <Chart
+        //       height={160}
+        //       aggregateOutputFormat="size"
+        //       data={[
+        //         spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
+        //         spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
+        //         spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
+        //       ]}
+        //       loading={areSpanMetricsSeriesLoading}
+        //       chartColors={[AVG_COLOR]}
+        //       type={ChartType.LINE}
+        //       definedAxisTicks={4}
+        //       tooltipFormatterOptions={{
+        //         valueFormatter: bytes =>
+        //           getDynamicText({
+        //             value: formatBytesBase2(bytes),
+        //             fixed: 'xx KiB',
+        //           }),
+        //         nameFormatter: name => DataTitles[name],
+        //       }}
+        // />
+        // </ChartPanel>
+        // </Block>
       }
     </BlockContainer>
   );

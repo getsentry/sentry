@@ -34,6 +34,7 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
   const pageFilters = usePageFilters();
 
   const eventView = getEventView(search, pageFilters.selection, yAxis);
+  console.dir(eventView);
 
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
