@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 DELETED_FIELDS: dict[str, set[str]] = {
     # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
     # The actor field should be retained until 24.6.0
-    "sentry.team": {"org_role", "actor"},
+    "sentry.team": {"actor"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.rule": {"owner"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
