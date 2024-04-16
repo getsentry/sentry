@@ -55,7 +55,7 @@ export function generateLinkToEventInTraceView({
 }: {
   eventId: string;
   location: Location;
-  organization: Organization;
+  organization: Pick<Organization, 'slug' | 'features'>;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;

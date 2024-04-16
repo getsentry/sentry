@@ -17,7 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
@@ -413,7 +413,7 @@ function EventNodeSelector({
             organization: {
               slug: organization.slug,
               features: organization.features,
-            } as Organization,
+            },
             transactionName: events[0].transaction,
             type: transactionDest,
           });
@@ -487,7 +487,7 @@ function EventNodeSelector({
             organization: {
               slug: organization.slug,
               features: organization.features,
-            } as Organization,
+            },
             type: transactionDest,
             transactionName: event.transaction,
           });
