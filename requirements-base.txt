@@ -100,7 +100,7 @@ hiredis>=2.3.2
 # sentry-plugins specific dependencies
 phabricator>=0.7.0
 
-openai==1.3.5
+openai==1.19.0
 
 # remove once there are no unmarked transitive dependencies on setuptools
 setuptools
