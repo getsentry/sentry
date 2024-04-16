@@ -214,7 +214,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         sample_rate = 0.01
         try:
-            with metrics.timer("features.has", tags={"name": name}, sample_rate=sample_rate):
+            with metrics.timer("features.has", tags={"feature": name}, sample_rate=sample_rate):
                 actor = kwargs.pop("actor", None)
                 feature = self.get(name, *args, **kwargs)
 
@@ -223,7 +223,7 @@ class FeatureManager(RegisteredFeatureManager):
                 if rv is not None:
                     metrics.incr(
                         "feature.has.result",
-                        tags={"name": name, "result": rv},
+                        tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
                     return rv
@@ -233,7 +233,7 @@ class FeatureManager(RegisteredFeatureManager):
                     if rv is not None:
                         metrics.incr(
                             "feature.has.result",
-                            tags={"name": name, "result": rv},
+                            tags={"feature": name, "result": rv},
                             sample_rate=sample_rate,
                         )
                         return rv
@@ -242,7 +242,7 @@ class FeatureManager(RegisteredFeatureManager):
                 if rv is not None:
                     metrics.incr(
                         "feature.has.result",
-                        tags={"name": name, "result": rv},
+                        tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
                     return rv
@@ -250,7 +250,7 @@ class FeatureManager(RegisteredFeatureManager):
                 # Features are by default disabled if no plugin or default enables them
                 metrics.incr(
                     "feature.has.result",
-                    tags={"name": name, "result": False},
+                    tags={"feature": name, "result": False},
                     sample_rate=sample_rate,
                 )
 
