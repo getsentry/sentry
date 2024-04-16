@@ -251,7 +251,7 @@ class Monitor(Model):
     Type of monitor. Currently there are only CRON_JOB monitors.
     """
 
-    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     """
     The user assigned as the owner of this model.
     """
