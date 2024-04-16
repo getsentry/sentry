@@ -2,7 +2,6 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  type MouseEventHandler,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -35,7 +34,8 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const accordionRef = useRef<HTMLDivElement>(null);
   const mainItemRef = useRef<HTMLDivElement>(null);
   const floatingAccordionRef = useRef<HTMLDivElement>(null);
-  const {expandedItemId, setExpandedItemId} = useContext(ExpandedContext);
+  const {expandedItemId, setExpandedItemId, shouldAccordionFloat} =
+    useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const router = useRouter();
@@ -94,12 +94,20 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     }
   };
 
-  const handleTitleClick: MouseEventHandler<HTMLDivElement> = () => {
+  const handleTitleClick: (
+    id: string,
+    e: React.MouseEvent<HTMLAnchorElement>
+  ) => void = () => {
     if (itemProps.to) {
       router.push(itemProps.to);
       setExpandedItemId(null);
     }
   };
+
+  let isMainItemActive = isActive && !hasActiveChildren;
+  if (shouldAccordionFloat) {
+    isMainItemActive = isActive || hasActiveChildren;
+  }
 
   return (
     <SidebarAccordionWrapper ref={accordionRef}>
@@ -107,7 +115,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         <div ref={mainItemRef}>
           <SidebarItem
             {...itemProps}
-            active={isActive && !hasActiveChildren}
+            active={isMainItemActive}
             id={mainItemId}
             data-test-id={mainItemId}
             aria-expanded={expanded}
@@ -140,9 +148,12 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
           ref={floatingAccordionRef}
           data-test-id="floating-accordion"
         >
-          <SidebarItemLabel onClick={handleTitleClick}>
-            {itemProps.label}
-          </SidebarItemLabel>
+          <SidebarItem
+            {...itemProps}
+            active={isActive && !hasActiveChildren}
+            onClick={handleTitleClick}
+            isMainItem
+          />
           {childrenWithProps}
         </FloatingAccordion>
       )}
@@ -201,23 +212,13 @@ function findChildElementsInTree(
   return found;
 }
 
-const SidebarItemLabel = styled('div')`
-  color: ${p => p.theme.gray300};
-  padding: ${space(1)} 0 ${space(1)} 18px;
-  font-size: ${p => p.theme.fontSizeLarge};
-  white-space: nowrap;
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
 const FloatingAccordion = styled('div')<{
   accordionRef: React.RefObject<HTMLDivElement>;
   horizontal: boolean;
 }>`
   position: absolute;
   width: ${p => (p.horizontal ? '100%' : '200px')};
-  padding: ${space(2)};
+  padding: ${space(1.5)};
   top: ${p =>
     p.horizontal
       ? p.theme.sidebar.mobileHeight

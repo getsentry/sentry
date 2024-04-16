@@ -85,6 +85,11 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
+   * Is main item in a floating accordion
+   */
+  isMainItem?: boolean;
+
+  /**
    * Is this item nested within another item
    */
   isNested?: boolean;
@@ -132,6 +137,7 @@ function SidebarItem({
   trailingItems,
   variant,
   isNested,
+  isMainItem,
   ...props
 }: SidebarItemProps) {
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
@@ -145,8 +151,10 @@ function SidebarItem({
   const isActiveRouter =
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
+  const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+
   const isActive = defined(active) ? active : isActiveRouter;
-  const isTop = orientation === 'top' && !isNested;
+  const isTop = orientation === 'top' && !isInFloatingAccordion;
   const placement = isTop ? 'bottom' : 'right';
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
@@ -187,8 +195,7 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
 
-  const isInFloatingSidebar = isNested && shouldAccordionFloat;
-  const isInCollapsedState = !isInFloatingSidebar && collapsed;
+  const isInCollapsedState = !isInFloatingAccordion && collapsed;
 
   return (
     <Tooltip
@@ -203,7 +210,7 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
-        isInFloatingAccordion={shouldAccordionFloat && isNested}
+        isInFloatingAccordion={isInFloatingAccordion}
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
@@ -212,9 +219,12 @@ function SidebarItem({
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={isInCollapsedState}>
-          <SidebarItemIcon>{icon}</SidebarItemIcon>
+          {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
           {!isInCollapsedState && !isTop && (
-            <SidebarItemLabel>
+            <SidebarItemLabel
+              isInFloatingAccordion={isInFloatingAccordion}
+              isNested={isNested}
+            >
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
                 {badges}
@@ -298,21 +308,12 @@ const getActiveStyle = ({
   }
   if (isInFloatingAccordion) {
     return css`
-      color: ${theme?.gray500};
+      background-color: ${theme?.hover};
 
       &:active,
       &:focus,
       &:hover {
         color: ${theme?.gray500};
-      }
-
-      &:before {
-        background-color: ${theme?.active};
-        top: 0;
-        left: -15px;
-        width: 5px;
-        height: 30px;
-        border-radius: 0 3px 3px 0;
       }
     `;
   }
@@ -335,7 +336,7 @@ const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
   display: flex;
-  color: inherit;
+  color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
   position: relative;
   cursor: pointer;
   font-size: 15px;
@@ -371,7 +372,17 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => (p.isInFloatingAccordion ? p.theme.gray500 : p.theme.white)};
+    ${p => {
+      if (p.isInFloatingAccordion) {
+        return css`
+          background-color: ${p.theme.hover};
+          color: ${p.theme.gray400};
+        `;
+      }
+      return css`
+        color: ${p.theme.white};
+      `;
+    }}
   }
 
   &:focus {
@@ -413,8 +424,11 @@ const SidebarItemIcon = styled('span')`
   }
 `;
 
-const SidebarItemLabel = styled('span')`
-  margin-left: 10px;
+const SidebarItemLabel = styled('span')<{
+  isInFloatingAccordion?: boolean;
+  isNested?: boolean;
+}>`
+  margin-left: ${p => (p.isNested && p.isInFloatingAccordion ? space(4) : '10px')};
   white-space: nowrap;
   opacity: 1;
   flex: 1;
