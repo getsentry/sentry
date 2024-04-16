@@ -15,34 +15,27 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-const Symbol = styled('span')<{isHidden?: boolean; isSelected?: boolean}>`
+export const Symbol = styled('span')<{isHidden?: boolean}>`
   display: flex;
-  width: 16px;
-  height: 16px;
+  width: 38px;
+  height: 38px;
   line-height: 16px;
   padding: ${space(0.5)};
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: ${p => p.theme.borderRadius};
   font-weight: 500;
-  color: ${p => p.theme.black};
-  font-size: 11px;
-  background: ${p => p.theme.yellow300};
-
-  ${p =>
-    p.isSelected &&
-    !p.isHidden &&
-    `
-  background: ${p.theme.purple300};
-  color: ${p.theme.white};
-  `}
+  color: ${p => p.theme.white};
+  font-size: 14px;
+  background: ${p => p.theme.purple300};
 
   ${p =>
     p.isHidden &&
     `
-  background: ${p.theme.gray300};
-  color: ${p.theme.white};
+  background: ${p.theme.background};
+  color: ${p.theme.textColor};
+  border: 1px solid ${p.theme.border};
   `}
 `;
 
