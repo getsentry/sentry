@@ -70,6 +70,9 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
         def data_fn(offset: int, limit: int):
             with handle_query_errors():
+                sample_rate = options.get("traces.sample-list.sample-rate")
+                if sample_rate <= 0:
+                    sample_rate = None
                 builder = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
                     cast(ParamsType, params),
@@ -82,7 +85,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=None,
                     limit=per_page * serialized["maxSpansPerTrace"],
                     limitby=("trace", serialized["maxSpansPerTrace"]),
-                    sample_rate=options.get("traces.sample-list.sample-rate"),
+                    sample_rate=sample_rate,
                     config=QueryBuilderConfig(
                         transform_alias_to_input_format=True,
                     ),
