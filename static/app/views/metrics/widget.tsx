@@ -54,7 +54,7 @@ import type {Series} from 'sentry/views/metrics/chart/types';
 import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
@@ -195,12 +195,9 @@ export const MetricWidget = memo(
             {showQuerySymbols &&
               queryId !== undefined &&
               (queries[0] && isMetricFormula(queries[0]) ? (
-                <EquationSymbol
-                  equationId={queryId}
-                  isSelected={isSelected && hasSiblings}
-                />
+                <EquationSymbol equationId={queryId} />
               ) : (
-                <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
+                <QuerySymbol queryId={queryId} />
               ))}
             <WidgetTitle>
               <StyledTooltip
