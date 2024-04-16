@@ -35,11 +35,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.actor import ActorTuple
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
+from sentry.utils.actor import ActorTuple
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)

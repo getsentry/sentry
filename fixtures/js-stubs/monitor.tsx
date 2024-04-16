@@ -5,8 +5,8 @@ import {
   ScheduleType,
 } from 'sentry/views/monitors/types';
 
+import {ActorFixture} from './actor';
 import {ProjectFixture} from './project';
-import {UserFixture} from './user';
 
 export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
   return {
@@ -16,7 +16,7 @@ export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
     project: ProjectFixture(),
     slug: 'my-monitor',
     status: 'active',
-    owner: `user:${UserFixture().id}`,
+    owner: ActorFixture(),
     type: MonitorType.CRON_JOB,
     config: {
       checkin_margin: 5,

@@ -623,6 +623,8 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("kafka-publisher.max-event-size", default=100000, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1218,12 +1220,6 @@ register(
 )
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Option to enable orjson for JSON parsing
-register("sentry-metrics.indexer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "sentry-metrics.ingest-consumer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)

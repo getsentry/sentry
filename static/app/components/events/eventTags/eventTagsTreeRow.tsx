@@ -6,6 +6,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
+import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -36,7 +37,8 @@ export default function EventTagsTreeRow({
 }: EventTagsTreeRowProps) {
   const organization = useOrganization();
   const originalTag = content.originalTag;
-  const tagErrors = content.meta?.value?.['']?.err ?? [];
+  const tagMeta = content.meta?.value?.[''];
+  const tagErrors = tagMeta?.err ?? [];
   const hasTagErrors = tagErrors.length > 0;
 
   if (!originalTag) {
@@ -82,7 +84,7 @@ export default function EventTagsTreeRow({
               <Version version={content.value} truncate />
             </VersionHoverCard>
           ) : (
-            content.value
+            <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
           )}
         </TreeValue>
         {hasTagErrors ? (

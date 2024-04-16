@@ -1877,6 +1877,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trace-table": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
+    # Enable 'Viewed By' state for replay items
+    "organizations:session-replay-viewed-by-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
@@ -3081,7 +3083,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.3.0"
+SELF_HOSTED_STABLE_VERSION = "24.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
