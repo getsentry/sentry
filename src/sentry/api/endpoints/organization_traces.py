@@ -72,7 +72,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=None,
                     limit=per_page * serialized["maxSpansPerTrace"],
                     limitby=("trace", serialized["maxSpansPerTrace"]),
-                    sample_rate=options.get("traces.sample-list.sample-rate"),
+                    sample_rate=sample_rate,
                     config=QueryBuilderConfig(
                         transform_alias_to_input_format=True,
                     ),
