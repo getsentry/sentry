@@ -1,4 +1,4 @@
-import ActorBadge, {ActorBadgeProps} from './actorBadge';
+import ActorBadge, {type ActorBadgeProps} from './actorBadge';
 import type {BaseBadgeProps} from './baseBadge';
 import MemberBadge, {type MemberBadgeProps} from './memberBadge';
 import OrganizationBadge, {type OrganizationBadgeProps} from './organizationBadge';

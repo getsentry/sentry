@@ -1,4 +1,4 @@
-import {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types';
 
 import BadgeDisplayName from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
