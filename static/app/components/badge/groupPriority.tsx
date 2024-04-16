@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -13,7 +14,6 @@ import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
-import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
