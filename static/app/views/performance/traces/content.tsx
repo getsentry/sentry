@@ -208,7 +208,7 @@ function SpanTable({
 function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
   return (
     <Fragment>
-      <StyledPanelItem align="right">
+      <StyledSpanPanelItem align="right">
         <SpanIdRenderer
           projectSlug={span.project}
           transactionId={span['transaction.id']}
@@ -216,24 +216,24 @@ function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
           traceId={traceId}
           timestamp={span.timestamp}
         />
-      </StyledPanelItem>
-      <StyledPanelItem align="left">
+      </StyledSpanPanelItem>
+      <StyledSpanPanelItem align="left">
         <Description>
           <ProjectRenderer projectSlug={span.project} hideName />
           <strong>{span['span.op']}</strong>
           <em>{'\u2014'}</em>
           {span['span.description']}
         </Description>
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
+      </StyledSpanPanelItem>
+      <StyledSpanPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
+      </StyledSpanPanelItem>
+      <StyledSpanPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
+      </StyledSpanPanelItem>
+      <StyledSpanPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
-      </StyledPanelItem>
+      </StyledSpanPanelItem>
     </Fragment>
   );
 }
@@ -343,6 +343,16 @@ const StyledPanelItem = styled(PanelItem)<{
         ? `text-align: ${p.align};`
         : undefined}
   ${p => p.span && `grid-column: auto / span ${p.span}`}
+`;
+
+const StyledSpanPanelItem = styled(StyledPanelItem)`
+  &:nth-child(10n + 1),
+  &:nth-child(10n + 2),
+  &:nth-child(10n + 3),
+  &:nth-child(10n + 4),
+  &:nth-child(10n + 5) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const SpanTablePanelItem = styled(StyledPanelItem)`
