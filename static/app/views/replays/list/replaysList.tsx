@@ -34,10 +34,6 @@ function ReplaysList() {
       utc: decodeScalar,
     },
   });
-  const filteredQuery = useMemo(
-    () => Object.fromEntries(Object.entries(query).filter(([_key, val]) => val !== '')),
-    [query]
-  );
 
   const {
     data: replays,
@@ -45,7 +41,7 @@ function ReplaysList() {
     isLoading,
     error,
   } = useFetchReplayList({
-    options: {query: filteredQuery},
+    options: {query},
     organization,
     queryReferrer: 'replayList',
   });
