@@ -164,7 +164,7 @@ function renderBodyCellWithMeta(
 
       const target = generateLinkToEventInTraceView({
         eventSlug: generateEventSlug(dataRow),
-        dataRow: {...dataRow, trace: traceSlug},
+        dataRow: {...dataRow, trace: traceSlug, timestamp: dataRow.timestamp / 1000},
         eventView: EventView.fromLocation(location),
         location,
         organization,
