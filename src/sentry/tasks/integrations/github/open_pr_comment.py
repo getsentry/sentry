@@ -399,7 +399,7 @@ def get_top_5_issues_by_count_for_file(
         return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
     except Exception:
         logger.exception(
-            "github.open_pr_comment.snuba_query_error", extra={"query": request.print()}
+            "github.open_pr_comment.snuba_query_error", extra={"query": request.to_dict()["query"]}
         )
         return []
 
