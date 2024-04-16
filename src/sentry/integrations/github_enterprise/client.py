@@ -5,12 +5,12 @@ from sentry.integrations.github.utils import get_jwt
 class GitHubEnterpriseAppsClient(GitHubClientMixin):
     integration_name = "github_enterprise"
 
-    def __init__(self, base_url, integration, app_id, private_key, verify_ssl):
+    def __init__(self, base_url, integration, app_id, private_key, verify_ssl, org_integration_id):
         self.base_url = f"https://{base_url}"
         self.integration = integration
         self.app_id = app_id
         self.private_key = private_key
-        super().__init__(verify_ssl=verify_ssl)
+        super().__init__(verify_ssl=verify_ssl, org_integration_id=org_integration_id)
 
     def build_url(self, path: str) -> str:
         if path.startswith("/"):
