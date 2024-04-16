@@ -233,7 +233,6 @@ class WidgetCard extends Component<Props, State> {
       isWidgetInvalid,
       location,
     } = this.props;
-
     if (widget.displayType === DisplayType.TOP_N) {
       const queries = widget.queries.map(query => ({
         ...query,
@@ -365,7 +364,13 @@ class WidgetCard extends Component<Props, State> {
                     chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
-                  <LazyLoad once resize height={200}>
+                  <LazyLoad
+                    once
+                    resize
+                    height={200}
+                    // TODO: This is a temporary fix for widget rendering issues, remove ASAP
+                    style={{overflowY: 'auto', height: '100%'}}
+                  >
                     <WidgetCardChartContainer
                       location={location}
                       api={api}
