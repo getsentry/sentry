@@ -235,6 +235,7 @@ function MetricWidgetViewerModal({
             placeholder={widgetMQL}
             description={widget.description}
           />
+          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
           <div onClick={handleSubmit}>
             <CloseButton />
           </div>
