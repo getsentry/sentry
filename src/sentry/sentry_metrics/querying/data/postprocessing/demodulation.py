@@ -14,9 +14,9 @@ class QueryDemodulationStep(PostProcessingStep):
 
     def run(self, query_results: list[QueryResult]) -> list[QueryResult]:
         for query_result in query_results:
-            if hasattr(query_result, "totals"):
+            if query_result.totals:
                 query_result.totals = self._demodulate_data(query_result.totals)
-            if hasattr(query_result, "series"):
+            if query_result.series:
                 query_result.series = self._demodulate_data(query_result.series)
 
             # query_result.group_bys = self._demodulate_groupbys(query_result.group_bys)

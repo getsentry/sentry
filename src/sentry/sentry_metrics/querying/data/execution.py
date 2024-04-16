@@ -445,6 +445,8 @@ class QueryResult:
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
+        if "series" not in self.result:
+            return []
         return self.result["series"]["data"]
 
     @series.setter
@@ -453,6 +455,8 @@ class QueryResult:
 
     @property
     def totals(self) -> Sequence[Mapping[str, Any]]:
+        if "totals" not in self.result:
+            return []
         return self.result["totals"]["data"]
 
     @totals.setter

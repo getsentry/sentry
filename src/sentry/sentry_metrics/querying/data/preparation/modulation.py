@@ -15,18 +15,14 @@ class QueryModulationStep(PreparationStep):
     def _get_modulated_intermediate_query(
         self, intermediate_query: IntermediateQuery
     ) -> IntermediateQuery:
-        # the ModulatorVisitor isn't doing what it should be yet: the modulators, which are enacted on the timeseries of the formula, are not added to the modulators list.
         visitor = ModulatorVisitor(self.projects, self.modulators)
         modulated_query = visitor.visit(intermediate_query.metrics_query.query)
-        modulators = visitor.applied_modulators
-        if modulators:
-            return replace(
-                intermediate_query,
-                metrics_query=intermediate_query.metrics_query.set_query(modulated_query),
-                modulators=modulators,
-            )
 
-        return intermediate_query
+        return replace(
+            intermediate_query,
+            metrics_query=intermediate_query.metrics_query.set_query(modulated_query),
+            modulators=visitor.applied_modulators,
+        )
 
     def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
         modulated_intermediate_queries = []
