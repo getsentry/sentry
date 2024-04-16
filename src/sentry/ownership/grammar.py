@@ -416,9 +416,9 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.actor import ActorTuple
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.utils.actor import ActorTuple
 
     if not owners:
         return {}
