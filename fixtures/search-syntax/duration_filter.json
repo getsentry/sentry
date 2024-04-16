@@ -9,7 +9,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueDuration", "value": 500, "unit": "s"}
+        "value": {"type": "valueDuration", "value": "500", "unit": "s"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +24,7 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": "",
-        "value": {"type": "valueDuration", "value": 500, "unit": "s"}
+        "value": {"type": "valueDuration", "value": "500", "unit": "s"}
       },
       {"type": "spaces", "value": ""}
     ]

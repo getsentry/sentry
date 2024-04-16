@@ -12,10 +12,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  type TraceSearchToken,
-  traceSearchTokenizer,
-} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
+import {traceSearchTokenizer} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import type {
   TraceReducerAction,
   TraceReducerState,

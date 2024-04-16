@@ -8,10 +8,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  evaluateTokenForTraceNode,
-  type TraceSearchToken,
-} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
+import {evaluateTokenForTraceNode} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchTokenizer';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export type TraceSearchAction =
@@ -52,6 +49,8 @@ export type TraceSearchState = {
   resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
 };
+
+interface TraceSearchToken {}
 
 function assertBoundedIndex(index: number, length: number) {
   if (index < 0 || index > length - 1) {

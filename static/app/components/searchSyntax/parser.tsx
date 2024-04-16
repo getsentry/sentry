@@ -126,12 +126,6 @@ export const interchangeableFilterOperators = {
 
 const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
 
-const numberUnits = {
-  b: 1_000_000_000,
-  m: 1_000_000,
-  k: 1_000,
-};
-
 /**
  * This constant-type configuration object declares how each filter type
  * operates. Including what types of keys, operators, and values it may
@@ -395,7 +389,6 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.SPACES as const,
     value,
-    parsedValue: value,
   });
 
   tokenFilter = <T extends FilterType>(
@@ -415,10 +408,6 @@ export class TokenConverter {
       invalid: this.checkInvalidFilter(filter, key, value),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
-
-    if (filterToken.filter === FilterType.NUMERIC) {
-      filterToken.value.rawValue = Number(filterToken.value.value);
-    }
 
     return {
       ...this.defaultTokenFields,
@@ -513,7 +502,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: Number(value),
+    value: value,
     sign,
     unit,
   });
@@ -525,7 +514,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: Number(value),
+    value: value,
     unit,
   });
 
@@ -562,20 +551,19 @@ export class TokenConverter {
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: Number(value),
+    value: value,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: ['1', 'true'].includes(value.toLowerCase()),
+    value: value,
   });
 
   tokenValueNumber = (value: string, unit: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER as const,
     value,
-    rawValue: Number(value) * (numberUnits[unit] ?? 1),
     unit,
   });
 
@@ -973,6 +961,10 @@ export type SearchConfig = {
    * A function that returns a warning message for a given filter token key
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
+   * Determines if values should be parsed
+   */
+  parseValues?: boolean;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
