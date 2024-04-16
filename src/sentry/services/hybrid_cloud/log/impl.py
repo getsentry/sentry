@@ -57,14 +57,13 @@ class DatabaseBackedLogService(LogService):
         organization_id: int | None,
         target_object_id: int | None,
         event: int | None,
-        data: dict[str, str] = None,
+        data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         last_entry_q: QuerySet[AuditLogEntry] = AuditLogEntry.objects.filter(
             organization_id=organization_id,
             target_object=target_object_id,
             event=event,
         )
-
         if data:
             last_entry_q = last_entry_q.filter(data=data)
         last_entry: AuditLogEntry | None = last_entry_q.last()
@@ -102,6 +101,6 @@ class OutboxBackedLogService(LogService):
         organization_id: int | None,
         target_object_id: int | None,
         event: int | None,
-        data: dict[str, str] | None,
+        data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         return None
