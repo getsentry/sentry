@@ -52,27 +52,30 @@ from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config
+#: These features will be listed in the project config.
+#
+# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
-    "projects:extract-transaction-from-segment-span",
-    "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-resource",
+    "organizations:continuous-profiling",
+    "organizations:custom-metrics",
+    "organizations:device-class-synthesis",
+    "organizations:metric-meta",
+    "organizations:profiling",
+    "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video",
+    "organizations:session-replay",
+    "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:profiling",
-    "organizations:session-replay",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
-    "organizations:session-replay-recording-scrubbing",
-    "organizations:device-class-synthesis",
-    "organizations:custom-metrics",
-    "organizations:metric-meta",
-    "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
-    "organizations:continuous-profiling",
+    "projects:extract-transaction-from-segment-span",
+    "projects:profiling-ingest-unsampled-profiles",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-resource",
+    "projects:span-metrics-extraction",
 ]
 
 EXTRACT_METRICS_VERSION = 1
