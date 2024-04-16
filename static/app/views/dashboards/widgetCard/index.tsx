@@ -233,6 +233,7 @@ class WidgetCard extends Component<Props, State> {
       isWidgetInvalid,
       location,
     } = this.props;
+
     if (widget.displayType === DisplayType.TOP_N) {
       const queries = widget.queries.map(query => ({
         ...query,
