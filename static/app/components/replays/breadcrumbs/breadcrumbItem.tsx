@@ -3,8 +3,8 @@ import {isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -154,14 +154,12 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
 
-  const projectBadge = project ? (
-    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
-  ) : null;
+  const projectAvatar = project ? <ProjectAvatar project={project} size={16} /> : null;
 
   if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
-        {projectBadge}
+        {projectAvatar}
         {frame.data.groupShortId}
       </CrumbIssueWrapper>
     );
@@ -169,7 +167,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
 
   return (
     <CrumbIssueWrapper>
-      {projectBadge}
+      {projectAvatar}
       <Link
         to={
           isFeedbackFrame(frame)
@@ -189,6 +187,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
 const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;
