@@ -108,18 +108,19 @@ export function Content() {
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
           </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText style={{padding: '5px'}} />
           {isLoading && (
-            <StyledPanelItem span={6}>
+            <StyledPanelItem span={7}>
               <LoadingIndicator />
             </StyledPanelItem>
           )}
           {isError && ( // TODO: need an error state
-            <StyledPanelItem span={6}>
+            <StyledPanelItem span={7}>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
           {isEmpty && (
-            <StyledPanelItem span={6}>
+            <StyledPanelItem span={7}>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
@@ -164,6 +165,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
+      <StyledPanelItem style={{padding: '5px'}} />
       {expanded && <SpanTable spans={trace.spans} trace={trace} />}
     </Fragment>
   );
@@ -177,7 +179,7 @@ function SpanTable({
   trace: TraceResult<Field>;
 }) {
   return (
-    <SpanTablePanelItem span={6}>
+    <SpanTablePanelItem span={7}>
       <StyledPanel>
         <SpanPanelContent>
           <StyledPanelHeader align="left" lightText>
@@ -193,6 +195,7 @@ function SpanTable({
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
           </StyledPanelHeader>
+
           {spans.map(span => (
             <SpanRow key={span.id} span={span} traceId={trace.trace} />
           ))}
@@ -303,13 +306,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(4, min-content);
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 120px 60px 10px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(3, min-content);
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 120px 60px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
