@@ -206,8 +206,11 @@ function TableView(props: TableViewProps) {
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+
         target = {
-          pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/?referrer=discover-events-table`,
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
           query: location.query,
         };
       }
@@ -331,8 +334,11 @@ function TableView(props: TableViewProps) {
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+
         target = {
-          pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/?referrer=discover-events-table`,
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
           query: location.query,
         };
       }

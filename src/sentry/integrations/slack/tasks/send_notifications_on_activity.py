@@ -63,7 +63,7 @@ def activity_created_receiver(instance, created, **kwargs) -> None:
     """
     If an activity is created for an issue, this will trigger, and we can kick off an async process
     """
-    log_params = {"activity_id": instance.id, "created": created}
+    log_params = {"activity_id": instance.id, "activity_object_created": created}
     _default_logger.info("receiver for activity event", extra=log_params)
     if not created:
         _default_logger.info("instance is not created, skipping post processing", extra=log_params)

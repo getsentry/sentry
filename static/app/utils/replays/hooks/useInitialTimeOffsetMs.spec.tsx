@@ -1,7 +1,7 @@
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -43,7 +43,7 @@ describe('useInitialTimeOffsetMs', () => {
       const offsetInSeconds = 23;
       mockQuery({t: String(offsetInSeconds)});
 
-      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -63,7 +63,7 @@ describe('useInitialTimeOffsetMs', () => {
         query: 'click.tag:button',
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -87,7 +87,7 @@ describe('useInitialTimeOffsetMs', () => {
       async ({input}) => {
         mockQuery({event_t: input});
 
-        const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+        const {result} = renderHook(useInitialTimeOffsetMs, {
           initialProps: {
             orgSlug: organization.slug,
             projectSlug: project.slug,
@@ -106,7 +106,7 @@ describe('useInitialTimeOffsetMs', () => {
     it('should return 0 offset if there is no replayStartTimetsamp, then recalculate when the startTimestamp appears', async () => {
       mockQuery({event_t: FIVE_PAST_FORMATTED});
 
-      const {result, rerender, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, rerender} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -141,7 +141,7 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [],
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -161,7 +161,7 @@ describe('useInitialTimeOffsetMs', () => {
     it('should skip this strategy if there is no `click.*` term in the query', async () => {
       mockQuery({query: 'user.email:*@sentry.io'});
 
-      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -182,7 +182,7 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -213,7 +213,7 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
-      const {result, rerender, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, rerender} = renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,

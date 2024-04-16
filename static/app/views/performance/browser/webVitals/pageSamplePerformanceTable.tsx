@@ -155,7 +155,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
-      const key = col.key === 'inpScore' ? 'measurements.score.total' : col.key;
+      const key = ['totalScore', 'inpScore'].includes(col.key)
+        ? 'measurements.score.total'
+        : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {

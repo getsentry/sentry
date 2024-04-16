@@ -138,10 +138,9 @@ class Table extends PureComponent<TableProps, TableState> {
       apiPayload.field.push('timestamp');
     }
 
-    // We need to include the issue and event.type fields because we want to
+    // We need to include the event.type field because we want to
     // route to issue details for error and default event types.
     if (!eventView.hasAggregateField()) {
-      apiPayload.field.push('issue');
       apiPayload.field.push('event.type');
     }
 

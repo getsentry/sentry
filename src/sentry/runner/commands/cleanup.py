@@ -42,6 +42,12 @@ _WorkQueue: TypeAlias = (
 API_TOKEN_TTL_IN_DAYS = 30
 
 
+def debug_output(msg: str) -> None:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+        return
+    click.echo(msg)
+
+
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
@@ -70,12 +76,15 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     while True:
         j = task_queue.get()
         if j == _STOP_WORKER:
+            debug_output("Received STOP_WORKER task")
             task_queue.task_done()
+
             return
 
-        model, chunk = j
-        model = import_string(model)
+        model_name, chunk = j
+        debug_output(f"Starting deletion work for {model_name}:{chunk}")
 
+        model = import_string(model_name)
         try:
             task = deletions.get(
                 model=model,
@@ -85,11 +94,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             )
 
             while True:
+                debug_output(f"Running chunk for {model_name}")
                 if not task.chunk():
                     break
         except Exception as e:
             logger.exception(e)
         finally:
+            debug_output(f"Completed deletion work for {model_name}:{chunk}")
             task_queue.task_done()
 
 
@@ -138,11 +149,8 @@ def cleanup(
         raise click.Abort()
 
     os.environ["_SENTRY_CLEANUP"] = "1"
-
-    def debug_output(msg: str) -> None:
-        if silent:
-            return
-        click.echo(msg)
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
@@ -344,7 +352,7 @@ def cleanup(
                 else:
                     to_delete_by_project.append(model_tp_tup)
 
-        if project_deletion_query and to_delete_by_project:
+        if project_deletion_query is not None and len(to_delete_by_project):
             debug_output("Running bulk deletes in DELETES_BY_PROJECT")
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
@@ -368,6 +376,7 @@ def cleanup(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
 
+        debug_output("Waiting for task_queue to drain")
         task_queue.join()
 
         # Clean up FileBlob instances which are no longer used and aren't super

@@ -323,7 +323,10 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
-          <TraceDrawerComponents.EventDetailsLink node={node} />
+          <TraceDrawerComponents.EventDetailsLink
+            node={node}
+            organization={organization}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
