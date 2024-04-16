@@ -2,7 +2,7 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import {space, ValidSize} from 'sentry/styles/space';
+import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor, AvatarProject, AvatarUser, Organization, Team} from 'sentry/types';
 
 export interface BaseBadgeProps {

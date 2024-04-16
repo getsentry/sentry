@@ -6,10 +6,10 @@ import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 
-import Matrix, {PropMatrix} from '../stories/matrix';
+import Matrix, {type PropMatrix} from '../stories/matrix';
 import SideBySide from '../stories/sideBySide';
 
-import {OrganizationBadgeProps} from './organizationBadge';
+import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
 export default storyBook(IdBadge, story => {
