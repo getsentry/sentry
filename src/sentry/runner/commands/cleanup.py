@@ -352,7 +352,7 @@ def cleanup(
                 else:
                     to_delete_by_project.append(model_tp_tup)
 
-        if project_deletion_query and to_delete_by_project:
+        if project_deletion_query is not None and len(to_delete_by_project):
             debug_output("Running bulk deletes in DELETES_BY_PROJECT")
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
