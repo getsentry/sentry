@@ -42,6 +42,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
     def _check_proxying(self) -> None:
         assert len(responses.calls) == 1
         request = responses.calls[0].request
+        assert self.install.org_integration is not None
         assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
         assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
         assert PROXY_SIGNATURE_HEADER in request.headers
