@@ -93,7 +93,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             project=project,
             organization=project.organization,
             defaults={
-                "threshold": data["threshold"],
+                "threshold": data.get("threshold", 300),
                 "metric": data.get("metric", TransactionMetric.DURATION.value),
                 "edited_by_id": request.user.id,
             },
