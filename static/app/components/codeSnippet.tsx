@@ -16,12 +16,21 @@ interface CodeSnippetProps {
   ['data-render-inline']?: boolean;
   /**
    * Makes the text of the element and its sub-elements not selectable.
-   * Userful when loading parts of a code snippet, and
+   * Useful when loading parts of a code snippet, and
    * we wish to avoid users copying them manually.
    */
   disableUserSelection?: boolean;
+  /**
+   * Name of the file to be displayed at the top of the code snippet.
+   */
   filename?: string;
+  /**
+   * Hides the copy button in the top right.
+   */
   hideCopyButton?: boolean;
+  /**
+   * Adds an icon to the top right, next to the copy button.
+   */
   icon?: React.ReactNode;
   /**
    * Controls whether the snippet wrapper has rounded corners.
@@ -33,11 +42,17 @@ interface CodeSnippetProps {
    * @param element The root element of the code snippet
    */
   onAfterHighlight?: (element: HTMLElement) => void;
+  /**
+   * Fires with the user presses the copy button.
+   */
   onCopy?: (copiedCode: string) => void;
   /**
-   * Fired when the user selects and copies code snippet manually
+   * Fires when the user selects and copies code snippet manually
    */
   onSelectAndCopy?: () => void;
+  /**
+   * Fires when the user switches tabs.
+   */
   onTabClick?: (tab: string) => void;
   selectedTab?: string;
   tabs?: {
