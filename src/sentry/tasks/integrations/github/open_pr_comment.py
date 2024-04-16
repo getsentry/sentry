@@ -15,9 +15,12 @@ from snuba_sdk import (
     Direction,
     Entity,
     Function,
+    Join,
+    Limit,
     Op,
     OrderBy,
     Query,
+    Relationship,
 )
 from snuba_sdk import Request as SnubaRequest
 
@@ -285,18 +288,102 @@ def get_top_5_issues_by_count_for_file(
     if not language_parser:
         return []
 
-    group_ids = list(
-        Group.objects.filter(
-            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
-            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
-            status=GroupStatus.UNRESOLVED,
-            project__in=projects,
-        )
-        .order_by("-times_seen")
-        .values_list("id", flat=True)
-    )[:MAX_RECENT_ISSUES]
+    now = datetime.now(UTC)
+    latest_first_seen_date = now - timedelta(days=90)
+    latest_last_seen_date = now - timedelta(days=14)
+
     project_ids = [p.id for p in projects]
 
+    print(
+        list(
+            Group.objects.filter(
+                first_seen__gte=latest_first_seen_date,
+                last_seen__gte=latest_last_seen_date,
+                status=GroupStatus.UNRESOLVED,
+                project__in=projects,
+            )
+            .order_by("-times_seen")
+            .values_list("id", flat=True)
+        )[:MAX_RECENT_ISSUES]
+    )
+    print(project_ids)
+
+    # if features.has("", organization):
+    events_entity = Entity("events", alias="events")
+    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+    group_ids_query = Query(
+        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+        select=[
+            Column("group_id", entity=events_entity),
+            Function("count", [], "event_count"),
+            Function("max", [Column("timestamp", entity=events_entity)], "last_seen"),
+        ],
+        where=[
+            Condition(
+                Column(
+                    "project_id",
+                    entity=events_entity,
+                ),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(
+                Column(
+                    "project_id",
+                    entity=group_attributes_entity,
+                ),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(Column("timestamp", entity=events_entity), Op.GTE, latest_first_seen_date),
+            Condition(Column("timestamp", entity=events_entity), Op.LT, now),
+            Condition(
+                Column("group_status", entity=group_attributes_entity),
+                Op.EQ,
+                GroupStatus.UNRESOLVED,
+            ),
+        ],
+        groupby=[Column("group_id", entity=events_entity)],
+    )
+    print(group_ids_query)
+    print(
+        raw_snql_query(
+            SnubaRequest(
+                dataset=Dataset.Events.value,
+                app_id="default",
+                query=group_ids_query,
+                tenant_ids={"organization_id": organization.id},
+            ),
+            referrer=Referrer.GITHUB_PR_COMMENT_BOT.value,
+        )["data"]
+    )
+    query = (
+        Query(group_ids_query)
+        .set_select([Column("group_id", entity=events_entity)])
+        .set_where(
+            [Condition(Column("last_seen", entity=events_entity), Op.GTE, latest_last_seen_date)]
+        )
+        .set_orderby([OrderBy(Column("event_count", entity=events_entity), Direction.DESC)])
+        .set_limit(MAX_RECENT_ISSUES)
+    )
+    print(query)
+    group_ids_request = SnubaRequest(dataset=Dataset.Events.value, app_id="default", query=query)
+    group_ids_result = raw_snql_query(
+        group_ids_request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value
+    )["data"]
+    group_ids = [group["group_id"] for group in group_ids_result]
+
+    # else:
+    # group_ids = list(
+    #     Group.objects.filter(
+    #         first_seen__gte=latest_first_seen_date,
+    #         last_seen__gte=latest_last_seen_date,
+    #         status=GroupStatus.UNRESOLVED,
+    #         project__in=projects,
+    #     )
+    #     .order_by("-times_seen")
+    #     .values_list("id", flat=True)
+    # )[:MAX_RECENT_ISSUES]
     multi_if = language_parser.generate_multi_if(function_names)
 
     # fetch the count of events for each group_id
@@ -327,8 +414,8 @@ def get_top_5_issues_by_count_for_file(
             [
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("group_id"), Op.IN, group_ids),
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=14)),
+                Condition(Column("timestamp"), Op.LT, datetime.now(UTC)),
                 # NOTE: ideally this would follow suspect commit logic
                 BooleanCondition(
                     BooleanOp.OR,

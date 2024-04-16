@@ -563,49 +563,50 @@ class TestGetCommentIssues(CreateEventTestCase):
         assert function_names == ["world", "planet"]
 
     def test_fetches_top_five_issues(self):
-        group_id_1 = [
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_id_1 = [
+                self._create_event(
+                    filenames=["bar.py", "baz.py"],
+                    function_names=["blue", "planet"],
+                    user_id=str(i),
+                    handled=False,
+                )
+                for i in range(5)
+            ][0].group.id
+            [
+                self._create_event(
+                    filenames=["hello.py", "baz.py"],
+                    function_names=["green", "planet"],
+                    user_id=str(i),
+                    handled=True,
+                )
+                for i in range(4)
+            ]
+            group_id_3 = [
+                self._create_event(
+                    filenames=["base.py", "baz.py"],
+                    function_names=["wonderful", "world"],
+                    user_id=str(i),
+                    handled=False,
+                    culprit="hi",
+                )
+                for i in range(3)
+            ][0].group.id
+            [
+                self._create_event(
+                    filenames=["nom.py", "baz.py"],
+                    function_names=["jurassic", "world"],
+                    user_id=str(i),
+                    handled=True,
+                )
+                for i in range(2)
+            ]
+            # 6th issue
             self._create_event(
-                filenames=["bar.py", "baz.py"],
-                function_names=["blue", "planet"],
-                user_id=str(i),
-                handled=False,
+                filenames=["nan.py", "baz.py"], function_names=["my_own", "world"], handled=True
             )
-            for i in range(5)
-        ][0].group.id
-        [
-            self._create_event(
-                filenames=["hello.py", "baz.py"],
-                function_names=["green", "planet"],
-                user_id=str(i),
-                handled=True,
-            )
-            for i in range(4)
-        ]
-        group_id_3 = [
-            self._create_event(
-                filenames=["base.py", "baz.py"],
-                function_names=["wonderful", "world"],
-                user_id=str(i),
-                handled=False,
-                culprit="hi",
-            )
-            for i in range(3)
-        ][0].group.id
-        [
-            self._create_event(
-                filenames=["nom.py", "baz.py"],
-                function_names=["jurassic", "world"],
-                user_id=str(i),
-                handled=True,
-            )
-            for i in range(2)
-        ]
-        # 6th issue
-        self._create_event(
-            filenames=["nan.py", "baz.py"], function_names=["my_own", "world"], handled=True
-        )
-        # unrelated issue with same stack trace in different project
-        self._create_event(project_id=self.another_org_project.id)
+            # unrelated issue with same stack trace in different project
+            self._create_event(project_id=self.another_org_project.id)
 
         top_5_issues = get_top_5_issues_by_count_for_file(
             [self.project], ["baz.py"], ["world", "planet"]
