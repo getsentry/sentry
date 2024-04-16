@@ -2373,7 +2373,7 @@ register(
 )
 
 # list of project IDs we want to deny ingesting profiles
-# function metrics to the generic metrics platform
+# function metrics into the generic metrics platform
 register(
     "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
     type=Sequence,
