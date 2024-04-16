@@ -54,9 +54,7 @@ import type {Series} from 'sentry/views/metrics/chart/types';
 import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
 import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
-import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -192,16 +190,9 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols &&
-              queryId !== undefined &&
-              (queries[0] && isMetricFormula(queries[0]) ? (
-                <EquationSymbol
-                  equationId={queryId}
-                  isSelected={isSelected && hasSiblings}
-                />
-              ) : (
-                <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
-              ))}
+            {showQuerySymbols && queryId !== undefined && queries[0] && (
+              <span>{queries[0].name}:</span>
+            )}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
@@ -637,7 +628,7 @@ const MetricWidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   padding-left: ${space(2)};
   padding-top: ${space(1.5)};
   padding-right: ${space(2)};

@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {FormulaInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
@@ -296,31 +296,30 @@ interface QueryToggleProps {
   type: MetricExpressionType;
 }
 
-function QueryToggle({
-  isHidden,
-  queryId,
-  disabled,
-  onChange,
-  isSelected,
-  type,
-}: QueryToggleProps) {
-  let tooltipTitle = isHidden ? t('Show query') : t('Hide query');
-  if (disabled) {
-    tooltipTitle = t('At least one query must be visible');
-  }
+function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleProps) {
+  const tooltipTitle =
+    type === MetricExpressionType.QUERY
+      ? isHidden
+        ? t('Show metric')
+        : t('Hide metric')
+      : isHidden
+        ? t('Show equation')
+        : t('Hide equation');
 
   return (
-    <Tooltip title={tooltipTitle} delay={500}>
+    <Tooltip
+      title={!disabled ? tooltipTitle : t('At least one query must be visible')}
+      delay={500}
+    >
       {type === MetricExpressionType.QUERY ? (
         <StyledQuerySymbol
           isHidden={isHidden}
           queryId={queryId}
           isClickable={!disabled}
           aria-disabled={disabled}
-          isSelected={isSelected}
           onClick={disabled ? undefined : () => onChange(!isHidden)}
           role="button"
-          aria-label={isHidden ? t('Show query') : t('Hide query')}
+          aria-label={tooltipTitle}
         />
       ) : (
         <StyledEquationSymbol
@@ -328,10 +327,9 @@ function QueryToggle({
           equationId={queryId}
           isClickable={!disabled}
           aria-disabled={disabled}
-          isSelected={isSelected}
           onClick={disabled ? undefined : () => onChange(!isHidden)}
           role="button"
-          aria-label={isHidden ? t('Show query') : t('Hide query')}
+          aria-label={tooltipTitle}
         />
       )}
     </Tooltip>
@@ -347,13 +345,11 @@ const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
-  margin-top: 10px;
   cursor: not-allowed;
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 
 const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
-  margin-top: 10px;
   cursor: not-allowed;
   ${p => p.isClickable && `cursor: pointer;`}
 `;
