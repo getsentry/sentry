@@ -387,8 +387,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
     def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["project_id"] = 1
-        message["event"]["project_id"] = 2
+        message["project_id"] = self.project.id
+        message["event"]["project_id"] = 999999999999
         with pytest.raises(InvalidEventPayloadError):
             _get_kwargs(message)
 

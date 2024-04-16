@@ -144,15 +144,15 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
             assignee_identifier = None
-            project = Project.objects.get_from_cache(id=payload["project_id"])
-            try:
-                assignee = parse_and_validate_actor(
-                    payload.get("assignee"), project.organization_id
-                )
-                if assignee:
-                    assignee_identifier = assignee.identifier
-            except Exception:
-                logger.exception("Failed to validate assignee for occurrence")
+            payload_assignee = payload.get("assignee")
+            if payload_assignee:
+                project = Project.objects.get_from_cache(id=payload["project_id"])
+                try:
+                    assignee = parse_and_validate_actor(payload_assignee, project.organization_id)
+                    if assignee:
+                        assignee_identifier = assignee.identifier
+                except Exception:
+                    logger.exception("Failed to validate assignee for occurrence")
 
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
