@@ -5,7 +5,7 @@ from collections.abc import Collection
 from datetime import timedelta
 from typing import Any, ClassVar
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
@@ -90,18 +90,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )
 
-        try:
-            with transaction.atomic(router.db_for_write(ApiGrant)):
-                # remove the ApiGrant from the database to prevent reuse of the same
-                # authorization code
-                grant.delete()
-        except IntegrityError as e:
-            # If we cannot delete the ApiGrant, then we should also
-            # delete the token that was created
-            api_token.delete()
-            raise IntegrityError("unable to delete ApiGrant") from e
+            # remove the ApiGrant from the database to prevent reuse of the same
+            # authorization code
+            grant.delete()
 
-        return api_token
+            return api_token
 
     def is_expired(self):
         if not self.expires_at:
