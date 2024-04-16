@@ -189,7 +189,7 @@ function QueryContextMenu({
     const removeQueryItem = {
       leadingItems: [<IconClose key="icon" />],
       key: 'delete',
-      label: t('Remove Query'),
+      label: t('Remove Metric'),
       disabled: !canRemoveQuery,
       onAction: () => {
         removeQuery(queryIndex);
