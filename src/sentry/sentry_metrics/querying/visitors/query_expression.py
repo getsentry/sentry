@@ -21,7 +21,6 @@ from sentry.sentry_metrics.querying.units import (
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
-    TVisited,
 )
 from sentry.sentry_metrics.querying.visitors.query_condition import ModulatorConditionVisitor
 from sentry.snuba.metrics import parse_mri
@@ -465,9 +464,9 @@ class ModulatorVisitor(QueryExpressionVisitor):
     def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
         self.projects = projects
         self.modulators = modulators
-        self.applied_modulators = []
+        self.applied_modulators: list[Modulator] = []
 
-    def _visit_formula(self, formula: Formula) -> TVisited:
+    def _visit_formula(self, formula: Formula) -> Formula:
         formula = super()._visit_formula(formula)
 
         filters = ModulatorConditionVisitor(self.projects, self.modulators).visit_group(
@@ -481,7 +480,7 @@ class ModulatorVisitor(QueryExpressionVisitor):
 
         return formula
 
-    def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
+    def _visit_timeseries(self, timeseries: Timeseries) -> Timeseries:
         filters = ModulatorConditionVisitor(self.projects, self.modulators).visit_group(
             timeseries.filters
         )
@@ -493,7 +492,9 @@ class ModulatorVisitor(QueryExpressionVisitor):
 
         return timeseries
 
-    def _modulate_groupby(self, groupby: list[Column | AliasedExpression] | None = None):
+    def _modulate_groupby(
+        self, groupby: list[Column | AliasedExpression] | None = None
+    ) -> list[Column | AliasedExpression]:
         new_group_bys = []
         for group in groupby:
             new_group = group

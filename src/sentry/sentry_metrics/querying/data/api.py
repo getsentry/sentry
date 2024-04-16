@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from datetime import datetime
-from typing import cast
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
@@ -8,13 +7,17 @@ from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
-from sentry.sentry_metrics.querying.data.modulation.modulator import Project2ProjectIDModulator
+from sentry.sentry_metrics.querying.data.execution import QueryExecutor
+from sentry.sentry_metrics.querying.data.modulation.modulator import (
+    Modulator,
+    Project2ProjectIDModulator,
+)
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.demodulation import QueryDemodulationStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
+    PreparationStep,
     run_preparation_steps,
 )
 from sentry.sentry_metrics.querying.data.preparation.modulation import QueryModulationStep
@@ -66,8 +69,8 @@ def run_queries(
             )
         )
 
-    preparation_steps = []
-    modulators = [Project2ProjectIDModulator()]
+    preparation_steps: list[PreparationStep] = []
+    modulators: list[Modulator] = [Project2ProjectIDModulator()]
 
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
@@ -88,4 +91,4 @@ def run_queries(
     results = run_postprocessing_steps(results, QueryDemodulationStep(projects, modulators))
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
-    return MQLQueriesResult(cast(list[QueryResult], results))
+    return MQLQueriesResult(results)

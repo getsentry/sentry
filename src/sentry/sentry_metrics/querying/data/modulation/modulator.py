@@ -18,11 +18,11 @@ class Modulator(abc.ABC):
         return hash((self.from_key, self.to_key))
 
     @abc.abstractmethod
-    def modulate(self, formula: Formula, **kwargs) -> Formula:
+    def modulate(self, projects: Sequence[Project], formula: Formula, **kwargs) -> Formula:
         return formula
 
     @abc.abstractmethod
-    def demodulate(self, formula: Formula, **kwargs) -> Formula:
+    def demodulate(self, projects: Sequence[Project], formula: Formula, **kwargs) -> Formula:
         return formula
 
 
@@ -50,8 +50,8 @@ class Project2ProjectIDModulator(Modulator):
 
 
 def find_modulator(
-    modulators: Sequence[Modulator], from_key: str = None, to_key: str = None
-) -> Modulator:
+    modulators: Sequence[Modulator], from_key: str | None = None, to_key: str | None = None
+) -> Modulator | None:
     for modulator in modulators:
         if from_key:
             if modulator.from_key == from_key:
@@ -59,3 +59,5 @@ def find_modulator(
         if to_key:
             if modulator.to_key == to_key:
                 return modulator
+
+    return None
