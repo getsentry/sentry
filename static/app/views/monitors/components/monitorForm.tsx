@@ -215,6 +215,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -225,6 +227,7 @@ function MonitorForm({
   ];
 
   const hasIssuePlatform = organization.features.includes('issue-platform');
+  const hasOwnership = organization.features.includes('crons-ownership');
 
   return (
     <Form
@@ -238,6 +241,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -445,6 +449,28 @@ function MonitorForm({
                       'Resolve the issue when this many consecutive healthy check-ins are processed.'
                     )}
                     label={t('Recovery Tolerance')}
+                  />
+                </PanelBody>
+              </Panel>
+            </InputGroup>
+          </Fragment>
+        )}
+        {hasOwnership && (
+          <Fragment>
+            <StyledListItem>{t('Set Owner')}</StyledListItem>
+            <ListItemSubText>
+              {t(
+                'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+              )}
+            </ListItemSubText>
+            <InputGroup>
+              <Panel>
+                <PanelBody>
+                  <SentryMemberTeamSelectorField
+                    name="owner"
+                    label={t('Owner')}
+                    help={t('Automatically assign issues to a team or user.')}
+                    menuPlacement="auto"
                   />
                 </PanelBody>
               </Panel>

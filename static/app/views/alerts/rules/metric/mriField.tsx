@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {Tag} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';

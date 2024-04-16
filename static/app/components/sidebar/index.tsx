@@ -329,7 +329,6 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
-                  isNew
                 />
               </Feature>
               <Feature features="spans-first-ui">

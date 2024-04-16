@@ -790,6 +790,16 @@ const TraceInnerLayout = styled('div')`
   flex: 1 1 100%;
   padding: 0 ${space(2)} 0 ${space(2)};
   background-color: ${p => p.theme.background};
+
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
 `;
 
 const TraceToolbar = styled('div')`

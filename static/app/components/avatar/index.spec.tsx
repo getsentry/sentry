@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -172,6 +173,15 @@ describe('Avatar', function () {
         'src',
         'https://us.sentry.io/organization-avatar/abc123def/?s=120'
       );
+    });
+
+    it('can display a actor Avatar', function () {
+      const actor = ActorFixture();
+
+      render(<AvatarComponent actor={actor} />);
+
+      expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
+      expect(screen.getByText('FB')).toBeInTheDocument();
     });
 
     it('displays platform list icons for project Avatar', function () {
