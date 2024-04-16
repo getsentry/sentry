@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple, get_actor_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -30,6 +30,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.actor import ActorTuple
 
 
 class ProjectTest(APITestCase, TestCase):

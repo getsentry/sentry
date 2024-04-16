@@ -14,12 +14,12 @@ from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
-from sentry.models.actor import ActorTuple
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.utils.actor import ActorTuple
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:

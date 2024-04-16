@@ -4,10 +4,10 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models.actor import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.utils.actor import ActorTuple
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
