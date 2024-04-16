@@ -25,7 +25,7 @@ export function isSpanNode(
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
-  return !!(node.value && 'transaction' in node.value);
+  return !!(node.value && 'transaction' in node.value) && !isAutogroupedNode(node);
 }
 
 export function isParentAutogroupedNode(

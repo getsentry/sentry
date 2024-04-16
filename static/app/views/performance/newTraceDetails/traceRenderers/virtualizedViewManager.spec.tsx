@@ -299,7 +299,7 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
-  describe('scrollToPath', () => {
+  describe('expandToPath', () => {
     const organization = OrganizationFixture();
     const api = new MockApiClient();
 
@@ -691,6 +691,54 @@ describe('VirtualizedViewManger', () => {
       });
 
       expect(result?.node).toBe(tree.list[2]);
+    });
+
+    describe('error handling', () => {
+      it('scrolls to child span of sibling autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeSiblingAutogroupedSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
+
+      it('scrolls to child span of parent autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeParentAutogroupSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
     });
   });
 });
