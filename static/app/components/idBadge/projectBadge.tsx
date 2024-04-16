@@ -21,6 +21,10 @@ export interface ProjectBadgeProps
   disableLink?: boolean;
   displayPlatformName?: boolean;
   /**
+   * Hide project name and only display badge.
+   */
+  hideName?: boolean;
+  /**
    * If true, will use default max-width, or specify one as a string
    */
   hideOverflow?: boolean | string;
@@ -34,6 +38,7 @@ function ProjectBadge({
   project,
   to,
   hideOverflow = true,
+  hideName = false,
   disableLink = false,
   displayPlatformName = false,
   className,
@@ -44,6 +49,7 @@ function ProjectBadge({
 
   const badge = (
     <BaseBadge
+      hideName={hideName}
       displayName={
         <BadgeDisplayName hideOverflow={hideOverflow}>
           {displayPlatformName && project.platform

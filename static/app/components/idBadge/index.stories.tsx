@@ -1,10 +1,10 @@
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import storyBook from 'sentry/stories/storyBook';
 import type {Member} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useUser} from 'sentry/utils/useUser';
 
 import IdBadge from '.';
 
@@ -16,6 +16,11 @@ export default storyBook(IdBadge, story => {
 
   story('Team', () => {
     const {teams} = useTeams();
+
+    if (teams.length === 0) {
+      return <LoadingIndicator />;
+    }
+
     return <IdBadge team={teams[0]} />;
   });
 
@@ -23,16 +28,20 @@ export default storyBook(IdBadge, story => {
     const {projects} = useProjects();
     const myProject = projects.filter(p => p.isMember);
 
+    if (myProject.length === 0) {
+      return <LoadingIndicator />;
+    }
+
     return <IdBadge project={myProject[0]} />;
   });
 
   story('User', () => {
-    const {user} = useLegacyStore(ConfigStore);
+    const user = useUser();
     return <IdBadge user={user} />;
   });
 
   story('Member', () => {
-    const {user} = useLegacyStore(ConfigStore);
+    const user = useUser();
 
     // XXX(epurkhiser): There's no easy way to get a member, so just use a
     // "mock" member
