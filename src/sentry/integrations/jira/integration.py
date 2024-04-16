@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
@@ -124,6 +125,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     @classproperty
     def use_email_scope(cls):
@@ -184,6 +186,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": _("Sync Jira Assignment to Sentry"),
                 "help": _(
                     "When a ticket is assigned in Jira, assign its linked Sentry issue to the same user."
+                ),
+            },
+            {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
                 ),
             },
             {
@@ -401,7 +417,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return JiraCloudClient(
             integration=self.model,
-            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars

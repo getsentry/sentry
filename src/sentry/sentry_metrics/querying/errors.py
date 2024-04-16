@@ -12,7 +12,3 @@ class LatestReleaseNotFoundError(Exception):
 
 class CorrelationsQueryExecutionError(Exception):
     pass
-
-
-class TooManyCodeLocationsRequestedError(Exception):
-    pass

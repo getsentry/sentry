@@ -18,7 +18,7 @@ export const PERFORMANCE_SCORE_MEDIANS = {
   cls: 0.25,
   fid: 300,
   ttfb: 400,
-  inp: 200,
+  inp: 500,
 };
 
 export const PERFORMANCE_SCORE_P90S = {
@@ -27,7 +27,7 @@ export const PERFORMANCE_SCORE_P90S = {
   cls: 0.1,
   fid: 100,
   ttfb: 200,
-  inp: 500,
+  inp: 200,
 };
 
 export type Vitals = {

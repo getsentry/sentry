@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping, MutableMapping, Protocol, Sequence, cast
+from typing import Any, Protocol, cast
 
 from sentry.utils.safe import PathSearchable, get_path
 

@@ -3,7 +3,10 @@ from __future__ import annotations
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
 import abc
-from typing import TYPE_CHECKING, Mapping, MutableSet, Sequence
+from collections.abc import Mapping, MutableSet, Sequence
+from typing import TYPE_CHECKING
+
+from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.features.base import Feature
@@ -23,7 +26,9 @@ class FeatureHandler:
         return self.has(feature, actor)
 
     @abc.abstractmethod
-    def has(self, feature: Feature, actor: User, skip_entity: bool | None = False) -> bool | None:
+    def has(
+        self, feature: Feature, actor: User | RpcUser, skip_entity: bool | None = False
+    ) -> bool | None:
         raise NotImplementedError
 
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:

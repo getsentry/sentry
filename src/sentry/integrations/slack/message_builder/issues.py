@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from django.utils import timezone
 from django.utils.timesince import timesince
 from django.utils.translation import gettext as _
 from sentry_relay.processing import parse_release
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
@@ -21,7 +22,6 @@ from sentry.integrations.message_builder import (
     format_actor_option,
     format_actor_options,
     get_color,
-    get_timestamp,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
@@ -32,9 +32,12 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import ActorTuple
+from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -56,6 +59,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -67,6 +71,47 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "bitbucket",
     "integrations:bitbucket",
 )
+
+MAX_BLOCK_TEXT_LENGTH = 256
+USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+
+
+def get_approx_start_time(group: Group):
+    event = group.get_recommended_event_for_environments()
+
+    if event is None:
+        return None
+
+    occurrence = event.occurrence
+
+    if occurrence is None:
+        return None
+
+    regression_time = occurrence.evidence_data.get("breakpoint", None)
+
+    if regression_time is None:
+        return None
+
+    # format moment into YYYY-mm-dd h:m:s
+    time = datetime.fromtimestamp(regression_time)
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# NOTE: if this starts getting large and functions get complicated,
+# pull things out into their own functions
+SUPPORTED_CONTEXT_DATA = {
+    "Events": lambda group: get_group_global_count(group),
+    "Users Affected": lambda group: group.count_users_seen(),
+    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+    "First Seen": lambda group: time_since(group.first_seen),
+    "Approx. Start Time": get_approx_start_time,
+}
+
+
+REGRESSION_PERFORMANCE_ISSUE_TYPES = [
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+]
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +208,7 @@ def format_release_tag(value: str, event: GroupEvent | Group):
 
 
 def get_tags(
+    group: Group,
     event_for_tags: Any,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
@@ -176,7 +222,6 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release", "handled", "environment"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -195,36 +240,47 @@ def get_tags(
     return fields
 
 
-def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
+def get_context(group: Group) -> str:
+    context_text = ""
 
-    option_groups = []
-    if teams:
-        option_groups.append({"text": "Teams", "options": format_actor_options(teams)})
+    context = group.issue_type.notification_config.context
+    context_dict = {}
 
-    if members:
-        option_groups.append({"text": "People", "options": format_actor_options(members)})
+    for c in context:
+        if c in SUPPORTED_CONTEXT_DATA:
+            context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
 
-    return option_groups
+    # for errors, non-regression performance, and rage click issues
+    # always show state and first seen
+    # only show event count and user count if event count > 1 or state != new
+
+    event_count = context_dict.get("Events")
+    state = context_dict.get("State")
+    if (event_count and int(event_count) <= 1) or (state and state == "New"):
+        # filter out event count and users count
+        context_dict.pop("Events", None)
+        context_dict.pop("Users Affected", None)
+
+    for k, v in context_dict.items():
+        if v:
+            context_text += f"{k}: *{v}*   "
+    return context_text.rstrip()
 
 
 def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
-    use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
 
     option_groups = []
     if teams:
-        team_options = format_actor_options(teams, use_block_kit)
+        team_options = format_actor_options(teams, True)
         option_groups.append(
             {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
         )
 
     if members:
-        member_options = format_actor_options(members, use_block_kit)
+        member_options = format_actor_options(members, True)
         option_groups.append(
             {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
         )
@@ -260,16 +316,13 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    if features.has("organizations:streamline-targeting-context", project.organization):
-        try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
-            suggested_assignees.extend(suspect_commit_users)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            logger.info("Skipping suspect committers because release does not exist.")
-        except Exception:
-            logger.exception("Could not get suspect committers. Continuing execution.")
+    try:
+        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suggested_assignees.extend(suspect_commit_users)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -358,89 +411,51 @@ def build_actions(
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
-    use_block_kit = features.has("organizations:slack-block-kit", project.organization)
-
     if actions and identity:
         text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     status = group.get_status()
 
-    def _ignore_button(use_block_kit) -> MessageAction | None:
+    def _ignore_button() -> MessageAction | None:
         if group.issue_category == GroupCategory.FEEDBACK:
             return None
-        if use_block_kit:
-            if status == GroupStatus.IGNORED:
-                return MessageAction(
-                    name="status", label="Mark as Ongoing", value="unresolved:ongoing"
-                )
-            return MessageAction(name="status", label="Archive", value="archive_dialog")
-
         if status == GroupStatus.IGNORED:
+            return MessageAction(name="status", label="Mark as Ongoing", value="unresolved:ongoing")
+
+        return MessageAction(name="status", label="Archive", value="archive_dialog")
+
+    def _resolve_button() -> MessageAction:
+        if status == GroupStatus.RESOLVED:
             return MessageAction(
-                name="status",
-                label="Mark as Ongoing",
-                value="unresolved:ongoing",
+                name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
             )
+        if not project.flags.has_releases:
+            return MessageAction(name="status", label="Resolve", value="resolved")
 
         return MessageAction(
             name="status",
-            label="Archive",
-            value="ignored:until_escalating",
-        )
-
-    def _resolve_button(use_block_kit) -> MessageAction:
-        if use_block_kit:
-            if status == GroupStatus.RESOLVED:
-                return MessageAction(
-                    name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
-                )
-            if not project.flags.has_releases:
-                return MessageAction(name="status", label="Resolve", value="resolved")
-            return MessageAction(
-                name="status",
-                label="Resolve",
-                value="resolve_dialog",
-            )
-
-        if status == GroupStatus.RESOLVED:
-            return MessageAction(
-                name="status",
-                label="Unresolve",
-                value="unresolved:ongoing",
-            )
-
-        if not project.flags.has_releases:
-            return MessageAction(
-                name="status",
-                label="Resolve",
-                value="resolved",
-            )
-        return MessageAction(
-            name="resolve_dialog",
-            label="Resolve...",
+            label="Resolve",
             value="resolve_dialog",
         )
 
-    def _assign_button(use_block_kit) -> MessageAction:
+    def _assign_button() -> MessageAction:
         assignee = group.get_assignee()
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group)
-            if not use_block_kit
-            else get_option_groups_block_kit(group),
+            selected_options=format_actor_options([assignee], True) if assignee else [],
+            option_groups=get_option_groups_block_kit(group),
         )
         return assign_button
 
     action_list = [
         a
         for a in [
-            _resolve_button(use_block_kit),
-            _ignore_button(use_block_kit),
-            _assign_button(use_block_kit),
+            _resolve_button(),
+            _ignore_button(),
+            _assign_button(),
         ]
         if a is not None
     ]
@@ -494,21 +509,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-        if self.escape_text:
-            text = escape_slack_text(text)
-            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
-            # If we figure out why this is required we should note it here because it's quite strange
-            if self.is_unfurl:
-                text = escape_slack_text(text)
+        text = text.strip(" \n")
+
+        text = escape_slack_markdown_text(text)
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        text += build_attachment_replay_link(self.group, self.event) or ""
+        replay_link = build_attachment_replay_link(self.group, self.event)
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
         color = get_color(event_for_tags, self.notification, self.group)
-        fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
@@ -516,6 +527,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         )
         obj = self.event if self.event is not None else self.group
         action_text = ""
+
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
@@ -541,23 +553,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         )
         title = build_attachment_title(obj)
 
-        if not features.has("organizations:slack-block-kit", self.group.project.organization):
-            if action_text and self.identity:
-                text += "\n" + action_text
-
-            return self._build(
-                actions=payload_actions,
-                callback_id=json.dumps({"issue": self.group.id}),
-                color=color,
-                fallback=self.build_fallback_text(obj, project.slug),
-                fields=fields,
-                footer=footer,
-                text=text,
-                title=title,
-                title_link=title_link,
-                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-            )
-
         # build up the blocks for newer issue alert formatting #
 
         # build title block
@@ -580,33 +575,31 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up text block
         if text:
             text = text.lstrip(" ")
-            blocks.append(self.get_rich_text_preformatted_block(text))
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                if self.group.issue_category == GroupCategory.FEEDBACK:
+                    max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
+                else:
+                    max_block_text_length = MAX_BLOCK_TEXT_LENGTH
+
+                blocks.append(self.get_markdown_quote_block(text, max_block_text_length))
 
         # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        if self.group.issue_category == GroupCategory.ERROR:
-            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
-            # since they don't make sense, but in the future we'll read some config from the grouptype
+        # build tags block
+        tags = get_tags(self.group, event_for_tags, self.tags)
+        if tags:
+            blocks.append(self.get_tags_block(tags))
 
-            # build tags block
-            tags = get_tags(event_for_tags, self.tags)
-            if tags:
-                blocks.append(self.get_tags_block(tags))
-
-            # add event count, user count, substate, first seen
-            context = {
-                "Events": get_group_global_count(self.group),
-                "Users Affected": self.group.count_users_seen(),
-                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-                "First Seen": time_since(self.group.first_seen),
-            }
-            context_text = ""
-            for k, v in context.items():
-                if k and v:
-                    context_text += f"{k}: *{v}*   "
-            blocks.append(self.get_context_block(context_text[:-3]))
+        # add event count, user count, substate, first seen
+        context = get_context(self.group)
+        if context:
+            blocks.append(self.get_context_block(context))
 
         # build actions
         actions = []
@@ -675,7 +668,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             for k, v in footer_data.items():
                 footer_text += f"{k}: {v}    "
 
-            footer_text = footer_text[:-4]  # chop off the empty space
+            if replay_link:
+                footer_text += replay_link
+            else:
+                footer_text = footer_text[:-4]  # chop off the empty space
             blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))

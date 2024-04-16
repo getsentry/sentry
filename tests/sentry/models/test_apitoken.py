@@ -88,9 +88,9 @@ class ApiTokenInternalIntegrationTest(TestCase):
         self.install = SentryAppInstallation.objects.get(sentry_app=self.internal_app)
 
     def test_multiple_tokens_have_correct_organization_id(self):
-        # First token is created automatically with the application
-        token_1 = self.internal_app.installations.first().api_token
-        # Second token is created manually and isn't directly linked from the SentryAppInstallation model
+        # First token is no longer created automatically with the application, so we must manually
+        # create multiple tokens that aren't directly linked from the SentryAppInstallation model.
+        token_1 = self.create_internal_integration_token(install=self.install, user=self.user)
         token_2 = self.create_internal_integration_token(install=self.install, user=self.user)
 
         assert token_1.organization_id == self.org.id

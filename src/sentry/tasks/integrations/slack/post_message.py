@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.shared_integrations.exceptions import ApiError

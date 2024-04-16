@@ -13,8 +13,10 @@ from rest_framework.serializers import ValidationError
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
-from sentry.api.permissions import SentryPermission
-from sentry.auth.superuser import is_active_superuser
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.utils import id_or_slug_path_params_enabled
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.integrations.sentry_app import SentryApp
@@ -87,7 +89,7 @@ class SentryAppsPermission(SentryPermission):
 
         self.determine_access(request, context)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
@@ -97,6 +99,12 @@ class SentryAppsPermission(SentryPermission):
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
+class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
+    """Allows staff to access the GET method of sentry apps endpoints."""
+
+    staff_allowed_methods = {"GET"}
+
+
 class IntegrationPlatformEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         add_request_metric_tags(request, integration_platform=True)
@@ -104,7 +112,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request):
         organization_slug = request.json_body.get("organization")
@@ -113,7 +121,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             raise ValidationError({"organization": to_single_line_str(error_message)})
         return organization_slug
 
-    def _get_organization_for_superuser(
+    def _get_organization_for_superuser_or_staff(
         self, user: RpcUser, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_organization_by_slug(
@@ -139,14 +147,14 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
-        if is_active_superuser(request):
-            return self._get_organization_for_superuser(request.user, organization_slug)
+        if is_active_superuser(request) or is_active_staff(request):
+            return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
         else:
             return self._get_organization_for_user(request.user, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
-        This baseclass is the the SentryApp collection endpoints:
+        This baseclass is the SentryApp collection endpoints:
 
               [GET, POST] /sentry-apps
 
@@ -202,7 +210,7 @@ class SentryAppPermission(SentryPermission):
         )
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         organizations = (
@@ -232,12 +240,22 @@ class SentryAppPermission(SentryPermission):
             return self.unpublished_scope_map
 
 
+class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
+    """Allows staff to access sentry app endpoints. Note that this is used for
+    endpoints acting on a single sentry app only."""
+
+    pass
+
+
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
+    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
         try:
-            sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
+                sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_slug)
+            else:
+                sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
         except SentryApp.DoesNotExist:
             raise Http404
 
@@ -251,8 +269,14 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
 
 class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
-        sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
+        if (
+            id_or_slug_path_params_enabled(self.convert_args.__qualname__)
+            and str(sentry_app_slug).isnumeric()
+        ):
+            sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_slug))
+        else:
+            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
         if sentry_app is None:
             raise Http404
 
@@ -277,7 +301,7 @@ class SentryAppInstallationsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         organizations = (
@@ -295,11 +319,21 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
-        if is_active_superuser(request):
-            organization = organization_service.get_org_by_slug(slug=organization_slug)
+        extra_args = {}
+        # We need to pass user_id if the user is not a superuser
+        if not is_active_superuser(request):
+            extra_args["user_id"] = request.user.id
+
+        if (
+            id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
+            and str(organization_slug).isnumeric()
+        ):
+            organization = organization_service.get_org_by_id(
+                id=int(organization_slug), **extra_args
+            )
         else:
             organization = organization_service.get_org_by_slug(
-                slug=organization_slug, user_id=request.user.id
+                slug=organization_slug, **extra_args
             )
 
         if organization is None:
@@ -341,7 +375,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
         self.determine_access(request, installation.organization_id)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         # if user is an app, make sure it's for that same app
@@ -350,7 +384,10 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+            id=installation.organization_id,
+            user_id=request.user.id,
+            include_teams=False,
+            include_projects=False,
         )
         if (
             org_context.member is None
@@ -429,7 +466,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
         )
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

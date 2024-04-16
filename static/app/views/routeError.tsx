@@ -100,7 +100,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       </p>
       <p>{t("If you're daring, you may want to try the following:")}</p>
       <List symbol="bullet">
-        {window && window.adblockSuspected && (
+        {window?.adblockSuspected && (
           <ListItem>
             {t(
               "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."

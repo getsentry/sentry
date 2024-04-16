@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.db.models import Q
 from rest_framework.request import Request
@@ -17,7 +17,7 @@ from sentry.models.group import Group, GroupStatus
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team) -> Response:
@@ -35,7 +35,7 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):
             .filter(
                 group_environment_filter,
                 status=GroupStatus.UNRESOLVED,
-                last_seen__gt=datetime.now() - timedelta(days=90),
+                last_seen__gt=datetime.now(UTC) - timedelta(days=90),
             )
             .order_by("first_seen")[:limit]
         )

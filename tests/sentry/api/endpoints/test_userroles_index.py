@@ -32,6 +32,7 @@ class UserRolesTest(APITestCase):
         assert resp.status_code == 403
 
 
+@control_silo_test
 class UserRolesGetTest(UserRolesTest):
     def test_simple(self):
         UserRole.objects.create(name="test-role")
@@ -41,6 +42,7 @@ class UserRolesGetTest(UserRolesTest):
         assert "test-role" in [r["name"] for r in resp.data]
 
 
+@control_silo_test
 class UserRolesPostTest(UserRolesTest):
     method = "POST"
 

@@ -28,9 +28,9 @@ import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
-  getPerformanceDuration,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -654,7 +654,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => (
-        <Subtitle>{props.subTitle ?? t('Suggested transactions')}</Subtitle>
+        <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
       HeaderActions={provided => getContainerActions(provided)}
       InteractiveTitle={

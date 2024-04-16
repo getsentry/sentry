@@ -1,7 +1,6 @@
 import os.path
 import zipfile
 from base64 import b64encode
-from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
@@ -10,9 +9,7 @@ import pytest
 import responses
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.utils import timezone
 
-from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -26,8 +23,6 @@ from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
@@ -2464,94 +2459,3 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    @with_feature("organizations:sourcemaps-bundle-flat-file-indexing")
-    @override_options(
-        {
-            "symbolicator.sourcemaps-bundle-index-sample-rate": 1.0,
-            "symbolicator.sourcemaps-bundle-index-refresh-sample-rate": 1.0,
-        }
-    )
-    def test_bundle_index(self):
-        project = self.project
-        release = Release.objects.create(organization_id=project.organization_id, version="abc")
-        release.add_project(project)
-
-        file_a = make_compressed_zip_file(
-            {
-                "files/_/_/file.min.js": {
-                    "url": "~/file.min.js",
-                    "type": "minified_source",
-                    "content": load_fixture("file.min.js"),
-                    "headers": {
-                        "sourcemap": "file.sourcemap.js",
-                    },
-                },
-                "files/_/_/file.sourcemap.js": {
-                    "url": "~/file.sourcemap.js",
-                    "type": "source_map",
-                    "content": load_fixture("file.wc.sourcemap.js"),
-                },
-            },
-        )
-
-        upload_bundle(file_a, self.project, release.version)
-
-        # set the bundle date to something in the past so that it is being refreshed automatically
-        now = timezone.now()
-        ArtifactBundle.objects.filter(
-            organization_id=self.organization.id,
-        ).update(date_added=now - timedelta(days=45))
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert frame.function == "add"
-        assert frame.filename == "file1.js"
-        assert frame.lineno == 3
-        assert frame.colno == 9
-
-        assert frame.data["resolved_with"] == "index"
-        assert frame.data["symbolicated"]
-
-        # explicitly trigger the task that is refreshing bundles, usually this
-        # happens on a schedule:
-        refresh_artifact_bundles_in_use()
-
-        artifact_bundles = ArtifactBundle.objects.filter(
-            organization_id=self.organization.id,
-        )
-
-        assert len(artifact_bundles) == 1
-        assert artifact_bundles[0].date_added >= now

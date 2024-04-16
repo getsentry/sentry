@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, Mapping
+from typing import Any
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
@@ -240,7 +241,7 @@ class GitlabWebhookMixin:
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

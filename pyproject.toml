@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
-target-version = ['py38']
+target-version = ['py311']
 
 [tool.isort]
 profile = "black"
@@ -18,44 +18,44 @@ skip = "migrations"
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
+addopts = "--tb=short -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
-    "snuba: test requires access to snuba",
-    "snuba_ci: test is run in snuba ci",
-    "sentry_metrics: test requires access to sentry metrics",
-    "symbolicator: test requires access to symbolicator",
+  "snuba: test requires access to snuba",
+  "snuba_ci: test is run in snuba ci",
+  "sentry_metrics: test requires access to sentry metrics",
+  "symbolicator: test requires access to symbolicator",
 ]
-selenium_driver = "chrome"
 filterwarnings = [
-    # Consider all warnings to be errors other than the ignored ones.
-    "error",
+  # Consider all warnings to be errors other than the ignored ones.
+  "error",
 
-    # TODO: after upgrading to django 4.x
-    "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
+  # a bunch of google packages use legacy namespace packages
+  "ignore:pkg_resources is deprecated as an API",
+  "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
 
-    # a bunch of google packages use legacy namespace packages
-    "ignore:pkg_resources is deprecated as an API",
-    "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
+  # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
+  "ignore:Type google\\._upb.*",
 
-    # The following warning filters are for pytest only.
-    # This is so we don't have to wrap most datetime objects in testing code
-    # with django.utils.timezone.
-    "ignore:DateTimeField.*naive datetime:RuntimeWarning",
-    "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
+  # The following warning filters are for pytest only.
+  "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
-    # pytest has not yet implemented the replacement for this yet
-    "ignore:The --looponfail command line argument.*",
+  # pytest has not yet implemented the replacement for this yet
+  "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
 python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
-plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
+plugins = [
+  "pydantic.mypy",
+  "mypy_django_plugin.main",
+  "tools.mypy_helpers.plugin",
+]
 files = ["."]
-exclude = ["^.venv/", "^self-hosted/"]
+exclude = ["^.venv/", "^venv/", "^self-hosted/"]
 
 # minimal strictness settings
 check_untyped_defs = true
@@ -64,6 +64,7 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+enable_error_code = ["ignore-without-code", "redundant-self"]
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -71,8 +72,8 @@ django_settings_module = "sentry.conf.server_mypy"
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
 module = [
-    # TODO: these cause type errors when followed
-    "snuba_sdk.*",
+  # TODO: these cause type errors when followed
+  "snuba_sdk.*",
 ]
 follow_imports = "skip"
 
@@ -92,22 +93,15 @@ module = [
     "docker.*",
     "fido2.*",
     "google.auth.*",
-    "google.cloud.pubsub_v1.*",
-    "google.cloud.storage.blob.*",
-    "google.cloud.storage.bucket.*",
-    "google.cloud.storage.client.*",
+    "google.cloud.*",
     "google.resumable_media.common.*",
     "google.rpc.status_pb2.*",
-    "google_crc32c.*",
-    "honcho.manager.*",
-    "honcho.printer.*",
     "kombu.*",
     "mistune.*",
     "onelogin.saml2.auth.*",
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
     "phabricator.*",
-    "progressbar.*",
     "rb.*",
     "requests_oauthlib.*",
     "sqlparse.*",
@@ -145,13 +139,9 @@ module = [
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
     "sentry.api.endpoints.event_attachments",
-    "sentry.api.endpoints.group_details",
-    "sentry.api.endpoints.group_event_details",
-    "sentry.api.endpoints.group_events",
     "sentry.api.endpoints.group_external_issues",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
-    "sentry.api.endpoints.group_notes",
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.integrations.install_request",
     "sentry.api.endpoints.integrations.sentry_apps.details",
@@ -176,7 +166,6 @@ module = [
     "sentry.api.endpoints.organization_events_stats",
     "sentry.api.endpoints.organization_events_trace",
     "sentry.api.endpoints.organization_events_trends",
-    "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_index",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",
@@ -205,10 +194,8 @@ module = [
     "sentry.api.endpoints.project_rule_preview",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.project_servicehook_stats",
-    "sentry.api.endpoints.project_stacktrace_links",
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.rule_snooze",
-    "sentry.api.endpoints.source_map_debug",
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.team_release_count",
     "sentry.api.endpoints.team_time_to_resolution",
@@ -239,7 +226,6 @@ module = [
     "sentry.api.serializers.models.organization_member.base",
     "sentry.api.serializers.models.plugin",
     "sentry.api.serializers.models.project",
-    "sentry.api.serializers.models.projectcodeowners",
     "sentry.api.serializers.models.role",
     "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.sentry_app",
@@ -271,7 +257,6 @@ module = [
     "sentry.db.models.query",
     "sentry.db.models.utils",
     "sentry.db.postgres.base",
-    "sentry.db.postgres.creation",
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
@@ -295,7 +280,6 @@ module = [
     "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
     "sentry.incidents.logic",
-    "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
     "sentry.integrations.aws_lambda.integration",
@@ -376,16 +360,13 @@ module = [
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
-    "sentry.issues.escalating_group_forecast",
-    "sentry.issues.ingest",
-    "sentry.issues.issue_occurrence",
-    "sentry.issues.occurrence_consumer",
+    "sentry.issues.endpoints.group_events",
+    "sentry.issues.endpoints.organization_group_index",
+    "sentry.issues.endpoints.source_map_debug",
     "sentry.issues.search",
-    "sentry.issues.status_change",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
-    "sentry.middleware.subdomain",
     "sentry.middleware.superuser",
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
@@ -394,10 +375,7 @@ module = [
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
-    "sentry.monitors.endpoints.monitor_ingest_checkin_details",
     "sentry.monitors.endpoints.organization_monitor_index",
-    "sentry.monitors.utils",
-    "sentry.monkey.pickle",
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.additional_attachment_manager",
@@ -421,22 +399,16 @@ module = [
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
-    "sentry.quotas.redis",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
     "sentry.release_health.metrics_sessions_v2",
-    "sentry.release_health.sessions",
     "sentry.release_health.tasks",
     "sentry.replays.endpoints.project_replay_clicks_index",
     "sentry.replays.lib.query",
-    "sentry.reprocessing2",
     "sentry.rules.actions.integrations.base",
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.actions.notify_event_service",
-    "sentry.rules.conditions.event_frequency",
-    "sentry.rules.conditions.level",
-    "sentry.rules.conditions.tagged_event",
     "sentry.rules.filters.assigned_to",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.members",
@@ -472,7 +444,6 @@ module = [
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.sessions",
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
@@ -495,7 +466,6 @@ module = [
     "sentry.tasks.integrations.sync_status_outbound",
     "sentry.tasks.merge",
     "sentry.tasks.process_buffer",
-    "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
@@ -504,7 +474,6 @@ module = [
     "sentry.templatetags.sentry_plugins",
     "sentry.testutils.asserts",
     "sentry.testutils.cases",
-    "sentry.testutils.factories",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
@@ -514,8 +483,6 @@ module = [
     "sentry.testutils.performance_issues.store_transaction",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
-    "sentry.tsdb.redis",
-    "sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -531,14 +498,9 @@ module = [
     "sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector",
     "sentry.utils.performance_issues.detectors.slow_db_query_detector",
     "sentry.utils.performance_issues.performance_detection",
-    "sentry.utils.redis",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
     "sentry.utils.snowflake",
-    "sentry.utils.snuba",
-    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
-    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
-    "sentry.web.client_config",
     "sentry.web.forms.accounts",
     "sentry.web.frontend.account_identity",
     "sentry.web.frontend.auth_close",
@@ -547,7 +509,6 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.debug.debug_assigned_email",
     "sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email",
     "sentry.web.frontend.debug.debug_incident_activity_email",
     "sentry.web.frontend.debug.debug_incident_trigger_email",
@@ -557,8 +518,6 @@ module = [
     "sentry.web.frontend.debug.debug_organization_integration_request",
     "sentry.web.frontend.debug.debug_organization_invite_request",
     "sentry.web.frontend.debug.debug_organization_join_request",
-    "sentry.web.frontend.debug.debug_password_changed_email",
-    "sentry.web.frontend.debug.debug_recovery_codes_regenerated_email",
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.generic",
     "sentry.web.frontend.group_plugin_action",
@@ -576,28 +535,10 @@ module = [
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",
-    "sentry_plugins.asana.plugin",
-    "sentry_plugins.base",
     "sentry_plugins.bitbucket.client",
-    "sentry_plugins.bitbucket.endpoints.webhook",
     "sentry_plugins.bitbucket.mixins",
-    "sentry_plugins.bitbucket.plugin",
-    "sentry_plugins.bitbucket.repository_provider",
-    "sentry_plugins.client",
-    "sentry_plugins.github.client",
     "sentry_plugins.github.plugin",
-    "sentry_plugins.github.webhooks.base",
-    "sentry_plugins.github.webhooks.integration",
-    "sentry_plugins.heroku.plugin",
-    "sentry_plugins.jira.client",
     "sentry_plugins.jira.plugin",
-    "sentry_plugins.pivotal.plugin",
-    "sentry_plugins.pushover.plugin",
-    "sentry_plugins.redmine.forms",
-    "sentry_plugins.redmine.plugin",
-    "sentry_plugins.splunk.plugin",
-    "sentry_plugins.trello.plugin",
-    "sentry_plugins.twilio.plugin",
     "tests.sentry.api.bases.test_organization",
     "tests.sentry.api.bases.test_project",
     "tests.sentry.api.bases.test_sentryapps",
@@ -644,12 +585,41 @@ disable_error_code = [
 ]
 # end: sentry modules with typing issues
 
-# beginning: stronger typing
+# begin: stronger typing
 [[tool.mypy.overrides]]
 module = [
-    "src.sentry.relay.config.metric_extraction",
-    "src.sentry.snuba.metrics.extraction",
+    "sentry.api.endpoints.issues.*",
+    "sentry.api.helpers.source_map_helper",
+    "sentry.buffer.base",
+    "sentry.buffer.redis",
+    "sentry.eventstore.reprocessing.redis",
+    "sentry.issues.related.*",
+    "sentry.lang.java.processing",
+    "sentry.migrations.*",
+    "sentry.nodestore.base",
+    "sentry.nodestore.bigtable.backend",
+    "sentry.nodestore.django.backend",
+    "sentry.nodestore.django.models",
+    "sentry.nodestore.filesystem.backend",
+    "sentry.nodestore.models",
+    "sentry.relay.config.metric_extraction",
+    "sentry.reprocessing2",
+    "sentry.runner.*",
+    "sentry.snuba.metrics.extraction",
+    "sentry.tasks.commit_context",
+    "sentry.tasks.on_demand_metrics",
+    "sentry.tasks.reprocessing2",
+    "sentry.utils.iterators",
+    "sentry.utils.locking.backends.redis",
+    "sentry.utils.redis",
+    "sentry.utils.redis_metrics",
+    "sentry_plugins.base",
+    "tests.sentry.api.endpoints.issues.*",
+    "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.relay.config.test_metric_extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
+    "tools.*",
 ]
+disallow_any_generics = true
 disallow_untyped_defs = true
 # end: stronger typing

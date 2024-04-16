@@ -362,7 +362,7 @@ class AvatarUploader extends Component<Props, State> {
 
   uploadClick = (ev: React.MouseEvent<HTMLAnchorElement>) => {
     ev.preventDefault();
-    this.file.current && this.file.current.click();
+    this.file.current?.click();
   };
 
   renderImageCrop() {

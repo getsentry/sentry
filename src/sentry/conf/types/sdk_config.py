@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Literal
+from collections.abc import Callable
+from typing import Any, Literal, NotRequired, TypedDict
 
-from typing_extensions import NotRequired, TypedDict
+Event = Any
+Hint = Any
 
 
 class SdkConfig(TypedDict):
@@ -13,10 +15,12 @@ class SdkConfig(TypedDict):
     debug: bool
     send_default_pii: bool
     auto_enabling_integrations: bool
+    keep_alive: NotRequired[bool]
 
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
-    before_send_transaction: NotRequired[Callable[[dict[str, Any], object], dict[str, Any]]]
+    before_send: NotRequired[Callable[[Event, Hint], Event | None]]
+    before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     profiles_sample_rate: NotRequired[float]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     enable_db_query_source: NotRequired[bool]

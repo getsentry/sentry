@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Iterable, Sequence
 from time import time
-from typing import Iterable, Sequence
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis

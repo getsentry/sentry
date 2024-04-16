@@ -326,13 +326,12 @@ function groupedErrors(
   const {_meta} = event;
   const errors = [...data.errors, ...progaurdErrors]
     .filter(error => shouldErrorBeShown(error, event))
-    .map((error, errorIdx) =>
+    .flatMap((error, errorIdx) =>
       getErrorMessage(error, _meta?.errors?.[errorIdx]).map(message => ({
         ...message,
         type: error.type,
       }))
-    )
-    .flat();
+    );
 
   const grouped = errors.reduce((rv, error) => {
     rv[error.type] = rv[error.type] || [];
@@ -392,7 +391,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   if (
     isLoading ||
     !defined(data) ||
-    data.errors.length === 0 ||
+    data.errors?.length === 0 ||
     Object.keys(errorMessages).length === 0
   ) {
     return null;

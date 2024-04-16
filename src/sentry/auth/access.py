@@ -13,15 +13,17 @@ __all__ = [
 ]
 
 import abc
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features, roles
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.models.apikey import ApiKey
@@ -47,15 +49,9 @@ def has_role_in_organization(role: str, organization: Organization, user_id: int
         user_is_active=True,
         user_id=user_id,
         organization_id=organization.id,
+        role=role,
     )
-    teams_with_org_role = organization.get_teams_with_org_roles([role])
-    return bool(
-        query.filter(role=role).exists()
-        or OrganizationMemberTeam.objects.filter(
-            team__in=teams_with_org_role,
-            organizationmember_id__in=list(query.values_list("id", flat=True)),
-        ).exists()
-    )
+    return query.exists()
 
 
 class Access(abc.ABC):
@@ -97,11 +93,6 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def roles(self) -> Iterable[str] | None:
-        pass
-
-    @property
-    @abc.abstractmethod
     def team_ids_with_membership(self) -> frozenset[int]:
         pass
 
@@ -138,16 +129,10 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)
         return None
-
-    def get_organization_roles(self) -> Iterable[OrganizationRole]:
-        if self.roles is not None:
-            return [organization_roles.get(r) for r in self.roles]
-        return []
 
     @abc.abstractmethod
     def has_role_in_organization(
@@ -234,10 +219,6 @@ class DbAccess(Access):
     @property
     def role(self) -> str | None:
         return self._member.role if self._member else None
-
-    @property
-    def roles(self) -> Iterable[str] | None:
-        return self._member.get_all_org_roles() if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
@@ -470,15 +451,6 @@ class RpcBackedAccess(Access):
             return None
         return self.rpc_user_organization_context.member.role
 
-    @property
-    def roles(self) -> Iterable[str] | None:
-        if self.rpc_user_organization_context.member is None:
-            return None
-        return access_service.get_all_org_roles(
-            member_id=self.rpc_user_organization_context.member.id,
-            organization_id=self.rpc_user_organization_context.organization.id,
-        )
-
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
@@ -633,6 +605,7 @@ class OrganizationMemberAccess(DbAccess):
         auth_state = access_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
+            is_staff=False,
             org_member=summarize_member(member),
             user_id=member.user_id,
         )
@@ -839,10 +812,6 @@ class OrganizationlessAccess(Access):
     def role(self) -> str | None:
         return None
 
-    @property
-    def roles(self) -> Iterable[str] | None:
-        return None
-
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
@@ -933,12 +902,14 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
             rpc_user_org_context=rpc_user_org_context,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             scopes=scopes,
         )
 
@@ -951,15 +922,18 @@ def from_request_org_and_scopes(
             user_id=request.user.id,
             organization_id=rpc_user_org_context.organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=member,
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -969,15 +943,19 @@ def from_request_org_and_scopes(
         user=request.user,
         rpc_user_org_context=rpc_user_org_context,
         is_superuser=False,
+        is_staff=is_staff,
         scopes=scopes,
     )
 
 
-def organizationless_access(user: User | RpcUser | AnonymousUser, is_superuser: bool) -> Access:
+def organizationless_access(
+    user: User | RpcUser | AnonymousUser, is_superuser: bool, is_staff: bool
+) -> Access:
     return OrganizationlessAccess(
         auth_state=access_service.get_user_auth_state(
             user_id=user.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             organization_id=None,
             org_member=None,
         )
@@ -995,6 +973,7 @@ def from_user_and_rpc_user_org_context(
     user: User | RpcUser | None,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
     scopes: Iterable[str] | None = None,
     auth_state: RpcAuthState | None = None,
 ) -> Access:
@@ -1002,12 +981,13 @@ def from_user_and_rpc_user_org_context(
         return DEFAULT
 
     if not rpc_user_org_context or not rpc_user_org_context.member:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     return from_rpc_member(
         rpc_user_organization_context=rpc_user_org_context,
         scopes=scopes,
         is_superuser=is_superuser,
+        is_staff=is_staff,
         auth_state=auth_state,
     )
 
@@ -1019,10 +999,15 @@ def from_request(
     request: Any, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    is_staff = is_active_staff(request)
 
     if not organization:
         return from_user(
-            request.user, organization=organization, scopes=scopes, is_superuser=is_superuser
+            request.user,
+            organization=organization,
+            scopes=scopes,
+            is_superuser=is_superuser,
+            is_staff=is_staff,
         )
 
     if getattr(request.user, "is_sentry_app", False):
@@ -1040,16 +1025,19 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=(summarize_member(member) if member is not None else None),
         )
         sso_state = auth_state.sso_state
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),
@@ -1058,7 +1046,7 @@ def from_request(
     if hasattr(request, "auth") and not request.user.is_authenticated:
         return from_auth(request.auth, organization)
 
-    return from_user(request.user, organization, scopes=scopes)
+    return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
 # only used internally
@@ -1111,37 +1099,42 @@ def from_user(
     organization: Organization | None = None,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
 ) -> Access:
     if (user := normalize_valid_user(user)) is None:
         return DEFAULT
 
     if not organization:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     try:
         om = OrganizationMember.objects.get(user_id=user.id, organization_id=organization.id)
     except OrganizationMember.DoesNotExist:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     # ensure cached relation
     om.organization = organization
 
-    return from_member(om, scopes=scopes, is_superuser=is_superuser)
+    return from_member(om, scopes=scopes, is_superuser=is_superuser, is_staff=is_staff)
 
 
 def from_member(
     member: OrganizationMember,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
 ) -> Access:
     if scopes is not None:
         scope_intersection = frozenset(scopes) & member.get_scopes()
     else:
         scope_intersection = member.get_scopes()
 
-    permissions = (
-        access_service.get_permissions_for_user(member.user_id) if is_superuser else frozenset()
-    )
+    if is_superuser or is_staff:
+        # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
+        # have them, you can only use them when you are acting, as a superuser or staff. This is intentional.
+        permissions = access_service.get_permissions_for_user(member.user_id)
+    else:
+        permissions = frozenset()
 
     return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
 
@@ -1150,6 +1143,7 @@ def from_rpc_member(
     rpc_user_organization_context: RpcUserOrganizationContext,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
     auth_state: RpcAuthState | None = None,
 ) -> Access:
     if rpc_user_organization_context.user_id is None:
@@ -1163,6 +1157,7 @@ def from_rpc_member(
             user_id=rpc_user_organization_context.user_id,
             organization_id=rpc_user_organization_context.organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=rpc_user_organization_context.member,
         ),
     )

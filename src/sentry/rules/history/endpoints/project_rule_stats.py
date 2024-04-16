@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping, TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request

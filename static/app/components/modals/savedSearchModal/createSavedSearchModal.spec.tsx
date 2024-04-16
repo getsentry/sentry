@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -83,7 +83,7 @@ describe('CreateSavedSearchModal', function () {
     await userEvent.click(screen.getByRole('textbox', {name: /filter issues/i}));
     await userEvent.paste('is:resolved');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe('CreateSavedSearchModal', function () {
           data: {
             name: 'new search name',
             query: 'is:resolved',
-            sort: IssueSortOptions.PRIORITY,
+            sort: IssueSortOptions.TRENDS,
             type: 0,
             visibility: SavedSearchVisibility.OWNER,
           },

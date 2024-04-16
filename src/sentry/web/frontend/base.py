@@ -3,7 +3,8 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Callable, Iterable, Mapping, Protocol
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -18,12 +19,17 @@ from django.http.response import HttpResponseBase
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
+from sentry.api.utils import (
+    generate_organization_url,
+    id_or_slug_path_params_enabled,
+    is_member_disabled_from_limit,
+)
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -247,10 +253,17 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_slug: str | int
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization.slug)
+            ):
+                project = Project.objects.get(
+                    slug__id_or_slug=project_slug, organization=organization
+                )
+            else:
+                project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 
@@ -329,7 +342,7 @@ class BaseView(View, OrganizationMixin):
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
         A note on the CSRF protection process.
@@ -708,7 +721,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str | int, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:

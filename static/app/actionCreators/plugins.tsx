@@ -50,7 +50,7 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParam
     })
     .catch(resp => {
       const err =
-        resp && resp.responseJSON && typeof resp.responseJSON.detail === 'string'
+        typeof resp?.responseJSON?.detail === 'string'
           ? new Error(resp.responseJSON.detail)
           : new Error('Unable to update plugin');
       PluginsStore.onUpdateError(pluginId, err);

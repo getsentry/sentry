@@ -9,7 +9,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
-import type {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeList} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
@@ -32,9 +35,15 @@ interface Props
 
 export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
+  const queryView = useLocationQuery({
+    fields: {
+      project: decodeList,
+    },
+  });
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
+    projectIds: queryView.project,
   });
 
   const onToggleResovled = useCallback(
@@ -42,6 +51,13 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
+          if (newMailbox === GroupStatus.IGNORED) {
+            // target action is marking as spam aka ignored
+            trackAnalytics('feedback.mark-spam-clicked', {
+              organization,
+              type: 'bulk',
+            });
+          }
           addLoadingMessage(t('Updating feedbacks...'));
           resolve(newMailbox, {
             onError: () => {
@@ -62,7 +78,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
         withoutBold: true,
       });
     },
-    [deselectAll, resolve, selectedIds]
+    [deselectAll, resolve, selectedIds, organization]
   );
 
   const onMarkAsRead = useCallback(

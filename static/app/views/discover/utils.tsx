@@ -103,7 +103,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
         column.type = outputType;
       }
       const aggregate = AGGREGATIONS[col.function[0]];
-      column.isSortable = aggregate && aggregate.isSortable;
+      column.isSortable = aggregate?.isSortable;
     } else if (col.kind === 'field') {
       if (getFieldDefinition(col.field) !== null) {
         column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
@@ -294,7 +294,7 @@ export function getExpandedResults(
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
-  // update the columns according the the expansion above
+  // update the columns according the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
       column === null

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import timedelta, timezone
+from datetime import timedelta
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
@@ -34,9 +34,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
-        self.now = before_now().replace(tzinfo=timezone.utc)
-        self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
-        self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
+        self.now = before_now()
+        self.one_min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -54,7 +54,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.params = {
             "organization_id": self.organization.id,
             "project_id": [self.project.id],
-            "start": before_now(days=1).replace(tzinfo=timezone.utc),
+            "start": before_now(days=1),
             "end": self.now,
         }
 
@@ -386,9 +386,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
 
     def test_timestamp_rounding_filters(self):
-        one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
-        two_day_ago = before_now(days=2).replace(tzinfo=timezone.utc)
-        three_day_ago = before_now(days=3).replace(tzinfo=timezone.utc)
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
         self.params["start"] = three_day_ago
 
         self.store_event(
@@ -2447,13 +2447,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -3145,7 +3145,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.now = before_now().replace(tzinfo=timezone.utc)
+        self.now = before_now()
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500

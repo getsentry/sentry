@@ -1,7 +1,7 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -100,7 +100,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   generatePerformanceTransactionEventsView?: () => EventView;
@@ -156,8 +156,7 @@ function TableRender({
   const query = decodeScalar(location.query.query, '');
   const display = decodeScalar(location.query.display, DisplayModes.DURATION);
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
-  const hasResults =
-    tableData && tableData.data && tableData.meta && tableData.data.length > 0;
+  const hasResults = tableData?.meta && tableData.data?.length > 0;
 
   useEffect(() => {
     if (!performanceAtScaleContext) {
@@ -288,6 +287,11 @@ class _TransactionsList extends Component<Props> {
     const cursorOffset = parseCursor(cursor)?.offset ?? 0;
     numSamples = numSamples ?? null;
     const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
+
+    const hasTransactionSummaryCleanupFlag = organization.features.includes(
+      'performance-transaction-summary-cleanup'
+    );
+
     return (
       <Fragment>
         <div>
@@ -298,7 +302,7 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        {supportsInvestigationRule && (
+        {supportsInvestigationRule && !hasTransactionSummaryCleanupFlag && (
           <InvestigationRuleWrapper>
             <InvestigationRuleCreation
               buttonProps={{size: 'xs'}}

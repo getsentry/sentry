@@ -2,14 +2,18 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery, Project} from 'sentry/types';
-import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
@@ -44,6 +48,7 @@ export function ScreenLoadEventSamples({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const deviceClass = decodeScalar(location.query['device.class']);
@@ -78,10 +83,13 @@ export function ScreenLoadEventSamples({
     return mutableQuery;
   }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
 
-  const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
+  const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
+    id: t(
+      'Event ID (%s)',
+      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+    ),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),
@@ -91,6 +99,7 @@ export function ScreenLoadEventSamples({
     name: '',
     fields: [
       'id',
+      'trace',
       'project.name',
       'profile.id',
       'measurements.time_to_initial_display',

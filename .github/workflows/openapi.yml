@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Getsentry Token
         id: getsentry
-        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
@@ -46,7 +46,7 @@ jobs:
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON

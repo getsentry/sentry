@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -63,7 +63,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -400,7 +400,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             enableHiding
             location={location}
             organization={organization}
-            transaction={detail.traceFullDetailedEvent}
+            tags={detail.traceFullDetailedEvent.tags ?? []}
+            event={detail.traceFullDetailedEvent}
           />
 
           {measurementNames.length > 0 && (

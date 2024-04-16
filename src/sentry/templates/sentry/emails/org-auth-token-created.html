@@ -6,7 +6,7 @@
 
 {% block main %}
   <h3>Security Notice</h3>
-  <p>User {{ actor.email }} has created a new Organization Auth Token "{{ token_name }}" for your Sentry organization {{ organization.name }}.</p>
+  <p>User {{ actor.email }} has created a new Organization Auth Token "{{ token_name }}" for your Sentry organization {{ organization.name|sanitize_periods }}.</p>
   <table>
     <tr>
       <td style="width:36px;vertical-align:top;padding-right:15px;">

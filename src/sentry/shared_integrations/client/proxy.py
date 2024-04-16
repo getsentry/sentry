@@ -3,8 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import sentry_sdk
@@ -12,7 +13,10 @@ import urllib3
 from django.conf import settings
 from django.utils.encoding import force_str
 from requests import PreparedRequest
+from requests.adapters import Retry
 
+from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.http import build_session
 from sentry.integrations.client import ApiClient
@@ -78,7 +82,12 @@ def infer_org_integration(
     org_integration_id = None
     with in_test_hide_transaction_boundary():
         org_integrations = integration_service.get_organization_integrations(
-            integration_id=integration_id
+            integration_id=integration_id,
+            # NOTE: This is to resolve #inc-649, but will allow organizations with disabled slack
+            # integrations to use the existing credentials if another organization has it
+            # enabled. A true fix would be to remove usage of infer_org_integration, and ensure
+            # all callers pass in an organization_id/organization_integration_id.
+            status=ObjectStatus.ACTIVE,
         )
     if len(org_integrations) > 0:
         org_integration_id = org_integrations[0].id
@@ -143,11 +152,20 @@ class IntegrationProxyClient(ApiClient):
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to the IP address of the Control Silo.
+
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+            return build_session(
+                is_ipaddress_permitted=is_control_silo_ip_address,
+                max_retries=Retry(
+                    total=options.get("hybridcloud.integrationproxy.retries"),
+                    backoff_factor=0.1,
+                    status_forcelist=[503],
+                    allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+                ),
+            )
         return build_session()
 
     @staticmethod
@@ -227,7 +245,7 @@ class IntegrationProxyClient(ApiClient):
         logger.info(
             "prepare_proxy_request",
             extra={
-                "desitination": prepared_request.url,
+                "destination": prepared_request.url,
                 "organization_integration_id": self.org_integration_id,
             },
         )

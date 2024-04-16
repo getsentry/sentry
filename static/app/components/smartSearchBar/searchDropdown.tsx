@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
@@ -9,7 +10,6 @@ import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,34 +93,33 @@ function SearchDropdown({
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
                 <Wrapper>
-                  {item.children &&
-                    item.children.map(child => (
-                      <DropdownItem
-                        key={getDropdownItemKey(child)}
-                        item={{
-                          ...child,
-                          ...mergeItemsWith?.[child.title!],
-                        }}
-                        searchSubstring={searchSubstring}
-                        onClick={onClick}
-                        onIconClick={onIconClick}
-                        additionalSearchConfig={{
-                          supportedTags,
-                          disallowWildcard,
-                          disallowedLogicalOperators,
-                          disallowFreeText,
-                          invalidMessages,
-                          booleanKeys,
-                          dateKeys,
-                          durationKeys,
-                          numericKeys,
-                          percentageKeys,
-                          sizeKeys,
-                          textOperatorKeys,
-                        }}
-                        customInvalidTagMessage={customInvalidTagMessage}
-                      />
-                    ))}
+                  {item.children?.map(child => (
+                    <DropdownItem
+                      key={getDropdownItemKey(child)}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
+                      searchSubstring={searchSubstring}
+                      onClick={onClick}
+                      onIconClick={onIconClick}
+                      additionalSearchConfig={{
+                        supportedTags,
+                        disallowWildcard,
+                        disallowedLogicalOperators,
+                        disallowFreeText,
+                        invalidMessages,
+                        booleanKeys,
+                        dateKeys,
+                        durationKeys,
+                        numericKeys,
+                        percentageKeys,
+                        sizeKeys,
+                        textOperatorKeys,
+                      }}
+                      customInvalidTagMessage={customInvalidTagMessage}
+                    />
+                  ))}
                 </Wrapper>
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>

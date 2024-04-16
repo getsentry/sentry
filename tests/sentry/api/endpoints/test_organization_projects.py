@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.models.apikey import ApiKey
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -34,7 +34,6 @@ class OrganizationProjectsTestBase(APITestCase):
         self.check_valid_response(response, [project])
 
 
-@region_silo_test
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self):
         super().setUp()
@@ -46,6 +45,22 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [project])
         assert self.client.session["activeorg"] == self.organization.slug
+
+    def test_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+        project = self.create_project(teams=[self.team])
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [project])
+
+    def test_staff(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+        project = self.create_project(teams=[self.team])
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [project])
 
     def test_with_stats(self):
         projects = [self.create_project(teams=[self.team])]
@@ -226,7 +241,6 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert not response.data[1].get("options")
 
 
-@region_silo_test
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 

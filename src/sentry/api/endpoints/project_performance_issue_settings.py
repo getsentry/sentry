@@ -9,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -215,7 +215,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
-        if body_has_admin_options and not is_active_superuser(request):
+        if body_has_admin_options and not superuser_has_permission(request):
             return Response(
                 {
                     "detail": {

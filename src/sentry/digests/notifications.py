@@ -4,7 +4,8 @@ import functools
 import itertools
 import logging
 from collections import defaultdict, namedtuple
-from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+from typing import Any
 
 from sentry import tsdb
 from sentry.digests import Digest, Record
@@ -14,7 +15,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
-from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
@@ -70,7 +70,7 @@ def event_to_record(
     return Record(
         event.event_id,
         Notification(event, [rule.id for rule in rules], notification_uuid),
-        to_timestamp(event.datetime),
+        event.datetime.timestamp(),
     )
 
 

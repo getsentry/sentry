@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Match, Sequence, Union, cast
+from re import Match
+from typing import Any, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -50,6 +52,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
@@ -68,7 +71,7 @@ from sentry.search.events.types import (
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
-from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
     is_duration_measurement,
@@ -85,8 +88,10 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    free_text_key = "message"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    entity: Entity | None = None
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -146,7 +151,7 @@ class BaseQueryBuilder:
                         organization_id=organization.id, name__in=params["environment"]
                     )
                 )
-                if "" in cast(list[str], params["environment"]):
+                if "" in params["environment"]:
                     environments.append(None)
             elif isinstance(params["environment"], str):
                 environments = list(
@@ -191,11 +196,16 @@ class BaseQueryBuilder:
         turbo: bool = False,
         sample_rate: float | None = None,
         array_join: str | None = None,
+        entity: Entity | None = None,
     ):
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
+        if self.builder_config.parser_config_overrides is None:
+            self.builder_config.parser_config_overrides = {}
+        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
+
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore
@@ -207,6 +217,7 @@ class BaseQueryBuilder:
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
         self.raw_equations = equations
+        self.raw_orderby = orderby
         self.query = query
         self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns
@@ -276,6 +287,7 @@ class BaseQueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+        self.entity = entity
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
@@ -312,20 +324,21 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
-            # Has to be done early, since other conditions depend on start and end
-            self.resolve_time_conditions()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
-            self.where, self.having = self.resolve_conditions(query)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
-            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-            self.where += self.resolve_params()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
-            self.columns = self.resolve_select(selected_columns, equations)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
-            self.orderby = self.resolve_orderby(orderby)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby(groupby_columns)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_query"):
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+                # Has to be done early, since other conditions depend on start and end
+                self.resolve_time_conditions()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+                self.where, self.having = self.resolve_conditions(query)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+                # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+                self.where += self.resolve_params()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+                self.columns = self.resolve_select(selected_columns, equations)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+                self.orderby = self.resolve_orderby(orderby)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+                self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -362,6 +375,8 @@ class BaseQueryBuilder:
             self.config = ProfileFunctionsDatasetConfig(self)
         elif self.dataset == Dataset.SpansIndexed:
             self.config = SpansIndexedDatasetConfig(self)
+        elif self.dataset == Dataset.MetricsSummaries:
+            self.config = MetricsSummariesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -1102,6 +1117,8 @@ class BaseQueryBuilder:
         :param name: The unresolved sentry name.
         """
         resolved_column = self.resolve_column_name(name)
+        if self.entity:
+            return Column(resolved_column, entity=self.entity)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -1166,9 +1183,7 @@ class BaseQueryBuilder:
             value = self.resolve_measurement_value(unit, value)
 
         value = (
-            int(to_timestamp(value))
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
+            int(value.timestamp()) if isinstance(value, datetime) and name != "timestamp" else value
         )
 
         if aggregate_filter.operator in {"=", "!="} and value == "":
@@ -1242,7 +1257,7 @@ class BaseQueryBuilder:
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and

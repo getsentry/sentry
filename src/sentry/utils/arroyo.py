@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import pickle
+from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     MultiprocessingPool as ArroyoMultiprocessingPool,
@@ -64,6 +65,7 @@ class MetricsWrapper(Metrics):
             amount=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
     def gauge(
@@ -78,6 +80,7 @@ class MetricsWrapper(Metrics):
             value=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
     def timing(
@@ -92,6 +95,7 @@ class MetricsWrapper(Metrics):
             value=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
 

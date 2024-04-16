@@ -4,16 +4,14 @@ from unittest.mock import MagicMock, Mock, patch
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 @patch(
     "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
@@ -98,6 +96,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,
+            fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
         )
 
         with self.tasks():

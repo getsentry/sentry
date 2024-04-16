@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Mapping
+from collections.abc import Mapping
+from datetime import timedelta
+from typing import Any
 
 import pytest
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models import IncidentActivityType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -43,7 +46,7 @@ class Fixtures:
 
     @cached_property
     def user(self):
-        return self.create_user("admin@localhost", is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
     def organization(self):
@@ -110,7 +113,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
             },
         )
         integration.add_organization(self.organization, self.user)
@@ -203,7 +206,7 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)
@@ -388,6 +391,35 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
+    def create_alert_rule_activation(
+        self,
+        alert_rule=None,
+        query_subscriptions=None,
+        project=None,
+        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        *args,
+        **kwargs,
+    ):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule(
+                monitor_type=monitor_type,
+            )
+        if not query_subscriptions:
+            projects = [project] if project else [self.project]
+            query_subscriptions = alert_rule.subscribe_projects(
+                projects=projects,
+                monitor_type=monitor_type,
+            )
+
+        created_activations = []
+        for sub in query_subscriptions:
+            created_activations.append(
+                Factories.create_alert_rule_activation(
+                    alert_rule=alert_rule, query_subscription=sub, *args, **kwargs
+                )
+            )
+        return created_activations
+
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()
@@ -527,7 +559,7 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
+            kwargs["actor"] = Actor.objects.get(id=get_actor_for_user(self.user).id)
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
@@ -542,7 +574,7 @@ class Fixtures:
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs):
+    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):
@@ -550,6 +582,9 @@ class Fixtures:
 
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
+
+    def create_webhook_payload(self, *args, **kwargs):
+        return Factories.create_webhook_payload(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

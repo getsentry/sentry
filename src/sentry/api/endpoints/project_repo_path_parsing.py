@@ -1,3 +1,6 @@
+from pathlib import PurePath, PureWindowsPath
+from urllib.parse import urlparse
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,30 +11,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.code_mapping import find_roots
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-
-
-def find_roots(stack_path, source_path):
-    """
-    Returns a tuple containing the stack_root, and the source_root.
-    If there is no overlap, raise an exception since this should not happen
-    """
-    overlap_to_check = stack_path
-    stack_root = ""
-    while overlap_to_check:
-        # see if our path ends with the overlap we want
-        if source_path.endswith(overlap_to_check):
-            # determine the source root by removing the overlap
-            source_root = source_path.rpartition(overlap_to_check)[0]
-            return (stack_root, source_root)
-        # increase the stack root specificity
-        # while decreasing the overlap
-        stack_root += overlap_to_check[0]
-        overlap_to_check = overlap_to_check[1:]
-    # validate_source_url should have ensured the file names match
-    # so if we get here something went wrong and there is a bug
-    raise Exception("Could not find common root from paths")
 
 
 class PathMappingSerializer(CamelSnakeSerializer):
@@ -56,8 +38,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
     def validate_source_url(self, source_url: str):
         # first check to see if we are even looking at the same file
         stack_path = self.initial_data["stack_path"]
-        stack_file = stack_path.split("/")[-1]
-        source_file = source_url.split("/")[-1]
+
+        stack_file = PureWindowsPath(stack_path).name
+        source_file = PurePath(urlparse(source_url).path).name
 
         if stack_file != source_file:
             raise serializers.ValidationError(

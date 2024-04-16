@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Mapping
 
 from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function

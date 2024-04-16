@@ -13,6 +13,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     superUserCookieDomain: '.sentry.io',
     validateSUForm: true,
     features: new Set(),
+    shouldPreloadData: true,
     singleOrganization: false,
     enableAnalytics: true,
     urlPrefix: 'https://sentry-jest-tests.example.com/',
@@ -64,6 +65,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
       organizationUrl: 'https://foobar.sentry.io',
       regionUrl: 'https://us.sentry.io',
     },
+    memberRegions: [{name: 'us', url: 'https://sentry.io'}],
     regions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };

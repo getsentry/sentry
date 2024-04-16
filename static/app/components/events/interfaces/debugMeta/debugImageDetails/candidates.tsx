@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +27,7 @@ const filterOptionCategories = {
   source: t('Source'),
 };
 
-type ImageCandidates = Image['candidates'];
+type ImageCandidates = NonNullable<Image['candidates']>;
 
 type Props = {
   baseUrl: string;

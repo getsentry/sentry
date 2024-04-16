@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags

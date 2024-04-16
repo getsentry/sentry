@@ -1,4 +1,4 @@
-from typing import Collection, Mapping, Optional
+from collections.abc import Collection, Mapping
 
 from django.conf import settings
 
@@ -181,6 +181,25 @@ SHARED_TAG_STRINGS = {
     # Resource span
     "file_extension": PREFIX + 264,
     "app_start_type": PREFIX + 265,  # Mobile app start type
+    # Profiles
+    "function": PREFIX + 266,  # Function name
+    "package": PREFIX
+    + 267,  # it could be either a package or a module, but in profiling we don't make a distinction
+    "fingerprint": PREFIX + 268,  # takes into account function name and package
+    "is_application": PREFIX + 269,
+    "platform": PREFIX + 270,
+    "os.version": PREFIX + 271,
+    # Performance Score
+    "sentry.score_profile_version": PREFIX + 272,
+    # Metric stats
+    "mri": PREFIX + 273,
+    "mri.type": PREFIX + 274,
+    "mri.namespace": PREFIX + 275,
+    "outcome.id": PREFIX + 276,
+    "outcome.reason": PREFIX + 277,
+    "cardinality.window": PREFIX + 278,
+    "cardinality.limit": PREFIX + 279,
+    "cardinality.scope": PREFIX + 280,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -216,11 +235,31 @@ ESCALATING_ISSUES_METRIC_NAMES = {
     "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
+# 600-699
+PROFILING_METRIC_NAMES = {
+    "d:profiles/function.duration@millisecond": PREFIX + 600,
+}
+
+# 700-799
+BUNDLE_ANALYSIS_METRIC_NAMES = {
+    "d:bundle_analysis/bundle_size@byte": PREFIX + 700,
+}
+
+# 800-899
+METRIC_STATS_METRIC_NAMES = {
+    "c:metric_stats/volume@none": PREFIX + 800,
+    "g:metric_stats/cardinality@none": PREFIX + 801,
+}
+
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
     **ESCALATING_ISSUES_METRIC_NAMES,
+    **PROFILING_METRIC_NAMES,
+    **BUNDLE_ANALYSIS_METRIC_NAMES,
+    **METRIC_STATS_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
@@ -263,13 +302,13 @@ class StaticStringIndexer(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         # TODO: remove this metric after investigation is over
         if use_case_id is UseCaseID.ESCALATING_ISSUES:
             metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
@@ -278,7 +317,7 @@ class StaticStringIndexer(StringIndexer):
         return self.indexer.resolve(use_case_id, org_id, string)
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
 
@@ -310,12 +349,12 @@ class StaticStringIndexer(StringIndexer):
 
         return {**org_strings, **shared_strings}
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return None
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return None

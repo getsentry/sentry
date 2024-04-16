@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import Item from './item';
 import Toolbar from './toolbar';
@@ -24,7 +25,6 @@ type Props = {
   items: Array<SimilarItem>;
   onMerge: () => void;
   orgId: Organization['id'];
-  organization: Organization;
   pageLinks: string | null;
   project: Project;
 } & DefaultProps;
@@ -45,7 +45,6 @@ function List({
   orgId,
   groupId,
   project,
-  organization,
   items,
   filteredItems = [],
   pageLinks,
@@ -56,9 +55,16 @@ function List({
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
-  const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
-    'issues-similarity-embeddings'
+  const hasSimilarityEmbeddingsFeature = project.features.includes(
+    'similarity-embeddings'
   );
+  const organization = useOrganization();
+  const itemsWouldGroup = hasSimilarityEmbeddingsFeature
+    ? itemsWithFiltered.map(item => ({
+        id: item.issue.id,
+        shouldBeGrouped: item.aggregate?.shouldBeGrouped,
+      }))
+    : undefined;
 
   if (!hasResults) {
     return <Empty />;
@@ -71,8 +77,17 @@ function List({
           <SimilarSpectrum />
         </Header>
       )}
+      {hasSimilarityEmbeddingsFeature && (
+        <LegendSmall>-1 = Not Similar, 1 = Similar</LegendSmall>
+      )}
       <Panel>
-        <Toolbar onMerge={onMerge} />
+        <Toolbar
+          onMerge={onMerge}
+          groupId={groupId}
+          project={project}
+          organization={organization}
+          itemsWouldGroup={itemsWouldGroup}
+        />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
@@ -81,7 +96,6 @@ function List({
               orgId={orgId}
               groupId={groupId}
               project={project}
-              organization={organization}
               {...item}
             />
           ))}
@@ -106,6 +120,13 @@ const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(1)};
+`;
+
+const LegendSmall = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Footer = styled('div')`

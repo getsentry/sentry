@@ -17,9 +17,14 @@ type TContext = unknown;
 interface Props {
   feedbackIds: TFeedbackIds;
   organization: Organization;
+  projectIds: string[];
 }
 
-export default function useMutateFeedback({feedbackIds, organization}: Props) {
+export default function useMutateFeedback({
+  feedbackIds,
+  organization,
+  projectIds,
+}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
@@ -43,7 +48,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
         ? {}
         : ids === 'all'
           ? listQueryKey[1]!
-          : {query: {id: ids}};
+          : {query: {id: ids, project: projectIds}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {

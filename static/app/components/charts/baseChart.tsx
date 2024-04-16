@@ -51,7 +51,7 @@ import {defined} from 'sentry/utils';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import type {TooltipSubLabel} from './components/tooltip';
-import {computeChartTooltip} from './components/tooltip';
+import {CHART_TOOLTIP_VIEWPORT_OFFSET, computeChartTooltip} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -676,12 +676,14 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-series {
     border-bottom: none;
+    max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
     border-radius: ${p.theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
+    ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
     font-weight: normal;

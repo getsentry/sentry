@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 import type {Tag} from 'sentry/actionCreators/events';
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
-import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
 import type {
   Actor,
@@ -39,7 +38,7 @@ export function assignToUser(params: AssignToUserParams) {
   const id = uniqueId();
 
   GroupStore.onAssignTo(id, params.id, {
-    email: (params.member && params.member.email) || '',
+    email: params.member?.email ?? '',
   });
 
   const request = api.requestPromise(endpoint, {
@@ -446,32 +445,6 @@ export const makeFetchIssueTagsQueryKey = ({
   {query: {environment, readable, limit}},
 ];
 
-const makeFetchStatisticalDetectorTagsQueryKey = ({
-  orgSlug,
-  environment,
-  statisticalDetectorParameters,
-}: FetchIssueTagsParameters): ApiQueryKey => {
-  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
-    transaction: '',
-    durationBaseline: 0,
-    start: undefined,
-    end: undefined,
-  };
-  return [
-    `/organizations/${orgSlug}/events-facets/`,
-    {
-      query: {
-        environment,
-        transaction,
-        includeAll: true,
-        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
-        start,
-        end,
-      },
-    },
-  ];
-};
-
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
   {
@@ -479,13 +452,7 @@ export const useFetchIssueTags = (
     ...options
   }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
-  let queryKey = makeFetchIssueTagsQueryKey(parameters);
-  if (parameters.isStatisticalDetector) {
-    // Statistical detector issues need to use a Discover query for tags
-    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
-  }
-
-  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
+  return useApiQuery<GroupTagsResponse | Tag[]>(makeFetchIssueTagsQueryKey(parameters), {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,

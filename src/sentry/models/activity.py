@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -23,6 +25,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -30,20 +33,33 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
+_default_logger = logging.getLogger(__name__)
+
+
 class ActivityManager(BaseManager["Activity"]):
-    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
+    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
+        initial_priority = None
 
         if not features.has("projects:issue-priority", group.project):
-            activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+        else:
+            # Check if 'initial_priority' is available and the feature flag is on
+            initial_priority_value = group.get_event_metadata().get(
+                "initial_priority", None
+            ) or group.get_event_metadata().get("initial_priority", None)
+
+            initial_priority = (
+                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
+            )
 
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             prev_sig = sig
-            sig = (item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id, item.data)
 
             if item.type == ActivityType.NOTE.value:
                 activities.append(item)
@@ -58,6 +74,7 @@ class ActivityManager(BaseManager["Activity"]):
                 project=group.project,
                 group=group,
                 type=ActivityType.FIRST_SEEN.value,
+                data={"priority": initial_priority},
                 datetime=group.first_seen,
             )
         )
@@ -133,6 +150,23 @@ class Activity(Model):
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
+
+        # The receiver for the post_save signal was not working in production, so just execute directly and safely
+        try:
+            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+                activity_created_receiver,
+            )
+
+            activity_created_receiver(self, created)
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
+            pass
 
         if not created:
             return

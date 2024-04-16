@@ -108,9 +108,6 @@
     "/api/0/organizations/{organization_slug}/repos/{repo_id}/commits/": {
       "$ref": "paths/organizations/repo-commits.json"
     },
-    "/api/0/organizations/{organization_slug}/users/": {
-      "$ref": "paths/organizations/users.json"
-    },
     "/api/0/organizations/{organization_slug}/shortids/{short_id}/": {
       "$ref": "paths/organizations/shortid.json"
     },
@@ -194,9 +191,6 @@
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/commitfiles/": {
       "$ref": "paths/releases/organization-release-commit-files.json"
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/resolved/": {
-      "$ref": "paths/releases/project-issues-resolved-in-release.json"
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/deploys/": {
       "$ref": "paths/releases/deploys.json"

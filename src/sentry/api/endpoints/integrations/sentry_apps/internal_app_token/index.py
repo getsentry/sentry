@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.endpoints.integrations.sentry_apps.details import (
@@ -24,6 +25,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -34,7 +36,8 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         attrs = {"application": None}
 
         token_list = [
-            ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens
+            ApiTokenSerializer().serialize(token, attrs, request.user, include_token=False)
+            for token in tokens
         ]
 
         if not sentry_app.show_auth_info(request.access):

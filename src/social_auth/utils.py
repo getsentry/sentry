@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
-from datetime import datetime, timedelta
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
@@ -40,32 +38,6 @@ def tokens(instance: UserSocialAuth | RpcUserSocialAuth) -> dict[str, Any]:
         return backend.AUTH_BACKEND.tokens(instance)
     else:
         return {}
-
-
-def expiration_datetime(instance: UserSocialAuth | RpcUserSocialAuth) -> timedelta | None:
-    """Return provider session live seconds. Returns a timedelta ready to
-    use with session.set_expiry().
-
-    If provider returns a timestamp instead of session seconds to live, the
-    timedelta is inferred from current time (using UTC timezone). None is
-    returned if there's no value stored or it's invalid.
-    """
-    if instance.extra_data and "expires" in instance.extra_data:
-        try:
-            expires = int(instance.extra_data["expires"])
-        except (ValueError, TypeError):
-            return None
-
-        now = datetime.utcnow()
-
-        # Detect if expires is a timestamp
-        if expires > time.mktime(now.timetuple()):
-            # expires is a datetime
-            return datetime.fromtimestamp(expires) - now
-        else:
-            # expires is a timedelta
-            return timedelta(seconds=expires)
-    return None
 
 
 def sanitize_log_data(secret, data=None, leave_characters=LEAVE_CHARS):

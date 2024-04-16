@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {defined} from 'sentry/utils';
 
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
+  as?: React.ElementType;
   color?: string;
   higherOpacity?: boolean;
   isHovered?: boolean;
@@ -12,8 +13,17 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const InteractionStateLayer = styled(
-  (props: StateLayerProps) => <span role="presentation" {...props} />,
-  {shouldForwardProp: p => typeof p === 'string' && isPropValid(p)}
+  (props: StateLayerProps) => {
+    const {children, as: Element = 'span', ...rest} = props;
+
+    // Here, using `as` directly doesn't work because it loses the `role` prop. Instead, manually propagating the props does the right thing.
+    return (
+      <Element {...rest} role="presentation">
+        {children}
+      </Element>
+    );
+  },
+  {shouldForwardProp: p => isPropValid(p) || p === 'as'}
 )`
   position: absolute;
   top: 50%;

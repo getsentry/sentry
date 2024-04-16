@@ -4,13 +4,13 @@ import contextlib
 import datetime
 import logging
 import threading
+from collections.abc import Callable, Generator, Iterable, Mapping
 from enum import Enum
-from typing import Any, Callable, Generator, Generic, Iterable, Mapping, Protocol, TypeVar, cast
+from typing import Any, Generic, Protocol, Self, TypeVar, cast
 
 import pydantic
 from django.db import router, transaction
 from django.db.models import Model
-from typing_extensions import Self
 
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
@@ -26,7 +26,7 @@ OptionValue = Any
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
-DEFAULT_DATE = datetime.datetime(2000, 1, 1)
+DEFAULT_DATE = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
 
 
 class ValueEqualityEnum(Enum):
@@ -100,7 +100,7 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
     """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import jwt
@@ -106,7 +107,7 @@ class JiraInstalledTest(APITestCase):
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry_sdk.set_tag")
@@ -120,5 +121,5 @@ class JiraInstalledTest(APITestCase):
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE

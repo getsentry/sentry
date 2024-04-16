@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 import pytest
 from django.utils import timezone
@@ -13,7 +12,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
 def _create_rule_for_env(
@@ -33,7 +31,6 @@ def _create_rule_for_env(
 
 
 @freeze_time("2023-09-18")
-@region_silo_test()
 class TestCustomDynamicSamplingRuleProject(TestCase):
     def setUp(self):
         super().setUp()
@@ -193,7 +190,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
 
         def create_rule(
             project_ids: list[int],
-            org_id: Optional[int] = None,
+            org_id: int | None = None,
             old: bool = False,
             new: bool = False,
         ) -> CustomDynamicSamplingRule:

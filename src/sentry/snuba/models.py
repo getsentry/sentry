@@ -1,10 +1,9 @@
 from datetime import timedelta
 from enum import Enum
-from typing import ClassVar, Optional
+from typing import ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -34,7 +33,7 @@ class SnubaQuery(Model):
         CRASH_RATE = 2
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
-    # Possible values are in the the `Type` enum
+    # Possible values are in the `Type` enum
     type = models.SmallIntegerField()
     dataset = models.TextField()
     query = models.TextField()
@@ -53,7 +52,7 @@ class SnubaQuery(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.actor import Actor
         from sentry.models.organization import Organization
         from sentry.models.project import Project
@@ -102,13 +101,19 @@ class QuerySubscription(Model):
         DELETING = 3
         DISABLED = 4
 
+    # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
-    type = models.TextField()
+    type = (
+        models.TextField()
+    )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now, null=True)
+    query_extra = models.TextField(
+        null=True
+    )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())
@@ -123,7 +128,7 @@ class QuerySubscription(Model):
     # in an identical duplicate of the `QuerySubscription` model with a unique `subscription_id`.
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.snuba.subscriptions import create_snuba_subscription

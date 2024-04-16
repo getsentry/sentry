@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
@@ -46,8 +44,8 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         create_default_team: bool,
         organization_id: int,
         is_test: bool = False,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
+        user_id: int | None = None,
+        email: str | None = None,
     ) -> Organization:
         assert (user_id is None and email) or (
             user_id and email is None
@@ -80,7 +78,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         self,
         organization_id: int,
         provision_payload: OrganizationProvisioningOptions,
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         slug = provision_payload.provision_options.slug
         # Validate that no org with this org ID or slug exist in the region, unless already
         #  owned by the user_id

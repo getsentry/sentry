@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {NewQuery, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -14,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {
@@ -26,6 +26,14 @@ import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 const UNDEFINED_TEXT = '--';
+type BlockType = 'duration' | 'count' | 'change';
+
+interface BlockProps {
+  dataKey: string | ((data?: TableDataRow[]) => number | undefined);
+  title: string;
+  type: BlockType;
+  allowZero?: boolean;
+}
 
 export function MetricsRibbon({
   filters,
@@ -35,11 +43,7 @@ export function MetricsRibbon({
   referrer,
   dataset,
 }: {
-  blocks: {
-    dataKey: string | ((data?: TableDataRow[]) => number | undefined);
-    title: string;
-    type: 'duration' | 'count';
-  }[];
+  blocks: BlockProps[];
   dataset: DiscoverDatasets;
   fields: string[];
   referrer: string;
@@ -118,44 +122,42 @@ function MetricsBlock({
   data,
   dataKey,
   isLoading,
+  allowZero,
 }: {
-  dataKey: string | ((data?: TableDataRow[]) => number | undefined);
   isLoading: boolean;
   title: string;
-  type: 'duration' | 'count';
   data?: TableData;
   release?: string;
-}) {
+} & BlockProps) {
   const value =
     typeof dataKey === 'function'
       ? dataKey(data?.data)
       : (data?.data?.[0]?.[dataKey] as number);
 
+  const hasData = (!isLoading && value && value !== 0) || (value === 0 && allowZero);
+
   if (type === 'duration') {
     return (
       <Block title={title}>
-        {!isLoading && data && defined(value) ? (
-          <DurationCell milliseconds={value} />
-        ) : (
-          UNDEFINED_TEXT
-        )}
+        {hasData ? <DurationCell milliseconds={value} /> : UNDEFINED_TEXT}
+      </Block>
+    );
+  }
+
+  if (type === 'change') {
+    return (
+      <Block title={title}>
+        {hasData ? <PercentChangeCell colorize deltaValue={value} /> : UNDEFINED_TEXT}
       </Block>
     );
   }
 
   return (
-    <Block title={title}>
-      {!isLoading && data && defined(value) ? (
-        <CountCell count={value} />
-      ) : (
-        UNDEFINED_TEXT
-      )}
-    </Block>
+    <Block title={title}>{hasData ? <CountCell count={value} /> : UNDEFINED_TEXT}</Block>
   );
 }
 
 const BlockContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, minmax(40px, max-content));
+  display: flex;
   gap: ${space(2)};
 `;

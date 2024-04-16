@@ -1,4 +1,4 @@
-import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
@@ -63,10 +63,20 @@ export function isOptionFrameEvent(
   return attachment.data?.tag === 'options';
 }
 
+export function isVideoFrameEvent(
+  attachment: Record<string, any>
+): attachment is VideoFrameEvent {
+  return attachment.type === EventType.Custom && attachment.data.tag === 'video';
+}
+
 export function isBreadcrumbFrame(
   frame: ReplayFrame | undefined
 ): frame is BreadcrumbFrame {
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
+}
+
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
@@ -176,9 +186,27 @@ type HydratedSpan<Op extends string> = Overwrite<
 
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
-  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
 >;
+
+export type FeedbackFrame = {
+  category: 'feedback';
+  data: {
+    eventId: string;
+    groupId: number;
+    groupShortId: string;
+    label: string;
+    labels: string[];
+    projectSlug: string;
+  };
+  message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
+  type: string;
+};
+
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
@@ -197,6 +225,7 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
   'ui.focus',
@@ -277,3 +306,38 @@ export type ErrorFrame = Overwrite<
 >;
 
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+
+interface VideoFrame {
+  container: string;
+  duration: number;
+  encoding: string;
+  frameCount: number;
+  frameRate: number;
+  frameRateType: string;
+  height: number;
+  left: number;
+  segmentId: number;
+  size: number;
+  top: number;
+  width: number;
+}
+
+export interface VideoFrameEvent {
+  data: {
+    payload: VideoFrame;
+    tag: 'video';
+  };
+  timestamp: number;
+  type: EventType.Custom;
+}
+
+export interface VideoEvent {
+  duration: number;
+  id: number;
+  timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
+}

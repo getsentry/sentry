@@ -1,16 +1,12 @@
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
-
-from django.db.models import Prefetch, prefetch_related_objects
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -20,30 +16,8 @@ from .utils import get_organization_id
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
-    def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
+    def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
-
-    def __sorted_org_roles_for_user(self, item: OrganizationMember) -> Sequence[Mapping[str, Any]]:
-        org_roles = [
-            (team.slug, organization_roles.get(team.org_role)) for team in item.team_role_prefetch
-        ]
-
-        sorted_org_roles = sorted(
-            org_roles,
-            key=lambda r: r[1].priority,
-            reverse=True,
-        )
-
-        return [
-            {
-                "teamSlug": slug,
-                "role": serialize(
-                    role,
-                    serializer=OrganizationRoleSerializer(organization=item.organization),
-                ),
-            }
-            for slug, role in sorted_org_roles
-        ]
 
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
@@ -53,16 +27,6 @@ class OrganizationMemberSerializer(Serializer):
         the organization_members in `item_list`.
         TODO(dcramer): assert on relations
         """
-
-        # Preload to avoid fetching each team individually
-        prefetch_related_objects(
-            item_list,
-            Prefetch(
-                "teams",
-                queryset=Team.objects.all().exclude(org_role=None),
-                to_attr="team_role_prefetch",
-            ),
-        )
 
         # Bulk load users
         users_set = sorted(
@@ -112,7 +76,6 @@ class OrganizationMemberSerializer(Serializer):
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
-                "groupOrgRoles": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
             }
@@ -150,10 +113,6 @@ class OrganizationMemberSerializer(Serializer):
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
         }
-
-        groupOrgRoles = attrs.get("groupOrgRoles")
-        if groupOrgRoles:
-            data["groupOrgRoles"] = groupOrgRoles
 
         if "externalUsers" in self.expand:
             data["externalUsers"] = attrs.get("externalUsers", [])

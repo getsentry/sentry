@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import importlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from django.conf import settings
 from django.core.exceptions import ViewDoesNotExist

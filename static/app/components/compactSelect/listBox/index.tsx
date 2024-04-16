@@ -1,16 +1,18 @@
-import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {forwardRef, Fragment, useCallback, useContext, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import type {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -18,7 +20,7 @@ import {ListBoxSection} from './section';
 interface ListBoxProps
   extends Omit<
       React.HTMLAttributes<HTMLUListElement>,
-      'onBlur' | 'onFocus' | 'autoFocus'
+      'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
     Omit<
       AriaListBoxOptions<any>,
@@ -42,6 +44,7 @@ interface ListBoxProps
    * `useListBox()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -52,7 +55,7 @@ interface ListBoxProps
    * and before `onChange`.
    */
   onSectionToggle?: (
-    section: SelectSection<React.Key>,
+    section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
   size?: FormSize;
@@ -72,17 +75,20 @@ interface ListBoxProps
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-function ListBox({
-  listState,
-  size = 'md',
-  shouldFocusWrap = true,
-  shouldFocusOnHover = true,
-  onSectionToggle,
-  sizeLimitMessage,
-  keyDownHandler,
-  label,
-  ...props
-}: ListBoxProps) {
+const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
+  {
+    listState,
+    size = 'md',
+    shouldFocusWrap = true,
+    shouldFocusOnHover = true,
+    onSectionToggle,
+    sizeLimitMessage,
+    keyDownHandler,
+    label,
+    ...props
+  }: ListBoxProps,
+  forwarderdRef
+) {
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -125,7 +131,11 @@ function ListBox({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <ListWrap {...mergeProps(listBoxProps, props)} onKeyDown={onKeyDown} ref={ref}>
+      <ListWrap
+        {...mergeProps(listBoxProps, props)}
+        onKeyDown={onKeyDown}
+        ref={mergeRefs([ref, forwarderdRef])}
+      >
         {overlayIsOpen &&
           listItems.map(item => {
             if (item.type === 'section') {
@@ -158,6 +168,6 @@ function ListBox({
       </ListWrap>
     </Fragment>
   );
-}
+});
 
 export {ListBox};

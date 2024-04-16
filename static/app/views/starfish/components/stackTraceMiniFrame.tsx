@@ -71,8 +71,9 @@ export function MissingFrame() {
   );
 }
 
-const FrameContainer = styled('div')`
+export const FrameContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};
@@ -120,7 +121,7 @@ function SourceCodeIntegrationLink({
     projectSlug: project.slug,
   });
 
-  if (match && match.config && match.sourceUrl && frame.lineNo && !isLoading) {
+  if (match?.config && match.sourceUrl && frame.lineNo && !isLoading) {
     return (
       <DeemphasizedExternalLink
         href={getIntegrationSourceUrl(

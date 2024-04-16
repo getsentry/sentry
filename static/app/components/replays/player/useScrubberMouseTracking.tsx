@@ -10,7 +10,8 @@ type Opts<T extends Element> = {
 };
 
 export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
-  const {setCurrentHoverTime, durationMs} = useReplayContext();
+  const {replay, setCurrentHoverTime} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
     params => {
@@ -42,7 +43,8 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   {elem}: Opts<T>,
   scale: number
 ) {
-  const {currentTime, setCurrentHoverTime, durationMs} = useReplayContext();
+  const {replay, currentTime, setCurrentHoverTime} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
     params => {

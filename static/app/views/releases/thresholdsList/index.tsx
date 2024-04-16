@@ -38,6 +38,7 @@ function ReleaseThresholdList({}: Props) {
   const PAGE_SIZE = 10;
   const router = useRouter();
   const organization = useOrganization();
+
   useEffect(() => {
     const hasV2ReleaseUIEnabled =
       organization.features.includes('releases-v2-internal') ||
@@ -48,6 +49,7 @@ function ReleaseThresholdList({}: Props) {
       router.replace(redirect);
     }
   }, [router, organization]);
+
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {
@@ -61,18 +63,24 @@ function ReleaseThresholdList({}: Props) {
     selectedEnvs: selection.environments,
   });
 
-  const selectedProjects: Project[] = useMemo(() => {
-    return projects.filter(
-      project =>
-        selection.projects.some(id => String(id) === project.id || id === -1) ||
-        !selection.projects.length
-    );
-  }, [projects, selection.projects]);
+  const selectedProjects: Project[] = useMemo(
+    () =>
+      projects.filter(
+        project =>
+          selection.projects.some(id => {
+            const strId = String(id);
+            return strId === project.id || id === -1;
+          }) || !selection.projects.length
+      ),
+    [projects, selection.projects]
+  );
 
   const projectsById: {[key: string]: Project} = useMemo(() => {
     const byId = {};
     selectedProjects.forEach(proj => {
       byId[proj.id] = proj;
+      // adding slug for migration to MetricAlerts, we only have slug in MetricAlerts
+      byId[proj.slug] = proj;
     });
     return byId;
   }, [selectedProjects]);
@@ -86,16 +94,58 @@ function ReleaseThresholdList({}: Props) {
       projects.flatMap(project => {
         /**
          * Include environments from:
+         * all projects I can access if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
          * all projects if the user is a superuser
          * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
-         * all projects if -1 is the only selected project.
          */
+        const allProjectsSelectedICanAccess =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
+        const allMemberProjectsIfSuperuser =
+          selectedProjectIds.length === 0 && user.isSuperuser;
         if (
-          (selectedProjectIds.length === 1 &&
-            selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
-            project.hasAccess) ||
-          (selectedProjectIds.length === 0 && (project.isMember || user.isSuperuser)) ||
+          allProjectsSelectedICanAccess ||
+          myProjectsSelected ||
+          allMemberProjectsIfSuperuser ||
+          selectedProjectIds.includes(project.id)
+        ) {
+          return project.environments;
+        }
+
+        return [];
+      })
+    );
+    const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
+
+    // bubble the selected projects envs first, then concat the rest of the envs
+    return Array.from(unSortedEnvs)
+      .sort()
+      .concat([...envDiff].sort());
+  }, [projects, selection.projects]);
+
+  const getEnvironmentsAvailableToProject = useMemo((): string[] => {
+    const selectedProjectIds = selection.projects.map(id => String(id));
+    const allEnvSet = new Set(projects.flatMap(project => project.environments));
+    // NOTE: mostly taken from environmentSelector.tsx
+    const unSortedEnvs = new Set(
+      projects.flatMap(project => {
+        /**
+         * Include environments from:
+         * all projects if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
+         * the requested projects
+         */
+        const allProjectsSelected =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
+        if (
+          allProjectsSelected ||
+          myProjectsSelected ||
           selectedProjectIds.includes(project.id)
         ) {
           return project.environments;
@@ -126,19 +176,20 @@ function ReleaseThresholdList({}: Props) {
 
   const thresholdsByProject: {[key: string]: Threshold[]} = useMemo(() => {
     const byProj = {};
+
     filteredThresholds.forEach(threshold => {
-      const projId = threshold.project.id;
-      if (!byProj[projId]) {
-        byProj[projId] = [];
-      }
-      byProj[projId].push(threshold);
+      const selectedProject = selection.projects[0] !== -1 ? selection.projects[0] : null;
+      const projId = threshold.project.id ?? selectedProject;
+      (byProj[projId] ??= []).push(threshold);
     });
     return byProj;
-  }, [filteredThresholds]);
+  }, [filteredThresholds, selection.projects]);
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
     // TODO: limit + paginate list
-    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
+    return selectedProjects.filter(
+      proj => !thresholdsByProject[proj.id] && !thresholdsByProject[proj.slug]
+    );
   }, [thresholdsByProject, selectedProjects]);
 
   const setTempError = msg => {
@@ -146,12 +197,8 @@ function ReleaseThresholdList({}: Props) {
     setTimeout(() => setListError(''), 5000);
   };
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} message={requestError.message} />;
-  }
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  if (isError) return <LoadingError onRetry={refetch} message={requestError.message} />;
+  if (isLoading) return <LoadingIndicator />;
 
   return (
     <PageFiltersContainer>
@@ -178,7 +225,7 @@ function ReleaseThresholdList({}: Props) {
                   isError={isError}
                   refetch={refetch}
                   setTempError={setTempError}
-                  allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                  allEnvironmentNames={getEnvironmentsAvailableToProject}
                 />
               ))}
             {projectsWithoutThresholds.length > 0 && (
@@ -193,7 +240,7 @@ function ReleaseThresholdList({}: Props) {
                     <NoThresholdCard
                       key={proj.id}
                       project={proj}
-                      allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                      allEnvironmentNames={getAllEnvironmentNames}
                       refetch={refetch}
                       setTempError={setTempError}
                     />

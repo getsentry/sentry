@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, MutableMapping
+from collections.abc import Iterable, MutableMapping
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -97,7 +97,6 @@ def serialize_rpc_team(team: Team) -> RpcTeam:
         status=team.status,
         organization_id=team.organization_id,
         slug=team.slug,
-        org_role=team.org_role,
         name=team.name,
     )
 

@@ -71,7 +71,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     params,
   } = props;
   const eventWithMeta = withMeta(event);
-
   // Reprocessing
   const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
   const {activity: activities} = group;

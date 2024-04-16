@@ -3,19 +3,10 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
@@ -25,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import integrations
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
@@ -467,9 +458,9 @@ class PerformanceProblemContext:
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
-            if self.problem.offender_span_ids
-            else "",
+            "num_repeating_spans": (
+                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
+            ),
         }
 
     @property
@@ -540,9 +531,9 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
-            if self.problem.offender_span_ids
-            else "",
+            "num_repeating_spans": (
+                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
+            ),
         }
 
     @property

@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 from urllib import parse
 
 from django.db.models import Max
@@ -8,10 +7,9 @@ from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRule,
-    AlertRuleThresholdType,
     Incident,
     IncidentStatus,
     IncidentTrigger,
@@ -152,9 +150,9 @@ def incident_attachment_info(
 
 def metric_alert_attachment_info(
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident] = None,
-    new_status: Optional[IncidentStatus] = None,
-    metric_value: Optional[float] = None,
+    selected_incident: Incident | None = None,
+    new_status: IncidentStatus | None = None,
+    metric_value: float | None = None,
 ):
     latest_incident = None
     if selected_incident is None:

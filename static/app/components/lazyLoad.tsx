@@ -18,6 +18,13 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
    * Accepts a function to trigger the import resolution of the component.
    */
   component: () => PromisedImport<C>;
+
+  /**
+   * Override the default fallback component.
+   *
+   * Try not to load too many unique components for the fallback!
+   */
+  loadingFallback?: React.ReactNode | undefined;
 };
 
 /**
@@ -26,7 +33,11 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  *
  * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
  */
-function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
+function LazyLoad<C extends ComponentType>({
+  component,
+  loadingFallback,
+  ...props
+}: Props<C>) {
   const LazyComponent = useMemo(
     () => lazy<C>(() => retryableImport(component)),
     [component]
@@ -36,9 +47,11 @@ function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
     <ErrorBoundary>
       <Suspense
         fallback={
-          <LoadingContainer>
-            <LoadingIndicator />
-          </LoadingContainer>
+          loadingFallback ?? (
+            <LoadingContainer>
+              <LoadingIndicator />
+            </LoadingContainer>
+          )
         }
       >
         <LazyComponent {...(props as React.ComponentProps<C>)} />
@@ -53,7 +66,7 @@ interface ErrorBoundaryState {
 }
 
 // Error boundaries currently have to be classes.
-class ErrorBoundary extends Component<{}, ErrorBoundaryState> {
+class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundaryState> {
   static getDerivedStateFromError(error: Error) {
     return {
       hasError: true,

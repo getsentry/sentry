@@ -1,13 +1,15 @@
 """ Write transactions into redis sets """
 import logging
-import random
-from typing import Any, Iterator, Mapping, Optional
+from collections.abc import Iterator, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
+from rediscluster import RedisCluster
 
-from sentry import features, options
+from sentry import features
+from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
@@ -29,7 +31,7 @@ SET_TTL = 24 * 60 * 60
 
 # TODO(iker): accept multiple values to add to the set. Right now, multiple
 # calls for each individual value are required, producing too many Redis calls.
-add_to_set = redis.load_script("utils/sadd_capped.lua")
+add_to_set = redis.load_redis_script("utils/sadd_capped.lua")
 logger = logging.getLogger(__name__)
 
 
@@ -44,10 +46,10 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
     return f"{prefix}:projects"
 
 
-def get_redis_client() -> Any:
+def get_redis_client() -> RedisCluster:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
@@ -75,7 +77,7 @@ def _record_sample(namespace: ClustererNamespace, project: Project, sample: str)
     with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
-        created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)
         if created:
             projects_key = _get_projects_key(namespace)
             client.sadd(projects_key, project.id)
@@ -109,12 +111,11 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             transaction_name,
             _with_transaction=False,
         )
-        sample_rate = options.get("txnames.bump-lifetime-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
+        if in_random_rollout("txnames.bump-lifetime-sample-rate"):
             safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
-def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[str]:
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
     transaction_name = event_data.get("transaction")
@@ -192,7 +193,7 @@ def record_span_descriptions(
         safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
 
 
-def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
+def _get_span_description_to_store(span: Mapping[str, Any]) -> str | None:
     if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
         return None
 

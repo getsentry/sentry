@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase

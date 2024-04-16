@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
@@ -8,6 +7,7 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
 import ModalStore from 'sentry/stores/modalStore';
@@ -149,7 +149,7 @@ describe('ResolveActions', function () {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     await userEvent.click(screen.getByText('Another existing release…'));
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.template import loader
 from django.utils import timezone
 
-from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 logger = logging.getLogger("sentry")

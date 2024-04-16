@@ -3,19 +3,22 @@ from __future__ import annotations
 import abc
 import logging
 import string
+from collections.abc import Generator, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Generator, Mapping, MutableMapping, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
+from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.variants import BaseVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -23,7 +26,6 @@ from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
@@ -291,7 +293,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interfaces(self) -> Mapping[str, Interface]:
         return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
 
-    @memoize
+    @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
         return self.get_interfaces()
 
@@ -367,10 +369,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
         hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
 
         return CalculatedHashes(
-            hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
+            hashes=flat_hashes,
+            hierarchical_hashes=hierarchical_hashes,
+            tree_labels=tree_labels,
+            variants=[*flat_variants, *hierarchical_variants],
         )
 
-    def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
+    def get_sorted_grouping_variants(
+        self, force_config: StrategyConfiguration | None = None
+    ) -> tuple[KeyedVariants, KeyedVariants]:
         """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
@@ -378,7 +385,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return sort_grouping_variants(variants)
 
     @staticmethod
-    def _hashes_from_sorted_grouping_variants(variants):
+    def _hashes_from_sorted_grouping_variants(
+        variants: KeyedVariants,
+    ) -> tuple[list[str], list[Any]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         from sentry.grouping.variants import ComponentVariant
@@ -417,7 +426,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self,
         force_config: StrategyConfiguration | GroupingConfig | str | None = None,
         normalize_stacktraces: bool = False,
-    ):
+    ) -> dict[str, BaseVariant]:
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
@@ -545,7 +554,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return data
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         """
         The internal search_message attribute is only used for search purposes.
@@ -776,7 +785,7 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         message = super().search_message
         # Include values from the occurrence in our search message as well, so that occurrences work

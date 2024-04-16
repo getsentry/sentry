@@ -1,8 +1,8 @@
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Mapping, Sequence
 
 from snuba_sdk import (
     Column,
@@ -177,10 +177,10 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         env_name = resolved_strings.get(row[env_key])
                         release_name = resolved_strings.get(row[release_key])
                         row_totals = totals[row["project_id"]].setdefault(
-                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore
+                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore[arg-type]
                         )
                         row_totals["total_sessions"] += row["sessions"]
-                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore
+                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore[index]
 
                 if not more_results:
                     break

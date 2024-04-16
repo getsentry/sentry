@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -17,13 +17,11 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-@region_silo_test
 class GroupAttributesTest(TestCase):
     def test_retrieve_group_values(self) -> None:
         group = self.create_group()
@@ -90,14 +88,14 @@ class GroupAttributesTest(TestCase):
             group=group,
             project=group.project,
             user_id=self.user.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
         group_2 = self.create_group()
         GroupAssignee.objects.create(
             group=group_2,
             project=group.project,
             team_id=self.team.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         snapshot_values = _bulk_retrieve_snapshot_values([group, group_2], False)
@@ -141,7 +139,6 @@ class GroupAttributesTest(TestCase):
         ]
 
 
-@region_silo_test
 class PostSaveLogGroupAttributesChangedTest(TestCase):
     def test(self):
         self.run_attr_test(self.group, [], "all")

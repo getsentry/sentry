@@ -392,8 +392,8 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  grid-template-rows: 18px auto auto auto auto auto;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  grid-template-rows: 18px repeat(5, min-content);
   column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};
 `;

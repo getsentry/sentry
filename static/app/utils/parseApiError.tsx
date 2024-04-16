@@ -1,14 +1,14 @@
 import type {ResponseMeta} from 'sentry/api';
 
 export default function parseApiError(resp: ResponseMeta): string {
-  const {detail} = (resp && resp.responseJSON) || ({} as object);
+  const {detail} = resp?.responseJSON || ({} as object);
 
   // return immediately if string
   if (typeof detail === 'string') {
     return detail;
   }
 
-  if (detail && detail.message) {
+  if (detail?.message) {
     return detail.message;
   }
 

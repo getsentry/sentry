@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
 import moment from 'moment';
 import type {LocationRange} from 'pegjs';
@@ -612,7 +613,6 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
-    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
@@ -1043,11 +1043,23 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-const options = {
-  TokenConverter,
-  TermOperator,
-  FilterType,
-};
+function tryParseSearch<T extends {config: SearchConfig}>(
+  query: string,
+  config: T
+): ParseResult | null {
+  try {
+    return grammar.parse(query, config);
+  } catch (e) {
+    Sentry.withScope(scope => {
+      scope.setFingerprint(['search-syntax-parse-error']);
+      scope.setExtra('message', e.message?.slice(-100));
+      scope.setExtra('found', e.found);
+      Sentry.captureException(e);
+    });
+
+    return null;
+  }
+}
 
 /**
  * Parse a search query into a ParseResult. Failing to parse the search query
@@ -1057,18 +1069,16 @@ export function parseSearch(
   query: string,
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
-  const configCopy = {...defaultConfig};
+  const config = additionalConfig
+    ? merge({...defaultConfig}, additionalConfig)
+    : defaultConfig;
 
-  // Merge additionalConfig with defaultConfig
-  const config = merge(configCopy, additionalConfig);
-
-  try {
-    return grammar.parse(query, {...options, config});
-  } catch (e) {
-    // TODO(epurkhiser): Should we capture these errors somewhere?
-  }
-
-  return null;
+  return tryParseSearch(query, {
+    config,
+    TokenConverter,
+    TermOperator,
+    FilterType,
+  });
 }
 
 /**

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Collection, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import sentry_kafka_schemas

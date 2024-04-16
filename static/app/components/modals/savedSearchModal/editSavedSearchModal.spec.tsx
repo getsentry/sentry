@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -57,7 +57,7 @@ describe('EditSavedSearchModal', function () {
         id: 'saved-search-id',
         name: 'test',
         query: 'is:unresolved browser:firefox',
-        sort: IssueSortOptions.PRIORITY,
+        sort: IssueSortOptions.TRENDS,
         visibility: SavedSearchVisibility.OWNER,
       },
     });
@@ -70,7 +70,7 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
     await userEvent.paste('test');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
 
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
 
@@ -98,7 +98,7 @@ describe('EditSavedSearchModal', function () {
         id: 'saved-search-id',
         name: 'test',
         query: 'is:unresolved browser:firefox',
-        sort: IssueSortOptions.PRIORITY,
+        sort: IssueSortOptions.TRENDS,
         visibility: SavedSearchVisibility.OWNER,
       },
     });
@@ -118,7 +118,7 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByTestId('smart-search-input'));
     await userEvent.paste('test');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
 
     // Hovering over the visibility dropdown shows disabled reason
     await userEvent.hover(screen.getByText(/only me/i));

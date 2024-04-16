@@ -12,7 +12,7 @@ type Props = {
 
 function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;
-  const authorCount = (release.authors && release.authors.length) || 0;
+  const authorCount = release.authors?.length || 0;
   if (commitCount === 0) {
     return null;
   }

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -10,10 +11,10 @@ from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models.actor import ActorTuple
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.actor import ActorTuple
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -32,7 +33,7 @@ CODEOWNERS = "codeowners"
 ownership_grammar = Grammar(
     rf"""
 
-ownership = line+
+ownership = line*
 
 line = _ (comment / rule / empty) newline?
 
@@ -415,9 +416,9 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.actor import ActorTuple
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.utils.actor import ActorTuple
 
     if not owners:
         return {}
@@ -503,11 +504,14 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
 
 
 def create_schema_from_issue_owners(
-    issue_owners: str,
     project_id: int,
+    issue_owners: str | None,
     add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
-) -> Mapping[str, Any]:
+) -> Mapping[str, Any] | None:
+    if issue_owners is None:
+        return None
+
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:

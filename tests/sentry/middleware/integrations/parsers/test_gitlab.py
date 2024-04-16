@@ -1,3 +1,5 @@
+from unittest import mock
+
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -12,10 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import (
-    assert_no_webhook_outboxes,
-    assert_webhook_outboxes_with_shard_id,
-)
+from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -83,7 +82,7 @@ class GitlabRequestParserTest(TestCase):
         response = self.run_parser(request)
         assert response.status_code == 400
         assert response.reason_phrase == "The customer's Secret Token is malformed."
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -108,7 +107,7 @@ class GitlabRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 400
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -129,9 +128,38 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b""
         assert len(responses.calls) == 0
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=integration.id,
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}",
+            region_names=[region.name],
+        )
+
+    @override_regions(region_config)
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @responses.activate
+    def test_routing_webhook_with_mailbox_buckets(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        with mock.patch(
+            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited_with_value"
+        ) as mock_is_limited:
+            mock_is_limited.return_value = (True, 3500, 360)
+            parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert response.content == b""
+        assert len(responses.calls) == 0
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}:15",
             region_names=[region.name],
         )
 
@@ -155,7 +183,7 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -193,8 +221,8 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b""
         assert len(responses.calls) == 0
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=integration.id,
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}",
             region_names=[region.name],
         )

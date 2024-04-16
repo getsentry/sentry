@@ -180,7 +180,7 @@ class ContextPickerModal extends Component<Props> {
     if (el !== null) {
       const input = el.querySelector('input');
 
-      input && input.focus();
+      input?.focus();
     }
   };
 

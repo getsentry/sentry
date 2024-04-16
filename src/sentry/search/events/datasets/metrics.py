@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
@@ -575,6 +576,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_total_starts",
+                    snql_distribution=self._resolve_count_total_starts_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
                         fields.MetricArg(
@@ -606,6 +612,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -625,6 +632,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -632,7 +640,12 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_weighted_web_vital_score_function,
+                    snql_distribution=self._resolve_weighted_web_vital_score_with_computed_total_count_function
+                    if features.has(
+                        "organizations:starfish-browser-webvitals-score-computed-total",
+                        self.builder.params.organization,
+                    )
+                    else self._resolve_weighted_web_vital_score_function,
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
@@ -644,6 +657,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                                 "measurements.score.total",
@@ -665,6 +679,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -918,9 +933,9 @@ class MetricsDatasetConfig(DatasetConfig):
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-            org_id=self.builder.params.organization.id
-            if self.builder.params.organization
-            else None,
+            org_id=(
+                self.builder.params.organization.id if self.builder.params.organization else None
+            ),
             project_ids=self.builder.params.project_ids,
         )
 
@@ -1104,9 +1119,11 @@ class MetricsDatasetConfig(DatasetConfig):
             f"histogramIf({num_buckets})",
             [
                 Column("value"),
-                Function("and", [zoom_params, metric_condition])
-                if zoom_params
-                else metric_condition,
+                (
+                    Function("and", [zoom_params, metric_condition])
+                    if zoom_params
+                    else metric_condition
+                ),
             ],
             alias,
         )
@@ -1290,6 +1307,38 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_count_total_starts_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "or",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_cold"),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_warm"),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     def _resolve_web_vital_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -1361,6 +1410,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1440,6 +1490,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1536,6 +1587,160 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    # TODO: This function uses the sum of ttfb and inp score counts as the denominator because
+    # measurements.score.total was incorrectly double counting due to the issue described here:
+    # https://github.com/getsentry/relay/pull/3324
+    # Update this function to use measurements.score.total as the denominator once the issue is
+    # resolved and any historic data is out of retention.
+    def _resolve_weighted_web_vital_score_with_computed_total_count_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.inp",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+        ]:
+            raise InvalidSearchQuery("performance_score only supports measurements")
+
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "if",
+                            [
+                                Function(
+                                    "and",
+                                    [
+                                        Function(
+                                            "greater",
+                                            [
+                                                Function(
+                                                    "sumIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [Column("metric_id"), metric_id],
+                                                        ),
+                                                    ],
+                                                ),
+                                                0,
+                                            ],
+                                        ),
+                                        Function(
+                                            "greater",
+                                            [
+                                                Function(
+                                                    "plus",
+                                                    [
+                                                        Function(
+                                                            "countIf",
+                                                            [
+                                                                Column("value"),
+                                                                Function(
+                                                                    "equals",
+                                                                    [
+                                                                        Column("metric_id"),
+                                                                        self.resolve_metric(
+                                                                            "measurements.score.ttfb"
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                        ),
+                                                        Function(
+                                                            "countIf",
+                                                            [
+                                                                Column("value"),
+                                                                Function(
+                                                                    "equals",
+                                                                    [
+                                                                        Column("metric_id"),
+                                                                        self.resolve_metric(
+                                                                            "measurements.score.inp"
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                                0,
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                Function(
+                                    "divide",
+                                    [
+                                        Function(
+                                            "sumIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals", [Column("metric_id"), metric_id]
+                                                ),
+                                            ],
+                                        ),
+                                        Function(
+                                            "plus",
+                                            [
+                                                Function(
+                                                    "countIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Column("metric_id"),
+                                                                self.resolve_metric(
+                                                                    "measurements.score.ttfb"
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                                Function(
+                                                    "countIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Column("metric_id"),
+                                                                self.resolve_metric(
+                                                                    "measurements.score.inp"
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                0.0,
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
     def _resolve_web_vital_opportunity_score_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -1548,6 +1753,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
             "measurements.score.total",
@@ -1612,6 +1818,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1725,9 +1932,11 @@ class MetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )

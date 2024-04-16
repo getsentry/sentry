@@ -5,7 +5,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -327,7 +327,7 @@ const StyledSidebarItem = styled(Link, {
   }
 
   &:hover,
-  &.focus-visible {
+  &:focus-visible {
     color: ${p => p.theme.white};
   }
 
@@ -335,7 +335,7 @@ const StyledSidebarItem = styled(Link, {
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
   }

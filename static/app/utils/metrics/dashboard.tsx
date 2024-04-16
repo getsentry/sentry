@@ -1,40 +1,41 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {PageFilters} from 'sentry/types';
-import {emptyWidget} from 'sentry/utils/metrics/constants';
-import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import {defined} from 'sentry/utils';
+import {MRIToField} from 'sentry/utils/metrics/mri';
+import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
-  return `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`;
-};
+interface QueryParams extends MetricsQuery {
+  id?: number;
+  isHidden?: boolean;
+}
+
+interface EquationParams {
+  formula: string;
+  isHidden?: boolean;
+}
 
 export function convertToDashboardWidget(
-  metricsQuery: MetricsQuery,
-  displayType?: MetricDisplayType
+  metricQueries: (QueryParams | EquationParams)[],
+  displayType?: MetricDisplayType,
+  title = ''
 ): Widget {
   // @ts-expect-error TODO: pass interval
   return {
-    title: metricsQuery.title || getDDMWidgetName(metricsQuery),
+    title,
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
-    limit: !metricsQuery.groupBy?.length ? 1 : 10,
-    queries: [getWidgetQuery(metricsQuery)],
+    limit: 10,
+    queries: metricQueries.map(query =>
+      'formula' in query ? getWidgetEquation(query) : getWidgetQuery(query)
+    ),
   };
-}
-
-export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
-  if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
-    return displayType as MetricDisplayType;
-  }
-  return MetricDisplayType.LINE;
 }
 
 export function toDisplayType(displayType: unknown): DisplayType {
@@ -44,20 +45,30 @@ export function toDisplayType(displayType: unknown): DisplayType {
   return DisplayType.LINE;
 }
 
-export function defaultMetricWidget(selection: PageFilters) {
-  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
-}
-
-export function getWidgetQuery(metricsQuery: MetricsQuery) {
-  const field = MRIToField(metricsQuery.mri, metricsQuery.op || '');
-
+export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
   return {
-    name: '',
+    name: defined(metricsQuery.id) ? `${metricsQuery.id}` : '',
     aggregates: [field],
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    orderby: '',
+    // @ts-expect-error TODO: change type of orderby
+    orderby: undefined,
+    isHidden: metricsQuery.isHidden,
+  };
+}
+
+export function getWidgetEquation(equation: EquationParams): WidgetQuery {
+  return {
+    name: '',
+    aggregates: [`equation|${equation.formula}`],
+    columns: [],
+    fields: [`equation|${equation.formula}`],
+    conditions: '',
+    // @ts-expect-error TODO: change type of orderby
+    orderby: undefined,
+    isHidden: equation.isHidden,
   };
 }
 
@@ -71,12 +82,12 @@ export function encodeWidgetQuery(query) {
 }
 
 export function getWidgetAsQueryParams(
-  metricsQuery: MetricsQuery,
+  selection: PageFilters,
   urlWidgetQuery: string,
   displayType?: MetricDisplayType
 ) {
-  const {start, end, period} = metricsQuery.datetime;
-  const {projects} = metricsQuery;
+  const {start, end, period} = selection.datetime;
+  const {projects} = selection;
 
   return {
     source: DashboardWidgetSource.DDM,
@@ -85,8 +96,8 @@ export function getWidgetAsQueryParams(
     statsPeriod: period,
     defaultWidgetQuery: urlWidgetQuery,
     defaultTableColumns: [],
-    defaultTitle: getDDMWidgetName(metricsQuery),
-    environment: metricsQuery.environments,
+    defaultTitle: '',
+    environment: selection.environments,
     displayType,
     project: projects,
   };

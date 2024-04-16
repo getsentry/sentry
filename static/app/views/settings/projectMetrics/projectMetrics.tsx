@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -44,7 +44,7 @@ enum BlockingStatusTab {
 
 function ProjectMetrics({project, location}: Props) {
   const {data: meta, isLoading} = useMetricsMeta(
-    [parseInt(project.id, 10)],
+    {projects: [parseInt(project.id, 10)]},
     ['custom'],
     false
   );
@@ -236,7 +236,6 @@ const SearchWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
-
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

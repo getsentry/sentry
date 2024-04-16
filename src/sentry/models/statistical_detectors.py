@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence
 
 from django.db import models
 from django.db.models import Q
@@ -81,7 +81,7 @@ class RegressionGroup(Model):
 
 
 def get_regression_groups(
-    regression_type: RegressionType, pairs: Sequence[tuple[int, str]], active: Optional[bool] = None
+    regression_type: RegressionType, pairs: Sequence[tuple[int, str]], active: bool | None = None
 ) -> Sequence[RegressionGroup]:
     conditions = Q()
     for project_id, fingerprint in pairs:

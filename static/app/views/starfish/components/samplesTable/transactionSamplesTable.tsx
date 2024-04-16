@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -13,6 +13,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -181,9 +185,13 @@ export function TransactionSamplesTable({
       return (
         <Link
           {...commonProps}
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row['project.name']}:${row.id}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug(row),
+            organization,
+            location,
+            eventView,
+            dataRow: row,
+          })}
         >
           {row.id.slice(0, 8)}
         </Link>
@@ -195,7 +203,7 @@ export function TransactionSamplesTable({
         <Link
           {...commonProps}
           to={normalizeUrl(
-            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`
+            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamegraph/`
           )}
         >
           {row.profile_id.slice(0, 8)}

@@ -1,6 +1,7 @@
 import datetime
 import uuid
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -9,7 +10,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
 def new_issue_occurrence(
     culprit: str,
-    environment: str,
+    environment: str | None,
     fingerprint: Sequence[str],
     issue_type: type[GroupType],
     level: str,
@@ -19,8 +20,8 @@ def new_issue_occurrence(
     timestamp: datetime.datetime,
     title: str,
     extra_event_data: dict[str, Any],
-    evidence_data: Optional[dict[str, Any]] = None,
-    evidence_display: Optional[list[IssueEvidence]] = None,
+    evidence_data: dict[str, Any] | None = None,
+    evidence_display: list[IssueEvidence] | None = None,
 ) -> None:
     """Produce a new issue occurrence to Kafka."""
     event_id = uuid.uuid4().hex
@@ -42,7 +43,7 @@ def new_issue_occurrence(
         level=level,
     )
 
-    event_data = {
+    event_data: dict[str, Any] = {
         "id": event_id,
         "environment": environment,
         "platform": platform,

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 from django.conf import settings
@@ -13,6 +13,7 @@ from sentry.features.base import (
     UserFeature,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.cases import TestCase
 
 
@@ -22,8 +23,8 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def has(
         self,
         feature: Feature,
-        actor: User,
-        skip_entity: Optional[bool] = False,
+        actor: User | RpcUser,
+        skip_entity: bool | None = False,
     ) -> bool:
         return True
 

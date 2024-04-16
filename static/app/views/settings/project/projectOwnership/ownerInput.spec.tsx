@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {MembersFixture} from 'sentry-fixture/members';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -67,17 +66,12 @@ describe('Project Ownership Input', function () {
       />
     );
 
-    // Set a path, as path is selected bu default.
-    await userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'file.js');
-
-    // Select the user.
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Rule owner'}),
-      'Foo Bar'
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Ownership Rules'}),
+      '\npath:file.js bob@example.com'
     );
 
-    // Add the new rule.
-    await userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(put).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/ownership/`,

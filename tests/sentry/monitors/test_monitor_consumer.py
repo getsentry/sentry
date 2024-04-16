@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import msgpack
@@ -12,6 +12,7 @@ from django.test.utils import override_settings
 from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
@@ -50,8 +51,8 @@ class MonitorConsumerTest(TestCase):
     def send_checkin(
         self,
         monitor_slug: str,
-        guid: Optional[str] = None,
-        ts: Optional[datetime] = None,
+        guid: str | None = None,
+        ts: datetime | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -93,7 +94,7 @@ class MonitorConsumerTest(TestCase):
 
     def send_clock_pulse(
         self,
-        ts: Optional[datetime] = None,
+        ts: datetime | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
@@ -230,6 +231,25 @@ class MonitorConsumerTest(TestCase):
         timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
         assert checkin.timeout_at == timeout_at
 
+    def test_check_in_timeout_late(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+
+        # mark monitor as timed-out
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        assert checkin.duration is None
+
+        # next check-in reports an OK
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now + timedelta(seconds=5))
+
+        # The check-in is still in TIMEOUT status, but has a duration now
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+        assert checkin.duration == 5000
+
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
@@ -237,6 +257,16 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
+
+    def test_check_in_update_with_reversed_dates(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now - timedelta(seconds=5))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.duration == 5000
 
     def test_check_in_existing_guid(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -275,7 +305,7 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
-        assert monitor_environment.environment.name == "jungle"
+        assert monitor_environment.get_environment().name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
@@ -296,7 +326,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.monitor.name == "my-new-monitor"
-        assert monitor_environment.environment.name == "production"
+        assert monitor_environment.get_environment().name == "production"
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
@@ -401,13 +431,13 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_environment.environment.name == "production"
+        assert checkin.monitor_environment.get_environment().name == "production"
 
         self.send_checkin(monitor.slug, guid=self.guid, status="ok", environment="test")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert checkin.monitor_environment.environment.name != "test"
+        assert checkin.monitor_environment.get_environment().name != "test"
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -462,10 +492,10 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
 
-        monitor_environment = MonitorEnvironment.objects.get(
-            monitor=monitor, environment__name="my-environment"
+        env = Environment.objects.get(
+            organization_id=monitor.organization_id, name="my-environment"
         )
-        assert monitor_environment is not None
+        assert MonitorEnvironment.objects.filter(monitor=monitor, environment_id=env.id).exists()
 
     def test_monitor_upsert_empty_timezone(self):
         self.send_checkin(

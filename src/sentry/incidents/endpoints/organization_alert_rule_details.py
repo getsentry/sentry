@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
+from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -31,9 +32,10 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -47,12 +49,54 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
         alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
     )
 
+    # Fetch sentryapp instances to avoid impossible relationship traversal in region silo mode.
+    sentry_app_ids: list[int] = []
+    for trigger in serialized_rule.get("triggers", []):
+        for action in trigger.get("actions", []):
+            if action.get("_sentry_app_installation"):
+                sentry_app_ids.append(
+                    action.get("_sentry_app_installation", {}).get("sentry_app_id", None)
+                )
+    if sentry_app_ids:
+        sentry_app_map = {
+            install.sentry_app.id: install.sentry_app
+            for install in app_service.get_many(filter=dict(app_ids=sentry_app_ids))
+        }
+
     # Prepare AlertRuleTriggerActions that are SentryApp components
     errors = []
     for trigger in serialized_rule.get("triggers", []):
         for action in trigger.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+                # TODO(hybridcloud) This is nasty and should be fixed.
+                # Because all of the prepare_* functions currently operate on ORM
+                # records we need to convert our RpcSentryApp and dict data into detached
+                # ORM models and stitch together relations used in preparing UI components.
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                rpc_app = sentry_app_map.get(installation.sentry_app_id)
+                installation.sentry_app = SentryApp(
+                    id=rpc_app.id,
+                    scope_list=rpc_app.scope_list,
+                    application_id=rpc_app.application_id,
+                    application=ApiApplication(
+                        id=rpc_app.application.id,
+                        client_id=rpc_app.application.client_id,
+                        client_secret=rpc_app.application.client_secret,
+                    ),
+                    proxy_user_id=rpc_app.proxy_user_id,
+                    owner_id=rpc_app.owner_id,
+                    name=rpc_app.name,
+                    slug=rpc_app.slug,
+                    uuid=rpc_app.uuid,
+                    events=rpc_app.events,
+                    webhook_url=rpc_app.webhook_url,
+                    status=SentryAppStatus.as_int(rpc_app.status),
+                    metadata=rpc_app.metadata,
+                )
+                # The api_token_id field is nulled out to prevent relation traversal as these
+                # ORM objects are turned back into RPC objects.
+                installation.api_token_id = None
+
                 component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
                     None,
@@ -82,9 +126,10 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
         if request.user.id == rule_snooze.owner_id:
             serialized_rule["snoozeCreatedBy"] = "You"
         else:
-            user = user_service.get_user(rule_snooze.owner_id)
-            if user:
-                serialized_rule["snoozeCreatedBy"] = user.get_display_name()
+            if rule_snooze.owner_id:
+                user = user_service.get_user(rule_snooze.owner_id)
+                if user:
+                    serialized_rule["snoozeCreatedBy"] = user.get_display_name()
         serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
 
     return Response(serialized_rule)
@@ -92,17 +137,6 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
 
 def update_alert_rule(request: Request, organization, alert_rule):
     data = request.data
-    organization_id = data.get("organizationId")
-    if not organization_id:
-        project_slugs = data.get("projects")
-        if project_slugs:
-            projects = Project.objects.filter(slug__in=project_slugs)
-            if not projects:
-                return Response(
-                    "Must pass organizationId or projects in request data",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            organization_id = projects[0].organization_id
     serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
@@ -110,7 +144,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
             "installations": app_service.get_installed_for_organization(
-                organization_id=organization_id
+                organization_id=organization.id
             ),
         },
         instance=alert_rule,
@@ -123,7 +157,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
             task_args = {
-                "organization_id": organization_id,
+                "organization_id": organization.id,
                 "uuid": client.uuid,
                 "data": data,
                 "alert_rule_id": alert_rule.id,
@@ -215,6 +249,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type except `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """,
     )
     environment = serializers.CharField(
@@ -251,6 +286,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -265,8 +311,18 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
-            # a metric alert is only associated with one project at a time
-            project = alert_rule.snuba_query.subscriptions.get().project
+            project = None
+
+            try:
+                # check to see if there's a project associated with the alert rule
+                project = alert_rule.projects.get()
+            except Exception:
+                pass
+
+            # TODO - Cleanup Subscription Project Mapping
+            # if not, check to see if there's a project associated with the snuba query
+            if project is None:
+                project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)

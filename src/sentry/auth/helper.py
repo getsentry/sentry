@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Collection, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -133,7 +134,7 @@ class AuthIdentityHandler:
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
+            scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
             scope.set_extra("chosen_user", chosen_user.id)
@@ -717,7 +718,7 @@ class AuthHelper(Pipeline):
         # provider_key to get_provider, and our get_provider override accepts a null
         # provider_key. But it technically violates the type contract and we'll need
         # to change the superclass to accommodate this one.
-        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore[arg-type]
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization

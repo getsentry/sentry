@@ -40,11 +40,20 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
   const values = requestPending
     ? optimisticState
     : {
-        browserSdkVersion: data.browserSdkVersion,
+        browserSdkVersion:
+          // "latest" was an option that we don't let users select anymore. It will be phased out when version v8 of
+          // the SDK is released, meaning we want to map the backend's response to v7 when it responds with "latest".
+          // "7.x" was the "latest" version when "latest" was phased out.
+          data.browserSdkVersion === 'latest' ? '7.x' : data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
         hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
         hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
       };
+
+  const sdkVersionChoices = data.browserSdk
+    ? // "latest" was an option that we do not want to allow users to select anymore. It was phased out with v7, before v8 was released.
+      data.browserSdk.choices.filter(([value]) => value !== 'latest')
+    : [];
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
   const loaderLink = getDynamicText({
@@ -148,21 +157,24 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           <SelectField
             name={`${keyId}-browserSdkVersion`}
             label={t('SDK Version')}
-            options={
-              data.browserSdk
-                ? data.browserSdk.choices.map(([value, label]) => ({
-                    value,
-                    label,
-                  }))
-                : []
-            }
+            options={sdkVersionChoices.map(([value, label]) => ({
+              value,
+              label,
+            }))}
             value={values.browserSdkVersion}
             onChange={value => {
               updateLoaderOption({browserSdkVersion: value});
             }}
+            disabledReason={
+              sdkVersionChoices.length === 1
+                ? t(
+                    'At the moment, only the shown SDK version is available. New versions of the SDK will appear here as soon as they are released, and you will be able to upgrade by selecting them.'
+                  )
+                : undefined
+            }
             placeholder="7.x"
             allowClear={false}
-            disabled={!hasAccess || requestPending}
+            disabled={!hasAccess || requestPending || sdkVersionChoices.length === 1}
           />
 
           <BooleanField
@@ -213,8 +225,15 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasReplay
-                  ? t(
-                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                  ? tct(
+                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle. The default configurations are [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.',
+                      {
+                        codeReplay: <code />,
+                        codeError: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
+                        ),
+                      }
                     )
                   : undefined
             }

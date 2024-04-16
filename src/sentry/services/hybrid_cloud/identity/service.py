@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
 from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
@@ -27,10 +27,10 @@ class IdentityService(RpcService):
     def get_provider(
         self,
         *,
-        provider_id: Optional[int] = None,
-        provider_type: Optional[str] = None,
-        provider_ext_id: Optional[str] = None,
-    ) -> Optional[RpcIdentityProvider]:
+        provider_id: int | None = None,
+        provider_type: str | None = None,
+        provider_ext_id: str | None = None,
+    ) -> RpcIdentityProvider | None:
         """
         Returns an RpcIdentityProvider either by using the idp.id (provider_id), or a combination
         of idp.type (provider_type) and idp.external_id (provider_ext_id)
@@ -45,7 +45,7 @@ class IdentityService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_identity(self, *, filter: IdentityFilterArgs) -> Optional[RpcIdentity]:
+    def get_identity(self, *, filter: IdentityFilterArgs) -> RpcIdentity | None:
         """
         Returns the first RpcIdentity based on the given filters.
         """
@@ -77,7 +77,7 @@ class IdentityService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
+    def update_data(self, *, identity_id: int, data: Any) -> RpcIdentity | None:
         """
         Updates an Identity's data.
         :param identity_id:

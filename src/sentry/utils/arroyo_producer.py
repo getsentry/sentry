@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import atexit
 from collections import deque
+from collections.abc import Callable
 from concurrent import futures
-from typing import TYPE_CHECKING, Callable, Deque
+from typing import TYPE_CHECKING, Deque
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic

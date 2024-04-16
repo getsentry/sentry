@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
 
+from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -16,7 +17,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
-from sentry.utils.dates import ensure_aware
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,27 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+
+    @classmethod
+    def new_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.NEW_FEEDBACK_ENVELOPE,
+                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
+            ]
+        }
+
+    @classmethod
+    def old_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.CRASH_REPORT_EMBED_FORM,
+                cls.USER_REPORT_ENVELOPE,
+                cls.USER_REPORT_DJANGO_ENDPOINT,
+            ]
+        }
 
 
 def make_evidence(feedback, source: FeedbackCreationSource):
@@ -60,9 +82,7 @@ def fix_for_issue_platform(event_data):
     # for event schema, so we need to massage the data a bit
     ret_event: dict[str, Any] = {}
 
-    ret_event["timestamp"] = ensure_aware(
-        datetime.fromtimestamp(event_data["timestamp"])
-    ).isoformat()
+    ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
 
     ret_event["received"] = event_data["received"]
 
@@ -117,21 +137,42 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
+
+    if (
+        event.get("contexts") is None
+        or event["contexts"].get("feedback") is None
+        or event["contexts"]["feedback"].get("message") is None
+    ):
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "missing_context"},
+        )
+        return True
+
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "unreal.unattended"},
+        )
+        return True
+
+    if event["contexts"]["feedback"]["message"].strip() == "":
+        metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
         return True
 
     return False
 
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+    metrics.incr("feedback.create_feedback_issue.entered")
+
     if should_filter_feedback(event, project_id, source):
         return
 
-    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
+    detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -146,7 +187,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         evidence_data=evidence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
-        detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
+        detection_time=detection_time,
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
@@ -181,6 +222,22 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
+    metrics.incr(
+        "feedback.create_feedback_issue.produced_occurrence",
+        tags={"referrer": source.value},
+        sample_rate=1.0,
+    )
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project_id,
+        key_id=None,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=detection_time,
+        event_id=event["event_id"],
+        category=DataCategory.USER_REPORT_V2,
+        quantity=1,
+    )
 
 
 def validate_issue_platform_event_schema(event_data):
@@ -191,7 +248,11 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        try:
+            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        except jsonschema.exceptions.ValidationError:
+            metrics.incr("feedback.create_feedback_issue.invalid_schema")
+            raise
 
 
 class UserReportShimDict(TypedDict):
@@ -242,6 +303,8 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
+            metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
+
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")

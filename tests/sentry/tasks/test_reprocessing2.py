@@ -45,6 +45,7 @@ def _create_event_attachment(evt, type):
         file_id=file.id,
         type=file.type,
         name="foo",
+        size=file.size,
     )
 
 
@@ -127,7 +128,7 @@ def test_basic(
         tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
-    monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
+    monkeypatch.setattr("sentry.eventstream.backend.tombstone_events_unsafe", tombstone_called)
 
     abs_count = 0
 
@@ -435,6 +436,7 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
+
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
@@ -463,7 +465,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert mock_logger.error.called_with("reprocessing2.unprocessed_event.not_found")
+    mock_logger.error.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
 @django_db_all
@@ -506,7 +508,8 @@ def test_apply_new_fingerprinting_rules(
     )
 
     with mock.patch(
-        "sentry.grouping.ingest.get_fingerprinting_config_for_project", return_value=new_rules
+        "sentry.grouping.ingest.hashing.get_fingerprinting_config_for_project",
+        return_value=new_rules,
     ):
         # Reprocess
         with burst_task_runner() as burst_reprocess:
@@ -595,7 +598,7 @@ def test_apply_new_stack_trace_rules(
     original_issue_id = event1.group.id
 
     with mock.patch(
-        "sentry.grouping.ingest.get_grouping_config_dict_for_project",
+        "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": Enhancements.from_config_string(

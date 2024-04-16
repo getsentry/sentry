@@ -1,8 +1,6 @@
 /* global __dirname */
-/* eslint import/no-nodejs-modules:0 */
-
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const FIXTURES_ROOT = path.join(__dirname, '../../../fixtures');
 

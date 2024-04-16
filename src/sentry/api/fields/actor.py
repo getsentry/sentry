@@ -4,10 +4,10 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models.actor import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.utils.actor import ActorTuple
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
@@ -17,7 +17,7 @@ class ActorField(serializers.Field):
         super().__init__(*args, **kwds)
 
     def to_representation(self, value):
-        return value.get_actor_identifier()
+        return value.identifier
 
     def to_internal_value(self, data):
         if not data:

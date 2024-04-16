@@ -7,12 +7,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
+from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -72,6 +72,11 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise ParseError(
+                detail="Either the user has not access to any projects or you need to "
+                + "include `projects` with your request. (i.e. projects=1,2,3)"
+            )
         project_ids = [p.id for p in projects]
 
         try:
@@ -119,9 +124,9 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
                 expand=expand,
                 start=start,
                 end=end,
-                search_filters=query_kwargs["search_filters"]
-                if "search_filters" in query_kwargs
-                else None,
+                search_filters=(
+                    query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
+                ),
                 organization_id=organization.id,
                 project_ids=project_ids,
             ),

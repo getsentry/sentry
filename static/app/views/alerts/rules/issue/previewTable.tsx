@@ -70,6 +70,7 @@ function PreviewTable({
           withChart={false}
           canSelect={false}
           showLastTriggered
+          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
       );
     });

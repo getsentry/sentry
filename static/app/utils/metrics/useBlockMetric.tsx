@@ -1,7 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {MetricMeta, MRI, Project} from 'sentry/types';
-import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,21 +45,22 @@ export const useBlockMetric = (project: Project) => {
       });
     },
     onSuccess: data => {
-      const useCase = getUseCaseFromMRI(data.metricMri);
-      const metaQueryKey = getMetricsMetaQueryKey(
-        slug,
-        [parseInt(project.id, 10)],
-        useCase ?? 'custom'
-      );
-      queryClient.setQueryData(
-        metaQueryKey,
+      const metaQueryKey = getMetricsMetaQueryKey(slug, {});
+
+      // Only match the endpoint, to search in all insances of the query
+      const queryKeyFilter = {queryKey: [metaQueryKey[0]]};
+
+      queryClient.setQueriesData(
+        queryKeyFilter,
         (oldData: BlockMetricResponse): BlockMetricResponse => {
           if (!oldData) {
             return undefined;
           }
           const oldMeta = oldData[0];
           const index = oldMeta.findIndex(
-            (metric: {mri: MRI}) => metric.mri === data.metricMri
+            metric =>
+              metric.mri === data.metricMri &&
+              metric.projectIds.includes(Number(project.id))
           );
 
           if (index !== undefined && index !== -1) {
@@ -78,7 +78,7 @@ export const useBlockMetric = (project: Project) => {
 
       addSuccessMessage(t('Metric updated'));
 
-      queryClient.invalidateQueries(metaQueryKey);
+      queryClient.invalidateQueries(queryKeyFilter);
     },
     onError: () => {
       addErrorMessage(t('An error occurred while updating the metric'));

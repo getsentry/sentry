@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,6 +15,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 
 @region_silo_endpoint
@@ -25,7 +25,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: AuthenticatedHttpRequest, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
@@ -36,7 +36,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, group) -> Response:
+    def post(self, request: AuthenticatedHttpRequest, group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={
@@ -68,7 +68,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         activity = Activity.objects.create_group_activity(
-            group, ActivityType.NOTE, user_id=request.user.id, data=data
+            group=group, type=ActivityType.NOTE, user_id=request.user.id, data=data
         )
 
         self.create_external_comment(request, group, activity)

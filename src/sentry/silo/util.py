@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import hmac
+from collections.abc import Iterable, Mapping
 from hashlib import sha256
-from typing import Iterable, Mapping
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings

@@ -1,11 +1,11 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 
 interface Props {
   selected: 'replays' | 'selectors';
@@ -14,6 +14,7 @@ interface Props {
 export default function ReplayTabs({selected}: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const {allMobileProj} = useAllMobileProj();
 
   const tabs = useMemo(
     () => [
@@ -25,11 +26,7 @@ export default function ReplayTabs({selected}: Props) {
       },
       {
         key: 'selectors',
-        label: (
-          <Fragment>
-            {t('Selectors')} <FeatureBadge type="new" />
-          </Fragment>
-        ),
+        label: t('Selectors'),
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
         query: {...location.query, sort: '-count_dead_clicks'},
       },
@@ -48,6 +45,7 @@ export default function ReplayTabs({selected}: Props) {
               pathname: tab.pathname,
               query: tab.query,
             }}
+            disabled={tab.key === 'selectors' && allMobileProj}
           >
             {tab.label}
           </TabList.Item>

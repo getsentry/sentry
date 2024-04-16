@@ -9,14 +9,13 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -39,7 +38,7 @@ class GroupNoteTest(APITestCase):
 
     def test_note_merge(self):
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(datetime.UTC)
 
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
@@ -104,7 +103,6 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
 
-@region_silo_test
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group

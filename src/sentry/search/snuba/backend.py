@@ -5,9 +5,10 @@ import functools
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -35,10 +36,9 @@ from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
-    CdcPostgresSnubaQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
-    PrioritySortWeights,
+    TrendsSortWeights,
 )
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -153,14 +153,10 @@ def first_release_all_environments_filter(
             # We only need to find the first non-existent release here
             break
 
-    return Q(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(
-            first_release_id__in=list(releases.values()),
-        ).values_list("group_id")
-    )
+    return Q(first_release_id__in=list(releases.values()))
 
 
 def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
@@ -276,7 +272,7 @@ def _group_attributes_side_query(
     max_hits: int | None = None,
     referrer: str | None = None,
     actor: Any | None = None,
-    aggregate_kwargs: PrioritySortWeights | None = None,
+    aggregate_kwargs: TrendsSortWeights | None = None,
 ) -> None:
     def __run_joined_query_and_log_metric(
         events_only_search_results: CursorResult[Group],
@@ -296,7 +292,7 @@ def _group_attributes_side_query(
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ):
         from sentry.utils import metrics
 
@@ -478,7 +474,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -511,6 +508,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            use_group_snuba_dataset=use_group_snuba_dataset,
         )
 
         # ensure sort strategy is supported by executor
@@ -652,6 +650,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         search_filters: Sequence[SearchFilter],
         date_from: datetime | None,
         date_to: datetime | None,
+        use_group_snuba_dataset: bool,
     ) -> AbstractQueryExecutor:
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
@@ -660,6 +659,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
+        if kwargs.get("use_group_snuba_dataset"):
+            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+
+            return GroupAttributesPostgresSnubaQueryExecutor()
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(
@@ -700,6 +703,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
+            "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
@@ -713,16 +717,18 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
             queryset_conditions.update(
                 {
-                    "message": QCallbackCondition(
-                        lambda query: Q(type=ErrorGroupType.type_id)
-                        | _issue_platform_issue_message_condition(query)
-                    )
-                    # negation should only apply on the message search icontains, we have to include
-                    # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
-                    # column when type=GroupType.ERROR - we delegate that to snuba in that case
-                    if not message_filter.is_negation
-                    else QCallbackCondition(
-                        lambda query: _issue_platform_issue_message_condition(query)
+                    "message": (
+                        QCallbackCondition(
+                            lambda query: Q(type=ErrorGroupType.type_id)
+                            | _issue_platform_issue_message_condition(query)
+                        )
+                        # negation should only apply on the message search icontains, we have to include
+                        # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                        if not message_filter.is_negation
+                        else QCallbackCondition(
+                            lambda query: _issue_platform_issue_message_condition(query)
+                        )
                     )
                 }
             )
@@ -761,8 +767,3 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
-
-
-class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> CdcPostgresSnubaQueryExecutor:
-        return CdcPostgresSnubaQueryExecutor()

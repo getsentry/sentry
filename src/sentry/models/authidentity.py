@@ -1,4 +1,4 @@
-from typing import Collection
+from collections.abc import Collection
 
 from django.conf import settings
 from django.db import models

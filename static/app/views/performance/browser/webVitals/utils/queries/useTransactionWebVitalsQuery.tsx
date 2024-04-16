@@ -1,17 +1,16 @@
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useTransactionRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useTransactionRawWebVitalsQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  opportunityWebVital?: WebVitals | 'total';
   query?: string;
+  shouldEscapeFilters?: boolean;
   sortName?: string;
   transaction?: string | null;
+  webVital?: WebVitals | 'total';
 };
 
 export const useTransactionWebVitalsQuery = ({
@@ -19,30 +18,20 @@ export const useTransactionWebVitalsQuery = ({
   transaction,
   defaultSort,
   sortName = 'sort',
-  opportunityWebVital,
+  webVital,
   enabled,
   query,
+  shouldEscapeFilters = true,
 }: Props) => {
-  const shouldUseStoredScores = useStoredScoresSetting();
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
     limit,
     transaction,
     defaultSort,
     sortName,
-    enabled: shouldUseStoredScores && enabled,
-    opportunityWebVital,
+    enabled,
+    webVital,
     query,
+    shouldEscapeFilters,
   });
-  const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
-    limit,
-    transaction,
-    defaultSort,
-    sortName,
-    enabled: !shouldUseStoredScores && enabled,
-    query,
-  });
-  if (shouldUseStoredScores) {
-    return storedScoresResult;
-  }
-  return rawWebVitalsResult;
+  return storedScoresResult;
 };

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Sequence
+from typing import Any
 
 from django.utils import timezone
 
@@ -30,6 +31,7 @@ class OccurrenceTestMixin:
         assert o1.evidence_display == o2.evidence_display
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
+        assert o1.initial_issue_priority == o2.initial_issue_priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
@@ -50,7 +52,7 @@ class OccurrenceTestMixin:
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
-        kwargs.update(overrides)  # type: ignore
+        kwargs.update(overrides)  # type: ignore[typeddict-item]
 
         process_occurrence_data(kwargs)
         return kwargs
@@ -92,6 +94,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         tags: Sequence[tuple[str, Any]] | None = None,
         release: str | None = None,
         user: dict[str, Any] | None = None,
+        event_data: dict[str, Any] | None = None,
     ) -> tuple[Event, IssueOccurrence, GroupInfo | None]:
         from sentry.utils import snuba
 
@@ -101,6 +104,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         event_data = {
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
+            **(event_data or {}),
         }
         if tags:
             event_data["tags"].extend(tags)

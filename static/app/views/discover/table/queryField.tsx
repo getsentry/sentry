@@ -4,11 +4,11 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import Tag from 'sentry/components/badge/tag';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {InputProps} from 'sentry/components/input';
 import Input from 'sentry/components/input';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -595,10 +595,6 @@ class QueryField extends Component<Props> {
         break;
       case FieldValueKind.FIELD:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.METRICS:
-        text = 'metric';
         tagType = 'highlight';
         break;
       default:

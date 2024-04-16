@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import secrets
 import warnings
+from collections.abc import Mapping
 from string import ascii_letters, digits
-from typing import Any, ClassVar, Mapping
+from typing import Any, ClassVar
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager

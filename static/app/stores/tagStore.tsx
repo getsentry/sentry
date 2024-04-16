@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
@@ -85,6 +85,7 @@ const storeConfig: TagStoreDefinition = {
         values: [
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
+          IssueCategory.REPLAY,
           ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
         ],
         predefined: true,
@@ -153,6 +154,15 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
     };
+
+    if (org.features.includes('issue-priority-ui')) {
+      tagCollection[FieldKey.ISSUE_PRIORITY] = {
+        key: FieldKey.ISSUE_PRIORITY,
+        name: 'Issue Priority',
+        values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
+        predefined: true,
+      };
+    }
 
     // Ony include fields that that are part of the ISSUE_FIELDS. This is
     // because we may sometimes have fields that are turned off by removing

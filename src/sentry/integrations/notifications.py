@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.external_actor import ExternalActor

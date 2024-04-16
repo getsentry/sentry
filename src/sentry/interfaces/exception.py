@@ -332,7 +332,7 @@ class SingleException(Interface):
         )
 
         stacktrace_meta = (
-            self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform)
+            self.stacktrace.get_api_meta(meta["stacktrace"], is_public=is_public, platform=platform)
             if self.stacktrace and meta.get("stacktrace")
             else None
         )

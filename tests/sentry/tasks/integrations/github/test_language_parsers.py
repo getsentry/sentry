@@ -1,4 +1,9 @@
-from sentry.tasks.integrations.github.language_parsers import JavascriptParser, PythonParser
+from sentry.tasks.integrations.github.language_parsers import (
+    JavascriptParser,
+    PHPParser,
+    PythonParser,
+    RubyParser,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -572,4 +577,232 @@ class JavascriptParserTestCase(TestCase):
         assert JavascriptParser.extract_functions_from_patch(patch) == {
             "InviteBanner",
             "SeeMoreCard",
+        }
+
+    def test_javascript_functions_after_const(self):
+
+        patch = """
+          "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40 @@ export const RedactedRedactedRedactedRedactedRedacted
+
+          // Redacted
+@@44,38@@ var arrow2 = (a, ...b) => 0;
+
+
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ const planet = async function(argument) {
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ const constructor = new Function(
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ function hello(argument1, argument2)
+
+"""
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "arrow2",
+            "planet",
+            "constructor",
+            "hello",
+        }
+
+
+class PHPParserTestCase(TestCase):
+    def test_php_simple(self):
+        patch = """
+@@ -51,7 +51,7 @@ $arrowFunc = fn($parameter) => $parameter + 1;
+
+@@ -45,7 +45,7 @@ $anonFunc = function ($parameter) {
+
+@@ -45,7 +45,7 @@ $var = function($parameter) {
+
+@@ -45,7 +45,7 @@ public function title()
+
+@@ -45,7 +45,7 @@ public function download(string $filename = 'document.pdf'): Response
+
+@@ -45,7 +45,7 @@ protected function isLumen(): bool
+
+@@ -45,7 +45,7 @@ export function escapeHtml(string) {
+
+@@ -45,7 +45,7 @@ public function tests()
+
+@@ -45,7 +45,7 @@ public static function toEnvelopeItem(Event $event): string
+
+@@ -45,7 +45,7 @@ $greet = function($name) {
+    printf("Hello %s\r\n", $name);
+};
+
+@@ -45,7 +45,7 @@ $outer = fn($x) => fn($y) => $x * $y + $z;
+
+@@ -45,7 +45,7@@ $hi = no_match($name);
+
+@@ -1,3 +1,3 @@ public static function subtract(x, y)
+
+@@ -5,5 +5,5 @@ $multiply=function(x, y) { return x * y; }
+
+@@ -5,5 +5,5 @@ $divide= function(x, y) { return x / y; }
+
+@@ -25,14 +25,14 @@ $hello = function(name) { return "Hello, " + name; }
+
+@@ -35,18 +35,18 @@ $reduce = fn($values) => array_reduce($values, function($carry, $item) { return $carry + $item; });
+
+@@ -45,22 +45,22 @@ public static function transformData(data)
+
+"""
+        assert PHPParser.extract_functions_from_patch(patch) == {
+            "arrowFunc",
+            "anonFunc",
+            "var",
+            "title",
+            "download",
+            "isLumen",
+            "escapeHtml",
+            "tests",
+            "toEnvelopeItem",
+            "greet",
+            "outer",
+            "subtract",
+            "multiply",
+            "divide",
+            "hello",
+            "reduce",
+            "transformData",
+        }
+
+    def test_php_example(self):
+        # reference: https://github.com/getsentry/gib-potato/pull/45
+        patch = """
+@@ -152,10 +152,6 @@ public function up(): void
+                ]
+            )
+            ->update();
+
+        $this->table('products')->drop()->save();
+
+        $this->table('purchases')->drop()->save();
+    }
+
+    /**
+@@ -184,93 +180,6 @@ public function down(): void
+            ->dropForeignKey(
+                'user_id'
+            )->save();
+        $this->table('products')
+            ->addColumn('name', 'string', [
+                'default' => null,
+                'limit' => 255,
+                'null' => false,
+            ])
+            ->addColumn('description', 'text', [
+                'default' => null,
+                """
+
+        assert PHPParser.extract_functions_from_patch(patch) == {
+            "up",
+            "down",
+        }
+
+        patch = """
+@@ -184,93 +180,6 @@ function one() {
+
+@@ -184,93 +180,6 @@ function two () {
+
+@@ -184,93 +180,6 @@ $three = function() {
+
+@@ -184,93 +180,6 @@ $four = static function() {
+
+@@ -184,93 +180,6 @@ $five = fn() => 1 + 1;
+
+@@ -184,93 +180,6 @@ $six = static fn() => 1 + 1;
+
+@@ -184,93 +180,6 @@ function seven() {
+
+@@ -184,93 +180,6 @@ static function eight() {
+
+@@ -184,93 +180,6 @@ public function nine() {
+
+@@ -184,93 +180,6 @@ public static function ten() {
+"""
+
+        assert PHPParser.extract_functions_from_patch(patch) == {
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+            "eight",
+            "nine",
+            "ten",
+        }
+
+
+class RubyParserTestCase(TestCase):
+    def test_ruby_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ def one ()
+
+@@ -152,10 +152,6 @@ def two()
+
+@@ -152,10 +152,6 @@ def self.three()
+
+@@ -152,10 +152,6 @@ def obj.four ()
+
+@@ -152,10 +152,6 @@ define_method :five do
+
+@@ -152,10 +152,6 @@ six = -> { puts "This is a lambda." }
+
+@@ -152,10 +152,6 @@ seven = lambda { puts "This is a lambda."}
+
+"""
+
+        assert RubyParser.extract_functions_from_patch(patch) == {
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+        }
+
+    def test_ruby_example(self):
+        patch = """
+@@ -73,9 +73,7 @@ def for(name)
+
+@@ -73,9 +73,7 @@ def for_2 (name)
+
+@@ -20,6 +20,7 @@ def initialize(detach: true)
+
+@@ -27,7 +27,8 @@ def token
+
+@@ -46,7 +46,7 @@ def on_block(node) # rubocop:disable InternalAffairs/NumblockHandler
+
+@@ -47,7 +47,7 @@ def message_franking
+
+@@ -821,7 +821,7 @@ def to_liquid
+
+@@ -203,4 +207,23 @@ def render_content_with_collection(content, collection_label)
+
+@@ -203,4 +207,23 @@ def render_content_with_collection_2 (content, collection_label)
+
+@@ -36,10 +36,13 @@ def require_gems
+
+"""
+
+        assert RubyParser.extract_functions_from_patch(patch) == {
+            "for",
+            "for_2",
+            "initialize",
+            "token",
+            "on_block",
+            "message_franking",
+            "to_liquid",
+            "render_content_with_collection",
+            "render_content_with_collection_2",
+            "require_gems",
         }

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, Literal, Mapping, NamedTuple, Sequence, Union
+from typing import Any, Literal, NamedTuple, Union
 
+import sentry_sdk
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
-from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -261,7 +262,7 @@ def flatten(children):
 
 def remove_optional_nodes(children):
     def is_not_optional(child):
-        return not (isinstance(child, Node) and isinstance(child.expr, Optional))
+        return not (isinstance(child, Node) and not child.text)
 
     return list(filter(is_not_optional, children))
 
@@ -302,7 +303,7 @@ def handle_negation(negation, operator):
 
 def get_operator_value(operator):
     if isinstance(operator, Node):
-        operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        operator = operator.text or "="
     elif isinstance(operator, list):
         operator = operator[0]
     return operator
@@ -507,6 +508,7 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
+    @sentry_sdk.tracing.trace
     def __init__(self, config=None, params=None, builder=None):
         super().__init__()
 
@@ -1170,6 +1172,7 @@ QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
+@sentry_sdk.tracing.trace
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
 ) -> list[

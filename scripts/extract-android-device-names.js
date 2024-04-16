@@ -1,9 +1,9 @@
 const csv = require('csv-parser');
-const fs = require('fs');
+const fs = require('node:fs');
 
 const transformResults = res => {
   const deviceMapping = {};
-  res.map(({name, model}) => {
+  res.forEach(({name, model}) => {
     if (name && model) {
       deviceMapping[model] = name;
     }

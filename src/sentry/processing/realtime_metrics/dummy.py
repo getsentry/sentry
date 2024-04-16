@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from . import base
 
@@ -8,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
     def __init__(self, **kwargs: Any) -> None:
+        pass
+
+    def validate(self) -> None:
         pass
 
     def record_project_duration(self, project_id: int, duration: float) -> None:

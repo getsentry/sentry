@@ -65,7 +65,7 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
 
   getTitle() {
     const {plugin} = this.state;
-    if (plugin && plugin.name) {
+    if (plugin?.name) {
       return plugin.name;
     }
     return 'Sentry';
@@ -145,12 +145,11 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
     const {pluginDetails} = this.state;
     const {plugins} = this.props;
 
-    const plugin =
-      plugins &&
-      plugins.plugins &&
-      plugins.plugins.find(({slug}) => slug === this.props.params.pluginId);
+    const plugin = plugins?.plugins?.find(
+      ({slug}) => slug === this.props.params.pluginId
+    );
 
-    return plugin ? plugin.enabled : pluginDetails && pluginDetails.enabled;
+    return plugin ? plugin.enabled : pluginDetails?.enabled;
   }
 
   renderActions() {

@@ -14,6 +14,7 @@ to rows.
 Every condition visitor must define a method for every operator supported by the caller.  A full
 list of supported operations can be found in the "GenericBase" visitor.
 """
+
 from __future__ import annotations
 
 from typing import Any, NoReturn, TypeVar

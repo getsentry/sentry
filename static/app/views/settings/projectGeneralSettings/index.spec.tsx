@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -15,6 +14,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -332,7 +332,6 @@ describe('projectGeneralSettings', function () {
 
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
-      const params = {projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
 
       putMock = MockApiClient.addMockResponse({
@@ -343,7 +342,10 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
+    });
 
+    function renderProjectGeneralSettings() {
+      const params = {projectId: project.slug};
       render(
         <ProjectContext projectSlug={project.slug}>
           <ProjectGeneralSettings
@@ -355,12 +357,13 @@ describe('projectGeneralSettings', function () {
         </ProjectContext>,
         {context: routerContext, organization}
       );
-    });
+    }
 
     it('can cancel unsaved changes for a field', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
@@ -381,9 +384,10 @@ describe('projectGeneralSettings', function () {
     });
 
     it('saves when value is changed and "Save" clicked', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value

@@ -13,7 +13,7 @@ import {
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -54,7 +54,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
 }
 
 interface State extends AsyncViewState {
-  groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
@@ -74,7 +73,6 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      groupOrgRoles: [],
       member: null,
       orgRole: '',
       teamRoles: [],
@@ -90,11 +88,10 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles, groupOrgRoles} = data;
+      const {orgRole, teamRoles} = data;
       this.setState({
         orgRole,
         teamRoles,
-        groupOrgRoles,
       });
     }
   }
@@ -120,8 +117,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
-      const errorMessage =
-        (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
+      const errorMessage = resp?.responseJSON?.detail || t('Could not save...');
       this.setState({busy: false});
       addErrorMessage(errorMessage);
     }

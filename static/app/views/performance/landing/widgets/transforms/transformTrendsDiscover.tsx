@@ -5,9 +5,7 @@ import {QUERY_LIMIT_PARAM} from '../utils';
 
 export function transformTrendsDiscover(_: any, props: TrendDiscoveryChildrenProps) {
   const {trendsData} = props;
-  const events = trendsData
-    ? normalizeTrends((trendsData && trendsData.events && trendsData.events.data) || [])
-    : [];
+  const events = trendsData ? normalizeTrends(trendsData?.events?.data || []) : [];
   return {
     ...props,
     data: trendsData,
@@ -17,7 +15,7 @@ export function transformTrendsDiscover(_: any, props: TrendDiscoveryChildrenPro
     isErrored: !!props.error,
     errored: props.error,
     statsData: trendsData ? trendsData.stats : {},
-    transactionsList: events && events.slice ? events.slice(0, QUERY_LIMIT_PARAM) : [],
+    transactionsList: events?.slice ? events.slice(0, QUERY_LIMIT_PARAM) : [],
     events,
   };
 }

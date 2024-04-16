@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Any, Generator
+from typing import Any
 
 from django.utils import timezone
 
@@ -218,7 +219,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -249,7 +250,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -296,7 +297,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -573,6 +574,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-baseline-config",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=300,
             wait_for=[],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=["--overwrite-configs"],
@@ -581,6 +583,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-colliding-users",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=300,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=filter_usernames_args,
@@ -589,6 +592,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-raw-relocation-data",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="organizations",
+            timeout=2400,
             wait_for=["import-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
@@ -597,6 +601,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-baseline-config",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=300,
             wait_for=["import-raw-relocation-data"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -605,28 +610,22 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-colliding-users",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=300,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=filter_usernames_args,
         ),
-        create_cloudbuild_validation_step(
-            id="export-raw-relocation-data",
-            step=EXPORT_VALIDATION_STEP_TEMPLATE,
-            scope="organizations",
-            wait_for=["export-colliding-users"],
-            kind=RelocationFile.Kind.RAW_USER_DATA,
-            args=filter_org_slugs_args,
-        ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
             uuid=relocation.uuid,
-            wait_for=["export-raw-relocation-data"],
+            wait_for=["export-baseline-config"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="config",
-            wait_for=["export-raw-relocation-data"],
+            timeout=120,
+            wait_for=["copy-out-dir"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
         ),
@@ -634,11 +633,11 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-colliding-users",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=120,
             wait_for=["compare-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
         ),
-        # TODO(getsentry/team-ospo#216): Add compare-raw-relocation-data as well.
     ]
 
     deps = dependencies()
@@ -663,6 +662,7 @@ def create_cloudbuild_validation_step(
     scope: str,
     wait_for: list[str],
     kind: RelocationFile.Kind,
+    timeout: int,
     args: list[str],
 ) -> str:
     return step.substitute(
@@ -673,5 +673,6 @@ def create_cloudbuild_validation_step(
         kind=str(kind),
         scope=scope,
         tarfile=kind.to_filename("tar"),
+        timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )

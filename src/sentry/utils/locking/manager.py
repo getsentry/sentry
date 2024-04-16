@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry.utils import metrics
 from sentry.utils.locking.lock import Lock
 
@@ -9,7 +7,7 @@ class LockManager:
         self.backend = backend
 
     def get(
-        self, key: str, duration: int, routing_key: Optional[str] = None, name: Optional[str] = None
+        self, key: str, duration: int, routing_key: str | None = None, name: str | None = None
     ) -> Lock:
         """
         Retrieve a ``Lock`` instance.

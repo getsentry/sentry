@@ -104,7 +104,9 @@ class ErrorPageEmbedView(View):
         response["Access-Control-Allow-Origin"] = request.META.get("HTTP_ORIGIN", "")
         response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response[
+            "Access-Control-Allow-Headers"
+        ] = "Content-Type, Authorization, X-Requested-With, baggage, sentry-trace"
         response["Vary"] = "Accept"
         if content == "" and context:
             response["X-Sentry-Context"] = json_context

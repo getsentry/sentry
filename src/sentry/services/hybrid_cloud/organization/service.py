@@ -4,7 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 
 from django.dispatch import Signal
 
@@ -47,7 +48,7 @@ class OrganizationService(RpcService):
 
         return DatabaseBackedOrganizationService()
 
-    def get(self, id: int) -> Optional[RpcOrganization]:
+    def get(self, id: int) -> RpcOrganization | None:
         org_context = self.get_organization_by_id(id=id)
 
         return org_context.organization if org_context else None
@@ -58,8 +59,8 @@ class OrganizationService(RpcService):
         self,
         *,
         id: int,
-        as_user: Optional[RpcUser] = None,
-    ) -> Optional[Any]:
+        as_user: RpcUser | None = None,
+    ) -> Any | None:
         """
         Attempts to serialize a given organization.  Note that this can be None if the organization is already deleted
         in the corresponding region silo.
@@ -71,11 +72,11 @@ class OrganizationService(RpcService):
         self,
         *,
         id: int,
-        user_id: Optional[int] = None,
-        slug: Optional[str] = None,
-        include_projects: Optional[bool] = True,
-        include_teams: Optional[bool] = True,
-    ) -> Optional[RpcUserOrganizationContext]:
+        user_id: int | None = None,
+        slug: str | None = None,
+        include_projects: bool | None = True,
+        include_teams: bool | None = True,
+    ) -> RpcUserOrganizationContext | None:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
         status.  When user_id is provided, membership data related to that user from the organization
@@ -88,18 +89,32 @@ class OrganizationService(RpcService):
         self,
         *,
         slug: str,
-        user_id: Optional[int] = None,
-    ) -> Optional[RpcOrganizationSummary]:
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
         """
         Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
         """
 
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_org_by_id(
+        self,
+        *,
+        id: int,
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
+        """
+        Fetches the organization, by an organization id. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_id by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
+        """
+
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
+        self, *, region_name: str, user: RpcUser, scope: str | None = None
     ) -> list[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
@@ -114,7 +129,7 @@ class OrganizationService(RpcService):
     @abstractmethod
     def check_membership_by_email(
         self, *, organization_id: int, email: str
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         """
         Used to look up an organization membership by an email
         """
@@ -123,7 +138,7 @@ class OrganizationService(RpcService):
     @abstractmethod
     def check_membership_by_id(
         self, *, organization_id: int, user_id: int
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         """
         Used to look up an organization membership by a user id
         """
@@ -143,10 +158,10 @@ class OrganizationService(RpcService):
         self,
         *,
         organization_id: int,
-        organization_member_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-    ) -> Optional[RpcUserInviteContext]:
+        organization_member_id: int | None = None,
+        user_id: int | None = None,
+        email: str | None = None,
+    ) -> RpcUserInviteContext | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
@@ -155,10 +170,10 @@ class OrganizationService(RpcService):
         self,
         *,
         slug: str,
-        organization_member_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-    ) -> Optional[RpcUserInviteContext]:
+        organization_member_id: int | None = None,
+        user_id: int | None = None,
+        email: str | None = None,
+    ) -> RpcUserInviteContext | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -178,12 +193,12 @@ class OrganizationService(RpcService):
         organization_member_id: int,
         organization_id: int,
         user_id: int,
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         """
         Set the user id for an organization member.
         """
 
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
@@ -204,10 +219,10 @@ class OrganizationService(RpcService):
         *,
         slug: str,
         only_visible: bool,
-        user_id: Optional[int] = None,
-        include_projects: Optional[bool] = True,
-        include_teams: Optional[bool] = True,
-    ) -> Optional[RpcUserOrganizationContext]:
+        user_id: int | None = None,
+        include_projects: bool | None = True,
+        include_teams: bool | None = True,
+    ) -> RpcUserOrganizationContext | None:
         """
         Defers to check_organization_by_slug and get_organization_by_id
         """
@@ -243,12 +258,12 @@ class OrganizationService(RpcService):
         *,
         organization_id: int,
         default_org_role: str,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        flags: Optional[RpcOrganizationMemberFlags] = None,
-        role: Optional[str] = None,
-        inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
+        user_id: int | None = None,
+        email: str | None = None,
+        flags: RpcOrganizationMemberFlags | None = None,
+        role: str | None = None,
+        inviter_id: int | None = None,
+        invite_status: int | None = None,
     ) -> RpcOrganizationMember:
         pass
 
@@ -256,12 +271,12 @@ class OrganizationService(RpcService):
     @abstractmethod
     def update_organization_member(
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+    def get_single_team(self, *, organization_id: int) -> RpcTeam | None:
         """If the organization has exactly one team, return it.
 
         Return None if the organization has no teams or more than one.
@@ -282,7 +297,7 @@ class OrganizationService(RpcService):
         *,
         team_id: int,
         organization_member_id: int,
-        role: Optional[str],
+        role: str | None,
     ) -> None:
         pass
 
@@ -313,7 +328,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())
@@ -350,6 +365,18 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def send_sso_unlink_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def count_members_without_sso(self, *, organization_id: int) -> int:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
     ) -> RpcOrganizationDeleteResponse:
@@ -369,7 +396,7 @@ class OrganizationService(RpcService):
         *,
         signal: RpcOrganizationSignal,
         organization_id: int,
-        args: Mapping[str, Optional[Union[int, str]]],
+        args: Mapping[str, int | str | None],
     ) -> None:
         pass
 
@@ -377,7 +404,7 @@ class OrganizationService(RpcService):
         self,
         signal: Signal,
         organization_id: int,
-        args: Mapping[str, Optional[Union[int, str]]],
+        args: Mapping[str, int | str | None],
     ) -> None:
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
@@ -393,7 +420,7 @@ class OrganizationService(RpcService):
 
 class OrganizationCheckService(abc.ABC):
     @abstractmethod
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
@@ -423,7 +450,7 @@ class OrganizationSignalService(abc.ABC):
         self,
         signal: Signal,
         organization_id: int,
-        args: Mapping[str, Optional[Union[int, str]]],
+        args: Mapping[str, int | str | None],
     ) -> None:
         pass
 

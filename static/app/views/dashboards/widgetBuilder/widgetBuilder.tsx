@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -33,11 +33,13 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {
+  isOnDemandMetricWidget,
+  OnDemandControlProvider,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -58,6 +60,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
 import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
@@ -209,15 +212,11 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataSet = dataset
-    ? dataset
-    : source === DashboardWidgetSource.DDM
-      ? DataSet.METRICS
-      : DataSet.EVENTS;
+  const dataSet = dataset ? dataset : DataSet.EVENTS;
 
   const api = useApi();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
@@ -356,14 +355,14 @@ function WidgetBuilder({
 
   useEffect(() => {
     const onUnload = () => {
-      if (!isSubmitting && state.userHasModified) {
+      if (!isSubmittingRef.current && state.userHasModified) {
         return t('You have unsaved changes, are you sure you want to leave?');
       }
       return undefined;
     };
 
     router.setRouteLeaveHook(route, onUnload);
-  }, [isSubmitting, state.userHasModified, route, router]);
+  }, [state.userHasModified, route, router]);
 
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
@@ -377,6 +376,10 @@ function WidgetBuilder({
     limit: state.limit,
     widgetType,
   };
+
+  const isOnDemandWidget = isOnDemandMetricWidget(currentWidget);
+
+  const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
 
   const currentDashboardId = state.selectedDashboard ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
@@ -553,9 +556,12 @@ function WidgetBuilder({
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
+      const didDatasetChange =
+        widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet;
+
       newState.queries.push(
-        ...(widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
+        ...(didDatasetChange
           ? widgetToBeUpdated.queries
           : [{...config.defaultWidgetQuery}])
       );
@@ -767,7 +773,7 @@ function WidgetBuilder({
       return;
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     let nextWidgetList = [...dashboard.widgets];
     const updateWidgetIndex = getUpdateWidgetIndex();
     nextWidgetList.splice(updateWidgetIndex, 1);
@@ -807,7 +813,7 @@ function WidgetBuilder({
       });
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
@@ -1138,14 +1144,12 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
-                                    hasCustomMetricsFeature={hasDDMFeature(organization)}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
                                       {({isMetricsData}) => (
                                         <ColumnsStep
                                           dataSet={state.dataSet}
-                                          queries={state.queries}
                                           displayType={state.displayType}
                                           widgetType={widgetType}
                                           queryErrors={state.errors?.queries}
@@ -1156,6 +1160,7 @@ function WidgetBuilder({
                                           explodedFields={explodedFields}
                                           tags={tags}
                                           organization={organization}
+                                          isOnDemandWidget={isOnDemandWidget}
                                         />
                                       )}
                                     </DashboardsMEPConsumer>
@@ -1188,6 +1193,7 @@ function WidgetBuilder({
                                     dashboardFilters={dashboard.filters}
                                     location={location}
                                     onQueryConditionChange={setQueryConditionsValid}
+                                    validatedWidgetResponse={validatedWidgetResponse}
                                   />
                                   {isTimeseriesChart && (
                                     <GroupByStep
@@ -1201,9 +1207,9 @@ function WidgetBuilder({
                                         )}
                                       onGroupByChange={handleGroupByChange}
                                       organization={organization}
+                                      validatedWidgetResponse={validatedWidgetResponse}
                                       tags={tags}
                                       dataSet={state.dataSet}
-                                      queries={state.queries}
                                     />
                                   )}
                                   {displaySortByStep && (

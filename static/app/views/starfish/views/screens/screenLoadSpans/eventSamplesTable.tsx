@@ -16,15 +16,17 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
 
@@ -38,6 +40,7 @@ type Props = {
   sort: Sort;
   sortKey: string;
   data?: TableData;
+  footerAlignedPagination?: boolean;
   pageLinks?: string;
   showDeviceClassSelector?: boolean;
 };
@@ -56,6 +59,7 @@ export function EventSamplesTable({
   profileIdKey,
   columnNameMap,
   sort,
+  footerAlignedPagination = false,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -70,9 +74,13 @@ export function EventSamplesTable({
     if (column.key === eventIdKey) {
       return (
         <Link
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row['project.name']}:${row[eventIdKey]}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug({...row, id: row[eventIdKey]}),
+            organization,
+            location,
+            eventView: EventView.fromLocation(location),
+            dataRow: row,
+          })}
         >
           {row[eventIdKey].slice(0, 8)}
         </Link>
@@ -169,10 +177,13 @@ export function EventSamplesTable({
 
   return (
     <Fragment>
-      <Header>
-        {showDeviceClassSelector && <DeviceClassSelector />}
-        <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
-      </Header>
+      {!footerAlignedPagination && (
+        <Header>
+          {showDeviceClassSelector && <DeviceClassSelector />}
+
+          <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
+        </Header>
+      )}
       <GridContainer>
         <GridEditable
           isLoading={isLoading}
@@ -190,6 +201,11 @@ export function EventSamplesTable({
           }}
         />
       </GridContainer>
+      <div>
+        {footerAlignedPagination && (
+          <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
+        )}
+      </div>
     </Fragment>
   );
 }

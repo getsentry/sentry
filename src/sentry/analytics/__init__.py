@@ -20,8 +20,8 @@ __all__ = (
 
 backend = LazyServiceWrapper(
     backend_base=Analytics,
-    backend_path=get_backend_path(options.get("analytics.backend")),
-    options=options.get("analytics.options"),
+    backend_path=get_backend_path(options.get("analytics.backend")),  # type: ignore[has-type]  # mypy is confused by a circular import
+    options=options.get("analytics.options"),  # type: ignore[has-type]  # mypy is confused by a circular import
 )
 
 record = backend.record

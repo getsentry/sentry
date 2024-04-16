@@ -1,9 +1,9 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping, Optional
-
-from typing_extensions import TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
     get_selected_browser_sdk_version,
@@ -25,6 +25,7 @@ class DSN(TypedDict):
     minidump: str
     nel: str
     unreal: str
+    crons: str
     cdn: str
 
 
@@ -46,16 +47,17 @@ class ProjectKeySerializerResponse(TypedDict):
     id: str
     name: str
     label: str
-    public: Optional[str]
-    secret: Optional[str]
+    public: str | None
+    secret: str | None
     projectId: int
     isActive: bool
-    rateLimit: Optional[RateLimit]
+    rateLimit: RateLimit | None
     dsn: DSN
     browserSdkVersion: str
     browserSdk: BrowserSDK
-    dateCreated: Optional[datetime]
+    dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
+    useCase: NotRequired[str]
 
 
 @register(ProjectKey)
@@ -77,9 +79,11 @@ class ProjectKeySerializer(Serializer):
             "secret": obj.secret_key,
             "projectId": obj.project_id,
             "isActive": obj.is_active,
-            "rateLimit": {"window": obj.rate_limit_window, "count": obj.rate_limit_count}
-            if (obj.rate_limit_window and obj.rate_limit_count)
-            else None,
+            "rateLimit": (
+                {"window": obj.rate_limit_window, "count": obj.rate_limit_count}
+                if (obj.rate_limit_window and obj.rate_limit_count)
+                else None
+            ),
             "dsn": {
                 "secret": obj.dsn_private,
                 "public": obj.dsn_public,
@@ -88,6 +92,7 @@ class ProjectKeySerializer(Serializer):
                 "minidump": obj.minidump_endpoint,
                 "nel": obj.nel_endpoint,
                 "unreal": obj.unreal_endpoint,
+                "crons": obj.crons_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
@@ -101,4 +106,9 @@ class ProjectKeySerializer(Serializer):
                 "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
             },
         }
+
+        request = kwargs.get("request")
+        if request and is_active_superuser(request):
+            data["useCase"] = obj.use_case
+
         return data

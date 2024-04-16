@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 
@@ -112,7 +113,7 @@ def send_notification_as_msteams(
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
                     except Exception:
-                        logger.exception("Exception occured while trying to send the notification")
+                        logger.exception("Exception occurred while trying to send the notification")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",

@@ -10,7 +10,6 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.skips import requires_snuba
@@ -170,7 +169,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_full_integration_fallthrough(self):
         one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -208,7 +206,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_full_integration_fallthrough_not_provided(self):
         one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -337,7 +334,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_render_label_fallback_none(self):
         # Check that the label defaults to ActiveMembers
         rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})

@@ -6,9 +6,11 @@ import type {Location} from 'history';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CursorHandler} from 'sentry/components/pagination';
 import type {AuditLog} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import AuditLogList from './auditLogList';
 
@@ -105,15 +107,19 @@ function OrganizationAuditLog({location}: Props) {
 
   return (
     <Fragment>
-      <AuditLogList
-        entries={state.entryList}
-        pageLinks={state.entryListPageLinks}
-        eventType={state.eventType}
-        eventTypes={state.eventTypes}
-        onEventSelect={handleEventSelect}
-        isLoading={state.isLoading}
-        onCursor={handleCursor}
-      />
+      {organization.access.includes('org:write') || isActiveSuperuser() ? (
+        <AuditLogList
+          entries={state.entryList}
+          pageLinks={state.entryListPageLinks}
+          eventType={state.eventType}
+          eventTypes={state.eventTypes}
+          onEventSelect={handleEventSelect}
+          isLoading={state.isLoading}
+          onCursor={handleCursor}
+        />
+      ) : (
+        <PermissionAlert />
+      )}
     </Fragment>
   );
 }

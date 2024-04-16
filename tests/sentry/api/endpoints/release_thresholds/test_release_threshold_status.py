@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from sentry.models.deploy import Deploy
@@ -156,9 +156,9 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.slug}-{release1.version}: [threshold]
         }
         """
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
-        last_week = str(datetime.now() - timedelta(days=7))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
+        last_week = datetime.now(UTC) - timedelta(days=7)
         release_old = Release.objects.create(
             version="old_version", organization=self.organization, date_added=last_week
         )
@@ -218,8 +218,8 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.slug}-{release1.version}: [threshold]
         }
         """
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
         response = self.get_success_response(
             self.organization.slug, start=yesterday, end=now, environment=["canary"]
         )
@@ -268,8 +268,8 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.slug}-{release1.version}: [threshold]
         }
         """
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
 
         # Creates a deploy for a particular Release in a particular Environment
         r1_canary_deploy = Deploy.objects.create(
@@ -330,8 +330,8 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.slug}-{release1.version}: [threshold]
         }
         """
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
         response = self.get_success_response(
             self.organization.slug, start=yesterday, end=now, release=[self.release1.version]
         )
@@ -381,8 +381,8 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.slug}-{release1.version}: [threshold]
         }
         """
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
         response = self.get_success_response(
             self.organization.slug, start=yesterday, end=now, projectSlug=[self.project2.slug]
         )
@@ -462,8 +462,8 @@ class ReleaseThresholdStatusTest(APITestCase):
             project=self.project4,
         )
 
-        now = str(datetime.now())
-        yesterday = str(datetime.now() - timedelta(hours=24))
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
 
         mock_is_error_count_healthy.return_value = True, 100
         mock_is_new_issue_count_healthy.return_value = True, 100

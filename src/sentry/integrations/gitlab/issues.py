@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
@@ -151,7 +152,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),

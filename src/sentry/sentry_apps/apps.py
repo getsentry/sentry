@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Iterable, Mapping
 from dataclasses import field
 from itertools import chain
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -15,6 +16,7 @@ from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -68,6 +70,16 @@ def expand_events(rolled_up_events: list[str]) -> set[str]:
     )
 
 
+# TODO(schew2381): Delete this method after staff is GA'd and the options are removed
+def _is_elevated_user(user) -> bool:
+    """
+    This is a temporary helper method that checks if the user can become staff
+    if staff mode is enabled. Otherwise, it defaults to checking that the user
+    can become a superuser.
+    """
+    return user.is_staff if has_staff_option(user) else user.is_superuser
+
+
 @dataclasses.dataclass
 class SentryAppUpdater:
     sentry_app: SentryApp
@@ -109,7 +121,7 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
-            if not user.is_superuser and self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise APIError("Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
@@ -128,7 +140,7 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
-            if user.is_superuser:
+            if _is_elevated_user(user):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -226,7 +238,7 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
-            if user.is_superuser:
+            if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
 
     def _update_schema(self) -> set[str] | None:
@@ -288,7 +300,13 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
+    def run(
+        self,
+        *,
+        user: User | RpcUser,
+        request: HttpRequest | None = None,
+        skip_default_auth_token: bool = False,
+    ) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -299,7 +317,8 @@ class SentryAppCreator:
 
             if self.is_internal:
                 install = self._install(slug=slug, user=user, request=request)
-                self._create_access_token(user=user, install=install, request=request)
+                if not skip_default_auth_token:
+                    self._create_access_token(user=user, install=install, request=request)
 
             self.audit(request=request, sentry_app=sentry_app)
         self.record_analytics(user=user, sentry_app=sentry_app)

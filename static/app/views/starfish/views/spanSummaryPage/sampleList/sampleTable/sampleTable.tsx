@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
@@ -21,13 +22,14 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-top: ${space(2)};
 `;
 
 type Props = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
+  additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
@@ -48,6 +50,7 @@ function SampleTable({
   release,
   query,
   additionalFields,
+  additionalFilters,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -63,8 +66,11 @@ function SampleTable({
   }
 
   const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
     fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+      Boolean(value)
+    ),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 

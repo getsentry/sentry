@@ -1,11 +1,11 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +39,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   handleCellAction?: (
@@ -129,7 +129,7 @@ class TransactionsTable extends PureComponent<Props> {
     } = this.props;
     const fields = eventView.getFields();
 
-    if (titles && titles.length) {
+    if (titles?.length) {
       // Slice to match length of given titles
       columnOrder = columnOrder.slice(0, titles.length);
     }
@@ -143,7 +143,7 @@ class TransactionsTable extends PureComponent<Props> {
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[field]?.(organization, row, location.query);
+      const target = generateLink?.[field]?.(organization, row, location);
 
       if (target && !objectIsEmpty(target)) {
         if (fields[index] === 'replayId') {
@@ -221,8 +221,7 @@ class TransactionsTable extends PureComponent<Props> {
   render() {
     const {isLoading, tableData} = this.props;
 
-    const hasResults =
-      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
+    const hasResults = tableData?.meta && tableData.data?.length > 0;
 
     // Custom set the height so we don't have layout shift when results are loaded.
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;

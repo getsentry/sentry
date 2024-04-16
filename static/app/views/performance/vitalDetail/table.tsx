@@ -3,12 +3,12 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import Tag from 'sentry/components/badge/tag';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import Tag from 'sentry/components/tag';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
@@ -278,7 +278,7 @@ class Table extends Component<Props, State> {
           const star = (
             <IconStar
               key="keyTransaction"
-              color="yellow400"
+              color="yellow300"
               isSolid
               data-test-id="key-transaction-header"
             />

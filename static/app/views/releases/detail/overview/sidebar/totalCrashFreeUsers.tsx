@@ -4,7 +4,8 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import Count from 'sentry/components/count';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -12,111 +13,104 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {displayCrashFreePercent} from '../../../utils';
 
-type Props = DeprecatedAsyncComponent['props'] & {
+type Props = {
   location: Location;
   organization: Organization;
   projectSlug: string;
   version: string;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  releaseStats?: {usersBreakdown: CrashFreeTimeBreakdown} | null;
-};
+type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 
-class TotalCrashFreeUsers extends DeprecatedAsyncComponent<Props, State> {
-  shouldReload = true;
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {location, organization, projectSlug, version} = this.props;
-
-    return [
-      [
-        'releaseStats',
-        `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-          version
-        )}/stats/`,
-        {
-          query: {
-            ...normalizeDateTimeParams(
-              pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
-            ),
-            type: 'sessions',
-          },
+function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
+  const {
+    data: releaseStats,
+    isLoading,
+    isError,
+  } = useApiQuery<ReleaseStatsType>(
+    [
+      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
+        version
+      )}/stats/`,
+      {
+        query: {
+          ...normalizeDateTimeParams(
+            pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
+          ),
+          type: 'sessions',
         },
-      ],
-    ];
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.version !== this.props.version) {
-      this.remountComponent();
-    }
+  if (isError) {
+    return <LoadingError />;
   }
 
-  renderLoading() {
-    return this.renderBody();
+  const crashFreeTimeBreakdown = releaseStats?.usersBreakdown;
+
+  if (!crashFreeTimeBreakdown?.length) {
+    return null;
   }
 
-  renderBody() {
-    const crashFreeTimeBreakdown = this.state.releaseStats?.usersBreakdown;
+  const timeline = crashFreeTimeBreakdown
+    .map(({date, crashFreeUsers, totalUsers}, index, data) => {
+      // count number of crash free users from knowing percent and total
+      const crashFreeUserCount = Math.round(((crashFreeUsers ?? 0) * totalUsers) / 100);
+      // first item of timeline is release creation date, then we want to have relative date label
+      const dateLabel =
+        index === 0
+          ? t('Release created')
+          : `${moment(data[0].date).from(date, true)} ${t('later')}`;
 
-    if (!crashFreeTimeBreakdown?.length) {
-      return null;
-    }
+      return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
+    })
+    // remove those timeframes that are in the future
+    .filter(item => item.date.isBefore())
+    // we want timeline to go from bottom to up
+    .reverse();
 
-    const timeline = crashFreeTimeBreakdown
-      .map(({date, crashFreeUsers, totalUsers}, index, data) => {
-        // count number of crash free users from knowing percent and total
-        const crashFreeUserCount = Math.round(((crashFreeUsers ?? 0) * totalUsers) / 100);
-        // first item of timeline is release creation date, then we want to have relative date label
-        const dateLabel =
-          index === 0
-            ? t('Release created')
-            : `${moment(data[0].date).from(date, true)} ${t('later')}`;
-
-        return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
-      })
-      // remove those timeframes that are in the future
-      .filter(item => item.date.isBefore())
-      // we want timeline to go from bottom to up
-      .reverse();
-
-    if (!timeline.length) {
-      return null;
-    }
-
-    return (
-      <SidebarSection.Wrap>
-        <SidebarSection.Title>{t('Total Crash Free Users')}</SidebarSection.Title>
-        <SidebarSection.Content>
-          <Timeline>
-            {timeline.map(row => (
-              <Row key={row.date.toString()}>
-                <InnerRow>
-                  <Text bold>{row.date.format('MMMM D')}</Text>
-                  <Text bold right>
-                    <Count value={row.crashFreeUserCount} />{' '}
-                    {tn('user', 'users', row.crashFreeUserCount)}
-                  </Text>
-                </InnerRow>
-                <InnerRow>
-                  <Text>{row.dateLabel}</Text>
-                  <Percent right>
-                    {defined(row.crashFreeUsers)
-                      ? displayCrashFreePercent(row.crashFreeUsers)
-                      : '-'}
-                  </Percent>
-                </InnerRow>
-              </Row>
-            ))}
-          </Timeline>
-        </SidebarSection.Content>
-      </SidebarSection.Wrap>
-    );
+  if (!timeline.length) {
+    return null;
   }
+
+  return (
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>{t('Total Crash Free Users')}</SidebarSection.Title>
+      <SidebarSection.Content>
+        <Timeline>
+          {timeline.map(row => (
+            <Row key={row.date.toString()}>
+              <InnerRow>
+                <Text bold>{row.date.format('MMMM D')}</Text>
+                <Text bold right>
+                  <Count value={row.crashFreeUserCount} />{' '}
+                  {tn('user', 'users', row.crashFreeUserCount)}
+                </Text>
+              </InnerRow>
+              <InnerRow>
+                <Text>{row.dateLabel}</Text>
+                <Percent right>
+                  {defined(row.crashFreeUsers)
+                    ? displayCrashFreePercent(row.crashFreeUsers)
+                    : '-'}
+                </Percent>
+              </InnerRow>
+            </Row>
+          ))}
+        </Timeline>
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
+  );
 }
 
 const Timeline = styled('div')`

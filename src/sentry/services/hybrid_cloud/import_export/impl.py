@@ -4,8 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import traceback
-from typing import Optional
 
+import sentry_sdk
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
@@ -50,7 +50,7 @@ from sentry.silo.base import SiloMode
 
 def get_existing_import_chunk(
     model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: type[models.base.Model]
-) -> Optional[RpcImportOk]:
+) -> RpcImportOk | None:
     # TODO(getsentry/team-ospo#190): `min_ordinal=1` assumes the entire model is being imported in a
     # single call; we will need to change this when we implement more granular chunking in the
     # future.
@@ -100,7 +100,7 @@ class UniversalImportExportService(ImportExportService):
         self,
         *,
         model_name: str,
-        scope: Optional[RpcImportScope] = None,
+        scope: RpcImportScope | None = None,
         flags: RpcImportFlags,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
@@ -116,7 +116,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         silo_mode = SiloMode.get_current_mode()
-        model_modes = model._meta.silo_limit.modes  # type: ignore
+        model_modes = model._meta.silo_limit.modes  # type: ignore[attr-defined]
         if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
             return RpcImportError(
                 kind=RpcImportErrorKind.IncorrectSiloModeForModel,
@@ -175,8 +175,8 @@ class UniversalImportExportService(ImportExportService):
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
                 max_old_pk = 0
-                min_inserted_pk: Optional[int] = None
-                max_inserted_pk: Optional[int] = None
+                min_inserted_pk: int | None = None
+                max_inserted_pk: int | None = None
                 counter = 0
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
@@ -326,6 +326,7 @@ class UniversalImportExportService(ImportExportService):
                 )
 
         except DeserializationError:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
                 on=InstanceID(model_name),
@@ -350,6 +351,7 @@ class UniversalImportExportService(ImportExportService):
                             )
                         return existing_import_chunk
                     except Exception:
+                        sentry_sdk.capture_exception()
                         return RpcImportError(
                             kind=RpcImportErrorKind.Unknown,
                             on=InstanceID(model_name),
@@ -359,6 +361,7 @@ class UniversalImportExportService(ImportExportService):
             # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
             # not properly sanitized against collision. This could be the fault of either the import
             # logic, or the user's data itself.
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.IntegrityError,
                 on=InstanceID(model_name),
@@ -366,6 +369,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except DatabaseError as e:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DatabaseError,
                 on=InstanceID(model_name),
@@ -373,6 +377,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.Unknown,
                 on=InstanceID(model_name),
@@ -384,7 +389,7 @@ class UniversalImportExportService(ImportExportService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: Optional[RpcExportScope] = None,
+        scope: RpcExportScope | None = None,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,
@@ -403,7 +408,7 @@ class UniversalImportExportService(ImportExportService):
                 )
 
             silo_mode = SiloMode.get_current_mode()
-            model_modes = model._meta.silo_limit.modes  # type: ignore
+            model_modes = model._meta.silo_limit.modes  # type: ignore[attr-defined]
             if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
                 return RpcExportError(
                     kind=RpcExportErrorKind.IncorrectSiloModeForModel,
@@ -493,7 +498,7 @@ class UniversalImportExportService(ImportExportService):
                     q &= Q(**query)
                     q = model.query_for_relocation_export(q, in_pk_map)
 
-                pk_name = model._meta.pk.name  # type: ignore
+                pk_name = model._meta.pk.name  # type: ignore[union-attr]
                 queryset = model._base_manager.filter(q).order_by(pk_name)
                 return filter_objects(queryset.iterator())
 
@@ -510,6 +515,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return RpcExportError(
                 kind=RpcExportErrorKind.Unknown,
                 on=InstanceID(model_name),

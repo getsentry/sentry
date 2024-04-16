@@ -1,6 +1,6 @@
 import itertools
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -44,17 +44,16 @@ from sentry.tasks.statistical_detectors import (
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import Feature, override_options
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
 def timestamp():
-    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=timezone.utc)
+    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -163,12 +162,7 @@ def test_run_detection_options_multiple_batches(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [organization.slug],
-        "organizations:profiling-statistical-detectors-ema": [organization.slug],
-    }
-
-    with freeze_time(timestamp), override_options(options), Feature(features):
+    with freeze_time(timestamp), override_options(options):
         run_detection()
 
     # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
@@ -227,11 +221,7 @@ def test_detect_transaction_trends_options(
         "statistical_detectors.enable": task_enabled,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         detect_transaction_trends([project.organization_id], [project.id], timestamp)
     assert query_transactions.called == (task_enabled and option_enabled)
 
@@ -255,11 +245,7 @@ def test_detect_function_trends_options(
         "statistical_detectors.enable": enabled,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
@@ -271,17 +257,13 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["params"]
-    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
-    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
+    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
@@ -314,11 +296,7 @@ def test_detect_transaction_trends(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called
@@ -357,17 +335,13 @@ def test_detect_transaction_trends_auto_resolution(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps[:50]:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     assert detect_transaction_change_points.apply_async.called
 
-    with override_options(options), Feature(features):
+    with override_options(options):
         RegressionGroup.objects.create(
             type=RegressionType.ENDPOINT.value,
             date_regressed=timestamps[10],
@@ -446,11 +420,7 @@ def test_detect_transaction_trends_ratelimit(
         "statistical_detectors.ratelimit.ema": ratelimit,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
@@ -775,11 +745,7 @@ def test_detect_function_trends(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
@@ -818,17 +784,13 @@ def test_detect_function_trends_auto_resolution(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps[:50]:
             detect_function_trends([project.id], ts)
 
     assert detect_function_change_points.apply_async.called
 
-    with override_options(options), Feature(features):
+    with override_options(options):
         RegressionGroup.objects.create(
             type=RegressionType.FUNCTION.value,
             date_regressed=timestamps[10],
@@ -898,11 +860,7 @@ def test_detect_function_trends_ratelimit(
         "statistical_detectors.ratelimit.ema": ratelimit,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
 
@@ -934,7 +892,7 @@ def test_detect_function_change_points(
     timestamp,
     project,
 ):
-    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0)
 
     fingerprint = 12345
 
@@ -979,11 +937,7 @@ def test_detect_function_change_points(
         "statistical_detectors.enable": True,
     }
 
-    features = {
-        "organizations:profiling-statistical-detectors-breakpoint": [project.organization.slug]
-    }
-
-    with override_options(options), Feature(features):
+    with override_options(options):
         detect_function_change_points([(project.id, fingerprint)], timestamp)
     assert mock_emit_function_regression_issue.called
 
@@ -1333,15 +1287,12 @@ def test_redirect_escalations(
         )
 
 
-@region_silo_test
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.now = before_now(minutes=10)
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.projects = [
             self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
@@ -1416,7 +1367,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 "trend_percentage": 1.23,
                 "absolute_percentage_change": 1.23,
                 "trend_difference": 1.23,
-                "breakpoint": (self.hour_ago - timedelta(hours=12)).timestamp(),
+                "breakpoint": int((self.hour_ago - timedelta(hours=12)).timestamp()),
             }
             for project in self.projects
         ]
@@ -1426,7 +1377,6 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         assert emitted == 5
 
 
-@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -1434,9 +1384,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -1510,7 +1458,6 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             assert trend_payload.timestamp == self.hour_ago
 
 
-@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -1518,9 +1465,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -1704,11 +1649,8 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         }
 
         options = {"statistical_detectors.enable": True}
-        features = {
-            "organizations:performance-statistical-detectors-breakpoint": [self.org.slug],
-        }
 
-        with override_options(options), Feature(features):
+        with override_options(options):
             detect_transaction_change_points(
                 [
                     (self.projects[0].id, "transaction_1"),

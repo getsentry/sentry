@@ -34,9 +34,8 @@ const numericStyle = (
       text-align: center;
       left: 0;
       line-height: 1;
-      ${
-        isSolid
-          ? css`
+      ${isSolid
+        ? css`
             width: 24px;
             height: 24px;
             font-weight: 500;
@@ -44,15 +43,14 @@ const numericStyle = (
             background-color: ${theme.yellow300};
             color: ${theme.black};
           `
-          : css`
+        : css`
             top: 3px;
             width: 18px;
             height: 18px;
             font-weight: 600;
             font-size: 10px;
             border: 1px solid ${theme.gray500};
-          `
-      }
+          `}
     }
   }
   counter-reset: numberedList ${initialCounterValue};

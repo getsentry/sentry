@@ -16,7 +16,7 @@ interface Props {
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderContextMenu?: () => void;
+  renderContextMenu?: () => React.ReactNode;
 }
 
 function DashboardCard({
@@ -60,7 +60,7 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-          {renderContextMenu && renderContextMenu()}
+          {renderContextMenu?.()}
         </CardFooter>
       </StyledDashboardCard>
     </Link>

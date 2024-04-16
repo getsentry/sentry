@@ -97,6 +97,11 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedRegionReplicaService

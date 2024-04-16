@@ -12,7 +12,7 @@ interface Params<H extends HookName> {
   /**
    * Component that will be shown if no hook is available
    */
-  defaultComponent?: ReturnType<Hooks[H]>;
+  defaultComponent?: ReturnType<Hooks[H]> | (() => ReturnType<Hooks[H]>);
   /**
    * This is a function that returns a promise (more specifically a function
    * that returns the result of a dynamic import using `import()`. This will
@@ -84,7 +84,7 @@ function HookOrDefault<H extends HookName>({
       };
     }, []);
 
-    const hookExists = hooks && hooks.length;
+    const hookExists = hooks?.length;
     const componentFromHook = hooks[0]?.();
     // Defining the props here is unnecessary and slow for typescript
     const HookComponent: React.ComponentType<any> =

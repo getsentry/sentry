@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
@@ -20,7 +20,7 @@ from sentry.debug_files.artifact_bundles import (
     query_artifact_bundles_containing_file,
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle
 from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -37,9 +37,9 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -81,16 +81,6 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
-        elif ty == "bundle_index":
-            file = ArtifactBundleFlatFileIndex.objects.filter(
-                id=ty_id, project_id=project.id
-            ).first()
-            metrics.incr("sourcemaps.download.flat_file_index")
-
-            if file is not None and (data := file.load_flat_file_index()):
-                return HttpResponse(data, content_type="application/json")
-            else:
-                raise Http404
 
         if file is None:
             raise Http404
@@ -208,7 +198,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 def try_resolve_release_dist(
     project: Project, release_name: str, dist_name: str
-) -> tuple[Optional[Release], Optional[Distribution]]:
+) -> tuple[Release | None, Distribution | None]:
     release = None
     dist = None
     try:
@@ -229,7 +219,7 @@ def try_resolve_release_dist(
     return release, dist
 
 
-def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> set[int]:
+def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -252,7 +242,7 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Optional[Distribution], url: list[str]
+    release: Release, dist: Distribution | None, url: list[str]
 ) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (

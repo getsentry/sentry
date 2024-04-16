@@ -27,7 +27,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
@@ -36,10 +40,9 @@ import type {
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {getPerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
-import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -123,15 +126,10 @@ function TagsHeatMap(
 
   const xValues = new Set();
 
-  const histogramData =
-    tableData &&
-    tableData.histogram &&
-    tableData.histogram.data &&
-    tableData.histogram.data.length
-      ? tableData.histogram.data
-      : undefined;
-  const tagData =
-    tableData && tableData.tags && tableData.tags.data ? tableData.tags.data : undefined;
+  const histogramData = tableData?.histogram?.data?.length
+    ? tableData.histogram.data
+    : undefined;
+  const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
 
   const rowKey = histogramData && findRowKey(histogramData[0]);
 
@@ -353,11 +351,14 @@ function TagsHeatMap(
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateTransactionLink(transactionName)(
+                      const target = generateLinkToEventInTraceView({
+                        eventSlug: generateEventSlug(row),
+                        dataRow: row,
+                        eventView: EventView.fromLocation(location),
+                        location,
                         organization,
-                        row,
-                        location.query
-                      );
+                        transactionName,
+                      });
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>

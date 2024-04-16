@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from sentry_relay.processing import GeoIpLookup
 
 logger = logging.getLogger(__name__)
 geoip_path_mmdb = getattr(settings, "GEOIP_PATH_MMDB", None)
@@ -14,7 +15,7 @@ def geo_by_addr(ip):
     pass
 
 
-rust_geoip = None
+rust_geoip: None | GeoIpLookup = None
 
 
 def _init_geoip() -> None:

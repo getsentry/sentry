@@ -1,6 +1,5 @@
-from typing import Any, Mapping, MutableMapping, Optional
-
-from typing_extensions import TypedDict
+from collections.abc import Mapping, MutableMapping
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.integrations.external_actor import ExternalActor
@@ -42,7 +41,7 @@ class ExternalActorSerializer(Serializer):
         obj: ExternalActor,
         attrs: Mapping[str, Any],
         user: User,
-        key: Optional[str] = None,
+        key: str | None = None,
         **kwargs: Any,
     ) -> ExternalActorResponse:
         provider = get_provider_string(obj.provider)

@@ -3,6 +3,9 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,11 +13,17 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -122,7 +131,7 @@ const replayOnboarding: OnboardingConfig = {
               }),
             },
           ],
-          additionalInfo: tracePropagationMessage,
+          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
@@ -131,10 +140,77 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/sveltekit]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/sveltekit";`,
+                dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
 };
 
 export default docs;

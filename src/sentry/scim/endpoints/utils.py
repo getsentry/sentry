@@ -1,10 +1,11 @@
+from typing import TypedDict
+
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
-from typing_extensions import TypedDict
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -19,7 +20,7 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_tag("http.status_code", status_code)
         self.status_code = status_code

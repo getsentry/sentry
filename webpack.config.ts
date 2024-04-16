@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
@@ -15,23 +14,16 @@ import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import type {Configuration as DevServerConfig} from 'webpack-dev-server';
-import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
-import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
 import packageJson from './package.json';
 
 type MinimizerPluginOptions = {
   targets: lightningcss.TransformAttributeOptions['targets'];
 };
-
-// Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
-(async () => {
-  await extractIOSDeviceNames();
-})();
 
 /**
  * Merges the devServer config into the webpack config
@@ -67,6 +59,14 @@ const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
+// Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
+// features in the Sentry UI.
+const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+
+// Enable react 18 concurrent mode
+const USE_REACT_CONCURRENT_MODE =
+  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
+
 // Environment variables that are used by other tooling and should
 // not be user configurable.
 //
@@ -85,7 +85,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
@@ -107,6 +106,9 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -353,6 +355,8 @@ const appConfig: Configuration = {
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
+        USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+        USE_REACT_CONCURRENT_MODE: JSON.stringify(USE_REACT_CONCURRENT_MODE),
       },
     }),
 
@@ -379,9 +383,9 @@ const appConfig: Configuration = {
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
 
     /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
+     * Restrict translation files that are pulled in through
+     * initializeLocale.tsx and through moment/locale/* to only those which we
+     * create bundles for via locale/catalogs.json.
      *
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
@@ -455,6 +459,8 @@ const appConfig: Configuration = {
       crypto: require.resolve('crypto-browserify'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
     modules: ['node_modules'],
@@ -614,15 +620,6 @@ if (
   }
 }
 
-// We want Spotlight only in Dev mode - Local and UI only
-if (SHOULD_RUN_SPOTLIGHT) {
-  appConfig.plugins?.push(
-    new WebpackHookPlugin({
-      onBuildStart: ['yarn run spotlight-sidecar'],
-    })
-  );
-}
-
 // XXX(epurkhiser): Sentry (development) can be run in an experimental
 // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
 // backend (in this case, sentry.io), otherwise ALL requests are rewritten
@@ -773,6 +770,19 @@ const minificationPlugins = [
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+}
+
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+
+  appConfig.plugins?.push(
+    codecovWebpackPlugin({
+      enableBundleAnalysis: true,
+      bundleName: 'app-webpack-bundle',
+      uploadToken: CODECOV_TOKEN,
+      debug: true,
+    })
+  );
 }
 
 // Cache webpack builds

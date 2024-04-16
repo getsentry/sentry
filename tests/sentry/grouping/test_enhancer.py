@@ -8,8 +8,6 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import create_match_frame
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def dump_obj(obj):
@@ -30,9 +28,7 @@ def dump_obj(obj):
     return rv
 
 
-@pytest.mark.parametrize("version", [1, 2])
-@django_db_all
-@override_options({"grouping.rust_enhancers.parse_rate": 1.0})
+@pytest.mark.parametrize("version", [2])
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -59,16 +55,13 @@ family:native                                   max-frames=3
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
 
-    with override_options({"enhancers.use-zstd": True}):
-        dumped_zstd = enhancement.dumps()
 
-        assert dumped_zstd is not dumped
-        assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
-        assert (
-            Enhancements.loads(dumped_zstd)._to_config_structure()
-            == enhancement._to_config_structure()
-        )
-        assert isinstance(dumped_zstd, str)
+def test_parse_empty_with_base():
+    enhancement = Enhancements.from_config_string(
+        "",
+        bases=["newstyle:2023-01-11"],
+    )
+    assert enhancement
 
 
 def test_parsing_errors():
@@ -88,10 +81,6 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
-@django_db_all
-@override_options(
-    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
-)
 def test_flipflop_inapp():
     enhancement = Enhancements.from_config_string(
         """
@@ -242,6 +231,15 @@ def test_app_matching():
             app_no_rule, [{"abs_path": "/test.c", "in_app": True}], "native"
         )
     )
+
+
+def test_invalid_app_matcher():
+    enhancements = Enhancements.from_config_string("app://../../src/some-file.ts -app")
+    (rule,) = enhancements.rules
+
+    assert not bool(_get_matching_frame_actions(rule, [{}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": True}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": False}], "javascript"))
 
 
 def test_package_matching():
@@ -472,24 +470,19 @@ def test_range_matching_direct():
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
 def test_sentinel_and_prefix(action, type):
-    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
+    enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    actions = _get_matching_frame_actions(rule, frames, "whatever")
-    assert len(actions) == 1
-
     component = GroupingComponent(id=None)
     assert not getattr(component, f"is_{type}_frame")
+    frame_components = [component]
 
-    actions[0][1].update_frame_components_contributions([component], frames, 0)
+    enhancements.assemble_stacktrace_component(frame_components, frames, "whatever")
+
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
 
 
-@django_db_all
-@override_options(
-    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
-)
 @pytest.mark.parametrize(
     "frame",
     [
@@ -499,5 +492,5 @@ def test_sentinel_and_prefix(action, type):
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", None)
+    enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")

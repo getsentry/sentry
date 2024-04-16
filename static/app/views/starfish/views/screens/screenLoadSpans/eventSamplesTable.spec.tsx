@@ -199,7 +199,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('uses a custom sort key for sortable headers', function () {
+  it('uses a custom sort key for sortable headers', async function () {
     mockQuery = {
       name: '',
       fields: ['transaction.id', 'duration'],
@@ -227,7 +227,7 @@ describe('EventSamplesTable', function () {
     );
 
     // Ascending sort in transaction ID because the default is descending
-    expect(screen.getByRole('link', {name: 'Event ID'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Event ID'})).toHaveAttribute(
       'href',
       '/mock-pathname/?customSortKey=transaction.id'
     );

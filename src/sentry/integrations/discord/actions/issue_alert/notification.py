@@ -1,4 +1,5 @@
-from typing import Any, Generator, Optional, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
@@ -6,7 +7,6 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture, EventState
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -31,7 +31,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         }
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -48,9 +48,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             client = DiscordClient()
             try:
                 client.send_message(channel_id, message, notification_uuid=notification_uuid)
-            except ApiError as e:
+            except Exception as e:
                 self.logger.error(
-                    "rule.fail.discord_post",
+                    "discord.notification.message_send_failure",
                     extra={
                         "error": str(e),
                         "project_id": event.project_id,
@@ -59,6 +59,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                         "channel_id": channel_id,
                     },
                 )
+
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
 

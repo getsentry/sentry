@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
@@ -54,9 +53,9 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -108,7 +107,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 project.organization.id, artifact_bundle
             )
 
-            def format_date(date: Optional[datetime]) -> Optional[str]:
+            def format_date(date: datetime | None) -> str | None:
                 return None if date is None else date.isoformat()[:19] + "Z"
 
             return serialize(

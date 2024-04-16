@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping, Sequence
 from types import LambdaType
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -84,7 +85,9 @@ class Pipeline(abc.ABC):
 
         organization: RpcOrganization | None = None
         if state.org_id:
-            org_context = organization_service.get_organization_by_id(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(
+                id=state.org_id, include_teams=False
+            )
             if org_context:
                 organization = org_context.organization
 

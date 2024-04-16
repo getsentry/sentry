@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 
 from django.urls import reverse
@@ -10,21 +10,21 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, ReleaseCommitPatchTest, TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -36,7 +36,7 @@ class ProjectReleaseListTest(APITestCase):
         release1 = Release.objects.create(
             organization_id=project1.organization_id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -45,15 +45,15 @@ class ProjectReleaseListTest(APITestCase):
         release2 = Release.objects.create(
             organization_id=project1.organization_id,
             version="2",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project1)
 
         release3 = Release.objects.create(
             organization_id=project1.organization_id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
             user_agent="my_agent",
         )
         release3.add_project(project1)
@@ -84,7 +84,7 @@ class ProjectReleaseListTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
@@ -106,7 +106,7 @@ class ProjectReleaseListTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version="foo.bar-1.0.0",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
@@ -116,12 +116,11 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
 class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
-        self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=timezone.utc)
+        self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=UTC)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         project2 = self.create_project(teams=[team], name="bar")
@@ -316,7 +315,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         )
 
 
-@region_silo_test
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
@@ -495,7 +493,9 @@ class ProjectReleaseCreateTest(APITestCase):
         team1 = self.create_team(organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -567,7 +567,6 @@ class ProjectReleaseCreateTest(APITestCase):
         assert org_token.project_last_used_id == project1.id
 
 
-@region_silo_test
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
@@ -697,7 +696,6 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         }
 
 
-@region_silo_test
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -734,7 +732,7 @@ class ReleaseSerializerTest(TestCase):
         assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

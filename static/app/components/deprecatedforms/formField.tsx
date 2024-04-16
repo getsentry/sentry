@@ -35,7 +35,7 @@ type FormFieldState = {
   value: Value;
 };
 
-export default class FormField<
+export default abstract class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState,
 > extends PureComponent<Props, State> {
@@ -53,8 +53,6 @@ export default class FormField<
     } as State;
   }
 
-  componentDidMount() {}
-
   UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: FormContextData) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
@@ -68,29 +66,28 @@ export default class FormField<
     }
   }
 
-  componentWillUnmount() {}
-
+  declare context: React.ContextType<typeof FormContext>;
   static contextType = FormContext;
 
   getValue(props: Props, context: FormContextData) {
-    const form = (context || this.context || {}).form;
+    const form = (context || this.context)?.form;
     props = props || this.props;
     if (defined(props.value)) {
       return props.value;
     }
-    if (form && form.data.hasOwnProperty(props.name)) {
+    if (form?.data.hasOwnProperty(props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
   getError(props: Props, context: FormContextData) {
-    const form = (context || this.context || {}).form;
+    const form = (context || this.context)?.form;
     props = props || this.props;
     if (defined(props.error)) {
       return props.error;
     }
-    return (form && form.errors[props.name]) || null;
+    return form?.errors[props.name] || null;
   }
 
   getId() {
@@ -107,7 +104,7 @@ export default class FormField<
   };
 
   setValue = (value: Value) => {
-    const form = (this.context || {}).form;
+    const form = this.context?.form;
     this.setState(
       {
         value,
@@ -120,13 +117,8 @@ export default class FormField<
     );
   };
 
-  getField() {
-    throw new Error('Must be implemented by child.');
-  }
-
-  getClassName(): string {
-    throw new Error('Must be implemented by child.');
-  }
+  abstract getField(): React.ReactNode;
+  abstract getClassName(): string;
 
   getFinalClassNames() {
     const {className, required} = this.props;

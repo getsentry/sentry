@@ -8,8 +8,8 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import useProjects from 'sentry/utils/useProjects';
 import withLatestContext from 'sentry/utils/withLatestContext';
-import withProjects from 'sentry/utils/withProjects';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
@@ -25,12 +25,12 @@ type Props = RouteComponentProps<{projectId?: string}, {}> & {
 function ProjectCrumb({
   organization: latestOrganization,
   project: latestProject,
-  projects,
   params,
   routes,
   route,
   ...props
 }: Props) {
+  const {projects} = useProjects();
   const handleSelect = (item: {value: string}) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
@@ -101,7 +101,7 @@ function ProjectCrumb({
 }
 
 export {ProjectCrumb};
-export default withProjects(withLatestContext(ProjectCrumb));
+export default withLatestContext(ProjectCrumb);
 
 // Set height of crumb because of spinner
 const SPINNER_SIZE = '24px';

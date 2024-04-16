@@ -7,7 +7,7 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -78,9 +78,12 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.captureException(
-        new Error('Invalid duration supplied to interval function')
-      );
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['invalid-duration-for-interval']);
+        Sentry.captureException(
+          new Error('Invalid duration supplied to interval function')
+        );
+      });
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -404,4 +407,12 @@ export function useEchartsAriaLabels(
 
 export function isEmptySeries(series: Series) {
   return series.data.every(dataPoint => dataPoint.value === 0);
+}
+
+/**
+ * Used to determine which chart in a group is currently hovered.
+ */
+export function isChartHovered(chartRef: ReactEchartsRef | null) {
+  const hoveredEchartElement = document.querySelector('.echarts-for-react:hover');
+  return hoveredEchartElement === chartRef?.ele;
 }

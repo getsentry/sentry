@@ -4,9 +4,10 @@ import abc
 import logging
 import sys
 from collections import namedtuple
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, NoReturn, Sequence
+from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.request import Request
 
 from rest_framework.exceptions import NotFound
@@ -69,7 +70,7 @@ IntegrationMetadata = namedtuple(
 )
 
 
-class IntegrationMetadata(IntegrationMetadata):  # type: ignore
+class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
     @staticmethod
     def feature_flag_name(f: str | None) -> str | None:
         """

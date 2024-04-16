@@ -325,7 +325,7 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    expect(childProps?.tableResults?.[0].data).toHaveLength(1);
+    await waitFor(() => expect(childProps?.tableResults?.[0].data).toHaveLength(1));
     expect(childProps?.tableResults?.[0].meta).toBeDefined();
   });
 
@@ -391,7 +391,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps?.tableResults).toHaveLength(2);
+    await waitFor(() => expect(childProps?.tableResults).toHaveLength(2));
     expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
     expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
   });
@@ -451,7 +451,7 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    expect(childProps?.tableResults?.[0]?.data).toHaveLength(1);
+    await waitFor(() => expect(childProps?.tableResults?.[0]?.data).toHaveLength(1));
     expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
@@ -515,7 +515,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps?.loading).toEqual(false);
+    await waitFor(() => expect(childProps?.loading).toEqual(false));
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -607,13 +607,15 @@ describe('Dashboards > WidgetQueries', function () {
     await screen.findByTestId('child');
     expect(defaultMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(child).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        timeseriesResults: [
-          {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
-          {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
-        ],
-      })
+    await waitFor(() =>
+      expect(child).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeseriesResults: [
+            {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
+            {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
+          ],
+        })
+      )
     );
   });
 

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Collection, Iterable, Mapping, Protocol, TypeVar
+from collections.abc import Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
 from django.dispatch import receiver

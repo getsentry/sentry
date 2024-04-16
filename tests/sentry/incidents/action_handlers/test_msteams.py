@@ -4,16 +4,16 @@ from unittest.mock import patch
 import responses
 
 from sentry.incidents.action_handlers import MsTeamsActionHandler
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 from . import FireTest
 
 
-@region_silo_test
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest):
     @responses.activate

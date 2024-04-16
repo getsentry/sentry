@@ -9,10 +9,7 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import (
-    assert_no_webhook_outboxes,
-    assert_webhook_outboxes_with_shard_id,
-)
+from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from tests.sentry.integrations.msteams.test_helpers import (
     EXAMPLE_MENTIONED,
@@ -79,7 +76,7 @@ class MsTeamsRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
         # Regions found
         request = self.factory.post(
@@ -93,9 +90,9 @@ class MsTeamsRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert len(responses.calls) == 0
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=self.integration.id,
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"msteams:{self.integration.id}",
             region_names=["us"],
         )
 
@@ -125,7 +122,7 @@ class MsTeamsRequestParserTest(TestCase):
             assert response.status_code == 200
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()
 
     def test_get_integration_from_request(self):
         CARD_ACTION_RESPONSE = self.generate_card_response(self.integration.id)
@@ -181,4 +178,4 @@ class MsTeamsRequestParserTest(TestCase):
             assert response.status_code == 200
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()

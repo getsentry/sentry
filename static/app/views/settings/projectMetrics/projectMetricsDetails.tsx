@@ -9,7 +9,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -22,15 +22,15 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
-import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {CodeLocations} from 'sentry/views/ddm/codeLocations';
+import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
@@ -67,7 +67,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {
     data: {blockingStatus},
   } = useProjectMetric(mri, projectId);
-  const {data: tagsData = []} = useMetricsTags(mri, projectIds);
+  const {data: tagsData = []} = useMetricsTags(mri, {projects: projectIds}, false);
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
@@ -75,7 +75,8 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
-  const {data: metricsData, isLoading} = useMetricsData(
+  const {data: metricsData, isLoading} = useMetricsQuery(
+    [{mri, op: operation, name: 'query'}],
     {
       datetime: {
         period: '30d',
@@ -84,9 +85,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         utc: false,
       },
       environments: [],
-      mri,
       projects: projectIds,
-      op: operation,
     },
     {interval: '1d'}
   );
@@ -98,7 +97,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       data:
         metricsData?.intervals.map((interval, index) => ({
           name: interval,
-          value: metricsData.groups[0].series[field][index] ?? 0,
+          value: metricsData.data[0]?.[0]?.series[index] ?? 0,
         })) ?? [],
     },
   ];
@@ -139,7 +138,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               aria-label={t('Block Metric')}
             />
             <LinkButton
-              to={getDdmUrl(organization.slug, {
+              to={getMetricsUrl(organization.slug, {
                 statsPeriod: '30d',
                 project: [project.id],
                 widgets: [
@@ -228,8 +227,8 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
           const isBlockedTag = blockingStatus?.blockedTags?.includes(key) ?? false;
           return (
             <Fragment key={key}>
-              <div key={key}>{key}</div>
-              <TextAlignRight key={key}>
+              <div>{key}</div>
+              <TextAlignRight>
                 <BlockButton
                   size="xs"
                   hasAccess={hasAccess}

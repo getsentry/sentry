@@ -8,11 +8,12 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[rq]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
 const getInitCallSnippet = (params: Params) => `
 sentry_sdk.init(
@@ -195,6 +196,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

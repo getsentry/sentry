@@ -33,9 +33,7 @@ export function isCurrentEvent(
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
   }
-  return (
-    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-  );
+  return event.errors?.some(e => e.event_id === currentEvent.id) ?? false;
 }
 
 type PathNode = {
@@ -310,7 +308,7 @@ export function filterTrace(
 export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
   transaction: TraceRoot | TraceError | QuickTraceEvent | U
 ): transaction is U {
-  return 'event_id' in transaction;
+  return 'transaction' in transaction;
 }
 
 export function isTraceError(

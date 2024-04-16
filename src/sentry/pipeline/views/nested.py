@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -32,7 +33,7 @@ class NestedPipelineView(PipelineView):
         self.provider_key = provider_key
         self.config = config or {}
 
-        class NestedPipeline(pipeline_cls):  # type: ignore
+        class NestedPipeline(pipeline_cls):  # type: ignore[misc, valid-type]
             def set_parent_pipeline(self, parent_pipeline: Pipeline) -> None:
                 self.parent_pipeline = parent_pipeline
 

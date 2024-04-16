@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, TypedDict
 
-from sentry import features, options
+import sentry_sdk
+
+from sentry import options
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -24,8 +29,10 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
+    KeyedVariants,
     SaltedComponentVariant,
 )
+from sentry.models.grouphash import GroupHash
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
@@ -54,6 +61,19 @@ _synthetic_exception_type_re = re.compile(
     """,
     re.X,
 )
+
+
+@dataclass
+class GroupHashInfo:
+    config: GroupingConfig
+    hashes: CalculatedHashes
+    grouphashes: list[GroupHash]
+    existing_grouphash: GroupHash | None
+
+
+NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
+NULL_HASHES = CalculatedHashes(hashes=[], hierarchical_hashes=[], tree_labels=[])
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
 
 
 class GroupingConfigNotFound(LookupError):
@@ -138,6 +158,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
+@sentry_sdk.tracing.trace
 def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
@@ -159,7 +180,7 @@ def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements(rules=[], bases=[base]).dumps()
+    return Enhancements.from_config_string("", bases=[base]).dumps()
 
 
 def get_projects_default_fingerprinting_bases(
@@ -179,13 +200,13 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(id=None) -> GroupingConfig:
+def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
     """Returns the default grouping config."""
-    if id is None:
+    if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
-        id = DEFAULT_GROUPING_CONFIG
-    return {"id": id, "enhancements": get_default_enhancements(id)}
+        config_id = DEFAULT_GROUPING_CONFIG
+    return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
 
 
 def load_grouping_config(config_dict=None) -> StrategyConfiguration:
@@ -215,10 +236,7 @@ def get_fingerprinting_config_for_project(
 
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-    if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
-        bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
-    else:
-        bases = []
+    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
         return FingerprintingRules([], bases=bases)
@@ -262,10 +280,12 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
             event["_fingerprint_info"]["is_builtin"] = True
 
 
-def _get_calculated_grouping_variants_for_event(event, context):
+def _get_calculated_grouping_variants_for_event(
+    event: Event, context: GroupingContext
+) -> dict[str, GroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    per_variant_components: dict[str, list[BaseVariant]] = {}
+    per_variant_components: dict[str, list[GroupingComponent]] = {}
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
@@ -278,9 +298,11 @@ def _get_calculated_grouping_variants_for_event(event, context):
                     winning_strategy = strategy.name
                     variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
                     precedence_hint = "{} take{} precedence".format(
-                        f"{strategy.name} of {variants_hint}"
-                        if variant != "default"
-                        else strategy.name,
+                        (
+                            f"{strategy.name} of {variants_hint}"
+                            if variant != "default"
+                            else strategy.name
+                        ),
                         "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
@@ -373,7 +395,7 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants):
+def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVariants, KeyedVariants]:
     """Sort a sequence of variants into flat and hierarchical variants"""
 
     flat_variants = []

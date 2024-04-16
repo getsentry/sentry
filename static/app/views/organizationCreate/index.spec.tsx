@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationCreate, {
@@ -56,12 +56,16 @@ describe('OrganizationCreate', function () {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     ConfigStore.set('isSelfHosted', false);
+    ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
     expect(
       screen.getByText('Relocating from self-hosted?', {exact: false})
     ).toBeInTheDocument();
-    expect(screen.getByText('here')).toHaveAttribute('href', '/relocation/');
+    expect(screen.getByText('Relocating from self-hosted?')).toHaveAttribute(
+      'href',
+      '/relocation/'
+    );
 
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(

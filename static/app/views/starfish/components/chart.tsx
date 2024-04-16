@@ -27,6 +27,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {
@@ -70,9 +71,16 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   },
 };
 
+export enum ChartType {
+  BAR,
+  LINE,
+  AREA,
+}
+
 type Props = {
   data: Series[];
   loading: boolean;
+  type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
@@ -80,14 +88,12 @@ type Props = {
   definedAxisTicks?: number;
   disableXAxis?: boolean;
   durationUnit?: number;
-  errored?: boolean;
+  error?: Error | null;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
-  isBarChart?: boolean;
-  isLineChart?: boolean;
   legendFormatter?: (name: string) => string;
   log?: boolean;
   markLine?: MarkLineOption;
@@ -111,46 +117,6 @@ type Props = {
   tooltipFormatterOptions?: FormatterOptions;
 };
 
-function computeMax(data: Series[]) {
-  const valuesDict = data.map(value => value.data.map(point => point.value));
-
-  return max(valuesDict.map(max)) as number;
-}
-
-// adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-export function computeAxisMax(data: Series[], stacked?: boolean) {
-  // assumes min is 0
-  let maxValue = 0;
-  if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i].data.map(point => point.value)) as number;
-    }
-  } else {
-    maxValue = computeMax(data);
-  }
-
-  if (maxValue <= 1) {
-    return 1;
-  }
-
-  const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
-
-  let scale: number;
-  if (magnitude <= 2.5) {
-    scale = 0.2;
-  } else if (magnitude <= 5) {
-    scale = 0.5;
-  } else if (magnitude <= 7.5) {
-    scale = 1.0;
-  } else {
-    scale = 2.0;
-  }
-
-  const step = 10 ** Math.floor(power) * scale;
-  return Math.ceil(Math.ceil(maxValue / step) * step);
-}
-
 function Chart({
   data,
   dataMax,
@@ -163,8 +129,7 @@ function Chart({
   durationUnit,
   rateUnit,
   chartColors,
-  isBarChart,
-  isLineChart,
+  type,
   stacked,
   log,
   hideYAxisSplitLine,
@@ -179,7 +144,7 @@ function Chart({
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
-  errored,
+  error,
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
@@ -279,14 +244,7 @@ function Chart({
     params,
     asyncTicket
   ) => {
-    // Kinda jank. Get hovered dom elements and check if any of them are the chart
-    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-      element => {
-        return element.classList.contains('echarts-for-react');
-      }
-    );
-
-    if (hoveredEchartElement === chartRef?.current?.ele) {
+    if (isChartHovered(chartRef?.current)) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
@@ -332,7 +290,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -372,9 +330,9 @@ function Chart({
       };
 
   function getChart() {
-    if (errored) {
+    if (error) {
       return (
-        <ErrorPanel>
+        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       );
@@ -391,7 +349,7 @@ function Chart({
         onDataZoom={onDataZoom}
       >
         {zoomRenderProps => {
-          if (isLineChart) {
+          if (type === ChartType.LINE) {
             return (
               <BaseChart
                 {...zoomRenderProps}
@@ -436,15 +394,47 @@ function Chart({
             );
           }
 
-          if (isBarChart) {
+          if (type === ChartType.BAR) {
             return (
               <BarChart
                 height={height}
                 series={trimmedSeries}
-                xAxis={xAxis}
-                additionalSeries={transformedThroughput}
-                yAxes={areaChartProps.yAxes}
-                tooltip={areaChartProps.tooltip}
+                xAxis={{
+                  type: 'category',
+                  axisTick: {show: true},
+                  truncate: Infinity, // Show axis labels
+                  axisLabel: {
+                    interval: 0, // Show _all_ axis labels
+                  },
+                }}
+                yAxis={{
+                  minInterval: durationUnit ?? getDurationUnit(data),
+                  splitNumber: definedAxisTicks,
+                  max: dataMax,
+                  axisLabel: {
+                    color: theme.chartLabel,
+                    formatter(value: number) {
+                      return axisLabelFormatter(
+                        value,
+                        aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+                        undefined,
+                        durationUnit ?? getDurationUnit(data),
+                        rateUnit
+                      );
+                    },
+                  },
+                }}
+                tooltip={{
+                  valueFormatter: (value, seriesName) => {
+                    return tooltipFormatter(
+                      value,
+                      aggregateOutputFormat ??
+                        aggregateOutputType(
+                          data?.length ? data[0].seriesName : seriesName
+                        )
+                    );
+                  },
+                }}
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 10} : undefined}
@@ -486,6 +476,46 @@ function Chart({
 }
 
 export default Chart;
+
+function computeMax(data: Series[]) {
+  const valuesDict = data.map(value => value.data.map(point => point.value));
+
+  return max(valuesDict.map(max)) as number;
+}
+
+// adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
+export function computeAxisMax(data: Series[], stacked?: boolean) {
+  // assumes min is 0
+  let maxValue = 0;
+  if (data.length > 1 && stacked) {
+    for (let i = 0; i < data.length; i++) {
+      maxValue += max(data[i].data.map(point => point.value)) as number;
+    }
+  } else {
+    maxValue = computeMax(data);
+  }
+
+  if (maxValue <= 1) {
+    return 1;
+  }
+
+  const power = Math.log10(maxValue);
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+
+  let scale: number;
+  if (magnitude <= 2.5) {
+    scale = 0.2;
+  } else if (magnitude <= 5) {
+    scale = 0.5;
+  } else if (magnitude <= 7.5) {
+    scale = 1.0;
+  } else {
+    scale = 2.0;
+  }
+
+  const step = 10 ** Math.floor(power) * scale;
+  return Math.ceil(Math.ceil(maxValue / step) * step);
+}
 
 export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);

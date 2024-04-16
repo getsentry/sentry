@@ -10,10 +10,8 @@ export const imageStyle = (props: ImageStyleProps) => css`
   top: 0px;
   left: 0px;
   border-radius: ${props.round ? '50%' : '3px'};
-  ${
-    props.suggested &&
-    css`
+  ${props.suggested &&
+  css`
     filter: grayscale(100%);
-  `
-  }
+  `}
 `;

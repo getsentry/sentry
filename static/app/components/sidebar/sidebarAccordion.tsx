@@ -2,7 +2,7 @@ import {Children, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {IconChevron} from 'sentry/icons';
+import {Chevron} from 'sentry/components/chevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -62,11 +62,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
               aria-label={expanded ? t('Collapse') : t('Expand')}
               sidebarCollapsed={sidebarCollapsed}
             >
-              <IconChevron
-                size="xs"
-                direction={expanded ? 'up' : 'down'}
-                role="presentation"
-              />
+              <Chevron direction={expanded ? 'up' : 'down'} role="presentation" />
             </SidebarAccordionExpandButton>
           }
         />
@@ -93,7 +89,11 @@ function findChildElementsInTree(
     }
 
     const currentComponentName: string =
-      typeof child.type === 'string' ? child.type : child.type.name;
+      typeof child.type === 'string'
+        ? child.type
+        : 'displayName' in child.type
+          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
+          : child.type.name; // `.name` is available in development builds
 
     if (currentComponentName === componentName) {
       found.push(child);

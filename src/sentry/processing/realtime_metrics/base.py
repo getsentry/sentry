@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from sentry.utils.services import Service
 
@@ -16,6 +16,12 @@ class RealtimeMetricsStore(Service):
         "add_project_to_lpq",
         "remove_projects_from_lpq",
     )
+
+    def validate(self) -> None:
+        """
+        Validate the current state of the metrics store.
+        """
+        raise NotImplementedError
 
     def record_project_duration(self, project_id: int, duration: float) -> None:
         """

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from django import forms
 
@@ -56,7 +57,8 @@ class LevelCondition(EventCondition):
         return False
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        return self._passes(event.get_tag("level"))
+        tag = event.get_tag("level")
+        return tag is not None and self._passes(tag)
 
     def render_label(self) -> str:
         data = {

@@ -10,9 +10,9 @@ from sentry.reprocessing import trigger_reprocessing
 
 @region_silo_endpoint
 class ProjectReprocessingEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 

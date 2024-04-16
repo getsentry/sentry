@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import Event
@@ -259,7 +260,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(self.settings, self.event())
 

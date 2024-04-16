@@ -6,12 +6,14 @@ import hashlib
 import logging
 import os
 import os.path
+import random
 import re
 import shutil
 import tempfile
 import uuid
 import zipfile
-from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, Container, Iterable, Mapping
+from collections.abc import Container, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import Q
@@ -593,7 +595,7 @@ def create_files_from_dif_zip(
 
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
+        safe_extract_zip(fileobj, scratchpad)
         to_create: list[DifMeta] = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
@@ -630,6 +632,16 @@ class DIFCache:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
+
+        # If this call is for proguard purposes, we probabilistically cut this function short
+        # right here so we don't overload filestore.
+        # Note: this random rollout is reversed because it is an early return
+        if features is not None:
+            if "mapping" in features and random.random() >= options.get(
+                "filestore.proguard-throttle"
+            ):
+                return {}
+
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 

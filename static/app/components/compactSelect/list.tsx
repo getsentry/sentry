@@ -12,7 +12,12 @@ import type {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
-import type {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSectionWithKey,
+  SelectSection,
+} from './types';
 import {
   getDisabledOptions,
   getEscapedKey,
@@ -21,9 +26,9 @@ import {
   HiddenSectionToggle,
 } from './utils';
 
-export const SelectFilterContext = createContext(new Set<React.Key>());
+export const SelectFilterContext = createContext(new Set<SelectKey>());
 
-interface BaseListProps<Value extends React.Key>
+interface BaseListProps<Value extends SelectKey>
   extends ListProps<any>,
     Omit<
       AriaListBoxOptions<any>,
@@ -70,7 +75,7 @@ interface BaseListProps<Value extends React.Key>
    * have `showToggleAllButton` set to true.) Note: this will be called in addition to
    * and before `onChange`.
    */
-  onSectionToggle?: (section: SelectSection<React.Key>) => void;
+  onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -85,7 +90,7 @@ interface BaseListProps<Value extends React.Key>
   sizeLimitMessage?: string;
 }
 
-export interface SingleListProps<Value extends React.Key> extends BaseListProps<Value> {
+export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected option and returns whether to close the menu.
@@ -97,7 +102,7 @@ export interface SingleListProps<Value extends React.Key> extends BaseListProps<
   value?: Value;
 }
 
-export interface MultipleListProps<Value extends React.Key> extends BaseListProps<Value> {
+export interface MultipleListProps<Value extends SelectKey> extends BaseListProps<Value> {
   multiple: true;
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
@@ -116,7 +121,7 @@ export interface MultipleListProps<Value extends React.Key> extends BaseListProp
  * In composite selectors, there may be multiple self-contained lists, each
  * representing a select "region".
  */
-function List<Value extends React.Key>({
+function List<Value extends SelectKey>({
   items,
   value,
   defaultValue,

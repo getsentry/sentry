@@ -6,23 +6,26 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfig
+from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.utils import hash_from_values
+from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
+NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
 
-@region_silo_test
+
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -254,7 +257,17 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.location == event_from_snuba.location
         assert event_from_nodestore.culprit == event_from_snuba.culprit
 
-        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+        user_from_nodestore = event_from_nodestore.get_minimal_user()
+        user_from_nodestore = User.to_python(
+            {
+                "id": user_from_nodestore._data.get("id"),
+                "email": user_from_nodestore._data.get("email"),
+                "username": user_from_nodestore._data.get("username"),
+                "ip_address": user_from_nodestore._data.get("ip_address"),
+            }
+        )
+        assert user_from_nodestore == event_from_snuba.get_minimal_user()
+
         assert event_from_nodestore.ip_address == event_from_snuba.ip_address
         assert event_from_nodestore.tags == event_from_snuba.tags
 
@@ -385,8 +398,66 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             v.as_dict()["hash"] for v in variants2.values()
         )
 
+    def test_get_hashes_pulls_existing_hashes(self):
+        hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={
+                "message": "Dogs are great!",
+                "hashes": hashes,
+            },
+            project_id=self.project.id,
+        )
 
-@region_silo_test
+        assert event.get_hashes() == CalculatedHashes(hashes, [], [], None)
+
+    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
+        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={"message": "Dogs are great!"},
+            project_id=self.project.id,
+        )
+
+        calculated_hashes = event.get_hashes()
+        expected_hash_values = [hash_from_values(["Dogs are great!"])]
+        expected_variants = list(get_grouping_variants_for_event(event).items())
+
+        assert calculated_hashes.hashes == expected_hash_values
+        assert (
+            calculated_hashes.variants is not None
+            and len(calculated_hashes.variants) == len(expected_variants) == 1
+        )
+
+        variant_key, variant = calculated_hashes.variants[0]
+        expected_variant_key, expected_variant = expected_variants[0]
+        variant_dict = variant._get_metadata_as_dict()
+        expected_variant_dict = expected_variant._get_metadata_as_dict()
+
+        assert variant_key == expected_variant_key == "default"
+        assert (
+            variant_dict["config"]["id"]
+            == expected_variant_dict["config"]["id"]
+            == NEWSTYLE_GROUPING_CONFIG
+        )
+        assert (
+            variant_dict["component"]["id"] == expected_variant_dict["component"]["id"] == "default"
+        )
+        assert (
+            len(variant_dict["component"]["values"])
+            == len(expected_variant_dict["component"]["values"])
+            == 1
+        )
+
+        component_value = variant_dict["component"]["values"][0]
+        expected_component_value = expected_variant_dict["component"]["values"][0]
+
+        assert component_value["id"] == expected_component_value["id"] == "message"
+        assert (
+            component_value["values"] == expected_component_value["values"] == ["Dogs are great!"]
+        )
+
+
 class EventGroupsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -463,7 +534,6 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-@region_silo_test
 class EventBuildGroupEventsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -515,7 +585,6 @@ class EventBuildGroupEventsTest(TestCase):
         )
 
 
-@region_silo_test
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(
@@ -534,7 +603,6 @@ class EventForGroupTest(TestCase):
         )
 
 
-@region_silo_test
 class GroupEventFromEventTest(TestCase):
     def test(self):
         event = Event(
@@ -574,7 +642,6 @@ class GroupEventFromEventTest(TestCase):
             group_event.project
 
 
-@region_silo_test
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
     def test(self):
         occurrence, group_info = self.process_occurrence(
@@ -628,7 +695,6 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
-@region_silo_test
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated

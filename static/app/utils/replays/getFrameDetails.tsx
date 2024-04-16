@@ -1,8 +1,10 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
+import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
@@ -12,6 +14,7 @@ import {
   IconInput,
   IconKeyDown,
   IconLocation,
+  IconMegaphone,
   IconSort,
   IconTerminal,
   IconUser,
@@ -22,6 +25,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  FeedbackFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
@@ -61,11 +65,18 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
+  feedback: (frame: FeedbackFrame) => ({
+    color: 'pink300',
+    description: frame.data.projectSlug,
+    tabKey: TabKey.BREADCRUMBS,
+    title: defaultTitle(frame),
+    icon: <IconMegaphone size="xs" />,
+  }),
   issue: (frame: ErrorFrame) => ({
     color: 'red300',
     description: frame.message,
     tabKey: TabKey.ERRORS,
-    title: defaultTitle(frame),
+    title: <CrumbErrorTitle frame={frame} />,
     icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
@@ -167,35 +178,35 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
-    color: 'purple300',
-    description: frame.message ?? '',
+    color: 'blue300',
+    description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.input': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
@@ -345,6 +356,10 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
+  // Override title for User Feedback frames
+  if ('message' in frame && frame.message === 'User Feedback') {
+    return t('User Feedback');
+  }
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();

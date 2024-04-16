@@ -10,10 +10,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import (
-    assert_no_webhook_outboxes,
-    assert_webhook_outboxes_with_shard_id,
-)
+from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -69,7 +66,7 @@ class GithubRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 400
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -83,7 +80,7 @@ class GithubRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 400
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -105,7 +102,7 @@ class GithubRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -132,9 +129,9 @@ class GithubRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert response.content == b""
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=integration.id,
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
             region_names=[region.name],
         )
 
@@ -155,7 +152,7 @@ class GithubRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     def test_installation_deleted_routing(self):
         request = self.factory.post(
@@ -170,4 +167,4 @@ class GithubRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()

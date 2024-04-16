@@ -1,5 +1,6 @@
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum, auto
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -53,12 +54,14 @@ EVENT_DATA_ALLOWLIST = {
                     "image_addr": Allow.SIMPLE_TYPE,
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
+                    "lineno": Allow.SIMPLE_TYPE,
                 }
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
             "type": Allow.SIMPLE_TYPE,
             "mechanism": {
                 "handled": Allow.SIMPLE_TYPE,
+                "synthetic": Allow.SIMPLE_TYPE,
                 "type": Allow.SIMPLE_TYPE,
                 "meta": {
                     "signal": {
@@ -71,6 +74,10 @@ EVENT_DATA_ALLOWLIST = {
                         "exception": Allow.SIMPLE_TYPE,
                         "code": Allow.SIMPLE_TYPE,
                         "subcode": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                    },
+                    "errno": {
+                        "number": Allow.SIMPLE_TYPE,
                         "name": Allow.SIMPLE_TYPE,
                     },
                 },
@@ -121,8 +128,8 @@ def strip_event_data(
 
 
 def _strip_event_data_with_allowlist(
-    data: Mapping[str, Any], allowlist: Optional[Mapping[str, Any]]
-) -> Optional[Mapping[str, Any]]:
+    data: Mapping[str, Any], allowlist: Mapping[str, Any] | None
+) -> Mapping[str, Any] | None:
     """
     Recursively traverses the data and only keeps values based on the allowlist.
     """
@@ -179,7 +186,7 @@ def _strip_frames(
                 path_field_value: str = frame.get(path_field_key, "")
                 if path_field_value:
                     frame[path_field_key] = sdk_crash_detector.replace_sdk_frame_path(
-                        path_field_value
+                        path_field_key, path_field_value
                     )
         else:
             frame["in_app"] = False

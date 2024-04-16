@@ -12,6 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
@@ -76,7 +77,16 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
+  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING],
+  'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-http': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-iris': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-martini': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
   java: [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -127,10 +137,11 @@ export const platformProductAvailability = {
   ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -148,6 +159,10 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -317,15 +332,22 @@ export function ProductSelection({
         }
       }
 
+      const selectedProducts = [...newProduct] as ProductSolution[];
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: [...newProduct],
+          product: selectedProducts,
         },
       });
+
+      if (organization.features.includes('project-create-replay-feedback')) {
+        HookStore.get('callback:on-create-project-product-selection').map(cb =>
+          cb({defaultProducts, organization, selectedProducts})
+        );
+      }
     },
-    [router, urlProducts, defaultProducts]
+    [defaultProducts, organization, router, urlProducts]
   );
 
   if (!products) {
@@ -449,7 +471,8 @@ const DisabledProductWrapper = styled(Button)`
   && {
     cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
     input {
-      cursor: ${p => (p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer')};
+      cursor: ${p =>
+        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
     }
   }
 `;

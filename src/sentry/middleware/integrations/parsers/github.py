@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django.http import HttpResponse
 
@@ -64,6 +65,6 @@ class GithubRequestParser(BaseRequestParser):
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation_for_integration(
+        return self.get_response_from_webhookpayload_for_integration(
             regions=regions, integration=integration
         )

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Mapping, MutableMapping, Sequence, TypeVar
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any, TypeVar
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser

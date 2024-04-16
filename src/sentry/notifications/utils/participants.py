@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
 from sentry import features
-from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -36,6 +36,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import json, metrics
+from sentry.utils.actor import ActorTuple
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
@@ -280,7 +281,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
     committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
         project, event
     )
-    user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
+    user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore[index]
     suspect_committers = user_service.get_many_by_email(emails=user_emails, is_verified=True)
     in_project_user_ids = set(
         OrganizationMember.objects.filter(
@@ -337,23 +338,25 @@ def determine_eligible_recipients(
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None
-        if features.has("organizations:streamline-targeting-context", project.organization):
-            try:
-                suspect_commit_users = RpcActor.many_from_object(
-                    get_suspect_commit_users(project, event)
-                )
-                suggested_assignees.extend(suspect_commit_users)
-            except (Release.DoesNotExist, Commit.DoesNotExist):
-                logger.info("Skipping suspect committers because release does not exist.")
-            except Exception:
-                logger.exception("Could not get suspect committers. Continuing execution.")
+
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
 
         metrics.incr(
             "features.owners.send_to",
             tags={
-                "outcome": outcome
-                if outcome == "match" or fallthrough_choice is None
-                else fallthrough_choice.value,
+                "outcome": (
+                    outcome
+                    if outcome == "match" or fallthrough_choice is None
+                    else fallthrough_choice.value
+                ),
                 "hasSuspectCommitters": str(bool(suspect_commit_users)),
             },
         )
@@ -406,13 +409,6 @@ def get_send_to(
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
-    if not features.has(
-        "organizations:issue-alert-fallback-targeting",
-        project.organization,
-        actor=None,
-    ):
-        return []
-
     if not fallthrough_choice:
         logger.warning("Missing fallthrough type in project: %s", project)
         return []

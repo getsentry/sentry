@@ -25,7 +25,6 @@ from sentry.ingest.consumer.processors import (
 )
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -316,12 +315,10 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
     if not missing_chunks:
         (attachment,) = persisted_attachments
-        file = File.objects.get(id=attachment.file_id)
-        assert file.type == "custom.attachment"
-        assert file.headers == {"Content-Type": "text/plain"}
-        file_contents = file.getfile()
-        assert file_contents.read() == b"Hello World!"
-        assert file_contents.name == "lol.txt"
+        assert attachment.content_type == "text/plain"
+        assert attachment.name == "lol.txt"
+        with attachment.getfile() as file:
+            assert file.read() == b"Hello World!"
     else:
         assert not persisted_attachments
 
@@ -397,12 +394,10 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
         EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
     )
     (attachment,) = persisted_attachments
-    file = File.objects.get(id=attachment.file_id)
-    assert file.type == "event.view_hierarchy"
-    assert file.headers == {"Content-Type": "application/json"}
-    file_contents = file.getfile()
-    assert file_contents.read() == expected_response
-    assert file_contents.name == "view_hierarchy.json"
+    assert attachment.content_type == "application/json"
+    assert attachment.name == "view_hierarchy.json"
+    with attachment.getfile() as file:
+        assert file.read() == expected_response
 
 
 @django_db_all
@@ -479,13 +474,8 @@ def test_individual_attachments(
         assert attachment.group_id == group_id
         assert attachment.content_type == chunks[2]
 
-        if attachment.file_id:
-            file = File.objects.get(id=attachment.file_id)
-            assert file.type == chunks[1]
-            assert file.headers == {"Content-Type": chunks[2]}
-
-        file_contents = attachment.getfile()
-        assert file_contents.read() == b"".join(chunks[0])
+        with attachment.getfile() as file_contents:
+            assert file_contents.read() == b"".join(chunks[0])
 
 
 @django_db_all

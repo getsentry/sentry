@@ -2,6 +2,7 @@ import type {Tag} from 'sentry/types';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,6 +17,13 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const search = new MutableSearch([]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (tag) {
+    search.addFilterValue(tag.key, tag.name);
+  }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -25,6 +33,7 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
         'p75(transaction.duration)',
         'count_web_vitals(measurements.lcp, any)',
         'count_web_vitals(measurements.fcp, any)',
@@ -35,10 +44,12 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
       ],
       name: 'Web Vitals',
       query: [
-        'transaction.op:pageload',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-        ...(tag ? [`{tag.key}:"${tag.name}"`] : []),
-      ].join(' '),
+        'transaction.op:[pageload,""]',
+        'span.op:[ui.interaction.click,""]',
+        search.formatString(),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },
@@ -57,13 +68,5 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project',
   });
-  // Fake INP data with FID data
-  // TODO(edwardgou): Remove this once INP is queryable in discover
-  if (result.data?.data[0]) {
-    result.data.data[0]['count_web_vitals(measurements.inp, any)'] =
-      result.data.data[0]['count_web_vitals(measurements.fid, any)'];
-    result.data.data[0]['p75(measurements.inp)'] =
-      result.data.data[0]['p75(measurements.fid)'];
-  }
   return result;
 };

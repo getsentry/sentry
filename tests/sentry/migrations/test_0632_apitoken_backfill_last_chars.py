@@ -31,9 +31,6 @@ class LastCharsApiTokenMigrationTest(TestMigrations):
         assert self.api_token.token_last_characters is None
 
     def test(self):
-        from sentry.models.apitoken import ApiToken
-
-        api_tokens = ApiToken.objects.all()
-        for api_token in api_tokens:
-            assert api_token.name is None
-            assert api_token.token_last_characters == api_token.token[-4:]
+        self.api_token.refresh_from_db()
+        assert self.api_token.name is None
+        assert self.api_token.token_last_characters == self.api_token.token[-4:]

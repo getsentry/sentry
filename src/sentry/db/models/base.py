@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, ClassVar, Self, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.dependencies import (
     ImportKind,
@@ -183,9 +183,7 @@ class BaseModel(models.Model):
             foreign_field_model_name = get_model_name(foreign_field.model)
             matched_fks = set(pk_map.get_pks(foreign_field_model_name))
             matched_fks_query = dict()
-            if len(matched_fks) > 0:
-                matched_fks_query[field_name + "__in"] = matched_fks
-
+            matched_fks_query[field_name + "__in"] = matched_fks
             if foreign_field.nullable:
                 match_on_null_query = dict()
                 match_on_null_query[field_name + "__isnull"] = True
@@ -418,7 +416,7 @@ class ModelSiloLimit(SiloLimit):
             model_attr = getattr(model_class, model_attr_name)
             if callable(model_attr) and getattr(model_attr, "alters_data", False):
                 override = self.create_override(model_attr)
-                override.alters_data = True  # type: ignore
+                override.alters_data = True  # type: ignore[attr-defined]
 
                 # We have to resort to monkey-patching here. Dynamically extending
                 # and replacing the model class is not an option, because that would

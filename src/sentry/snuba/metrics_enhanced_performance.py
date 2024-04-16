@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Sequence
+from typing import Any
 
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
@@ -110,7 +112,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,

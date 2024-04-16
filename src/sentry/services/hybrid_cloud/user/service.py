@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -37,9 +37,9 @@ class UserService(RpcService):
         self,
         *,
         filter: UserFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[UserSerializeType] = None,
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+        serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
         pass
 
@@ -61,7 +61,7 @@ class UserService(RpcService):
         emails: list[str],
         is_active: bool = True,
         is_verified: bool = True,
-        organization_id: Optional[int] = None,
+        organization_id: int | None = None,
     ) -> list[RpcUser]:
         """
         Return a list of users matching the filters
@@ -73,7 +73,7 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_by_username(
-        self, *, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
+        self, *, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> list[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -106,6 +106,11 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_member_region_names(self, *, user_id: int) -> list[str]:
+        """Get a list of region names where the user is a member of at least one org."""
+
+    @rpc_method
+    @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
         pass
@@ -115,22 +120,19 @@ class UserService(RpcService):
     def flush_nonce(self, *, user_id: int) -> None:
         pass
 
-    def get_user(self, user_id: int) -> Optional[RpcUser]:
-        user = get_user(user_id)
-        if user.is_anonymous:
-            return None
-        return user
+    def get_user(self, user_id: int) -> RpcUser | None:
+        return get_user(user_id)
 
     @rpc_method
     @abstractmethod
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str
-    ) -> Optional[RpcUser]:
+    ) -> RpcUser | None:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_first_superuser(self) -> Optional[RpcUser]:
+    def get_first_superuser(self) -> RpcUser | None:
         pass
 
     @rpc_method
@@ -139,8 +141,8 @@ class UserService(RpcService):
         self,
         *,
         email: str,
-        ident: Optional[str] = None,
-        referrer: Optional[str] = None,
+        ident: str | None = None,
+        referrer: str | None = None,
     ) -> tuple[RpcUser, bool]:
         pass
 
@@ -150,8 +152,13 @@ class UserService(RpcService):
         self,
         *,
         email: str,
-        ident: Optional[str] = None,
-    ) -> Optional[RpcUser]:
+        ident: str | None = None,
+    ) -> RpcUser | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def verify_user_email(self, *, email: str, user_id: int) -> bool:
         pass
 
     @rpc_method
@@ -190,12 +197,11 @@ class UserService(RpcService):
 
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
-def get_user(user_id: int) -> RpcUser:
+def get_user(user_id: int) -> RpcUser | None:
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]
-    else:
-        return RpcUser(is_anonymous=True)
+    return None
 
 
 user_service = UserService.create_delegation()

@@ -7,19 +7,26 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import {useReplayContext} from './replayContext';
+
 interface Props {
   processingErrors: readonly string[];
   className?: string;
 }
 
 export default function ReplayProcessingError({className, processingErrors}: Props) {
+  const {replay} = useReplayContext();
+  const {sdk} = replay?.getReplay() || {};
+
   useEffect(() => {
     Sentry.withScope(scope => {
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
+      sdk && scope.setTag('sdk.version', sdk.version);
       processingErrors.forEach(error => {
         Sentry.metrics.increment(`replay.processing-error`, 1, {
           tags: {
+            'sdk.version': sdk?.version ?? 'unknown',
             // There are only 2 different error types
             type:
               error.toLowerCase() === 'missing meta frame'
@@ -29,7 +36,7 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
         });
       });
     });
-  }, [processingErrors]);
+  }, [processingErrors, sdk]);
 
   return (
     <StyledAlert type="error" showIcon className={className}>

@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -17,8 +17,8 @@ from sentry.silo import SiloMode
 def get_option_from_list(
     options: list[RpcUserOption],
     *,
-    key: Optional[str] = None,
-    user_id: Optional[int] = None,
+    key: str | None = None,
+    user_id: int | None = None,
     default: Any = None,
 ) -> Any:
     for option in options:
@@ -46,8 +46,8 @@ class UserOptionService(RpcService):
         self,
         *,
         filter: UserOptionFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
     ) -> list[OpaqueSerializedResponse]:
         pass
 
@@ -69,8 +69,8 @@ class UserOptionService(RpcService):
         user_id: int,
         value: Any,
         key: str,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
+        project_id: int | None = None,
+        organization_id: int | None = None,
     ) -> None:
         pass
 

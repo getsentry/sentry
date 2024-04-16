@@ -15,7 +15,6 @@ from sentry.api.serializers.models.projectownership import ProjectOwnershipSeria
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
@@ -92,19 +91,13 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
-        if features.has(
-            "organizations:streamline-targeting-context",
-            self.context["ownership"].project.organization,
-        ):
-            schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
-            )
-        else:
-            schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id
-            )
-
-        self._validate_no_codeowners(schema["rules"])
+        schema = create_schema_from_issue_owners(
+            project_id=self.context["ownership"].project_id,
+            issue_owners=attrs["raw"],
+            add_owner_ids=True,
+        )
+        if schema:
+            self._validate_no_codeowners(schema["rules"])
 
         attrs["schema"] = schema
         return attrs
@@ -160,11 +153,6 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             new_values["auto_assignment"] = True
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
-            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            if autoassignment_types:
-                GroupOwner.invalidate_autoassigned_owner_cache(
-                    ownership.project_id, autoassignment_types
-                )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
@@ -202,16 +190,19 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 last_updated=None,
             )
 
-    def add_owner_id_to_schema(self, ownership: ProjectOwnership, project: Project) -> None:
-        if not hasattr(ownership, "schema") or (
-            ownership.schema
-            and ownership.schema.get("rules")
-            and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
+    def refresh_ownership_schema(self, ownership: ProjectOwnership, project: Project) -> None:
+        if hasattr(ownership, "schema") and (
+            ownership.schema is None or ownership.schema.get("rules") is None
         ):
-            ownership.schema = create_schema_from_issue_owners(
-                ownership.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
-            )
-            ownership.save()
+            return
+
+        ownership.schema = create_schema_from_issue_owners(
+            project_id=project.id,
+            issue_owners=ownership.raw,
+            add_owner_ids=True,
+            remove_deleted_owners=True,
+        )
+        ownership.save()
 
     def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
         """
@@ -240,17 +231,12 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         Returns details on a project's ownership configuration.
         """
         ownership = self.get_ownership(project)
-        should_return_schema = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
 
-        if should_return_schema and ownership:
-            self.add_owner_id_to_schema(ownership, project)
+        if ownership:
+            self.refresh_ownership_schema(ownership, project)
             self.rename_schema_identifier_for_parsing(ownership)
 
-        return Response(
-            serialize(ownership, request.user, should_return_schema=should_return_schema)
-        )
+        return Response(serialize(ownership, request.user))
 
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",
@@ -280,9 +266,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         if list(request.data) != ["raw"] and not has_project_write:
             raise PermissionDenied
 
-        should_return_schema = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
         serializer = ProjectOwnershipRequestSerializer(
             data=request.data, partial=True, context={"ownership": self.get_ownership(project)}
         )
@@ -305,7 +288,5 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
-            return Response(
-                serialize(ownership, request.user, should_return_schema=should_return_schema)
-            )
+            return Response(serialize(ownership, request.user))
         return Response(serializer.errors, status=400)

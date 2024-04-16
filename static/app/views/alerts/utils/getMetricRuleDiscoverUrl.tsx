@@ -71,7 +71,7 @@ export function getMetricRuleDiscoverQuery({
 
   const eventQuery: NewQuery = {
     id: undefined,
-    name: (rule && rule.name) || 'Transactions',
+    name: rule?.name || 'Transactions',
     fields,
     orderby: `-${aggregateAlias}`,
     query: query ?? rule.query ?? '',

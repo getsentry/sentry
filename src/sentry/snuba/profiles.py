@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
@@ -13,11 +13,11 @@ from sentry.utils.snuba import SnubaTSResult
 
 def query(
     selected_columns: list[str],
-    query: Optional[str],
+    query: str | None,
     params: ParamsType,
-    snuba_params: Optional[SnubaParams] = None,
-    equations: Optional[list[str]] = None,
-    orderby: Optional[list[str]] = None,
+    snuba_params: SnubaParams | None = None,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
     offset: int = 0,
     limit: int = 50,
     referrer: str = "",
@@ -27,10 +27,10 @@ def query(
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
-    functions_acl: Optional[list[str]] = None,
+    functions_acl: list[str] | None = None,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -59,18 +59,18 @@ def query(
 
 def timeseries_query(
     selected_columns: list[str],
-    query: Optional[str],
+    query: str | None,
     params: ParamsType,
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
-    comparison_delta: Optional[datetime] = None,
-    functions_acl: Optional[list[str]] = None,
+    comparison_delta: datetime | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,

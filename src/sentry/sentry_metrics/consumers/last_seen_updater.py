@@ -1,8 +1,9 @@
 import datetime
 import functools
 from abc import abstractmethod
+from collections.abc import Callable, Mapping
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional
+from typing import Any
 
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
@@ -49,7 +50,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        header_value: Optional[str] = next(
+        header_value: str | None = next(
             (
                 str(header[1])
                 for header in message.payload.headers
@@ -66,7 +67,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
 
 
 def _update_stale_last_seen(
-    table: IndexerTable, seen_ints: set[int], new_last_seen_time: Optional[datetime.datetime] = None
+    table: IndexerTable, seen_ints: set[int], new_last_seen_time: datetime.datetime | None = None
 ) -> int:
     if new_last_seen_time is None:
         new_last_seen_time = timezone.now()

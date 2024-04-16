@@ -37,7 +37,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:

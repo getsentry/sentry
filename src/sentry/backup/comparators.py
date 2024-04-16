@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Callable
 
 from dateutil import parser
 from django.db import models
@@ -20,7 +20,7 @@ from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, Ins
 from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
-UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
+UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat()
 
 
 class ScrubbedData:
@@ -104,8 +104,9 @@ class JSONScrubbingComparator(ABC):
         self,
         left: JSONData,
         right: JSONData,
-        f: Callable[[list[str]], list[str]]
-        | Callable[[list[str]], ScrubbedData] = lambda _: ScrubbedData(),
+        f: (
+            Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
+        ) = lambda _: ScrubbedData(),
     ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
@@ -417,7 +418,7 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                 )
             )
 
-        # Old user, password must remain constant.
+        # Old user, all fields must remain constant.
         if not right["fields"].get("is_unclaimed"):
             findings.extend(super().compare(on, left, right))
             return findings
@@ -425,6 +426,8 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
         # New user, password must change.
         left_password = left["fields"]["password"]
         right_password = right["fields"]["password"]
+        left_lpc = left["fields"].get("last_password_change") or UNIX_EPOCH
+        right_lpc = right["fields"].get("last_password_change") or UNIX_EPOCH
         if left_password == right_password:
             left_pw_truncated = self.truncate(
                 [left_password] if not isinstance(left_password, list) else left_password
@@ -441,6 +444,30 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                     reason=f"""the left value ("{left_pw_truncated}") of `password` was equal to the
                             right value ("{right_pw_truncated}"), which is disallowed when
                             `is_unclaimed` is `True`""",
+                )
+            )
+
+        # Ensure that the `last_password_change` field was not nulled or less than the left side.
+        if parser.parse(left_lpc) > parser.parse(right_lpc):
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ({left_lpc}) of `last_password_change` was not less than or equal to the right value ({right_lpc})""",
+                )
+            )
+
+        if right["fields"].get("is_password_expired"):
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason="""the right value of `is_password_expired` must be `False` for unclaimed
+                           users""",
                 )
             )
 
@@ -691,11 +718,17 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
         assign = set()
         for f in fields:
             if isinstance(f, models.DateTimeField) and name in comps:
-                date_updated_comparator = next(
-                    filter(lambda e: isinstance(e, DateUpdatedComparator), comps[name]), None
-                )
-                if not date_updated_comparator or f.name not in date_updated_comparator.fields:
-                    assign.add(f.name)
+                # Only auto assign the `DatetimeEqualityComparator` if this field is not mentioned
+                # by a conflicting comparator.
+                possibly_conflicting = [
+                    e
+                    for e in comps[name]
+                    if isinstance(e, DateUpdatedComparator) or isinstance(e, IgnoredComparator)
+                ]
+                assign.add(f.name)
+                for comp in possibly_conflicting:
+                    if f.name in comp.fields:
+                        assign.remove(f.name)
 
         if len(assign):
             found = next(
@@ -747,7 +780,7 @@ ComparatorMap = dict[str, ComparatorList]
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def get_default_comparators():
+def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
     """Helper function executed at startup time which builds the static default comparators map."""
 
     from sentry.models.actor import Actor
@@ -760,7 +793,9 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token"),
+                HashObfuscatingComparator(
+                    "refresh_token", "token", "hashed_token", "hashed_refresh_token"
+                ),
                 IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
@@ -782,6 +817,7 @@ def get_default_comparators():
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [
@@ -807,14 +843,19 @@ def get_default_comparators():
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
-            "sentry.team": [ForeignKeyComparator({"actor": Actor, "organization": Organization})],
+            "sentry.team": [
+                ForeignKeyComparator({"actor": Actor, "organization": Organization}),
+                # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+                IgnoredComparator("org_role"),
+            ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                DateUpdatedComparator("last_active", "last_password_change"),
-                # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
-                # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
-                # comparison.
-                IgnoredComparator("is_unclaimed"),
+                DateUpdatedComparator("last_active"),
+                # `UserPasswordObfuscatingComparator` handles `last_password_change`,
+                # `is_unclaimed`, `is_password_expired`, and `password` for us. Because of this, we
+                # can ignore the `last_password_change`, `is_unclaimed`, and `is_password_expired`
+                # fields otherwise and scrub them from the comparison.
+                IgnoredComparator("last_password_change", "is_unclaimed", "is_password_expired"),
                 UserPasswordObfuscatingComparator(),
             ],
             "sentry.useremail": [

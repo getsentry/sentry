@@ -3,21 +3,21 @@ import {isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -48,13 +48,6 @@ interface Props {
   style?: CSSProperties;
 }
 
-function getCrumbOrFrameData(frame: ReplayFrame) {
-  return {
-    ...getFrameDetails(frame),
-    timestampMs: frame.timestampMs,
-  };
-}
-
 function BreadcrumbItem({
   className,
   extraction,
@@ -69,13 +62,14 @@ function BreadcrumbItem({
   style,
   traces,
 }: Props) {
-  const {color, description, title, icon, timestampMs} = getCrumbOrFrameData(frame);
-  const {replay, startTimeOffsetMs} = useReplayContext();
+  const {color, description, title, icon} = getFrameDetails(frame);
+  const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
   return (
     <CrumbItem
+      isErrorFrame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
@@ -87,45 +81,44 @@ function BreadcrumbItem({
         {icon}
       </IconWrapper>
       <CrumbDetails>
-        <TitleContainer>
-          {isErrorFrame(frame) ? (
-            <CrumbErrorTitle frame={frame} />
-          ) : (
-            <Title>{title}</Title>
-          )}
-          {onClick ? (
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={timestampMs - startTimeOffsetMs}
-            />
-          ) : null}
-        </TitleContainer>
+        <Flex column>
+          <TitleContainer>
+            {<Title>{title}</Title>}
+            {onClick ? (
+              <TimestampButton
+                startTimestampMs={startTimestampMs}
+                timestampMs={frame.timestampMs}
+              />
+            ) : null}
+          </TitleContainer>
 
-        {typeof description === 'string' || isValidElement(description) ? (
-          <Description title={description} showOnlyOnOverflow isHoverable>
-            {description}
-          </Description>
-        ) : (
-          <InspectorWrapper>
-            <ObjectInspector
-              data={description}
-              expandPaths={expandPaths}
-              onExpand={onInspectorExpanded}
-              theme={{
-                TREENODE_FONT_SIZE: '0.7rem',
-                ARROW_FONT_SIZE: '0.5rem',
-              }}
-            />
-          </InspectorWrapper>
-        )}
+          {typeof description === 'string' ||
+          (description !== undefined && isValidElement(description)) ? (
+            <Description title={description} showOnlyOnOverflow isHoverable>
+              {description}
+            </Description>
+          ) : (
+            <InspectorWrapper>
+              <ObjectInspector
+                data={description}
+                expandPaths={expandPaths}
+                onExpand={onInspectorExpanded}
+                theme={{
+                  TREENODE_FONT_SIZE: '0.7rem',
+                  ARROW_FONT_SIZE: '0.5rem',
+                }}
+              />
+            </InspectorWrapper>
+          )}
+        </Flex>
 
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
           <div>
             <OpenReplayComparisonButton
               replay={replay}
-              leftTimestamp={frame.offsetMs - startTimeOffsetMs}
+              leftTimestamp={frame.offsetMs}
               rightTimestamp={
-                (frame.data.mutations.next.timestamp as number) -
+                (frame.data.mutations.next?.timestamp ?? 0) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
             />
@@ -148,45 +141,25 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
+        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+          <CrumbErrorIssue frame={frame} />
+        ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
 }
 
-function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
-  const organization = useOrganization();
-  const {eventId} = useReplayGroupContext();
-
-  if (eventId === frame.data.eventId) {
-    return <Title>Error: This Event</Title>;
-  }
-
-  return (
-    <Title>
-      Error:{' '}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
-      >
-        {getShortEventId(frame.data.eventId)}
-      </Link>
-    </Title>
-  );
-}
-
-function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
 
-  const projectBadge = project ? (
-    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
-  ) : null;
+  const projectAvatar = project ? <ProjectAvatar project={project} size={16} /> : null;
 
-  if (`${frame.data.groupId}` === groupId) {
+  if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
-        {projectBadge}
+        {projectAvatar}
         {frame.data.groupShortId}
       </CrumbIssueWrapper>
     );
@@ -194,8 +167,17 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
 
   return (
     <CrumbIssueWrapper>
-      {projectBadge}
-      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
+      {projectAvatar}
+      <Link
+        to={
+          isFeedbackFrame(frame)
+            ? {
+                pathname: `/organizations/${organization.slug}/feedback/`,
+                query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
+              }
+            : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
+        }
+      >
         {frame.data.groupShortId}
       </Link>
     </CrumbIssueWrapper>
@@ -205,9 +187,9 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
 const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
 `;
 
 const InspectorWrapper = styled('div')`
@@ -218,6 +200,7 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: ${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
@@ -244,7 +227,7 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
-const CrumbItem = styled(PanelItem)`
+const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
@@ -252,7 +235,7 @@ const CrumbItem = styled(PanelItem)`
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
-  background: transparent;
+  background: ${p => (p.isErrorFrame ? `${p.theme.red100}` : `transparent`)};
   padding: ${space(1)};
   text-align: left;
   border: none;
@@ -290,7 +273,6 @@ const CrumbItem = styled(PanelItem)`
 `;
 
 const CodeContainer = styled('div')`
-  margin-top: ${space(1)};
   max-height: 400px;
   max-width: 100%;
   overflow: auto;

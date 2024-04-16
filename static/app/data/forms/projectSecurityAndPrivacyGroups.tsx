@@ -54,22 +54,6 @@ const formGroups: JsonFormObject[] = [
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),
       },
-      {
-        name: 'recapServerUrl',
-        type: 'string',
-        placeholder: t('URL'),
-        label: t('Recap Server URL'),
-        help: t('URL to the Recap Server events should be polled from'),
-        visible: ({features}) => features.has('recap-server'),
-      },
-      {
-        name: 'recapServerToken',
-        type: 'string',
-        placeholder: t('Token'),
-        label: t('Recap Server Token'),
-        help: t('Auth Token to the configured Recap Server'),
-        visible: ({features}) => features.has('recap-server'),
-      },
     ],
   },
   {
@@ -84,8 +68,7 @@ const formGroups: JsonFormObject[] = [
         help: t('Enable server-side data scrubbing'),
         'aria-label': t('Enable server-side data scrubbing'),
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         confirm: {
           false: t('Are you sure you want to disable server-side data scrubbing?'),
         },
@@ -103,8 +86,7 @@ const formGroups: JsonFormObject[] = [
           'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
         ),
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         confirm: {
           false: t('Are you sure you want to disable using default scrubbers?'),
         },
@@ -115,8 +97,7 @@ const formGroups: JsonFormObject[] = [
         disabled: hasOrgOverride,
         disabledReason: ORG_DISABLED_REASON,
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         label: t('Prevent Storing of IP Addresses'),
         help: t('Preventing IP addresses from being stored for new events'),
         'aria-label': t(

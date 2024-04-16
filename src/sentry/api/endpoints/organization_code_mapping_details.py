@@ -59,6 +59,8 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
             # We expect there to exist an org_integration
@@ -92,6 +94,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         :auth: required
         """
+
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             config.delete()
             return self.respond(status=status.HTTP_204_NO_CONTENT)

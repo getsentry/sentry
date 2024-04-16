@@ -83,7 +83,7 @@ describe('Discover > QueryList', function () {
 
   afterEach(() => {
     jest.clearAllMocks();
-    wrapper && wrapper.unmount();
+    wrapper?.unmount();
     wrapper = null;
   });
 
@@ -104,7 +104,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
-  it('renders pre-built queries and saved ones', function () {
+  it('renders pre-built queries and saved ones', async function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
@@ -118,7 +118,9 @@ describe('Discover > QueryList', function () {
       />
     );
 
-    expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
   });
 
   it('can duplicate and trigger change callback', async function () {

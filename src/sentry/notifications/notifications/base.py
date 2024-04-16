@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import uuid
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk

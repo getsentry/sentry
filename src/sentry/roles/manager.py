@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import re
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, Iterable, Mapping, Sequence, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.utils import warnings
 
@@ -24,6 +25,7 @@ class Role(abc.ABC):
     desc: str
     scopes: frozenset[str]
     is_retired: bool = False
+    is_team_roles_allowed: bool = True
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"

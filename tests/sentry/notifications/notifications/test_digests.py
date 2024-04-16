@@ -1,7 +1,6 @@
 import uuid
 from unittest import mock
 from unittest.mock import ANY, patch
-from urllib.parse import parse_qs
 
 import responses
 from django.core import mail
@@ -19,7 +18,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -84,7 +82,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     def setUp(self):
         super().setUp()
         self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
-        self.key = f"mail:p:{self.project.id}"
+        self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
             self.create_member(
@@ -158,70 +156,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
-    @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification(self, digests):
-        """
-        Test that with digests enabled, but Slack notification settings
-        (and not email settings), we send a Slack notification
-        """
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        backend = RedisBackend()
-        digests.digest = backend.digest
-        digests.enabled.return_value = True
-        timestamp_raw = before_now(days=1)
-        timestamp_secs = int(timestamp_raw.timestamp())
-        timestamp = iso_format(timestamp_raw)
-        key = f"slack:p:{self.project.id}"
-        rule = Rule.objects.create(project=self.project, label="my rule")
-        event = self.store_event(
-            data={
-                "timestamp": timestamp,
-                "message": "Hello world",
-                "level": "error",
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-
-        event2 = self.store_event(
-            data={
-                "timestamp": timestamp,
-                "message": "Goodbye world",
-                "level": "error",
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        notification_uuid = str(uuid.uuid4())
-        backend.add(
-            key,
-            event_to_record(event, [rule], notification_uuid),
-            increment_delay=0,
-            maximum_delay=0,
-        )
-        backend.add(
-            key,
-            event_to_record(event2, [rule], notification_uuid),
-            increment_delay=0,
-            maximum_delay=0,
-        )
-        with self.tasks():
-            deliver_digest(key)
-
-        assert len(responses.calls) >= 1
-        data = parse_qs(responses.calls[0].request.body)
-        assert "text" in data
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
-        assert (
-            data["text"][0]
-            == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
-        )
-        assert len(attachments) == 2
-        assert "notification_uuid" in attachments[0]["title_link"]
-        assert "notification_uuid" in attachments[1]["title_link"]
-
-    @responses.activate
     @with_feature("organizations:slack-block-kit")
     @mock.patch.object(sentry, "digests")
     def test_slack_digest_notification_block(self, digests):
@@ -236,7 +170,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = iso_format(timestamp_raw)
-        key = f"slack:p:{self.project.id}"
+        key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event1 = self.store_event(
             data={
@@ -279,28 +213,28 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             fallback_text
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
-        assert len(blocks) == 11
+        assert len(blocks) == 9
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
 
         assert event2.group
-        event2_alert_title = f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
 
         # digest order not definitive
         try:
             assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[6]["text"]["text"] == event2_alert_title
+            assert blocks[5]["text"]["text"] == event2_alert_title
         except AssertionError:
             assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[6]["text"]["text"] == event1_alert_title
+            assert blocks[5]["text"]["text"] == event1_alert_title
 
         assert (
-            blocks[4]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert (
-            blocks[9]["elements"][0]["text"]
+            blocks[7]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

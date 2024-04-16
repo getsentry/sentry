@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Optional
 
 from django.db import router, transaction
 
@@ -49,7 +48,7 @@ def create_post_provision_outbox(
 def create_organization_provisioning_outbox(
     organization_id: int,
     region_name: str,
-    org_provision_payload: Optional[OrganizationProvisioningOptions],
+    org_provision_payload: OrganizationProvisioningOptions | None,
 ):
     payload = org_provision_payload.json() if org_provision_payload is not None else None
     return ControlOutbox(
@@ -112,7 +111,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
     @staticmethod
     def _get_slug_reservation_for_organization(
         organization_id: int, reservation_type: OrganizationSlugReservationType
-    ) -> Optional[OrganizationSlugReservation]:
+    ) -> OrganizationSlugReservation | None:
         try:
             slug_res = OrganizationSlugReservation.objects.get(
                 organization_id=organization_id, reservation_type=reservation_type
@@ -125,7 +124,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def _get_slug_reservation_by_type_from_list(
         org_slug_reservations: list[OrganizationSlugReservation],
         reservation_type: OrganizationSlugReservationType,
-    ) -> Optional[OrganizationSlugReservation]:
+    ) -> OrganizationSlugReservation | None:
         return next(
             (
                 slug_res
@@ -184,7 +183,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> Optional[RpcOrganizationSlugReservation]:
+    ) -> RpcOrganizationSlugReservation | None:
         raise NotImplementedError()
 
     def update_organization_slug(

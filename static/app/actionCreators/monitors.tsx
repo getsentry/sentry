@@ -10,13 +10,14 @@ import {logException} from 'sentry/utils/logging';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {Monitor} from 'sentry/views/monitors/types';
 
-export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
+export async function deleteMonitor(api: Client, orgId: string, monitor: Monitor) {
   addLoadingMessage(t('Deleting Monitor...'));
 
   try {
-    await api.requestPromise(`/organizations/${orgId}/monitors/${monitorSlug}/`, {
-      method: 'DELETE',
-    });
+    await api.requestPromise(
+      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
+      {method: 'DELETE'}
+    );
     clearIndicators();
   } catch {
     addErrorMessage(t('Unable to remove monitor.'));
@@ -26,18 +27,19 @@ export async function deleteMonitor(api: Client, orgId: string, monitorSlug: str
 export async function deleteMonitorEnvironment(
   api: Client,
   orgId: string,
-  monitorSlug: string,
+  monitor: Monitor,
   environment: string
 ): Promise<boolean> {
   addLoadingMessage(t('Deleting Environment...'));
 
   try {
-    await api.requestPromise(`/organizations/${orgId}/monitors/${monitorSlug}/`, {
-      method: 'DELETE',
-      query: {
-        environment,
-      },
-    });
+    await api.requestPromise(
+      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
+      {
+        method: 'DELETE',
+        query: {environment},
+      }
+    );
     clearIndicators();
     return true;
   } catch {
@@ -49,14 +51,14 @@ export async function deleteMonitorEnvironment(
 export async function updateMonitor(
   api: Client,
   orgId: string,
-  monitorSlug: string,
+  monitor: Monitor,
   data: Partial<Monitor>
 ): Promise<Monitor | null> {
   addLoadingMessage();
 
   try {
     const resp = await api.requestPromise(
-      `/organizations/${orgId}/monitors/${monitorSlug}/`,
+      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
       {method: 'PUT', data}
     );
     clearIndicators();
@@ -80,7 +82,7 @@ export async function updateMonitor(
 export async function setEnvironmentIsMuted(
   api: Client,
   orgId: string,
-  monitorSlug: string,
+  monitor: Monitor,
   environment: string,
   isMuted: boolean
 ) {
@@ -88,7 +90,7 @@ export async function setEnvironmentIsMuted(
 
   try {
     const resp = await api.requestPromise(
-      `/organizations/${orgId}/monitors/${monitorSlug}/environments/${environment}`,
+      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/environments/${environment}`,
       {method: 'PUT', data: {isMuted}}
     );
     clearIndicators();

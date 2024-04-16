@@ -6,8 +6,9 @@ web-server
 import logging
 import os.path
 from collections import namedtuple
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Optional, Sequence, cast
+from typing import cast
 
 import sentry_relay.consts
 import sentry_relay.processing
@@ -42,7 +43,7 @@ COMMIT_RANGE_DELIMITER = ".."
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = {
-    "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
@@ -297,6 +298,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     ]
 )
 
@@ -412,7 +414,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
-def get_integration_id_for_marketing_slug(slug: str) -> Optional[str]:
+def get_integration_id_for_marketing_slug(slug: str) -> str | None:
     if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
@@ -438,7 +440,7 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
 #          "integrations": ["java.util.logging"]}} -> java-logging
 def get_integration_id_for_event(
     platform: str, sdk_name: str, integrations: list[str]
-) -> Optional[str]:
+) -> str | None:
     if integrations:
         for integration in integrations:
             # check special cases
@@ -636,15 +638,15 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
@@ -703,6 +705,8 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",
@@ -904,6 +908,9 @@ EXTENSION_LANGUAGE_MAP = {
     "pm": "perl",
     "psgi": "perl",
     "t": "perl",
+    "ps1": "powershell",
+    "psd1": "powershell",
+    "psm1": "powershell",
     "py": "python",
     "gyp": "python",
     "gypi": "python",

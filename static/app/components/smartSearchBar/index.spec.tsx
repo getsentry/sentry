@@ -287,7 +287,7 @@ describe('SmartSearchBar', function () {
   });
 
   describe('pasting', function () {
-    it('trims pasted content', function () {
+    it('trims pasted content', async function () {
       const mockOnChange = jest.fn();
       render(<SmartSearchBar {...defaultProps} onChange={mockOnChange} />);
 
@@ -296,7 +296,9 @@ describe('SmartSearchBar', function () {
       fireEvent.paste(textbox, {clipboardData: {getData: () => ' something'}});
 
       expect(textbox).toHaveValue('something');
-      expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything());
+      await waitFor(() =>
+        expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything())
+      );
     });
   });
 

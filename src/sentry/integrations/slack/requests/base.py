@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -146,6 +147,7 @@ class SlackRequest:
             "slack_callback_id": _data.get("callback_id"),
             "slack_api_app_id": _data.get("api_app_id"),
         }
+        data["request_data"] = _data
 
         if self._integration:
             data["integration_id"] = self.integration.id

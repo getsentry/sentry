@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
+from django.utils.functional import cached_property
 from rest_framework import serializers, status
-from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
@@ -26,11 +27,13 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -70,7 +73,6 @@ from sentry.services.organization.provisioning import (
     organization_provisioning_service,
 )
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -172,6 +174,8 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
+    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -218,6 +222,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    aggregatedDataConsent = serializers.BooleanField(required=False)
+    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
@@ -225,7 +231,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
-    @memoize
+    @cached_property
     def _has_legacy_rate_limits(self):
         org = self.context["organization"]
         return OrganizationOption.objects.filter(
@@ -333,7 +339,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+        timestamp_now = datetime.now(timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -532,6 +538,7 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+# NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -553,9 +560,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-
         serializer = org_serializers.OrganizationSerializer
-        if request.access.has_scope("org:read"):
+
+        if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
             serializer = org_serializers.DetailedOrganizationSerializer
@@ -583,6 +590,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         from sentry import features
 
+        # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:

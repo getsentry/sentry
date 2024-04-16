@@ -12,15 +12,12 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
-import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -31,14 +28,13 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
+  {key: 'count', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
@@ -55,61 +51,47 @@ export function WebVitalsDetailPanel({
   onClose: () => void;
   webVital: WebVitals | null;
 }) {
-  const organization = useOrganization();
   const location = useLocation();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
-    enabled: shouldUseStoredScores,
     weightWebVital: webVital ?? 'total',
   });
 
-  const projectScore = shouldUseStoredScores
-    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
-    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
-
+  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
+    projectScoresData?.data?.[0]
+  );
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
-    opportunityWebVital: webVital ?? 'total',
+    webVital: webVital ?? 'total',
     ...(webVital
-      ? shouldUseStoredScores
-        ? {
-            query: `count_scores(measurements.score.${webVital}):>0`,
-            defaultSort: {
-              field: `opportunity_score(measurements.score.${webVital})`,
-              kind: 'desc',
-            },
-          }
-        : {
-            query: `count_web_vitals(measurements.${webVital},any):>0`,
-          }
+      ? {
+          query: `count_scores(measurements.score.${webVital}):>0`,
+          defaultSort: {
+            field: `opportunity_score(measurements.score.${webVital})`,
+            kind: 'desc',
+          },
+        }
       : {}),
     enabled: webVital !== null,
+    sortName: 'webVitalsDetailPanelSort',
   });
 
   const dataByOpportunity = useMemo(() => {
     if (!data) {
       return [];
     }
-    const count = projectData?.data?.[0]?.['count()'] as number;
     const sumWeights = projectScoresData?.data?.[0]?.[
       `sum(measurements.score.weight.${webVital})`
     ] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity: shouldUseStoredScores
-          ? Math.round(
-              (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
-                sumWeights
-            ) / 100
-          : calculateOpportunity(
-              projectScore[`${webVital}Score`],
-              count,
-              row[`${webVital}Score`],
-              row['count()']
-            ),
+        opportunity:
+          Math.round(
+            (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
+              sumWeights
+          ) / 100,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -121,14 +103,7 @@ export function WebVitalsDetailPanel({
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [
-    data,
-    projectData?.data,
-    projectScore,
-    projectScoresData?.data,
-    shouldUseStoredScores,
-    webVital,
-  ]);
+  }, [data, projectScoresData?.data, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectRawWebVitalsValuesTimeseriesQuery({});
@@ -177,6 +152,11 @@ export function WebVitalsDetailPanel({
         </Tooltip>
       );
     }
+    if (col.key === 'count') {
+      if (webVital === 'inp') {
+        return <AlignRight>{t('Interactions')}</AlignRight>;
+      }
+    }
     return <AlignRight>{col.name}</AlignRight>;
   };
 
@@ -198,7 +178,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
         value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -211,11 +191,7 @@ export function WebVitalsDetailPanel({
           <Link
             to={{
               ...location,
-              ...(organization.features.includes(
-                'starfish-browser-webvitals-pageoverview-v2'
-              )
-                ? {pathname: `${location.pathname}overview/`}
-                : {}),
+              pathname: `${location.pathname}overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -227,6 +203,11 @@ export function WebVitalsDetailPanel({
           </Link>
         </NoOverflow>
       );
+    }
+    if (key === 'count') {
+      const count =
+        webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
+      return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
     return <AlignRight>{row[key]}</AlignRight>;
   };
@@ -287,6 +268,8 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.ttfb)';
     case 'fid':
       return 'p75(measurements.fid)';
+    case 'inp':
+      return 'p75(measurements.inp)';
     default:
       return 'count()';
   }

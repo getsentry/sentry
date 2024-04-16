@@ -1,14 +1,11 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import type {Tag} from 'sentry/actionCreators/events';
-import type {GroupTagsResponse} from 'sentry/actionCreators/group';
 import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {sumTagFacetsForTopValues} from 'sentry/components/group/tagFacets';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -20,20 +17,15 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
-import {IssueType} from 'sentry/types';
-import {defined, percent} from 'sentry/utils';
-import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
+import type {Group} from 'sentry/types';
+import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {generateTagsRoute} from '../performance/transactionSummary/transactionTags/utils';
 
 type GroupTagsProps = {
   baseUrl: string;
   environments: string[];
   group: Group;
-  event?: Event;
 };
 
 type SimpleTag = {
@@ -47,34 +39,9 @@ type SimpleTag = {
   totalValues: number;
 };
 
-function isTagFacetsResponse(
-  _: GroupTagsResponse | Tag[] | undefined,
-  shouldUseTagFacetsEndpoint: boolean
-): _ is Tag[] {
-  return shouldUseTagFacetsEndpoint;
-}
-
-function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
+function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const now = useRef(Date.now()).current;
-
-  const {transaction, aggregateRange2, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
-
-  const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
-    anchor: breakpoint,
-    relativeDays: 14,
-  });
-
-  const isRegressionIssue =
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-
-  const shouldUseTagFacetsEndpoint =
-    organization.features.includes('performance-duration-regression-visible') &&
-    defined(event) &&
-    isRegressionIssue;
 
   const {
     data = [],
@@ -85,23 +52,9 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
     orgSlug: organization.slug,
     groupId: group.id,
     environment: environments,
-    isStatisticalDetector: shouldUseTagFacetsEndpoint,
-    statisticalDetectorParameters: shouldUseTagFacetsEndpoint
-      ? {
-          transaction,
-          start: new Date(breakpoint * 1000).toISOString(),
-          end: new Date(now).toISOString(),
-          durationBaseline: aggregateRange2,
-        }
-      : undefined,
   });
 
-  // useFetchIssueTags can return two different types of responses, depending on shouldUseTagFacetsEndpoint
-  // This line will convert the response to a common type for rendering
-  const tagList: SimpleTag[] = isTagFacetsResponse(data, shouldUseTagFacetsEndpoint)
-    ? data.filter(({key}) => key !== 'transaction')?.map(sumTagFacetsForTopValues)
-    : data;
-  const alphabeticalTags = tagList.sort((a, b) => a.key.localeCompare(b.key));
+  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -117,24 +70,9 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
   }
 
   const getTagKeyTarget = (tag: SimpleTag) => {
-    const pathname = isRegressionIssue
-      ? generateTagsRoute({orgSlug: organization.slug})
-      : `${baseUrl}tags/${tag.key}/`;
-
-    const query = isRegressionIssue
-      ? {
-          ...extractSelectionParameters(location.query),
-          start: (beforeDateTime as Date).toISOString(),
-          end: (afterDateTime as Date).toISOString(),
-          statsPeriod: undefined,
-          tagKey: tag.key,
-          transaction,
-        }
-      : extractSelectionParameters(location.query);
-
     return {
-      pathname,
-      query,
+      pathname: `${baseUrl}tags/${tag.key}/`,
+      query: extractSelectionParameters(location.query),
     };
   };
 
@@ -145,9 +83,7 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
           {tct(
             'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
-              ),
+              link: <ExternalLink href={TAGS_DOCS_LINK} />,
             }
           )}
         </Alert>

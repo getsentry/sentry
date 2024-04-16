@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from typing import Any, Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import pydantic
 from django.utils.functional import LazyObject
@@ -84,7 +85,7 @@ class SerializableFunctionSignature:
 
     _RETURN_MODEL_ATTR = "value"
 
-    def _create_return_model(self) -> type[pydantic.BaseModel] | None:
+    def _create_return_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the return value.
 
         The created model has a single attribute containing the return value. This
@@ -95,7 +96,7 @@ class SerializableFunctionSignature:
         model_name = self.generate_name("__", "ReturnModel")
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
-            return None
+            return_type = type(None)
         self._validate_type_token("return type", return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
@@ -135,12 +136,5 @@ class SerializableFunctionSignature:
             raise SerializableFunctionValueException(self, "Could not deserialize arguments") from e
 
     def deserialize_return_value(self, value: Any) -> Any:
-        if self._return_model is None:
-            if value is not None:
-                raise SerializableFunctionValueException(
-                    self, f"Expected None but got {type(value)}"
-                )
-            return None
-
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)

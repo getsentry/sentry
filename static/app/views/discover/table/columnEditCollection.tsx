@@ -9,7 +9,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Input from 'sentry/components/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI, Organization} from 'sentry/types';
@@ -49,6 +50,7 @@ type Props = {
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  isOnDemandWidget?: boolean;
   noFieldsMessage?: string;
   showAliasField?: boolean;
   source?: Sources;
@@ -449,6 +451,7 @@ class ColumnEditCollection extends Component<Props, State> {
       noFieldsMessage,
       showAliasField,
       source,
+      isOnDemandWidget,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
@@ -567,6 +570,10 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
+
+          {isOnDemandWidget && col.kind === 'equation' ? (
+            <OnDemandEquationsWarning />
+          ) : null}
         </RowContainer>
         {position === PlaceholderPosition.BOTTOM && placeholder}
       </Fragment>
@@ -693,7 +700,7 @@ interface MetricTagQueryFieldProps
 const EMPTY_ARRAY = [];
 function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
   const {projects} = usePageFilters().selection;
-  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, projects);
+  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, {projects});
 
   const fieldOptions = useMemo(() => {
     return data.reduce(
@@ -717,6 +724,21 @@ function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
   return <QueryField fieldOptions={fieldOptions} {...props} />;
 }
 
+function OnDemandEquationsWarning() {
+  return (
+    <OnDemandContainer>
+      <Tooltip
+        containerDisplayMode="inline-flex"
+        title={t(
+          `This is using indexed data because we don't routinely collect metrics for equations.`
+        )}
+      >
+        <IconWarning color="warningText" />
+      </Tooltip>
+    </OnDemandContainer>
+  );
+}
+
 const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
   grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
   justify-content: flex-start;
@@ -727,7 +749,7 @@ const RowContainer = styled('div')<{
   showAliasField?: boolean;
 }>`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr 40px;
+  grid-template-columns: ${space(3)} 1fr 40px 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -738,14 +760,12 @@ const RowContainer = styled('div')<{
     p.showAliasField &&
     css`
       align-items: flex-start;
-      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
+      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
 
       @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-template-columns: ${
-          p.singleColumn
-            ? `1fr calc(200px + ${space(1)})`
-            : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`
-        };
+        grid-template-columns: ${p.singleColumn
+          ? `1fr calc(200px + ${space(1)})`
+          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
       }
     `};
 `;
@@ -769,6 +789,13 @@ const Ghost = styled('div')`
   & svg {
     cursor: grabbing;
   }
+`;
+
+const OnDemandContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 `;
 
 const DragPlaceholder = styled('div')`

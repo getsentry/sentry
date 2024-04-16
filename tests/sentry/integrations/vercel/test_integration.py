@@ -398,9 +398,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
         dynamic_display_info = installation.get_dynamic_display_information()
         instructions = dynamic_display_info["configure_integration"]["instructions"]
-        assert len(instructions) == 2
-        assert "Don't have a project yet?" in instructions[0]
-        assert "configure your repositories." in instructions[1]
+        assert len(instructions) == 1
+        assert "configure your repositories." in instructions[0]
 
     @responses.activate
     def test_uninstall(self):

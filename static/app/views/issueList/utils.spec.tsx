@@ -3,34 +3,25 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {getTabs} from './utils';
 
 describe('getTabs', () => {
-  it('should enable/disable tabs for escalating-issues', () => {
-    expect(getTabs(OrganizationFixture({})).map(tab => tab[1].name)).toEqual([
-      'Unresolved',
-      'For Review',
-      'Regressed',
-      'Escalating',
-      'Archived',
-      'Custom',
-    ]);
-
-    expect(getTabs(OrganizationFixture({})).map(tab => tab[1].name)).toEqual([
-      'Unresolved',
-      'For Review',
-      'Regressed',
-      'Escalating',
-      'Archived',
-      'Custom',
+  it('displays the correct list of tabs', () => {
+    expect(getTabs(OrganizationFixture({})).filter(tab => !tab[1].hidden)).toEqual([
+      ['is:unresolved', expect.objectContaining({name: 'Unresolved'})],
+      [
+        'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+        expect.objectContaining({name: 'For Review'}),
+      ],
+      ['is:regressed', expect.objectContaining({name: 'Regressed'})],
+      ['is:escalating', expect.objectContaining({name: 'Escalating'})],
+      ['is:archived', expect.objectContaining({name: 'Archived'})],
     ]);
   });
 
-  it('should enable/disable my_teams filter in For Review tab', () => {
-    expect(getTabs(OrganizationFixture({features: []})).map(tab => tab[0])).toEqual([
-      'is:unresolved',
-      'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
-      'is:regressed',
-      'is:escalating',
-      'is:archived',
-      '__custom__',
+  it('should replace "unresolved" with "prioritized" for issue-priority-ui feature', () => {
+    const tabs = getTabs(OrganizationFixture({features: ['issue-priority-ui']}));
+
+    expect(tabs[0]).toEqual([
+      'is:unresolved issue.priority:[high, medium]',
+      expect.objectContaining({name: 'Prioritized'}),
     ]);
   });
 });

@@ -3,7 +3,10 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
-import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {
+  ProductSelectionProps,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -64,6 +67,7 @@ export type RouteHooks = {
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
+type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -88,6 +92,8 @@ type DisabledCustomSymbolSources = {
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
+
+type DDMMetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
@@ -149,6 +155,13 @@ type QualitativeIssueFeedbackProps = {
   organization: Organization;
 };
 
+// on-create-project-product-selection
+type CreateProjectProductSelectionChangedCallback = (options: {
+  defaultProducts: ProductSolution[];
+  organization: Organization;
+  selectedProducts: ProductSolution[];
+}) => void;
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 type MonitorCreatedCallback = (organization: Organization) => void;
@@ -168,11 +181,14 @@ export type PartnershipAgreementProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
-  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<DDMMetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
@@ -202,6 +218,7 @@ export type ComponentHooks = {
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
+  'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
 
 /**
@@ -286,7 +303,7 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
@@ -331,6 +348,7 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
 };
@@ -385,6 +403,11 @@ type FeatureDisabledHook = (opts: {
    */
   project?: Project;
 }) => React.ReactNode;
+
+/**
+ * Called to check if the superuser warning should be excluded for the given organization.
+ */
+type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 
 /**
  * Called when the app is mounted.

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
@@ -17,6 +17,7 @@ export interface QueryFieldProps {
   attributes?: UseDraggableArguments['attributes'];
   canDelete?: boolean;
   canDrag?: boolean;
+  fieldValidationError?: ReactNode;
   forwardRef?: React.Ref<HTMLDivElement>;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
@@ -35,6 +36,7 @@ export function QueryField({
   canDelete,
   canDrag,
   style,
+  fieldValidationError,
   isDragging,
 }: QueryFieldProps) {
   return (
@@ -58,6 +60,7 @@ export function QueryField({
             onChange={onChange}
             filterPrimaryOptions={option => option.value.kind !== FieldValueKind.FUNCTION}
           />
+          {fieldValidationError ? fieldValidationError : null}
           {canDelete && (
             <Button
               size="zero"

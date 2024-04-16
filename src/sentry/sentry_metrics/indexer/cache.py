@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Collection, Iterable, Mapping, MutableMapping, Sequence
 
 from django.conf import settings
 from django.core.cache import caches
@@ -284,6 +284,7 @@ class CachingIndexer(StringIndexer):
                 _INDEXER_CACHE_RESOLVE_METRIC,
                 tags={"cache_hit": "false", "use_case": use_case_id.value},
             )
+            # TODO this random rollout is backwards
             if random.random() >= options.get(
                 "sentry-metrics.indexer.disable-memcache-replenish-rollout"
             ):

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -51,19 +51,20 @@ MATCHERS = {
 }
 
 
-def _get_function_name(frame_data: dict, platform: Optional[str]):
+def _get_function_name(frame_data: dict, platform: str | None):
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
+def create_match_frame(frame_data: dict, platform: str | None) -> dict:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
         in_app=frame_data.get("in_app"),
+        orig_in_app=get_path(frame_data, "data", "orig_in_app"),
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
@@ -161,7 +162,8 @@ class FrameMatch(Match):
 
     @property
     def description(self) -> str:
-        return "{}:{}".format(
+        return "{}{}:{}".format(
+            self.negated and "!" or "",
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
@@ -201,7 +203,10 @@ def path_like_match(pattern, value):
 
 class PathLikeMatch(FrameMatch):
     def __init__(self, key, pattern, negated=False):
-        super().__init__(key, pattern.lower(), negated)
+        # NOTE: We do not want to mess with `pattern` directly, as that is used for the `description`.
+        # We rather want to `lower()` only the encoded pattern used within glob matching.
+        super().__init__(key, pattern, negated)
+        self._encoded_pattern = pattern.lower().encode("utf-8")
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
         value = match_frame[self.field]
@@ -234,10 +239,11 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = bool(get_rule_bool(self.pattern))
+        self._ref_val = get_rule_bool(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == bool(match_frame["in_app"])
+        ref_val = self._ref_val
+        return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):

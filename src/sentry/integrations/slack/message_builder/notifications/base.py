@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry import features
 from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
@@ -64,8 +65,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
 
         actions_block = []
         for action in actions:
-            if action.label == "Turn on personal notifications" or action.url:
-                actions_block.append(self.get_button_action(action))
+            actions_block.append(self.get_button_action(action))
 
         if actions_block:
             blocks.append({"type": "actions", "elements": [action for action in actions_block]})

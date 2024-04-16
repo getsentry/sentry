@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 
 type Props = {
-  Wrapper?: React.ComponentType;
+  Wrapper?: React.ComponentType<React.PropsWithChildren<{}>>;
   className?: string;
   project?: Project;
 };

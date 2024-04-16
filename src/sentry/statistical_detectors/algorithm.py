@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping
+from typing import Any
 
 import sentry_sdk
 

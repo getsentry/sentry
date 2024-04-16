@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, MutableMapping
+from collections.abc import Callable, MutableMapping
+from typing import Any
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -138,6 +139,17 @@ class DatabaseBackedUserService(UserService):
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
+    def get_member_region_names(self, *, user_id: int) -> list[str]:
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+        region_query = (
+            OrganizationMapping.objects.filter(organization_id__in=org_ids)
+            .values_list("region_name", flat=True)
+            .distinct()
+        )
+        return list(region_query)
+
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
         if user is not None:
@@ -224,6 +236,15 @@ class DatabaseBackedUserService(UserService):
                         )
             return serialize_rpc_user(user)
         return None
+
+    def verify_user_email(self, *, email: str, user_id: int) -> bool:
+        user_email = UserEmail.objects.filter(email__iexact=email, user_id=user_id).first()
+        if user_email is None:
+            return False
+        if not user_email.is_verified:
+            user_email.update(is_verified=True)
+            return True
+        return False
 
     def verify_any_email(self, *, email: str) -> bool:
         user_email = UserEmail.objects.filter(email__iexact=email).first()

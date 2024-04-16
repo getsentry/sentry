@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Sequence
+from typing import Any
 
 from django.utils import timezone
 
@@ -17,7 +18,7 @@ from sentry.rules.history.preview_strategy import (
     get_update_kwargs_for_group,
     get_update_kwargs_for_groups,
 )
-from sentry.rules.processor import get_match_function
+from sentry.rules.processing.processor import get_match_function
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,

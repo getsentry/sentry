@@ -21,6 +21,7 @@ export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
   has_exception_group: boolean;
+  has_local_variables: boolean;
   has_next_event: boolean;
   has_previous_event: boolean;
   has_profile: boolean;
@@ -103,6 +104,13 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.issue_tab.trace_timeline_clicked': {
+    event_id: string;
+    group_id: string;
+  };
+  'issue_details.issue_tab.trace_timeline_more_events_clicked': {
+    num_hidden: number;
+  };
   'issue_details.merged_tab.unmerge_clicked': {
     /**
      * comma separated list of event ids that were unmerged
@@ -183,6 +191,10 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
+  'issue_details.issue_tab.trace_timeline_clicked':
+    'Issue Details: Trace Timeline Clicked',
+  'issue_details.issue_tab.trace_timeline_more_events_clicked':
+    'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':

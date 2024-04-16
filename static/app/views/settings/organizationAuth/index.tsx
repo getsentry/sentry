@@ -78,7 +78,7 @@ class OrganizationAuth extends DeprecatedAsyncView<Props, State> {
       data: {provider, init: true},
       success: data => {
         // Redirect to auth provider URL
-        if (data && data.auth_url) {
+        if (data?.auth_url) {
           window.location.href = data.auth_url;
         }
       },

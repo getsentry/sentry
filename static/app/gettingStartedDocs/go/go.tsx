@@ -4,6 +4,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -20,18 +25,22 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "${params.dsn}",
+    Dsn: "${params.dsn}",${
+      params.isPerformanceSelected
+        ? `
     // Set TracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production,
-    TracesSampleRate: 1.0,
+    TracesSampleRate: 1.0,`
+        : ''
+    }
   })
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)
   }
 }`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
 package main
 
 import (
@@ -43,11 +52,15 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "___PUBLIC_DSN___",
+    Dsn: "___PUBLIC_DSN___",${
+      params.isPerformanceSelected
+        ? `
     // Set TracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production,
-    TracesSampleRate: 1.0,
+    TracesSampleRate: 1.0,`
+        : ''
+    }
   })
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)
@@ -87,7 +100,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -96,16 +109,32 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'go',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/go/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  crashReportOnboarding,
 };
 
 export default docs;

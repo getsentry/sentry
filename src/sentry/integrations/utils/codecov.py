@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, Sequence, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import requests
 from rest_framework import status
 from sentry_sdk import configure_scope
-from typing_extensions import NotRequired
 
 from sentry import options
-from sentry.integrations.utils.stacktrace_link import ReposityLinkOutcome
+from sentry.integrations.utils.stacktrace_link import RepositoryLinkOutcome
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -141,7 +141,7 @@ class CodecovConfig(TypedDict):
     repository: Repository
     # Config is a serialized RepositoryProjectPathConfig
     config: Any
-    outcome: ReposityLinkOutcome
+    outcome: RepositoryLinkOutcome
 
 
 class CodecovData(TypedDict):

@@ -72,6 +72,7 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -83,6 +84,7 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {

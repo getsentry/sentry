@@ -1,14 +1,22 @@
+import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {MultiSeriesEventsStats} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 
 import StartDurationWidget, {transformData} from './startDurationWidget';
 
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useLocation');
 
 describe('StartDurationWidget', () => {
   const organization = OrganizationFixture();
@@ -66,13 +74,27 @@ describe('StartDurationWidget', () => {
   });
 
   it('renders correct title for cold start duration', async () => {
-    render(<StartDurationWidget chartHeight={200} type="cold" />);
-    expect(await screen.findByText('Avg. Cold Start Duration')).toBeInTheDocument();
+    jest.mocked(useLocation).mockReturnValue({
+      ...LocationFixture(),
+      query: {
+        app_start_type: 'cold',
+      },
+    } as Location);
+
+    render(<StartDurationWidget chartHeight={200} />);
+    expect(await screen.findByText('Average Cold Start')).toBeInTheDocument();
   });
 
   it('renders correct title for warm start duration', async () => {
-    render(<StartDurationWidget chartHeight={200} type="warm" />);
-    expect(await screen.findByText('Avg. Warm Start Duration')).toBeInTheDocument();
+    jest.mocked(useLocation).mockReturnValue({
+      ...LocationFixture(),
+      query: {
+        app_start_type: 'warm',
+      },
+    } as Location);
+
+    render(<StartDurationWidget chartHeight={200} />);
+    expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();
   });
 
   describe('transformData', () => {
@@ -136,7 +158,7 @@ describe('StartDurationWidget', () => {
       expect(transformedData).toEqual({
         'com.example.vu.android@2.10.5': {
           seriesName: 'com.example.vu.android@2.10.5',
-          color: '#444674',
+          color: PRIMARY_RELEASE_COLOR,
           data: [
             {
               name: 1703937600000,
@@ -146,13 +168,16 @@ describe('StartDurationWidget', () => {
         },
         'com.example.vu.android@2.10.3+42': {
           seriesName: 'com.example.vu.android@2.10.3+42',
-          color: '#e9626e',
+          color: SECONDARY_RELEASE_COLOR,
           data: [
             {
               name: 1703937600000,
               value: 200,
             },
           ],
+          lineStyle: {
+            type: 'dashed',
+          },
         },
       });
     });

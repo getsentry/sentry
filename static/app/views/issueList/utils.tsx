@@ -1,10 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  PRIORITIZED = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -45,14 +46,25 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasIssuePriority = organization.features.includes('issue-priority-ui');
+
   const tabs: Array<[string, OverviewTab]> = [
+    [
+      Query.PRIORITIZED,
+      {
+        name: t('Prioritized'),
+        analyticsName: 'prioritized',
+        count: true,
+        enabled: hasIssuePriority,
+      },
+    ],
     [
       Query.UNRESOLVED,
       {
         name: t('Unresolved'),
         analyticsName: 'unresolved',
         count: true,
-        enabled: true,
+        enabled: !hasIssuePriority,
       },
     ],
     [
@@ -167,7 +179,7 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  PRIORITY = 'priority',
+  TRENDS = 'trends',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -175,16 +187,23 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch(
+  {query, sort}: {query: string; sort: string},
+  {organization}: {organization: Organization}
+) {
+  const defaultQuery = organization.features.includes('issue-priority-ui')
+    ? NEW_DEFAULT_QUERY
+    : DEFAULT_QUERY;
+
+  return query === defaultQuery && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
-      return t('Priority');
+    case IssueSortOptions.TRENDS:
+      return t('Trends');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:

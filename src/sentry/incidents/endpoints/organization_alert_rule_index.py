@@ -1,9 +1,8 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.utils.timezone import make_aware
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -35,7 +34,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
@@ -62,9 +62,13 @@ class AlertRuleIndexMixin(Endpoint):
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
+
         if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         return self.paginate(
             request,
@@ -119,7 +123,7 @@ class AlertRuleIndexMixin(Endpoint):
                     alert_rule_created.send_robust(
                         user=request.user,
                         project=sub.project,
-                        rule=alert_rule,
+                        rule_id=alert_rule.id,
                         rule_type="metric",
                         sender=self,
                         referrer=referrer,
@@ -178,6 +182,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
+
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
@@ -239,7 +248,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if "date_triggered" in sort_key:
-            far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
@@ -341,6 +350,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """
     )
     environment = serializers.CharField(
@@ -377,6 +387,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])

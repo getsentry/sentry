@@ -247,7 +247,12 @@ export function TraceEventDataSection({
     disabled?: boolean;
     tooltip?: string;
   }[] {
-    if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+    if (
+      platform === 'objc' ||
+      platform === 'native' ||
+      platform === 'cocoa' ||
+      platform === 'nintendo-switch'
+    ) {
       return [
         {
           label: displayOptions['absolute-addresses'],
@@ -354,6 +359,7 @@ export function TraceEventDataSection({
     <EventDataSection
       type={type}
       title={cloneElement(title, {type})}
+      guideTarget="stacktrace"
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>

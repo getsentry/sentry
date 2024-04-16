@@ -19,29 +19,22 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
-  startTimeOffsetMs: number;
   startTimestampMs: number;
   width: number;
   className?: string;
 }
 
-function ReplayTimelineEvents({
+export default function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
   startTimestampMs,
-  startTimeOffsetMs,
   width,
 }: Props) {
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(
-    durationMs,
-    frames,
-    totalColumns,
-    startTimeOffsetMs
-  );
+  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
@@ -81,7 +74,7 @@ function Event({
 }) {
   const theme = useTheme();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-  const {setActiveTab} = useActiveReplayTab();
+  const {setActiveTab} = useActiveReplayTab({});
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
@@ -218,5 +211,3 @@ const TooltipWrapper = styled('div')`
   max-height: 80vh;
   overflow: auto;
 `;
-
-export default ReplayTimelineEvents;

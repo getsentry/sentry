@@ -13,6 +13,8 @@ import toArray from 'sentry/utils/toArray';
 
 import {truncationFormatter} from '../utils';
 
+export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
+
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 export function defaultFormatAxisLabel(
@@ -393,7 +395,8 @@ export function computeChartTooltip(
 
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows
-      const chartLeft = chartElement.getBoundingClientRect().left ?? 0;
+      const chartBoundingRect = chartElement.getBoundingClientRect();
+      const chartLeft = chartBoundingRect.left ?? 0;
 
       // Determine the new left edge.
       let leftPos = Number(pos[0]) - tipWidth / 2;
@@ -401,13 +404,13 @@ export function computeChartTooltip(
       const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
       let arrowPosition: string | undefined;
-      if (rightEdge >= window.innerWidth - 20) {
+      if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
         // If the tooltip would leave viewport on the right, pin it.
-        leftPos -= rightEdge - window.innerWidth + 20;
+        leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else if (leftPos + chartLeft - 20 <= 0) {
+      } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
         // If the tooltip would leave viewport on the left, pin it.
-        leftPos = chartLeft * -1 + 20;
+        leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
       } else {
         // Tooltip not near the window edge, reset position
@@ -419,7 +422,14 @@ export function computeChartTooltip(
         arrow.style.left = arrowPosition;
       }
 
-      return {left: leftPos, top: Number(pos[1]) - tipHeight - 20};
+      return {
+        left: leftPos,
+        top: Math.max(
+          Number(pos[1]) - tipHeight - 20,
+          // avoid tooltip from being cut off by the top edge of the window
+          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
+        ),
+      };
     },
     formatter,
     ...props,

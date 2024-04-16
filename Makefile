@@ -26,12 +26,8 @@ install-py-dev :
 build-platform-assets \
 direnv-help \
 upgrade-pip \
-prerequisites \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
-
-setup-pyenv:
-	@./scripts/pyenv_setup.sh
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -95,7 +91,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log
 	@echo ""
 
 test-cli: create-db
@@ -140,7 +136,10 @@ test-python-ci:
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -160,12 +159,16 @@ test-monolith-dbs:
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	  --json-report \
+	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
+	  --json-report-omit=log \
 	;
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
-	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	@# bogus configuration to force vanilla pytest
+	python3 -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
@@ -174,6 +177,7 @@ test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
 test-acceptance: node-version-check

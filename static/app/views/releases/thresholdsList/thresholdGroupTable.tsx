@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
@@ -50,20 +50,19 @@ export default function ThresholdGroupTable({
         emptyMessage={t('No thresholds found.')}
         headers={[t('Environment'), t('Window'), t('Condition'), t(' ')]}
       >
-        {sortedThreshold &&
-          sortedThreshold.map((threshold, idx) => {
-            return (
-              <ThresholdGroupRows
-                key={threshold.id}
-                project={project}
-                allEnvironmentNames={allEnvironmentNames}
-                threshold={threshold}
-                refetch={refetch}
-                setTempError={setTempError}
-                isLastRow={idx === sortedThreshold.length - 1}
-              />
-            );
-          })}
+        {sortedThreshold?.map((threshold, idx) => {
+          return (
+            <ThresholdGroupRows
+              key={threshold.id}
+              project={project}
+              allEnvironmentNames={allEnvironmentNames}
+              threshold={threshold}
+              refetch={refetch}
+              setTempError={setTempError}
+              isLastRow={idx === sortedThreshold.length - 1}
+            />
+          );
+        })}
       </StyledPanelTable>
     </div>
   );

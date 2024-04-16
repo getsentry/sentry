@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import operator
-from typing import Any, Container
+from collections.abc import Container
+from typing import Any
 from uuid import uuid4
 
 from django.db.models import F, Field, Model

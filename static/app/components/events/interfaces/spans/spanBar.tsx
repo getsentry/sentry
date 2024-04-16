@@ -598,7 +598,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
               toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
-              toggleSpanGroup && toggleSpanGroup();
+              toggleSpanGroup?.();
             }
           }}
         >

@@ -16,12 +16,10 @@ from sentry.services.hybrid_cloud.integration.serial import serialize_integratio
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 TOKEN = "JWT anexampletoken"
 
 
-@region_silo_test
 class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
@@ -174,7 +172,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
-            mock_set_tag.assert_called_with("integration_id", self.integration.id)
+            mock_set_tag.assert_any_call("integration_id", self.integration.id)
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
 
     def test_missing_changelog(self):

@@ -30,13 +30,13 @@ describe('OrganizationActivity', function () {
     };
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
-    expect(screen.getAllByTestId('activity-feed-item')).toHaveLength(2);
+    expect(await screen.findAllByTestId('activity-feed-item')).toHaveLength(2);
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],
@@ -44,10 +44,10 @@ describe('OrganizationActivity', function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('renders not found', function () {
+  it('renders not found', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],
@@ -56,6 +56,6 @@ describe('OrganizationActivity', function () {
     render(<OrganizationActivity {...params} />, {context: routerContext});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 });

@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,12 +61,14 @@ function ResourceView() {
 
   return (
     <Fragment>
-      <SpanTimeCharts
-        moduleName={ModuleName.OTHER}
-        appliedFilters={spanTimeChartsFilters}
-        throughputUnit={RESOURCE_THROUGHPUT_UNIT}
-        extraQuery={extraQuery}
-      />
+      <SpanTimeChartsContainer>
+        <SpanTimeCharts
+          moduleName={ModuleName.RESOURCE}
+          appliedFilters={spanTimeChartsFilters}
+          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+          extraQuery={extraQuery}
+        />
+      </SpanTimeChartsContainer>
 
       <FilterOptionsContainer columnCount={3}>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
@@ -199,6 +201,10 @@ export function TransactionSelector({
     />
   );
 }
+
+export const SpanTimeChartsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   display: grid;

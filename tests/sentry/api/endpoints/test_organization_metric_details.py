@@ -11,8 +11,7 @@ from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.testutils.cases import OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
@@ -39,10 +38,13 @@ def _indexer_record(org_id: int, string: str) -> None:
     indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
-@region_silo_test
-class OrganizationMetricDetailsIntegrationTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricDetailsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metric-details"
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     @patch(
         "sentry.snuba.metrics.datasource.get_mri",

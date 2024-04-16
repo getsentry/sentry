@@ -174,7 +174,7 @@ class TestFilterMethod:
     def empty_message_with_headers(self, headers):
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
         return Message(
-            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=datetime.utcnow())
+            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
         )
 
     def test_message_filter_no_header(self, message_filter):

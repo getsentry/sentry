@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Mapping, Protocol, Sequence
+from typing import Protocol
 
 import sentry_sdk
 
@@ -62,7 +63,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(key, rules)
+                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -157,7 +158,7 @@ class CompositeRuleStore:
                     },
                 )
                 sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
+                sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}

@@ -61,6 +61,7 @@ def dump_variant(variant, lines=None, indent=0):
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     grouping_config = get_default_grouping_config_dict(config_name)
+    loaded_config = load_grouping_config(grouping_config)
     evt = grouping_input.create_event(grouping_config)
 
     # Make sure we don't need to touch the DB here because this would
@@ -68,7 +69,7 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     evt.project = None
 
     # Set the synthetic marker if detected
-    detect_synthetic_exception(evt.data, load_grouping_config(grouping_config))
+    detect_synthetic_exception(evt.data, loaded_config)
 
     rv: list[str] = []
     for key, value in sorted(evt.get_grouping_variants().items()):
@@ -77,7 +78,9 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
         rv.append("%s:" % key)
         dump_variant(value, rv, 1)
     output = "\n".join(rv)
-    log(repr(evt.get_hashes()))
+
+    hashes = evt.get_hashes()
+    log(repr(hashes))
 
     assert evt.get_grouping_config() == grouping_config
 

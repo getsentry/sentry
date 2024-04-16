@@ -28,6 +28,9 @@ export default function hydrateEventTags(
     ...(eventData.platform ? {platform: eventData.platform} : {}),
     ...(eventData.sdk?.name ? {'sdk.name': eventData.sdk?.name} : {}),
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),
+    ...(eventData?.contexts?.feedback?.replay_id
+      ? {replay_id: eventData?.contexts?.feedback?.replay_id}
+      : {}),
   };
 
   // Sort the tags by key

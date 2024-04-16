@@ -48,11 +48,7 @@ export class OnDemandMetricRequest extends EventsRequest {
 
         timeseriesData = await this.fetchExtrapolatedData();
       } catch (resp) {
-        if (resp && resp.responseJSON && resp.responseJSON.detail) {
-          errorMessage = resp.responseJSON.detail;
-        } else {
-          errorMessage = t('Error loading chart data');
-        }
+        errorMessage = resp?.responseJSON?.detail ?? t('Error loading chart data');
         if (!hideError) {
           addErrorMessage(errorMessage);
         }

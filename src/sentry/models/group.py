@@ -5,11 +5,12 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -38,7 +39,6 @@ from sentry.db.models import (
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
-    PRIORITY_LEVEL_TO_STR,
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
@@ -354,19 +354,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -456,7 +443,7 @@ class GroupManager(BaseManager["Group"]):
             group.substatus = substatus
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
-                if priority:
+                if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
 
@@ -479,7 +466,7 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     type=ActivityType.SET_PRIORITY,
                     data={
-                        "priority": PRIORITY_LEVEL_TO_STR[new_priority],
+                        "priority": new_priority.to_str(),
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
@@ -601,6 +588,7 @@ class Group(Model):
             models.Index(fields=("project", "status", "substatus", "id")),
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -731,7 +719,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore
+        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(

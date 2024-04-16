@@ -4,6 +4,7 @@ import type {RouteComponentProps} from 'react-router';
 import {browserHistory} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -45,14 +46,7 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Environment,
-  IssueOwnership,
-  Member,
-  Organization,
-  Project,
-  Team,
-} from 'sentry/types';
+import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
 import {OnboardingTaskKey} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
@@ -160,10 +154,8 @@ type State = DeprecatedAsyncView['state'] & {
   incompatibleFilters: number[] | null;
   project: Project;
   sendingNotification: boolean;
-  uuid: null | string;
   acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
-  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -178,9 +170,10 @@ const isExactDuplicateExp = /duplicate of '(.*)'/;
 
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
-  trackIncompatibleAnalytics: boolean = false;
-  trackNoisyWarningViewed: boolean = false;
+  trackIncompatibleAnalytics = false;
+  trackNoisyWarningViewed = false;
   isUnmounted = false;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -212,6 +205,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     this.fetchEnvironments();
+    this.refetchConfigs();
   }
 
   isRuleStateChange(prevState: State): boolean {
@@ -248,7 +242,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       detailedError: null,
       rule: {...defaultRule},
       environments: [],
-      uuid: null,
       project,
       sendingNotification: false,
       incompatibleConditions: null,
@@ -282,7 +275,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${organization.slug}/${project.slug}/rules/configuration/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
@@ -342,12 +334,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     const {organization} = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
     const origRule = this.state.rule;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/rule-task/${this.uuid}/`
       );
 
       const {status, rule, error} = response;
@@ -411,6 +403,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
 
+  refetchConfigs() {
+    const {organization} = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rules/configuration/`
+      )
+      .then(response => this.setState({configs: response}))
+      .catch(() => {
+        // No need to alert user if this fails, can use existing data
+      });
+  }
+
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
@@ -468,7 +474,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       status: 'complete',
     });
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
       normalizeUrl({
@@ -480,7 +486,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   handleRuleSaveFailure(msg: ReactNode) {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   }
 
   handleSubmit = async () => {
@@ -503,57 +509,63 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     addLoadingMessage();
 
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', 'issue');
-      transaction.setTag('operation', isNew ? 'create' : 'edit');
-      if (rule) {
-        for (const action of rule.actions) {
-          if (action.id === IssueAlertActionType.SLACK) {
-            transaction.setTag('SlackNotifyServiceAction', true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', 'issue');
+        scope.setTag('operation', isNew ? 'create' : 'edit');
+
+        if (rule) {
+          for (const action of rule.actions) {
+            if (action.id === IssueAlertActionType.SLACK) {
+              scope?.setTag('SlackNotifyServiceAction', true);
+            }
+            // to avoid storing inconsistent data in the db, don't pass the name fields
+            delete action.name;
           }
-          // to avoid storing inconsistent data in the db, don't pass the name fields
-          delete action.name;
-        }
-        for (const condition of rule.conditions) {
-          delete condition.name;
-        }
-        for (const filter of rule.filters) {
-          delete filter.name;
-        }
-        transaction.setData('actions', rule.actions);
+          for (const condition of rule.conditions) {
+            delete condition.name;
+          }
+          for (const filter of rule.filters) {
+            delete filter.name;
+          }
+          scope.setExtra('actions', rule.actions);
 
-        // Check if rule is currently disabled or going to be disabled
-        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
-          rule.optOutEdit = true;
+          // Check if rule is currently disabled or going to be disabled
+          if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+            rule.optOutEdit = true;
+          }
         }
-      }
-      const [data, , resp] = await this.api.requestPromise(endpoint, {
-        includeAllArgs: true,
-        method: isNew ? 'POST' : 'PUT',
-        data: rule,
-        query: {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-        },
-      });
 
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        this.setState({detailedError: null, loading: true, uuid: data.uuid});
-        this.fetchStatus();
-        addLoadingMessage(t('Looking through all your channels...'));
-      } else {
-        this.handleRuleSuccess(isNew, data);
+        metric.startSpan({name: 'saveAlertRule'});
+
+        const [data, , resp] = await this.api.requestPromise(endpoint, {
+          includeAllArgs: true,
+          method: isNew ? 'POST' : 'PUT',
+          data: rule,
+          query: {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+          },
+        });
+
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          this.uuid = data.uuid;
+          this.setState({detailedError: null, loading: true});
+          this.fetchStatus();
+          addLoadingMessage(t('Looking through all your channels...'));
+        } else {
+          this.handleRuleSuccess(isNew, data);
+        }
+      } catch (err) {
+        this.setState({
+          detailedError: err.responseJSON || {__all__: 'Unknown error'},
+          loading: false,
+        });
+        this.handleRuleSaveFailure(t('An error occurred'));
       }
-    } catch (err) {
-      this.setState({
-        detailedError: err.responseJSON || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      this.handleRuleSaveFailure(t('An error occurred'));
-    }
+    });
   };
 
   handleDeleteRule = async () => {
@@ -784,7 +796,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule} = this.state;
     const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
+    return owner?.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value: string}) => {
@@ -1125,7 +1137,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       rule,
       detailedError,
       loading,
-      ownership,
       sendingNotification,
       incompatibleConditions,
       incompatibleFilters,
@@ -1390,7 +1401,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           organization={organization}
                           project={project}
                           disabled={disabled}
-                          ownership={ownership}
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">

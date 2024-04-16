@@ -201,7 +201,7 @@ function useApiRequests<T extends Record<string, any>>({
     (error: RequestError, args: EndpointDefinition<T>) => {
       const [stateKey] = args;
 
-      if (error && error.responseText) {
+      if (error?.responseText) {
         Sentry.addBreadcrumb({
           message: error.responseText,
           category: 'xhr',
@@ -264,8 +264,8 @@ function useApiRequests<T extends Record<string, any>>({
           options = options ?? {};
           // If you're using nested async components/views make sure to pass the
           // props through so that the child component has access to props.location
-          const locationQuery = (location && location.query) || {};
-          let query = (parameters && parameters.query) || {};
+          const locationQuery = location?.query || {};
+          let query = parameters?.query || {};
           // If paginate option then pass entire `query` object to API call
           // It should only be expecting `query.cursor` for pagination
           if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
@@ -438,7 +438,7 @@ function useMeasureApiRequests() {
       error: false,
     };
 
-    if (routes && routes.length) {
+    if (routes?.length) {
       metric.mark({name: `async-component-${getRouteStringFromRoutes(routes)}`});
     }
   }, [routes]);

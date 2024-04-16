@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from django.db.models.base import Model
 
@@ -55,7 +55,7 @@ class ImportExportService(RpcService):
         self,
         *,
         model_name: str = "",
-        scope: Optional[RpcImportScope] = None,
+        scope: RpcImportScope | None = None,
         flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
@@ -77,9 +77,9 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().import_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod
@@ -88,7 +88,7 @@ class ImportExportService(RpcService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: Optional[RpcExportScope] = None,
+        scope: RpcExportScope | None = None,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,
@@ -109,9 +109,9 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.export_by_model
-        return ImportExportService.get_local_implementation().export_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().export_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod

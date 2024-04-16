@@ -72,6 +72,12 @@ const useCrashFreeRate = (props: Props) => {
     {staleTime: 0, enabled: isEnabled}
   );
 
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
   const previousQuery = useApiQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
@@ -85,20 +91,15 @@ const useCrashFreeRate = (props: Props) => {
     ],
     {
       staleTime: 0,
-      enabled:
-        isEnabled &&
-        shouldFetchPreviousPeriod({
-          start: datetime.start,
-          end: datetime.end,
-          period: datetime.period,
-        }),
+      enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
 
   return {
     crashFreeRate: currentQuery.data,
     previousCrashFreeRate: previousQuery.data,
-    isLoading: currentQuery.isLoading || previousQuery.isLoading,
+    isLoading:
+      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
     error: currentQuery.error || previousQuery.error,
     refetch: () => {
       currentQuery.refetch();
@@ -156,7 +157,10 @@ function ProjectStabilityScoreCard(props: Props) {
   if (error) {
     return (
       <LoadingError
-        message={error.responseJSON?.detail || t('There was an error loading data.')}
+        message={
+          (error.responseJSON?.detail as React.ReactNode) ||
+          t('There was an error loading data.')
+        }
         onRetry={refetch}
       />
     );

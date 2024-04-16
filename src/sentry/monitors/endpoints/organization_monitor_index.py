@@ -1,5 +1,15 @@
 from django.db import router, transaction
-from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log, quotas
@@ -22,6 +32,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -34,7 +46,7 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_alert_rule, signal_monitor_created
+from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
@@ -56,8 +68,6 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
-    MonitorStatus.TIMEOUT,
-    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
@@ -67,6 +77,14 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
     *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
     output_field=IntegerField(),
 )
+
+
+def flip_sort_direction(sort_field: str) -> str:
+    if sort_field[0] == "-":
+        sort_field = sort_field[1:]
+    else:
+        sort_field = "-" + sort_field
+    return sort_field
 
 
 @region_silo_endpoint
@@ -113,49 +131,70 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             ]
         )
         query = request.GET.get("query")
+        is_asc = request.GET.get("asc", "1") == "1"
+        sort = request.GET.get("sort", "status")
 
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            environment_ids = [e.id for e in environments]
             # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
-                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                    Q(monitorenvironment__environment_id__in=environment_ids)
+                    | Q(monitorenvironment=None)
                 ).distinct()
             else:
                 queryset = queryset.filter(
-                    monitorenvironment__environment__in=environments
+                    monitorenvironment__environment_id__in=environment_ids
                 ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
         # sort monitors by top monitor environment, then by latest check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
-            monitor__id=OuterRef("id"), environment__in=environments
+            monitor__id=OuterRef("id"), environment_id__in=[e.id for e in environments]
         )
+        sort_fields = []
 
-        queryset = queryset.annotate(
-            environment_status_ordering=Case(
-                # Sort DISABLED and is_muted monitors to the bottom of the list
-                When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
-                When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
-                default=Subquery(
-                    monitor_environments_query.annotate(
-                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
-                    )
-                    .order_by("status_ordering")
-                    .values("status_ordering")[:1],
-                    output_field=IntegerField(),
+        if sort == "status":
+            queryset = queryset.annotate(
+                environment_status_ordering=Case(
+                    # Sort DISABLED and is_muted monitors to the bottom of the list
+                    When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
+                    When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
+                    default=Subquery(
+                        monitor_environments_query.annotate(
+                            status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                        )
+                        .order_by("status_ordering")
+                        .values("status_ordering")[:1],
+                        output_field=IntegerField(),
+                    ),
+                )
+            )
+
+            queryset = queryset.annotate(
+                last_checkin_monitorenvironment=Subquery(
+                    monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
+                    output_field=DateTimeField(),
+                )
+            )
+            sort_fields = ["environment_status_ordering", "-last_checkin_monitorenvironment"]
+        elif sort == "name":
+            sort_fields = ["name"]
+        elif sort == "muted":
+            queryset = queryset.annotate(
+                muted_ordering=Case(
+                    When(is_muted=True, then=Value(2)),
+                    When(Exists(monitor_environments_query.filter(is_muted=True)), then=Value(1)),
+                    default=0,
                 ),
             )
-        )
+            sort_fields = ["muted_ordering", "name"]
 
-        queryset = queryset.annotate(
-            last_checkin_monitorenvironment=Subquery(
-                monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
-                output_field=DateTimeField(),
-            )
-        )
+        if not is_asc:
+            sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
 
         if query:
             tokens = tokenize_query(query)
@@ -191,7 +230,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
+            order_by=sort_fields,
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
@@ -222,10 +261,20 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
+        owner = result.get("owner")
+        owner_user_id = None
+        owner_team_id = None
+        if owner and owner.type == User:
+            owner_user_id = owner.id
+        elif owner and owner.type == Team:
+            owner_team_id = owner.id
+
         try:
             monitor = Monitor.objects.create(
                 project_id=result["project"].id,
                 organization_id=organization.id,
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
                 name=result["name"],
                 slug=result.get("slug"),
                 status=result["status"],
@@ -251,13 +300,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_monitor_created(project, request.user, False)
 
-        validated_alert_rule = result.get("alert_rule")
-        if validated_alert_rule:
-            alert_rule_id = create_alert_rule(request, project, monitor, validated_alert_rule)
+        validated_issue_alert_rule = result.get("alert_rule")
+        if validated_issue_alert_rule:
+            issue_alert_rule_id = create_issue_alert_rule(
+                request, project, monitor, validated_issue_alert_rule
+            )
 
-            if alert_rule_id:
+            if issue_alert_rule_id:
                 config = monitor.config
-                config["alert_rule_id"] = alert_rule_id
+                config["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)

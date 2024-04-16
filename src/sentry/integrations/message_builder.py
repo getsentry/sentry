@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
@@ -15,7 +16,6 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
 
@@ -165,7 +165,7 @@ def build_attachment_replay_link(
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
-        return f"\n\n{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+        return f"{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
 
     return None
 
@@ -192,7 +192,7 @@ def build_footer(
         text = rules[0].label if rules[0].label else "Test Alert"
         footer += f" via {url_format.format(text=text, url=rule_url)}"
 
-        if features.has("organizations:slack-block-kit", project.organization):
+        if url_format == SLACK_URL_FORMAT:
             footer = url_format.format(text=text, url=rule_url)
 
         if len(rules) > 1:
@@ -203,7 +203,7 @@ def build_footer(
 
 def get_timestamp(group: Group, event: GroupEvent | None) -> float:
     ts = group.last_seen
-    return to_timestamp(max(ts, event.datetime) if event else ts)
+    return (max(ts, event.datetime) if event else ts).timestamp()
 
 
 def get_color(

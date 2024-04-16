@@ -1,13 +1,14 @@
 {% extends "sentry/emails/base.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block main %}
   <h3>{{ provider.name }} SSO Enabled</h3>
 
   <p>
     <strong>{{ provider.name }}</strong> Single Sign-On has been configured for the
-    <strong>{{ organization.name }}</strong> organization. Link your Sentry account to enable
+    <strong>{{ organization.name|sanitize_periods }}</strong> organization. Link your Sentry account to enable
     signing on with your <strong>{{ provider.name }}</strong> account.
   </p>
 

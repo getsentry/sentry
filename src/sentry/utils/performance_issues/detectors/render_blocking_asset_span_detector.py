@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
@@ -29,7 +30,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None

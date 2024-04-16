@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import collections
-from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from datetime import timedelta
 
 import pytest
 from django.utils import timezone
@@ -11,7 +11,6 @@ from sentry.eventstore.models import Event
 from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.project import Project
@@ -40,7 +39,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
@@ -83,7 +82,6 @@ class _ParticipantsTest(TestCase):
         assert actual == expected
 
 
-@region_silo_test
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
         self, project: Project | None = None, user_id: int | None = None
@@ -139,7 +137,6 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
-@region_silo_test
 class GetSendToTeamTest(_ParticipantsTest):
     def setUp(self):
         super().setUp()
@@ -257,7 +254,6 @@ class GetSendToTeamTest(_ParticipantsTest):
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
 
-@region_silo_test
 class GetSendToOwnersTest(_ParticipantsTest):
     def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
@@ -400,14 +396,10 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    def test_fallthrough(self):
+    def test_no_fallthrough(self):
         event = self.store_event_owners("no_rule.cpp")
 
-        self.assert_recipients_are(
-            self.get_send_to_owners(event),
-            email=[self.user.id, self.user2.id, self.user_suspect_committer.id],
-            slack=[self.user.id, self.user2.id, self.user_suspect_committer.id],
-        )
+        self.assert_recipients_are(self.get_send_to_owners(event), email=[], slack=[])
 
     def test_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -432,7 +424,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             team_id=team.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(
@@ -457,7 +449,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             user_id=self.user.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(
@@ -478,7 +470,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             user_id=member.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(
@@ -487,59 +479,13 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id, self.user2.id, member.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     def test_send_to_suspect_committers(self):
         """
-        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
-        flag is not on.
-        """
-        # TODO: Delete this test once Commit Context has GA'd
-        release = self.create_release(project=self.project, version="v12")
-        event = self.store_event(
-            data={
-                "platform": "java",
-                "stacktrace": STACKTRACE,
-                "tags": {"sentry:release": release.version},
-            },
-            project_id=self.project.id,
-        )
-        release.set_commits(
-            [
-                {
-                    "id": "a" * 40,
-                    "repository": self.repo.name,
-                    "author_email": "suspectcommitter@example.com",
-                    "author_name": "Suspect Committer",
-                    "message": "fix: Fix bug",
-                    "patch_set": [
-                        {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
-                    ],
-                },
-            ]
-        )
-        assert event.group is not None
-        GroupRelease.objects.create(
-            group_id=event.group.id, project_id=self.project.id, release_id=release.id
-        )
-
-        self.assert_recipients_are(
-            self.get_send_to_owners(event),
-            email=[self.user_suspect_committer.id, self.user.id],
-            slack=[self.user_suspect_committer.id, self.user.id],
-        )
-
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
-        """
-        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
-        flag is on.
+        Test suspect committer is added as suggested assignee
         """
         self.commit = self.create_sample_commit(self.user_suspect_committer)
         event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
+            data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
 
@@ -557,12 +503,9 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id, self.user.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
+    def test_send_to_suspect_committers_no_owners(self):
         """
-        Test suspect committer is added as suggested assignee, where no user owns the file and
-        where the "organizations:commit-context" flag is on.
+        Test suspect committer is added as suggested assignee, where no user owns the file
         """
         organization = self.create_organization(name="New Organization")
         project_suspect_committer = self.create_project(
@@ -612,18 +555,14 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
+    def test_send_to_suspect_committers_dupe(self):
         """
         Test suspect committer/owner is added as suggested assignee once where the suspect
-        committer is also the owner and where the "organizations:commit-context" flag is on.
+        committer is also the owner.
         """
         commit = self.create_sample_commit(self.user)
         event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
+            data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
 
@@ -639,18 +578,14 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
+    def test_send_to_suspect_committers_exception(self):
         """
         Test determine_eligible_recipients throws an exception when get_suspect_committers throws
-        an exception and returns the file owner, where "organizations:commit-context" flag is on.
+        an exception and returns the file owner
         """
         invalid_commit_id = 10000
         event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
+            data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
 
@@ -666,21 +601,17 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    @with_feature("organizations:streamline-targeting-context")
-    @with_feature("organizations:commit-context")
-    def test_send_to_suspect_committers_not_project_member_commit_context_feature_flag(self):
+    def test_send_to_suspect_committers_not_project_member(self):
         """
         Test suspect committer is not added as suggested assignee where the suspect committer
-         is not part of the project and where the "organizations:commit-context" flag is on.
+         is not part of the project
         """
         user_suspect_committer_no_team = self.create_user(
             email="suspectcommitternoteam@example.com", is_active=True
         )
         commit = self.create_sample_commit(user_suspect_committer_no_team)
         event = self.store_event(
-            data={
-                "stacktrace": STACKTRACE,
-            },
+            data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
 
@@ -697,7 +628,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
         )
 
 
-@region_silo_test
 class GetOwnersCase(_ParticipantsTest):
     def setUp(self):
         self.user_1 = self.create_user(email="paul@atreides.space")
@@ -766,15 +696,13 @@ class GetOwnersCase(_ParticipantsTest):
         self.assert_recipients(expected=[], received=recipients)
         assert outcome == "empty"
 
-    # If no match, and fallthrough is enabled
-    def test_get_owners_everyone(self):
+    # If no match, and fallthrough is still ignored
+    def test_get_owners_fallthrough_ignored(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         recipients, outcome = get_owners(project=self.project, event=event)
-        self.assert_recipients(
-            expected=[self.user_1, self.user_2, self.user_3], received=recipients
-        )
-        assert outcome == "everyone"
+        self.assert_recipients(expected=[], received=recipients)
+        assert outcome == "empty"
 
     # If matched, and all-recipients flag
     def test_get_owners_match(self):
@@ -839,7 +767,6 @@ class GetOwnersCase(_ParticipantsTest):
         assert owner_reason is None
 
 
-@region_silo_test
 class GetSendToFallthroughTest(_ParticipantsTest):
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
@@ -911,25 +838,11 @@ class GetSendToFallthroughTest(_ParticipantsTest):
     def store_event(self, filename: str, project: Project) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=project.id)
 
-    def test_feature_off_no_owner(self):
-        event = self.store_event("empty.lol", self.project)
-        assert get_fallthrough_recipients(self.project, FallthroughChoiceType.ACTIVE_MEMBERS) == []
-        assert self.get_send_to_fallthrough(event, self.project, None) == {}
-
-    def test_feature_off_with_owner(self):
-        event = self.store_event("empty.py", self.project)
-        self.assert_recipients_are(
-            self.get_send_to_fallthrough(event, self.project, None),
-            email=[self.user.id, self.user2.id],
-        )
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_invalid_fallthrough_choice(self):
         with pytest.raises(NotImplementedError) as e:
             get_fallthrough_recipients(self.project, "invalid")  # type: ignore[arg-type]
         assert str(e.value).startswith("Unknown fallthrough choice: invalid")
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_setting_on(self):
         """
         Test that the new fallthrough choice takes precedence even if the fallthrough setting is on.
@@ -945,14 +858,12 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_no_fallthrough(self):
         """
         Test the new fallthrough choice when no fallthrough choice is provided."""
         event = self.store_event("none.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, fallthrough_choice=None) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_no_owners(self):
         """
         Test the fallthrough when there is no ProjectOwnership set.
@@ -966,12 +877,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         )
         assert ret == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_no_one(self):
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_all_members_no_owner(self):
         empty_project = self.create_project(organization=self.organization)
         ProjectOwnership.objects.create(
@@ -990,7 +899,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_all_members_multiple_teams(self):
         team3 = self.create_team(organization=self.organization, members=[self.user2, self.user3])
         self.project.add_team(team3)
@@ -1001,7 +909,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id, self.user3.id],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_inactive_users(self):
         notified_users = [self.user, self.user2]
         for i in range(2):
@@ -1028,7 +935,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[user.id for user in [self.user, self.user2]],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
         notifiable_users = [self.user, self.user2]
         for i in range(10):
@@ -1058,7 +964,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == 12
         assert notified_users == expected_notified_users
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
         notifiable_users = [self.user, self.user2]
         for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
@@ -1088,7 +993,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_recipients_active_member_ordering(self):
         present = timezone.now()
 

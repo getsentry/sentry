@@ -1,27 +1,32 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
+import type {
+  PrefsStrategy,
+  ReplayPrefs,
+} from 'sentry/components/replays/preferences/replayPreferences';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import localStorage from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-
-enum ReplayLocalstorageKeys {
-  REPLAY_CONFIG = 'replay-config',
-}
-type ReplayConfig = {
-  skip?: boolean;
-  speed?: number;
-};
+import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -56,24 +61,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   dimensions: Dimensions;
 
   /**
-   * Total duration of the replay, in milliseconds
-   */
-  durationMs: number;
-
-  /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
    * The value is set to `0` when the video is not fast-forwarding
    * The speed is automatically determined by the length of each idle period
    */
   fastForwardSpeed: number;
-
-  /**
-   * Required to be called with a <div> Ref
-   * Represents the location in the DOM where the iframe video should be mounted
-   *
-   * @param _root
-   */
-  initRoot: (root: RootElem) => void;
 
   /**
    * Set to true while the library is reconstructing the DOM
@@ -101,6 +93,17 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isSkippingInactive: boolean;
 
   /**
+   * Set to true while the current video is loading (this is used
+   * only for video replays and in lieu of `isBuffering`)
+   */
+  isVideoBuffering: boolean;
+
+  /**
+   * Whether the replay is considered a video replay
+   */
+  isVideoReplay: boolean;
+
+  /**
    * The core replay data
    */
   replay: ReplayReader | null;
@@ -122,6 +125,14 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   setCurrentTime: (time: number) => void;
 
   /**
+   * Required to be called with a <div> Ref
+   * Represents the location in the DOM where the iframe video should be mounted
+   *
+   * @param root
+   */
+  setRoot: (root: RootElem) => void;
+
+  /**
    * Set speed for normal playback
    */
   setSpeed: (speed: number) => void;
@@ -135,11 +146,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * The speed for normal playback
    */
   speed: number;
-
-  /**
-   * The time, in milliseconds, where the video should start
-   */
-  startTimeOffsetMs: number;
 
   /**
    * Scale of the timeline width, starts from 1x and increases by 1x
@@ -166,24 +172,24 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
-  durationMs: 0,
   fastForwardSpeed: 0,
   addHighlight: () => {},
-  initRoot: () => {},
   isBuffering: false,
+  isVideoBuffering: false,
   isFetching: false,
   isFinished: false,
   isPlaying: false,
+  isVideoReplay: false,
   isSkippingInactive: true,
   removeHighlight: () => {},
   replay: null,
   restart: () => {},
   setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
+  setRoot: () => {},
   setSpeed: () => {},
   setTimelineScale: () => {},
   speed: 1,
-  startTimeOffsetMs: 0,
   timelineScale: 1,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
@@ -203,15 +209,17 @@ type Props = {
    */
   isFetching: boolean;
 
+  /**
+   * The strategy for saving/loading preferences, like the playback speed
+   */
+  prefsStrategy: PrefsStrategy;
+
   replay: ReplayReader | null;
 
   /**
-   * If provided, the replay will be clipped to this window.
+   * Start the video as soon as it's ready
    */
-  clipWindow?: {
-    durationMs: number;
-    startTimeOffsetMs: number;
-  };
+  autoStart?: boolean;
 
   /**
    * Time, in seconds, when the video should start
@@ -230,69 +238,23 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-function updateSavedReplayConfig(config: ReplayConfig) {
-  localStorage.setItem(ReplayLocalstorageKeys.REPLAY_CONFIG, JSON.stringify(config));
-}
-
-/**
- * When a clip window is provided, this hook will automatically pause and end
- * the replay when the provided window time has passed.
- */
-function useClipWindow({
-  clipWindow,
-  replayer,
-  onFinished,
-  isPlaying,
-}: {
-  clipWindow: Props['clipWindow'];
-  isPlaying: boolean;
-  onFinished: () => void;
-  replayer: Replayer | null;
-}) {
-  useEffect(() => {
-    if (!replayer || !clipWindow || !isPlaying) {
-      return () => {};
-    }
-
-    let timer: number | undefined;
-
-    const checkForEndOfClip = () => {
-      const currentTime = replayer.getCurrentTime();
-      const endTimeOffsetMs = clipWindow.startTimeOffsetMs + clipWindow.durationMs;
-
-      if (currentTime >= endTimeOffsetMs) {
-        replayer.pause(endTimeOffsetMs);
-        onFinished();
-      }
-
-      timer = requestAnimationFrame(checkForEndOfClip);
-    };
-
-    timer = requestAnimationFrame(checkForEndOfClip);
-
-    return () => {
-      if (timer) {
-        cancelAnimationFrame(timer);
-      }
-    };
-  }, [clipWindow, isPlaying, onFinished, replayer]);
-}
-
-export function Provider({
+function ProviderNonMemo({
   analyticsContext,
   children,
-  clipWindow,
   initialTimeOffsetMs,
   isFetching,
+  prefsStrategy,
   replay,
+  autoStart,
   value = {},
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
+  const projectSlug = useProjectFromId({
+    project_id: replay?.getReplay().project_id,
+  })?.slug;
   const events = replay?.getRRWebFrames();
-  const savedReplayConfigRef = useRef<ReplayConfig>(
-    JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.REPLAY_CONFIG) || '{}')
-  );
+  const savedReplayConfigRef = useRef<ReplayPrefs>(prefsStrategy.get());
 
   const theme = useTheme();
   const oldEvents = usePrevious(events);
@@ -304,24 +266,25 @@ export function Provider({
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
-    savedReplayConfigRef.current.skip ?? true
+    savedReplayConfigRef.current.isSkippingInactive
   );
-  const [speed, setSpeedState] = useState(savedReplayConfigRef.current.speed || 1);
+  const [speed, setSpeedState] = useState(savedReplayConfigRef.current.playbackSpeed);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
+  const [isVideoBuffering, setVideoBuffering] = useState(false);
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
+  const [rootEl, setRoot] = useState<HTMLDivElement | null>(null);
 
-  const fullReplayDurationMs = replay?.getDurationMs() ?? 0;
-  const startTimeOffsetMs = clipWindow?.startTimeOffsetMs
-    ? clamp(clipWindow.startTimeOffsetMs, 0, fullReplayDurationMs)
-    : 0;
-  const durationMs = clipWindow?.durationMs
-    ? Math.min(clipWindow.durationMs, fullReplayDurationMs - startTimeOffsetMs)
-    : fullReplayDurationMs;
-
-  const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
+  const durationMs = replay?.getDurationMs() ?? 0;
+  const clipWindow = replay?.getClipWindow() ?? undefined;
+  const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
+  const videoEvents = replay?.getVideoEvents();
+  const startTimestampMs = replay?.getStartTimestampMs();
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') && videoEvents?.length
+  );
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -337,22 +300,16 @@ export function Provider({
     replayerRef,
   });
 
-  const setReplayFinished = useCallback(() => {
-    setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
-    setIsPlaying(false);
-  }, []);
-
-  const getCurrentTime = useCallback(
+  const getCurrentPlayerTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
     []
   );
 
-  useClipWindow({
-    clipWindow,
-    replayer: replayerRef.current,
-    isPlaying,
-    onFinished: setReplayFinished,
-  });
+  const isFinished = getCurrentPlayerTime() === finishedAtMS;
+  const setReplayFinished = useCallback(() => {
+    setFinishedAtMS(getCurrentPlayerTime());
+    setIsPlaying(false);
+  }, [getCurrentPlayerTime]);
 
   const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
@@ -368,15 +325,11 @@ export function Provider({
         replayer.setConfig({skipInactive: false});
       }
 
-      const time = clamp(
-        requestedTimeMs,
-        startTimeOffsetMs,
-        startTimeOffsetMs + durationMs
-      );
+      const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
-      setBufferTime({target: time, previous: getCurrentTime()});
+      setBufferTime({target: time, previous: getCurrentPlayerTime()});
 
       // Clear previous timers. Without this (but with the setTimeout) multiple
       // requests to set the currentTime could finish out of order and cause jumping.
@@ -394,25 +347,27 @@ export function Provider({
         setIsPlaying(false);
       }
     },
-    [startTimeOffsetMs, durationMs, getCurrentTime, isPlaying]
+    [startTimeOffsetMs, durationMs, getCurrentPlayerTime, isPlaying]
   );
 
   const setCurrentTime = useCallback(
     (requestedTimeMs: number) => {
-      privateSetCurrentTime(requestedTimeMs);
+      privateSetCurrentTime(requestedTimeMs + startTimeOffsetMs);
       clearAllHighlights();
     },
-    [privateSetCurrentTime, clearAllHighlights]
+    [privateSetCurrentTime, startTimeOffsetMs, clearAllHighlights]
   );
 
   const applyInitialOffset = useCallback(() => {
+    const offsetMs = (initialTimeOffsetMs?.offsetMs ?? 0) + startTimeOffsetMs;
+
     if (
       !didApplyInitialOffset.current &&
-      initialTimeOffsetMs &&
+      (initialTimeOffsetMs || offsetMs) &&
       events &&
       replayerRef.current
     ) {
-      const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
+      const highlightArgs = initialTimeOffsetMs?.highlight;
       if (offsetMs > 0) {
         privateSetCurrentTime(offsetMs);
       }
@@ -431,6 +386,7 @@ export function Provider({
     addHighlight,
     initialTimeOffsetMs,
     privateSetCurrentTime,
+    startTimeOffsetMs,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -471,8 +427,8 @@ export function Provider({
         plugins: organization.features.includes('session-replay-enable-canvas-replayer')
           ? [CanvasReplayerPlugin(events)]
           : [],
-        skipInactive: savedReplayConfigRef.current.skip ?? true,
-        speed: savedReplayConfigRef.current.speed || 1,
+        skipInactive: savedReplayConfigRef.current.isSkippingInactive,
+        speed: savedReplayConfigRef.current.playbackSpeed,
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -489,15 +445,82 @@ export function Provider({
       replayerRef.current = inst;
 
       applyInitialOffset();
+      if (autoStart) {
+        inst.play(startTimeOffsetMs);
+        setIsPlaying(true);
+      }
     },
     [
-      events,
-      isFetching,
-      theme.purple200,
-      setReplayFinished,
-      hasNewEvents,
       applyInitialOffset,
+      events,
+      hasNewEvents,
+      isFetching,
       organization.features,
+      setReplayFinished,
+      theme.purple200,
+      startTimeOffsetMs,
+      autoStart,
+    ]
+  );
+
+  const initVideoRoot = useCallback(
+    (root: RootElem) => {
+      if (root === null || isFetching) {
+        return null;
+      }
+
+      // check if this is a video replay and if we can use the video replayer
+      if (!isVideoReplay || !videoEvents || !startTimestampMs) {
+        return null;
+      }
+
+      const inst = new VideoReplayer(videoEvents, {
+        videoApiPrefix: `/api/0/projects/${
+          organization.slug
+        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+        root,
+        start: startTimestampMs,
+        onFinished: setReplayFinished,
+        onLoaded: event => {
+          const {videoHeight, videoWidth} = event.target;
+          if (!videoHeight || !videoWidth) {
+            return;
+          }
+          setDimensions({
+            height: videoHeight,
+            width: videoWidth,
+          });
+        },
+        onBuffer: buffering => {
+          setVideoBuffering(buffering);
+        },
+        clipWindow,
+      });
+      // `.current` is marked as readonly, but it's safe to set the value from
+      // inside a `useEffect` hook.
+      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+      // @ts-expect-error
+      replayerRef.current = inst;
+      applyInitialOffset();
+      if (autoStart) {
+        inst.play(startTimeOffsetMs);
+        setIsPlaying(true);
+      }
+      return inst;
+    },
+    [
+      applyInitialOffset,
+      autoStart,
+      isFetching,
+      isVideoReplay,
+      videoEvents,
+      organization.slug,
+      projectSlug,
+      replay,
+      setReplayFinished,
+      startTimestampMs,
+      startTimeOffsetMs,
+      clipWindow,
     ]
   );
 
@@ -506,10 +529,10 @@ export function Provider({
       const replayer = replayerRef.current;
       savedReplayConfigRef.current = {
         ...savedReplayConfigRef.current,
-        speed: newSpeed,
+        playbackSpeed: newSpeed,
       };
 
-      updateSavedReplayConfig(savedReplayConfigRef.current);
+      prefsStrategy.set(savedReplayConfigRef.current);
 
       if (!replayer) {
         return;
@@ -517,14 +540,14 @@ export function Provider({
       if (isPlaying) {
         replayer.pause();
         replayer.setConfig({speed: newSpeed});
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
         replayer.setConfig({speed: newSpeed});
       }
 
       setSpeedState(newSpeed);
     },
-    [getCurrentTime, isPlaying]
+    [prefsStrategy, getCurrentPlayerTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -535,9 +558,9 @@ export function Provider({
       }
 
       if (play) {
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
-        replayer.pause(getCurrentTime());
+        replayer.pause(getCurrentPlayerTime());
       }
       setIsPlaying(play);
 
@@ -548,25 +571,58 @@ export function Provider({
         context: analyticsContext,
       });
     },
-    [organization, user.email, analyticsContext, getCurrentTime]
+    [organization, user.email, analyticsContext, getCurrentPlayerTime]
   );
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') {
+      if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false);
       }
     };
 
-    if (replayerRef.current && events) {
-      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, togglePlayPause]);
+  }, [togglePlayPause]);
+
+  // Initialize replayer for Video Replays
+  useEffect(() => {
+    const instance =
+      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+
+    return () => {
+      if (instance && !rootEl) {
+        instance.destroy();
+      }
+    };
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+
+  // For non-video (e.g. rrweb) replays, initialize the player
+  useEffect(() => {
+    if (!isVideoReplay && events) {
+      if (replayerRef.current) {
+        // If it's already been initialized, we still call initRoot, which
+        // should clear out existing dom element
+        initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+      } else if (rootEl) {
+        initRoot(rootEl);
+      }
+    }
+  }, [rootEl, initRoot, events, isVideoReplay]);
+
+  // Clean-up rrweb replayer when root element is unmounted
+  useEffect(() => {
+    return () => {
+      if (rootEl && replayerRef.current) {
+        replayerRef.current.destroy();
+        // @ts-expect-error Cleaning up
+        replayerRef.current = null;
+      }
+    };
+  }, [rootEl]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
@@ -575,33 +631,38 @@ export function Provider({
     }
   }, [startTimeOffsetMs]);
 
-  const toggleSkipInactive = useCallback((skip: boolean) => {
-    const replayer = replayerRef.current;
-    savedReplayConfigRef.current = {
-      ...savedReplayConfigRef.current,
-      skip,
-    };
+  const toggleSkipInactive = useCallback(
+    (skip: boolean) => {
+      const replayer = replayerRef.current;
+      savedReplayConfigRef.current = {
+        ...savedReplayConfigRef.current,
+        isSkippingInactive: skip,
+      };
 
-    updateSavedReplayConfig(savedReplayConfigRef.current);
+      prefsStrategy.set(savedReplayConfigRef.current);
 
-    if (!replayer) {
-      return;
-    }
-    if (skip !== replayer.config.skipInactive) {
-      replayer.setConfig({skipInactive: skip});
-    }
+      if (!replayer) {
+        return;
+      }
+      if (skip !== replayer.config.skipInactive) {
+        replayer.setConfig({skipInactive: skip});
+      }
 
-    setIsSkippingInactive(skip);
-  }, []);
+      setIsSkippingInactive(skip);
+    },
+    [prefsStrategy]
+  );
 
-  const currentPlayerTime = useCurrentTime(getCurrentTime);
+  const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
-  const [isBuffering, currentTime] =
+  const [isBuffering, currentBufferedPlayerTime] =
     buffer.target !== -1 &&
     buffer.previous === currentPlayerTime &&
     buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
+
+  const currentTime = currentBufferedPlayerTime - startTimeOffsetMs;
 
   useEffect(() => {
     if (!isBuffering && events && events.length >= 2 && replayerRef.current) {
@@ -623,12 +684,13 @@ export function Provider({
         currentHoverTime,
         currentTime,
         dimensions,
-        durationMs,
         fastForwardSpeed,
         addHighlight,
-        initRoot,
-        isBuffering,
+        setRoot,
+        isBuffering: isBuffering && !isVideoReplay,
+        isVideoBuffering,
         isFetching,
+        isVideoReplay,
         isFinished,
         isPlaying,
         isSkippingInactive,
@@ -640,7 +702,6 @@ export function Provider({
         setSpeed,
         setTimelineScale,
         speed,
-        startTimeOffsetMs,
         timelineScale,
         togglePlayPause,
         toggleSkipInactive,
@@ -653,3 +714,5 @@ export function Provider({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
+
+export const Provider = memo(ProviderNonMemo);

@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -100,7 +100,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         :auth: required
         """
 
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             context={"organization": organization, "allowed_roles": roles.get_all()},
             partial=True,

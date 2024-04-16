@@ -40,7 +40,7 @@ function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
 }
 
 const getSearchKeyForUser = (user: User) =>
-  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+  `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
 type Props = {
   api: Client;
@@ -74,7 +74,7 @@ class SelectOwners extends Component<Props, State> {
   private selectRef = createRef<any>();
 
   renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
   );
 
   createMentionableUser = (user: User): Owner => ({

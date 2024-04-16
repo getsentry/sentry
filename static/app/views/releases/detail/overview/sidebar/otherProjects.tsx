@@ -74,7 +74,7 @@ const Row = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>
-    p.theme.breakpoints.large}) {
+      p.theme.breakpoints.large}) {
     grid-template-columns: 200px max-content;
   }
 `;

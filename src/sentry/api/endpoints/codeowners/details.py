@@ -35,8 +35,8 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
+        organization_slug: str | int,
+        project_slug: str | int,
         codeowners_id: str,
         *args: Any,
         **kwargs: Any,

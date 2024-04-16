@@ -179,10 +179,10 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     return organization?.access.includes('org:integrations');
   };
 
-  // used with Github to redirect to the the integration detail
+  // used with Github to redirect to the integration detail
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
-    const orgId = organization && organization.slug;
+    const orgId = organization?.slug;
     const normalizedUrl = normalizeUrl(
       `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
     );

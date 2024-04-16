@@ -1,7 +1,9 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional, cast
+from typing import Any, cast
 
+import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -14,6 +16,7 @@ from django.db.models import F
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
     SHARED_TAG_STRINGS,
@@ -84,7 +87,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> GenericMetric:
-        payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+        payload = json.loads(
+            message.payload.value.decode("utf-8"), use_rapid_json=True, skip_trace=True
+        )
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
@@ -96,7 +101,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         value = generic_metric["value"]
         try:
-            quantity = max(int(value), 0)  # type:ignore
+            quantity = max(int(value), 0)  # type: ignore[arg-type]
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return {}
@@ -171,6 +176,17 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
             project = Project.objects.get_from_cache(id=project_id)
             if not project.flags.has_custom_metrics:
+                organization = Organization.objects.get_from_cache(id=org_id)
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("organization_id", org_id)
+                    scope.set_tag("organization_slug", organization.slug)
+                    scope.set_tag("project_id", project_id)
+                    scope.set_tag("project_slug", project.slug)
+                    sentry_sdk.capture_message(
+                        "A new project has sent the first custom metric",
+                        fingerprint=["new-first-custom-metric"],
+                    )
+
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
@@ -181,12 +197,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except Project.DoesNotExist:
             pass
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> Optional[str]:
+    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
         for _, inner_meta in mapping_meta.items():
             if (string_value := inner_meta.get(str(indexed_value))) is not None:
                 return string_value
 
         return None
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.join(timeout)

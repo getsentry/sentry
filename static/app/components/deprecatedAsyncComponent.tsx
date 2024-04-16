@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps, RouteContextInterface} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
@@ -152,6 +152,8 @@ class DeprecatedAsyncComponent<
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
+  declare context: {router: RouteContextInterface};
+
   /**
    * Override this flag to have the component reload its state when the window
    * becomes visible again. This will set the loading and reloading state, but
@@ -272,8 +274,8 @@ class DeprecatedAsyncComponent<
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location
-      const locationQuery = (this.props.location && this.props.location.query) || {};
-      let query = (params && params.query) || {};
+      const locationQuery = this.props.location?.query || {};
+      let query = params?.query || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
       if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
@@ -290,7 +292,7 @@ class DeprecatedAsyncComponent<
         error: error => {
           // Allow endpoints to fail
           // allowError can have side effects to handle the error
-          if (options.allowError && options.allowError(error)) {
+          if (options.allowError?.(error)) {
             error = null;
           }
           this.handleError(error, [stateKey, endpoint, params, options]);
@@ -341,7 +343,7 @@ class DeprecatedAsyncComponent<
 
   handleError(error, args) {
     const [stateKey] = args;
-    if (error && error.responseText) {
+    if (error?.responseText) {
       Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
@@ -381,8 +383,8 @@ class DeprecatedAsyncComponent<
 
   renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
     const [firstEndpoint] = this.getEndpoints() || [null];
-    const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
-    const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
+    const stateKeyOrDefault = stateKey || firstEndpoint?.[0];
+    const urlOrDefault = url || firstEndpoint?.[1];
     return (
       <AsyncComponentSearchInput
         url={urlOrDefault}

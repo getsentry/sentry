@@ -4,10 +4,11 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections import defaultdict
+from collections.abc import Iterable, MutableMapping
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
-from sentry.models.actor import ACTOR_TYPES, get_actor_id_for_user
+from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -36,7 +37,7 @@ class RpcActor(RpcModel):
     actor_type: ActorType
     """Whether this actor is a User or Team"""
 
-    slug: Optional[str] = None
+    slug: str | None = None
 
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
@@ -132,7 +133,7 @@ class RpcActor(RpcModel):
     def from_rpc_user(cls, user: RpcUser, fetch_actor: bool = True) -> "RpcActor":
         actor_id = None
         if fetch_actor:
-            actor_id = get_actor_id_for_user(user)
+            actor_id = get_actor_for_user(user).id
         return cls(
             id=user.id,
             actor_id=actor_id,
@@ -154,7 +155,7 @@ class RpcActor(RpcModel):
             and self.actor_type == other.actor_type
         )
 
-    def resolve(self) -> Optional[Union["Team", "RpcUser"]]:
+    def resolve(self) -> Union["Team", "RpcUser"] | None:
         from sentry.models.team import Team
 
         if self.actor_type == ActorType.TEAM:

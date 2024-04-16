@@ -14,7 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
@@ -239,7 +239,7 @@ def get_prev_history(group, status):
 def record_group_history_from_activity_type(
     group: "Group",
     activity_type: int,
-    actor: Optional[Union["User", "Team"]] = None,
+    actor: Union["User", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     """
@@ -261,7 +261,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team
@@ -272,7 +272,7 @@ def record_group_history(
     actor_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
         else:
@@ -293,7 +293,7 @@ def record_group_history(
 def bulk_record_group_history(
     groups: list["Group"],
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team
@@ -307,7 +307,7 @@ def bulk_record_group_history(
     actor_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
         else:

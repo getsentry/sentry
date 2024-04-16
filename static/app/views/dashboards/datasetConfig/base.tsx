@@ -21,7 +21,6 @@ import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
-import {MetricsConfig} from './metrics';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
@@ -216,24 +215,16 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
     ? typeof ReleasesConfig
-    : T extends WidgetType.METRICS
-      ? typeof MetricsConfig
-      : typeof ErrorsAndTransactionsConfig;
+    : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
-):
-  | typeof IssuesConfig
-  | typeof ReleasesConfig
-  | typeof MetricsConfig
-  | typeof ErrorsAndTransactionsConfig {
+): typeof IssuesConfig | typeof ReleasesConfig | typeof ErrorsAndTransactionsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
-    case WidgetType.METRICS:
-      return MetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

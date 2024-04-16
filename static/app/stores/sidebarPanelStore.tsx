@@ -10,7 +10,7 @@ interface SidebarPanelStoreDefinition extends CommonStoreDefinition<ActivePanelT
   activatePanel(panel: SidebarPanelKey): void;
 
   activePanel: ActivePanelType;
-  hidePanel(): void;
+  hidePanel(hash?: string): void;
   togglePanel(panel: SidebarPanelKey): void;
 }
 
@@ -35,8 +35,13 @@ const storeConfig: SidebarPanelStoreDefinition = {
     }
   },
 
-  hidePanel() {
+  hidePanel(hash?: string) {
     this.activePanel = '';
+
+    if (hash) {
+      window.location.hash = window.location.hash.replace(`#${hash}`, '');
+    }
+
     this.trigger(this.activePanel);
   },
 

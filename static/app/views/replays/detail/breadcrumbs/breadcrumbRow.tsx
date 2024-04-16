@@ -1,6 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
@@ -29,10 +28,10 @@ interface Props {
   expandPaths?: string[];
 }
 
-function BreadcrumbRow({
+export default function BreadcrumbRow({
   expandPaths,
-  frame,
   extraction,
+  frame,
   index,
   onClick,
   onDimensionChange,
@@ -49,8 +48,7 @@ function BreadcrumbRow({
     [onDimensionChange, index]
   );
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState, e) =>
-      onInspectorExpanded && onInspectorExpanded(index, path, expandedState, e),
+    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
     [index, onInspectorExpanded]
   );
 
@@ -59,7 +57,7 @@ function BreadcrumbRow({
     currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
-    <StyledTimeBorder
+    <BreadcrumbItem
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -67,27 +65,16 @@ function BreadcrumbRow({
         afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
       })}
       style={style}
-    >
-      <BreadcrumbItem
-        frame={frame}
-        traces={traces}
-        extraction={extraction}
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        startTimestampMs={startTimestampMs}
-        expandPaths={expandPaths}
-        onDimensionChange={handleDimensionChange}
-        onInspectorExpanded={handleObjectInspectorExpanded}
-      />
-    </StyledTimeBorder>
+      frame={frame}
+      traces={traces}
+      extraction={extraction}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      startTimestampMs={startTimestampMs}
+      expandPaths={expandPaths}
+      onDimensionChange={handleDimensionChange}
+      onInspectorExpanded={handleObjectInspectorExpanded}
+    />
   );
 }
-
-const StyledTimeBorder = styled('div')`
-  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-`;
-
-export default BreadcrumbRow;

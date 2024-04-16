@@ -50,9 +50,8 @@ function SearchResult({item, matches, highlighted}: Props) {
     let {title, description} = item;
 
     if (matches) {
-      const matchedTitle = matches && matches.find(({key}) => key === 'title');
-      const matchedDescription =
-        matches && matches.find(({key}) => key === 'description');
+      const matchedTitle = matches?.find(({key}) => key === 'title');
+      const matchedDescription = matches?.find(({key}) => key === 'description');
 
       title = matchedTitle
         ? highlightFuseMatches(matchedTitle, HighlightedMarker)

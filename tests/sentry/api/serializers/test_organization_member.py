@@ -9,7 +9,6 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationMemberSerializerTest(TestCase):
@@ -54,27 +53,6 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["name"] == "bob"
 
 
-@region_silo_test
-class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest):
-    def test_all_org_roles(self):
-        manager_team = self.create_team(organization=self.org, org_role="manager")
-        manager_team2 = self.create_team(organization=self.org, org_role="manager")
-        owner_team = self.create_team(organization=self.org, org_role="owner")
-        member = self.create_member(
-            organization=self.org,
-            user=self.create_user(),
-            teams=[manager_team, manager_team2, owner_team],
-        )
-        result = serialize(member, self.user_2, OrganizationMemberSerializer())
-
-        assert len(result["groupOrgRoles"]) == 3
-        assert result["groupOrgRoles"][0]["role"]["id"] == "owner"
-        assert result["groupOrgRoles"][0]["teamSlug"] == owner_team.slug
-        assert result["groupOrgRoles"][1]["role"]["id"] == "manager"
-        assert result["groupOrgRoles"][2]["role"]["id"] == "manager"
-
-
-@region_silo_test
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         projects = [self.project, self.project_2]
@@ -98,7 +76,6 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
         assert [r["projects"] for r in result] == expected_projects
 
 
-@region_silo_test
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
@@ -121,7 +98,6 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
-@region_silo_test
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(

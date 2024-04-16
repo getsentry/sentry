@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.utils import timezone
 
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
 from sentry.profiles.task import _prepare_frames_from_profile
@@ -28,7 +29,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
             "organization_id": 1,
             "project_id": 1,
             "key_id": 1,
-            "received": int(datetime.utcnow().timestamp()),
+            "received": int(timezone.now().timestamp()),
             "payload": json.dumps({"platform": "android", "profile": ""}),
         }
         payload = msgpack.packb(message_dict)

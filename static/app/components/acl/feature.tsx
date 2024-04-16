@@ -91,7 +91,8 @@ interface RenderDisabledProps extends FeatureRenderProps {
 export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
 interface ChildRenderProps extends FeatureRenderProps {
-  renderDisabled?: undefined | boolean | RenderDisabledFn;
+  renderDisabled?: boolean | ((props: any) => React.ReactNode);
+  renderInstallButton?: (props: any) => React.ReactNode;
 }
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
@@ -116,8 +117,8 @@ class Feature extends Component<Props> {
 
     return {
       configFeatures: config.features ? Array.from(config.features) : [],
-      organization: (organization && organization.features) || [],
-      project: (project && project.features) || [],
+      organization: organization?.features ?? [],
+      project: project?.features ?? [],
     };
   }
 

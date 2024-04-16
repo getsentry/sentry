@@ -12,6 +12,7 @@ import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {Dot} from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
+import {ORDER_WITH_INP} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
@@ -71,7 +72,7 @@ type WebVitalDetailHeaderProps = {
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[['lcp', 'fcp', 'fid', 'cls', 'ttfb'].indexOf(webVital)];
+  const dotColor = colors[ORDER_WITH_INP.indexOf(webVital)];
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (

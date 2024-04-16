@@ -9,12 +9,6 @@ brew 'qemu'
 brew 'docker'
 brew 'docker-buildx'
 
-brew 'pyenv'
-
-# required for pyenv's python-build
-brew 'openssl'
-brew 'readline'
-
 # required for yarn test -u
 brew 'watchman'
 

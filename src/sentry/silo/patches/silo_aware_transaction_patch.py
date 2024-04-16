@@ -1,6 +1,7 @@
 import re
 import traceback
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -24,7 +25,7 @@ class TransactionMissingDBException(Exception):
     pass
 
 
-def _get_db_for_model_if_available(model: type["Model"]) -> Optional[str]:
+def _get_db_for_model_if_available(model: type["Model"]) -> str | None:
     from sentry.db.router import SiloConnectionUnavailableError
 
     try:
@@ -34,18 +35,18 @@ def _get_db_for_model_if_available(model: type["Model"]) -> Optional[str]:
 
 
 def siloed_atomic(
-    using: Optional[str] = None, savepoint: bool = True, durable: bool = False
+    using: str | None = None, savepoint: bool = True, durable: bool = False
 ) -> Atomic:
     validate_transaction_using_for_silo_mode(using)
     return _default_atomic_impl(using=using, savepoint=savepoint, durable=durable)
 
 
-def siloed_get_connection(using: Optional[str] = None) -> BaseDatabaseWrapper:
+def siloed_get_connection(using: str | None = None) -> BaseDatabaseWrapper:
     validate_transaction_using_for_silo_mode(using)
     return _default_get_connection(using=using)
 
 
-def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> None:
+def siloed_on_commit(func: Callable[..., Any], using: str | None = None) -> None:
     validate_transaction_using_for_silo_mode(using)
     return _default_on_commit(func, using)
 
@@ -77,7 +78,7 @@ def is_in_test_case_body() -> bool:
 
     def seek(module_path: str, function_name: str) -> bool:
         """Check whether the named function has been called in the current stack."""
-        pattern = re.compile(rf"/{module_path}\b.*\b{function_name}>$")
+        pattern = re.compile(rf"/{re.escape(module_path)}\b.*\b{re.escape(function_name)}>$")
         return any(pattern.search(frame) for frame in frames)
 
     return seek("_pytest/runner.py", "pytest_runtest_call") and not (
@@ -86,7 +87,7 @@ def is_in_test_case_body() -> bool:
     )
 
 
-def validate_transaction_using_for_silo_mode(using: Optional[str]):
+def validate_transaction_using_for_silo_mode(using: str | None):
     from sentry.models.outbox import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 

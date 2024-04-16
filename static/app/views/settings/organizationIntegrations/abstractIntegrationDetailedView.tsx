@@ -6,11 +6,11 @@ import startCase from 'lodash/startCase';
 import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
+import Tag from 'sentry/components/badge/tag';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -52,7 +52,7 @@ type Props = {
 } & RouteComponentProps<{integrationSlug: string}, {}> &
   DeprecatedAsyncComponent['props'];
 
-class AbstractIntegrationDetailedView<
+abstract class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
@@ -184,10 +184,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns the list of configurations for the integration
-  renderConfigurations() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
-  }
+  abstract renderConfigurations(): React.ReactNode;
 
   /**
    * Actually implemented methods below

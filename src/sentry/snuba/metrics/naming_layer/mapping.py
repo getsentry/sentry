@@ -7,16 +7,16 @@ __all__ = (
 )
 
 from enum import Enum
-from typing import Optional, Union, cast
+from typing import cast
 
 from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
-    MRI_SCHEMA_REGEX,
     ErrorsMRI,
     SessionMRI,
     SpanMRI,
     TransactionMRI,
+    parse_mri,
 )
 from sentry.snuba.metrics.naming_layer.public import (
     ErrorsMetricKey,
@@ -56,7 +56,7 @@ NAME_TO_MRI: dict[str, Enum] = {}
 MRI_TO_NAME: dict[str, str] = {}
 
 
-def get_mri(external_name: Union[Enum, str]) -> str:
+def get_mri(external_name: Enum | str) -> str:
     if not len(NAME_TO_MRI):
         create_name_mapping_layers()
 
@@ -72,7 +72,7 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         )
 
 
-def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
+def get_public_name_from_mri(internal_name: TransactionMRI | SessionMRI | str) -> str:
     """
     Returns the public name from a MRI if it has a mapping to a public metric name, otherwise return the internal
     name.
@@ -92,32 +92,29 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
         return internal_name
 
 
-def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> bool:
+def is_private_mri(internal_name: TransactionMRI | SessionMRI | str) -> bool:
     public_name = get_public_name_from_mri(internal_name)
     # If the public name is the same as internal name it means that the internal is "private".
     return public_name == internal_name
 
 
-def _extract_name_from_custom_metric_mri(mri: str) -> Optional[str]:
-    match = MRI_SCHEMA_REGEX.match(mri)
-    if match is None:
+def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is None:
         return None
 
-    entity = match.group("entity")
-    namespace = match.group("namespace")
-
     # Custom metrics are fully custom metrics that the sdks can emit.
-    is_custom_metric = namespace == "custom"
+    is_custom_metric = parsed_mri.namespace == "custom"
     # Custom measurements are a special kind of custom metrics that are more limited and were existing
     # before fully custom metrics.
-    is_custom_measurement = entity == "d" and namespace == "transactions"
+    is_custom_measurement = parsed_mri.entity == "d" and parsed_mri.namespace == "transactions"
     if is_custom_metric or is_custom_measurement:
-        return match.group("name")
+        return parsed_mri.name
 
     return None
 
 
-def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
+def get_operation_with_public_name(operation: str | None, metric_mri: str) -> str:
     return (
         f"{operation}({get_public_name_from_mri(metric_mri)})"
         if operation is not None
@@ -125,7 +122,7 @@ def get_operation_with_public_name(operation: Optional[str], metric_mri: str) ->
     )
 
 
-def parse_expression(name: str) -> tuple[Optional[str], str]:
+def parse_expression(name: str) -> tuple[str | None, str]:
     matches = MRI_EXPRESSION_REGEX.match(name)
     if matches:
         # operation, metric_mri

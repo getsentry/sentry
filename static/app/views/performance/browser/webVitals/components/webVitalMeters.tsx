@@ -51,6 +51,17 @@ const WEB_VITALS_METERS_CONFIG = {
   },
 };
 
+const WEB_VITALS_METERS_CONFIG_WITH_INP = {
+  lcp: WEB_VITALS_METERS_CONFIG.lcp,
+  fcp: WEB_VITALS_METERS_CONFIG.fcp,
+  inp: {
+    name: t('Interaction to Next Paint'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+  cls: WEB_VITALS_METERS_CONFIG.cls,
+  ttfb: WEB_VITALS_METERS_CONFIG.ttfb,
+};
+
 export default function WebVitalMeters({
   onClick,
   projectData,
@@ -63,7 +74,9 @@ export default function WebVitalMeters({
     return null;
   }
 
-  const webVitals = Object.keys(WEB_VITALS_METERS_CONFIG) as WebVitals[];
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG_WITH_INP;
+
+  const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);
 
   return (
@@ -72,13 +85,13 @@ export default function WebVitalMeters({
         {webVitals.map((webVital, index) => {
           const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
-            WEB_VITALS_METERS_CONFIG[webVital].formatter(
+            webVitalsConfig[webVital].formatter(
               projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
             )
           ) : (
             <NoValue />
           );
-          const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
+          const headerText = webVitalsConfig[webVital].name;
           const meterBody = (
             <Fragment>
               <MeterBarBody>

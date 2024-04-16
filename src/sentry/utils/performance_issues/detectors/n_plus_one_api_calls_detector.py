@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Mapping, Sequence
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
@@ -48,7 +49,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     HOST_DENYLIST: list[str] = []
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []

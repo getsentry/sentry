@@ -3,10 +3,15 @@ import type {MetricType} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {
   DAY,
+  formatAbbreviatedNumber,
+  formatAbbreviatedNumberWithDynamicPrecision,
   formatNumberWithDynamicDecimalPoints,
   HOUR,
+  MICROSECOND,
+  MILLISECOND,
   MINUTE,
   MONTH,
+  NANOSECOND,
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
@@ -24,9 +29,6 @@ export function getReadableMetricType(type?: string) {
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
-const MILLISECOND = 1;
-const MICROSECOND = MILLISECOND / 1000;
-
 function formatDuration(seconds: number): string {
   if (!seconds) {
     return '0ms';
@@ -36,7 +38,7 @@ function formatDuration(seconds: number): string {
   const msValue = seconds * 1000;
 
   let unit: FormattingSupportedMetricUnit | 'month' = 'nanosecond';
-  let value = msValue * 1000000;
+  let value = msValue / NANOSECOND;
 
   if (absValue >= MONTH) {
     unit = 'month';
@@ -61,7 +63,7 @@ function formatDuration(seconds: number): string {
     value = msValue;
   } else if (absValue >= MICROSECOND) {
     unit = 'microsecond';
-    value = msValue * 1000;
+    value = msValue / MICROSECOND;
   }
 
   return `${formatNumberWithDynamicDecimalPoints(value)}${
@@ -122,7 +124,8 @@ export const formattingSupportedMetricUnits = [
   'exabytes',
 ] as const;
 
-type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
+export type FormattingSupportedMetricUnit =
+  (typeof formattingSupportedMetricUnits)[number];
 
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',
@@ -216,6 +219,9 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     case 'byte':
     case 'bytes':
       return formatBytesBase10(value);
+    // Only used internally to support normalized byte metrics while preserving base 2 formatting
+    case 'byte2' as FormattingSupportedMetricUnit:
+      return formatBytesBase2(value);
     case 'kibibyte':
     case 'kibibytes':
       return formatBytesBase2(value * 1024);
@@ -254,7 +260,7 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return formatBytesBase10(value, 6);
     case 'none':
     default:
-      return value.toLocaleString();
+      return formatAbbreviatedNumberWithDynamicPrecision(value);
   }
 }
 
@@ -283,7 +289,7 @@ export function formatMetricsUsingUnitAndOp(
 ) {
   if (operation === 'count') {
     // if the operation is count, we want to ignore the unit and always format the value as a number
-    return value?.toLocaleString() ?? '';
+    return value ? formatAbbreviatedNumber(value, 2) : '';
   }
   return formatMetricUsingUnit(value, unit);
 }

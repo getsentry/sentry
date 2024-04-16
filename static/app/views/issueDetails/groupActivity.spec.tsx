@@ -203,6 +203,60 @@ describe('GroupActivity', function () {
     expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
+  it('renders an assigned via suspect commit activity', function () {
+    createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'suspectCommitter',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry auto-assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).toHaveTextContent(/Assigned via Suspect Commit/);
+  });
+
+  it('does not render undefined when integration is not recognized', function () {
+    createWrapper({
+      activity: [
+        // @ts-ignore-next-line -> committing type crimes on `integration`
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'lottery',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).not.toHaveTextContent(/Assigned via Suspect Commit/);
+  });
+
   it('resolved in commit with no releases', function () {
     createWrapper({
       activity: [
@@ -737,6 +791,7 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be high after it escalated'
@@ -756,6 +811,7 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'

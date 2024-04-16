@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from functools import reduce
-from typing import Any, Mapping, Sequence
+from typing import Any
 from urllib.parse import quote
 
 from django.http.response import HttpResponseBase

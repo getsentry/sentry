@@ -14,17 +14,17 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.models.useremail import UserEmail
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
@@ -37,7 +37,6 @@ class ResolveGroupResolutionsTest(TestCase):
         mock_delay.assert_called_once_with(release_id=release.id)
 
 
-@region_silo_test
 class ResolvedInCommitTest(TestCase):
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
@@ -229,7 +228,6 @@ class ResolvedInCommitTest(TestCase):
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
 
-@region_silo_test
 class ProjectHasReleasesReceiverTest(TestCase):
     @receivers_raise_on_send()
     def test(self):

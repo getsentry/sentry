@@ -1,6 +1,7 @@
 import hashlib
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.db import connections, models, router, transaction
 from django.db.models import Q
@@ -166,7 +167,7 @@ class CustomDynamicSamplingRule(Model):
         num_samples: int,
         sample_rate: float,
         query: str,
-        created_by_id: Optional[int] = None,
+        created_by_id: int | None = None,
     ) -> "CustomDynamicSamplingRule":
         from sentry.models.organization import Organization
         from sentry.models.project import Project

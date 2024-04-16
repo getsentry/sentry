@@ -51,6 +51,7 @@ __all__ = (
     "register",
     "unregister",
     "set",
+    "OptionsManager",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.

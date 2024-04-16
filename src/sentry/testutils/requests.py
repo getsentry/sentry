@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import functools
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache

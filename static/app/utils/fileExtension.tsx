@@ -21,6 +21,8 @@ const FILE_EXTENSION_TO_PLATFORM = {
   cs: 'csharp',
   fs: 'fsharp',
   vb: 'visualbasic',
+  ps1: 'powershell',
+  psm1: 'powershell',
   kt: 'kotlin',
   dart: 'dart',
   sc: 'scala',

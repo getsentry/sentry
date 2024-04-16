@@ -123,11 +123,15 @@ class CreateSnubaSubscriptionTest(TestCase):
             query_type, dataset, query, "count()", time_window, resolution, self.environment
         )
         subscription = create_snuba_subscription(self.project, type, snuba_query)
+        subscription_with_query_extra = create_snuba_subscription(
+            self.project, type, snuba_query, query_extra="foo:bar"
+        )
 
         assert subscription.status == QuerySubscription.Status.CREATING.value
         assert subscription.project == self.project
         assert subscription.type == type
         assert subscription.subscription_id is None
+        assert subscription_with_query_extra.query_extra == "foo:bar"
 
     def test_with_task(self):
         with self.tasks():

@@ -1,7 +1,7 @@
 import pathlib
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -20,7 +20,7 @@ class TestAppStoreConnectConfig:
     @pytest.fixture
     def now(self) -> datetime:
         # Fixture so we can have one "now" for the entire test and its fixtures.
-        return datetime.utcnow()
+        return timezone.now()
 
     @pytest.fixture
     def data(self, now: datetime) -> json.JSONData:
@@ -176,7 +176,7 @@ class TestDownloadDsyms:
             ),
         )
 
-    def build_with_url(self, url: Union[str, appconnect.NoDsymUrl]) -> appconnect.BuildInfo:
+    def build_with_url(self, url: str | appconnect.NoDsymUrl) -> appconnect.BuildInfo:
         return appconnect.BuildInfo(
             app_id="honk",
             platform="macOS",

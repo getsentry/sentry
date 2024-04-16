@@ -434,7 +434,7 @@ class _Table extends Component<Props, State> {
             <TeamKeyTransactionWrapper>
               <IconStar
                 key="keyTransaction"
-                color="yellow400"
+                color="yellow300"
                 isSolid
                 data-test-id="team-key-transaction-header"
               />

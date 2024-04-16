@@ -1,3 +1,5 @@
+import groupBy from 'lodash/groupBy';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types';
@@ -6,9 +8,24 @@ import type {Project} from 'sentry/types';
 import type {InputFieldProps} from './inputField';
 import SelectField from './selectField';
 
+/**
+ * Function used to group projects by returning the key of the group
+ */
+type GroupProjects = (project: Project) => string;
+
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends InputFieldProps {
   avatarSize?: number;
+  /**
+   * When using groupProjects you can specify the labels of the groups as a
+   * mapping of the key returned for the groupProjects to the label
+   */
+  groupLabels?: Record<string, React.ReactNode>;
+  /**
+   * Controls grouping of projects within the field. Useful to prioritize some
+   * projects above others
+   */
+  groupProjects?: GroupProjects;
   projects?: Project[];
   /**
    * Use the slug as the select field value. Without setting this the numeric id
@@ -19,23 +36,37 @@ export interface RenderFieldProps extends InputFieldProps {
 
 function SentryProjectSelectorField({
   projects,
+  groupProjects,
+  groupLabels,
   avatarSize = 20,
   placeholder = t('Choose Sentry project'),
   valueIsSlug,
   ...props
 }: RenderFieldProps) {
-  const projectOptions = projects?.map(project => ({
-    value: project[valueIsSlug ? 'slug' : 'id'],
-    label: project.slug,
-    leadingItems: (
-      <IdBadge
-        project={project}
-        avatarSize={avatarSize}
-        avatarProps={{consistentWidth: true}}
-        hideName
-      />
-    ),
-  }));
+  function projectToOption(project: Project) {
+    return {
+      value: project[valueIsSlug ? 'slug' : 'id'],
+      label: project.slug,
+      leadingItems: (
+        <IdBadge
+          project={project}
+          avatarSize={avatarSize}
+          avatarProps={{consistentWidth: true}}
+          hideName
+        />
+      ),
+    };
+  }
+
+  const projectOptions =
+    projects && groupProjects
+      ? // Create project groups when groupProjects is in use
+        Object.entries(groupBy(projects, groupProjects)).map(([key, projectsGroup]) => ({
+          label: groupLabels?.[key] ?? key,
+          options: projectsGroup.map(projectToOption),
+        }))
+      : // Otherwise just map projects to the options
+        projects?.map(projectToOption);
 
   return <SelectField placeholder={placeholder} options={projectOptions} {...props} />;
 }

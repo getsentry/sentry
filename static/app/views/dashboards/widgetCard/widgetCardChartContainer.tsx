@@ -12,7 +12,6 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
-import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -30,6 +29,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
@@ -73,6 +73,7 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
+  chartGroup,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -143,53 +144,12 @@ export function WidgetCardChartContainer({
                 showSlider={showSlider}
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
+                chartGroup={chartGroup}
               />
             </Fragment>
           );
         }}
       </ReleaseWidgetQueries>
-    );
-  }
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    return (
-      <MetricWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={widget.limit ?? tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
-                onZoom={onZoom}
-                showSlider={showSlider}
-                noPadding={noPadding}
-                chartZoomOptions={chartZoomOptions}
-              />
-            </Fragment>
-          );
-        }}
-      </MetricWidgetQueries>
     );
   }
 
@@ -235,6 +195,7 @@ export function WidgetCardChartContainer({
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
               timeseriesResultsTypes={timeseriesResultsTypes}
+              chartGroup={chartGroup}
             />
           </Fragment>
         );
@@ -253,7 +214,7 @@ const StyledTransparentLoadingMask = styled(props => (
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+export function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

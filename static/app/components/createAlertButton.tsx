@@ -15,8 +15,8 @@ import {t, tct} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import withProjects from 'sentry/utils/withProjects';
 import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
@@ -92,7 +92,6 @@ function CreateAlertFromViewButton({
   return (
     <CreateAlertButton
       organization={organization}
-      projects={projects}
       onClick={handleClick}
       to={to}
       aria-label={t('Create Alert')}
@@ -103,7 +102,6 @@ function CreateAlertFromViewButton({
 
 type CreateAlertButtonProps = {
   organization: Organization;
-  projects: Project[];
   alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
@@ -118,9 +116,8 @@ type CreateAlertButtonProps = {
   showPermissionGuide?: boolean;
 } & ButtonProps;
 
-function CreateAlertButton({
+export default function CreateAlertButton({
   organization,
-  projects,
   projectSlug,
   iconProps,
   referrer,
@@ -132,6 +129,7 @@ function CreateAlertButton({
 }: CreateAlertButtonProps) {
   const router = useRouter();
   const api = useApi();
+  const {projects} = useProjects();
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
     if (referrer) {
@@ -213,4 +211,3 @@ function CreateAlertButton({
 }
 
 export {CreateAlertFromViewButton};
-export default withProjects(CreateAlertButton);

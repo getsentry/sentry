@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import timedelta
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -20,6 +21,12 @@ from ..base import (
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
+# Truncating the evidence to prevent hitting Kafka's broken message size limit.
+#  A better solution would be to audit the usage of `description`,
+#  `evidence_data` and `evidence_display` and deduplicate those keys. Right now
+#  they are nearly identical
+MAX_EVIDENCE_VALUE_LENGTH = 10_000
+
 
 class SlowDBQueryDetector(PerformanceDetector):
     """
@@ -31,7 +38,9 @@ class SlowDBQueryDetector(PerformanceDetector):
     type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
 
     def visit_span(self, span: Span):
@@ -64,7 +73,7 @@ class SlowDBQueryDetector(PerformanceDetector):
                 type=type,
                 fingerprint=self._fingerprint(hash),
                 op=op,
-                desc=description,
+                desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
@@ -74,8 +83,10 @@ class SlowDBQueryDetector(PerformanceDetector):
                     "parent_span_ids": [],
                     "offender_span_ids": spans_involved,
                     "transaction_name": self._event.get("description", ""),
-                    "repeating_spans": get_span_evidence_value(span),
-                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                    "repeating_spans": get_span_evidence_value(span)[:MAX_EVIDENCE_VALUE_LENGTH],
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False)[
+                        :MAX_EVIDENCE_VALUE_LENGTH
+                    ],
                     "num_repeating_spans": str(len(spans_involved)),
                 },
                 evidence_display=[
@@ -84,7 +95,7 @@ class SlowDBQueryDetector(PerformanceDetector):
                         value=get_notification_attachment_body(
                             op,
                             description,
-                        ),
+                        )[:MAX_EVIDENCE_VALUE_LENGTH],
                         # Has to be marked important to be displayed in the notifications
                         important=True,
                     )

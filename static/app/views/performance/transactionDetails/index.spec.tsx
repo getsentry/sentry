@@ -35,6 +35,13 @@ describe('EventDetails', () => {
       statusCode: 200,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/latest/events/1/actionable-items/`,
+      body: {
+        errors: [],
+      },
+    });
   });
 
   afterEach(() => {

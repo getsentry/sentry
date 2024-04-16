@@ -1,7 +1,11 @@
+import {useCallback} from 'react';
+
 import type {Client} from 'sentry/api';
-import type {OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {
   /**
@@ -108,9 +112,66 @@ export function usePromptsCheck(
     makePromptsCheckQueryKey({feature, organization, projectId}),
     {
       staleTime: 120000,
+      retry: false,
       ...options,
     }
   );
+}
+
+export function usePrompt({
+  feature,
+  organization,
+  projectId,
+}: {
+  feature: string;
+  organization: Organization;
+  projectId?: string;
+}) {
+  const api = useApi({persistInFlight: true});
+  const prompt = usePromptsCheck({feature, organization, projectId});
+  const queryClient = useQueryClient();
+
+  const isPromptDismissed =
+    prompt.isSuccess && prompt.data.data
+      ? promptIsDismissed({
+          dismissedTime: prompt.data.data.dismissed_ts,
+          snoozedTime: prompt.data.data.snoozed_ts,
+        })
+      : undefined;
+
+  const dismissPrompt = useCallback(() => {
+    promptsUpdate(api, {
+      organization,
+      projectId,
+      feature,
+      status: 'dismissed',
+    });
+
+    // Update cached query data
+    // Will set prompt to dismissed
+    setApiQueryData<PromptResponse>(
+      queryClient,
+      makePromptsCheckQueryKey({
+        organization,
+        feature,
+        projectId,
+      }),
+      () => {
+        const dimissedTs = new Date().getTime() / 1000;
+        return {
+          data: {dismissed_ts: dimissedTs},
+          features: {[feature]: {dismissed_ts: dimissedTs}},
+        };
+      }
+    );
+  }, [api, feature, organization, projectId, queryClient]);
+
+  return {
+    isLoading: prompt.isLoading,
+    isError: prompt.isError,
+    isPromptDismissed,
+    dismissPrompt,
+  };
 }
 
 /**

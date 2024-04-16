@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Condition
@@ -180,8 +180,8 @@ class EventStorage(Service):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=100,
@@ -267,6 +267,8 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
+        sentry_sdk.set_tag("eventstore.backend", "nodestore")
+
         with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
             object_node_list = [
                 (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id

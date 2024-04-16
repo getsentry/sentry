@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -30,7 +30,7 @@ describe('useLocationQuery', () => {
       },
     } as Location);
 
-    const {result} = reactHooks.renderHook(useLocationQuery, {
+    const {result} = renderHook(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
@@ -53,7 +53,7 @@ describe('useLocationQuery', () => {
       query: {},
     } as Location);
 
-    const {result} = reactHooks.renderHook(useLocationQuery, {
+    const {result} = renderHook(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
@@ -79,7 +79,7 @@ describe('useLocationQuery', () => {
       },
     } as Location);
 
-    const {result} = reactHooks.renderHook(useLocationQuery, {
+    const {result} = renderHook(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
@@ -123,19 +123,20 @@ describe('useLocationQuery', () => {
       },
     } as Location);
 
-    const {result, rerender} = reactHooks.renderHook(useLocationQuery, {
-      initialProps: {
-        fields: {
-          name: decodeScalar,
-          age: decodeInteger,
-          titles: decodeList,
-        },
+    const props = {
+      fields: {
+        name: decodeScalar,
+        age: decodeInteger,
+        titles: decodeList,
       },
+    };
+    const {result, rerender} = renderHook(useLocationQuery, {
+      initialProps: props,
     });
     const first = result.current;
-    rerender();
+    rerender(props);
     const second = result.current;
-    rerender();
+    rerender(props);
     const third = result.current;
 
     expect(first.name).toBe('Adam');

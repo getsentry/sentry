@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import resource
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from celery import current_task
 
@@ -88,7 +89,6 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)

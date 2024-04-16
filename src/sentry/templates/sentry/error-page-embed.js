@@ -1,4 +1,4 @@
-/* eslint no-var:0,strict:0,block-scoped-var:0 */
+/* eslint strict:0,block-scoped-var:0 */
 /* global sentryEmbedCallback:false */
 (function (window, document, JSON) {
   'use strict';

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -269,7 +270,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
 @region_silo_only_model
 class GroupSubscription(Model):
     """
-    Identifies a subscription relationship between a user and an issue.
+    Identifies a subscription relationship between a user / team and an issue.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

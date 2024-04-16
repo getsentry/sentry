@@ -11,6 +11,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -58,38 +59,36 @@ export function PageOverviewSidebar({
     datetime: doubledDatetime,
   });
 
-  let seriesData = !isLoading
-    ? data?.count.map(({name, value}) => ({
-        name,
-        value,
-      }))
-    : [];
-
-  // Trim off last data point since it's incomplete
-  if (seriesData.length > 0 && period && !start && !end) {
-    seriesData = seriesData.slice(0, -1);
-  }
-  const dataMiddleIndex = Math.floor(seriesData.length / 2);
-  const currentSeries = shouldDoublePeriod
-    ? seriesData.slice(dataMiddleIndex)
-    : seriesData;
-  const previousSeries = seriesData.slice(0, dataMiddleIndex);
-
-  const initialCount = !isLoading
-    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
-  const currentCount = !isLoading
-    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
-  const countDiff =
-    !isLoading && currentCount !== undefined && initialCount !== undefined
-      ? currentCount / initialCount
-      : undefined;
+  const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
+    data?.count,
+    isLoading,
+    pageFilters.selection.datetime,
+    shouldDoublePeriod
+  );
 
   const throughtputData: LineChartSeries[] = [
     {
       data: currentSeries,
       seriesName: t('Page Loads'),
+    },
+  ];
+
+  const {
+    countDiff: inpCountDiff,
+    currentSeries: currentInpSeries,
+    currentCount: currentInpCount,
+    initialCount: initialInpCount,
+  } = processSeriesData(
+    data.countInp,
+    isLoading,
+    pageFilters.selection.datetime,
+    shouldDoublePeriod
+  );
+
+  const inpThroughtputData: LineChartSeries[] = [
+    {
+      data: currentInpSeries,
+      seriesName: t('Interactions'),
     },
   ];
 
@@ -118,12 +117,12 @@ export function PageOverviewSidebar({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
-        ttfb: projectScore.ttfbWeight,
+        fcp: projectScore.fcpWeight,
+        fid: 0,
         inp: projectScore.inpWeight,
+        cls: projectScore.clsWeight,
+        ttfb: projectScore.ttfbWeight,
       }
     : undefined;
 
@@ -151,7 +150,7 @@ export function PageOverviewSidebar({
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={180}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}
@@ -199,17 +198,50 @@ export function PageOverviewSidebar({
           />
         )}
       </ChartZoom>
-      <SidebarSpacer />
-      <SectionHeading>
-        {t('Aggregate Spans')}
-        <QuestionTooltip
-          size="sm"
-          title={t('A synthesized span waterfall for this page.')}
-        />
-      </SectionHeading>
       <MiniAggregateWaterfallContainer>
         <MiniAggregateWaterfall transaction={transaction} />
       </MiniAggregateWaterfallContainer>
+      <SidebarSpacer />
+      <SidebarSpacer />
+      <SectionHeading>
+        {t('Interactions')}
+        <QuestionTooltip
+          size="sm"
+          title={t('The total number of times that users performed an INP on this page.')}
+        />
+      </SectionHeading>
+      <ChartValue>
+        {currentInpCount ? formatAbbreviatedNumber(currentInpCount) : null}
+      </ChartValue>
+      {initialInpCount && currentInpCount && inpCountDiff && shouldDoublePeriod ? (
+        <ChartSubText color={diffToColor(inpCountDiff)}>
+          {getChartSubText(
+            inpCountDiff,
+            formatAbbreviatedNumber(initialInpCount),
+            formatAbbreviatedNumber(currentInpCount)
+          )}
+        </ChartSubText>
+      ) : null}
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+        {zoomRenderProps => (
+          <LineChart
+            {...zoomRenderProps}
+            height={CHART_HEIGHTS}
+            series={inpThroughtputData}
+            xAxis={{show: false}}
+            grid={{
+              left: 0,
+              right: 15,
+              top: 10,
+              bottom: -10,
+            }}
+            yAxis={{
+              axisLabel: {formatter: number => formatAbbreviatedNumber(number)},
+            }}
+            tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
+          />
+        )}
+      </ChartZoom>
       <SidebarSpacer />
     </Fragment>
   );
@@ -235,6 +267,43 @@ const getChartSubText = (
     return `Down ${relativeDiff}% from ${value}`;
   }
   return t('No Change');
+};
+
+const processSeriesData = (
+  count: SeriesDataUnit[],
+  isLoading: boolean,
+  {period, start, end}: PageFilters['datetime'],
+  shouldDoublePeriod: boolean
+) => {
+  let seriesData = !isLoading
+    ? count.map(({name, value}) => ({
+        name,
+        value,
+      }))
+    : [];
+
+  // Trim off last data point since it's incomplete
+  if (seriesData.length > 0 && period && !start && !end) {
+    seriesData = seriesData.slice(0, -1);
+  }
+  const dataMiddleIndex = Math.floor(seriesData.length / 2);
+  const currentSeries = shouldDoublePeriod
+    ? seriesData.slice(dataMiddleIndex)
+    : seriesData;
+  const previousSeries = seriesData.slice(0, dataMiddleIndex);
+
+  const initialCount = !isLoading
+    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
+    : undefined;
+  const currentCount = !isLoading
+    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
+    : undefined;
+  const countDiff =
+    !isLoading && currentCount !== undefined && initialCount !== undefined
+      ? currentCount / initialCount
+      : undefined;
+
+  return {countDiff, currentSeries, currentCount, initialCount};
 };
 
 const SidebarPerformanceScoreRingContainer = styled('div')`

@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,7 +22,7 @@ import {
 import {useBrowserSort} from 'sentry/views/performance/browser/useBrowserSort';
 import {useInteractionElementQuery} from 'sentry/views/performance/browser/useInteractionElementQuery';
 import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 const {COMPONENT, PAGE, TRANSACTION_OP} = BrowserStarfishFields;
 
@@ -37,7 +37,11 @@ function InteractionsLandingPage() {
   const sort = useBrowserSort();
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Interactions')].join(' — ')}
+      baseURL="/performance/browser/interactions"
+      features="starfish-view "
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

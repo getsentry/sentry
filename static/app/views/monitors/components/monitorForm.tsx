@@ -29,10 +29,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
 import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
 import {ScheduleType} from '../types';
+
+import {platformsWithGuides} from './monitorQuickStartGuide';
 
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
@@ -47,8 +50,8 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 //
 // XXX(epurkhiser): For whatever reason the rules API wants the team and member
 // to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
 // In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
@@ -73,7 +76,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
  * Transform sub-fields for what the API expects
  */
 export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
-  const schedType = model.getValue('config.schedule_type');
+  const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
     .toJSON()
@@ -180,11 +183,11 @@ function MonitorForm({
     const rv = {};
     switch (type) {
       case 'cron_job':
-        rv['config.schedule_type'] = config.schedule_type;
-        rv['config.checkin_margin'] = config.checkin_margin;
-        rv['config.max_runtime'] = config.max_runtime;
-        rv['config.failure_issue_threshold'] = config.failure_issue_threshold;
-        rv['config.recovery_threshold'] = config.recovery_threshold;
+        rv['config.scheduleType'] = config.schedule_type;
+        rv['config.checkinMargin'] = config.checkin_margin;
+        rv['config.maxRuntime'] = config.max_runtime;
+        rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
+        rv['config.recoveryThreshold'] = config.recovery_threshold;
 
         switch (config.schedule_type) {
           case 'interval':
@@ -202,7 +205,7 @@ function MonitorForm({
     return rv;
   }
 
-  const selectedProjectId = selection.projects[0];
+  const selectedProjectId = monitor?.project.id ?? selection.projects[0];
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId.toString())
     : null;
@@ -214,6 +217,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -224,6 +229,7 @@ function MonitorForm({
   ];
 
   const hasIssuePlatform = organization.features.includes('issue-platform');
+  const hasOwnership = organization.features.includes('crons-ownership');
 
   return (
     <Form
@@ -237,6 +243,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -281,6 +288,13 @@ function MonitorForm({
           <StyledSentryProjectSelectorField
             name="project"
             aria-label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groupLabels={{
+              suggested: t('Suggested Projects'),
+              other: t('Other Projects'),
+            }}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -306,7 +320,7 @@ function MonitorForm({
             </StyledAlert>
           )}
           <StyledSelectField
-            name="config.schedule_type"
+            name="config.scheduleType"
             aria-label={t('Schedule Type')}
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
@@ -317,7 +331,7 @@ function MonitorForm({
           />
           <Observer>
             {() => {
-              const scheduleType = form.current.getValue('config.schedule_type');
+              const scheduleType = form.current.getValue('config.scheduleType');
 
               const parsedSchedule =
                 scheduleType === 'crontab'
@@ -392,7 +406,7 @@ function MonitorForm({
           <Panel>
             <PanelBody>
               <NumberField
-                name="config.checkin_margin"
+                name="config.checkinMargin"
                 min={CHECKIN_MARGIN_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -403,7 +417,7 @@ function MonitorForm({
                 label={t('Grace Period')}
               />
               <NumberField
-                name="config.max_runtime"
+                name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -428,7 +442,7 @@ function MonitorForm({
               <Panel>
                 <PanelBody>
                   <NumberField
-                    name="config.failure_issue_threshold"
+                    name="config.failureIssueThreshold"
                     min={1}
                     placeholder="1"
                     help={t(
@@ -437,13 +451,35 @@ function MonitorForm({
                     label={t('Failure Tolerance')}
                   />
                   <NumberField
-                    name="config.recovery_threshold"
+                    name="config.recoveryThreshold"
                     min={1}
                     placeholder="1"
                     help={t(
                       'Resolve the issue when this many consecutive healthy check-ins are processed.'
                     )}
                     label={t('Recovery Tolerance')}
+                  />
+                </PanelBody>
+              </Panel>
+            </InputGroup>
+          </Fragment>
+        )}
+        {hasOwnership && (
+          <Fragment>
+            <StyledListItem>{t('Set Owner')}</StyledListItem>
+            <ListItemSubText>
+              {t(
+                'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+              )}
+            </ListItemSubText>
+            <InputGroup>
+              <Panel>
+                <PanelBody>
+                  <SentryMemberTeamSelectorField
+                    name="owner"
+                    label={t('Owner')}
+                    help={t('Automatically assign issues to a team or user.')}
+                    menuPlacement="auto"
                   />
                 </PanelBody>
               </Panel>

@@ -15,7 +15,7 @@ import {space} from 'sentry/styles/space';
 function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
-  const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
+  const hasPullRequestURL = commit.pullRequest?.externalUrl;
   const commitMessage = formatCommitMessage(commit.message);
 
   return (

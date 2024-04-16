@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Iterable, Mapping, Sequence, cast
+from typing import Any, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
@@ -12,6 +13,7 @@ from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.models.organization import Organization
@@ -447,3 +449,9 @@ def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
     if query_string:
         redirect_uri += f"?{query_string}"
     return redirect_uri
+
+
+# Used to create a HttpRequest that's guaranteed to have an authenticated user
+# Ref: https://github.com/typeddjango/django-stubs?tab=readme-ov-file#how-can-i-create-a-httprequest-thats-guaranteed-to-have-an-authenticated-user
+class AuthenticatedHttpRequest(Request):
+    user: User

@@ -86,7 +86,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -99,6 +99,42 @@ describe('IssueListActions', function () {
               project: [1],
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
+          })
+        );
+      });
+
+      it('bulk sets priority', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent queryCount={1500} />, {
+          organization: OrganizationFixture({features: ['issue-priority-ui']}),
+        });
+
+        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+        expect(
+          within(screen.getByRole('dialog')).getByText(
+            'Are you sure you want to reprioritize to high the first 1,000 issues that match the search?'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Bulk reprioritize issues'})
+        );
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {priority: 'high'},
           })
         );
       });
@@ -131,7 +167,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -178,6 +214,32 @@ describe('IssueListActions', function () {
         );
       });
     });
+  });
+
+  it('can set priority', async function () {
+    const apiMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {
+      organization: OrganizationFixture({features: ['issue-priority-ui']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {priority: 'high'},
+      })
+    );
   });
 
   it('can archive an issue until escalating', async () => {
@@ -232,12 +294,12 @@ describe('IssueListActions', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({id: ['1'], project: [1]}),
-        data: {status: 'unresolved'},
+        data: {status: 'unresolved', statusDetails: {}},
       })
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -253,13 +315,13 @@ describe('IssueListActions', function () {
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnMarkReviewed = jest.fn();
+      const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -279,23 +341,23 @@ describe('IssueListActions', function () {
           },
         });
       });
-      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
       await userEvent.click(reviewButton);
 
-      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 
@@ -377,7 +439,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');

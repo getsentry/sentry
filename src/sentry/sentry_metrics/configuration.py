@@ -3,11 +3,14 @@
 # sentry.sentry_metrics.configuration` should work.
 #
 # If not, the parallel indexer breaks.
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any
 
 import sentry_sdk
+
+from sentry.conf.types.kafka_definition import Topic
 
 # The maximum length of a column that is indexed in postgres. It is important to keep this in
 # sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
@@ -17,7 +20,6 @@ MAX_INDEXED_COLUMN_LENGTH = 200
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
     PERFORMANCE = "performance"
-    EXPERIMENTAL = "experimental"
 
 
 # Rate limiter namespaces, the postgres (PG)
@@ -27,7 +29,6 @@ RELEASE_HEALTH_PG_NAMESPACE = "releasehealth"
 PERFORMANCE_PG_NAMESPACE = "performance"
 RELEASE_HEALTH_CS_NAMESPACE = "releasehealth.cs"
 PERFORMANCE_CS_NAMESPACE = "performance.cs"
-REBALANCING_EXP_NAMESPACE = "rebalancing.experiment"
 
 RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
     "sentry-metrics.indexer.release-health.schema-validation-rules"
@@ -40,25 +41,21 @@ GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
 class IndexerStorage(Enum):
     POSTGRES = "postgres"
     MOCK = "mock"
-    EXPERIMENRAL = "experimental"
 
 
 @dataclass(frozen=True)
 class MetricsIngestConfiguration:
     db_backend: IndexerStorage
     db_backend_options: Mapping[str, Any]
-    input_topic: str
-    output_topic: str
+    output_topic: Topic
     use_case_id: UseCaseKey
-    internal_metrics_tag: Optional[str]
+    internal_metrics_tag: str | None
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
-    cardinality_limiter_cluster_options: Mapping[str, Any]
-    cardinality_limiter_namespace: str
 
     should_index_tag_values: bool
-    schema_validation_rule_option_name: Optional[str] = None
-    is_output_sliced: Optional[bool] = False
+    schema_validation_rule_option_name: str | None = None
+    is_output_sliced: bool | None = False
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
@@ -80,14 +77,11 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=settings.KAFKA_SNUBA_METRICS,
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
                 schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
@@ -97,32 +91,11 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
-                should_index_tag_values=False,
-                schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
-            )
-        )
-
-        _register_ingest_config(
-            MetricsIngestConfiguration(
-                db_backend=IndexerStorage.EXPERIMENRAL,
-                db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic="snuba-generic-metrics-experimental",
-                use_case_id=UseCaseKey.EXPERIMENTAL,
-                internal_metrics_tag="rebalance-exp",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
-                writes_limiter_namespace=REBALANCING_EXP_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=REBALANCING_EXP_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
                 should_index_tag_values=False,
                 schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
@@ -134,14 +107,11 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
                 db_backend_options={},
-                input_topic="topic",
-                output_topic="output-topic",
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=use_case_key,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace-rh",
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
                 schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
@@ -152,14 +122,11 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
                 db_backend_options={},
-                input_topic="topic",
-                output_topic="output-topic",
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=use_case_key,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace-perf",
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 should_index_tag_values=False,
                 schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )

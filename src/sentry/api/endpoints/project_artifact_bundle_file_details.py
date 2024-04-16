@@ -1,7 +1,6 @@
 import base64
 import binascii
 import posixpath
-from typing import Union
 
 import sentry_sdk
 from django.http.response import FileResponse
@@ -21,7 +20,7 @@ class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
         cls, file_path: str, archive: ArtifactBundleArchive
-    ) -> Union[Response, FileResponse]:
+    ) -> Response | FileResponse:
         try:
             fp, headers = archive.get_file(file_path)
             file_info = archive.get_file_info(file_path)
@@ -49,9 +48,9 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 

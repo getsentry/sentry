@@ -4,7 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import Any
+from typing import IO, Any
 
 import click
 from django.conf import settings
@@ -16,7 +16,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 class ConfigurationError(ValueError, click.ClickException):
-    def show(self, file=None):
+    def show(self, file: IO[str] | None = None) -> None:
         if file is None:
             from click._compat import get_text_stderr
 
@@ -407,6 +407,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         system_url_prefix = options.get("system.url-prefix")
         if system_url_prefix:
             settings.CSRF_TRUSTED_ORIGINS = [system_url_prefix]
+        else:
+            # For first time users that have not yet set system url prefix, let's default to localhost url
+            settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000"]
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
@@ -552,7 +555,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),
         ("SENTRY_FILESTORE", "filestore.backend"),
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
-        ("SENTRY_FILESTORE_RELOCATION", "filestore.relocation"),
+        ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
+        ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
@@ -728,7 +732,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
         )
 
 
-def validate_outbox_config():
+def validate_outbox_config() -> None:
     from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:

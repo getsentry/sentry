@@ -8,6 +8,10 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -15,6 +19,21 @@ const getVerifySnippet = () => `
 using Sentry; // On the top of the script
 
 SentrySdk.CaptureMessage("Test event");`;
+
+const getMetricsConfigureSnippet = () => `
+public override void Configure(SentryUnityOptions options)
+{
+    options.ExperimentalMetrics = new ExperimentalMetricsOptions
+    {
+      EnableCodeLocations = true
+    };
+}`;
+
+const getMetricsVerifySnippet = () => `
+SentrySdk.Metrics.Increment(
+  "drank-drinks",
+  tags:new Dictionary<string, string> {{"kind", "coffee"}}
+);`;
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -118,8 +137,110 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const feedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C#',
+              value: 'csharp',
+              language: 'csharp',
+              code: `var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
+            },
+            {
+              label: 'F#',
+              value: 'fsharp',
+              language: 'fsharp',
+              code: `let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const metricsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:2.0.0] of the Unity SDK installed.',
+        {
+          codeVersion: <code />,
+        }
+      ),
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your RuntimeConfiguration.'
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getMetricsConfigureSnippet(),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeTimings: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getMetricsVerifySnippet(),
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unity/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: feedbackOnboarding,
+  crashReportOnboarding: feedbackOnboarding,
+  customMetricsOnboarding: metricsOnboarding,
 };
 
 export default docs;

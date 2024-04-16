@@ -9,8 +9,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -32,27 +30,22 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {
+  FID_DEPRECATION_DATE,
   PerformanceScoreBreakdownChart,
-  SCORE_MIGRATION_TIMESTAMP,
 } from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import type {
-  TransactionSampleRowWithScore,
-  WebVitals,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
   AlertContent,
   DismissButton,
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -72,19 +65,6 @@ const LANDING_DISPLAYS = [
   },
 ];
 
-const SAMPLES_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
-];
-
 function getCurrentTabSelection(selectedTab) {
   const tab = decodeScalar(selectedTab);
   if (tab && Object.values(LandingDisplayField).includes(tab as LandingDisplayField)) {
@@ -98,7 +78,6 @@ export default function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
-  const shouldUseStoredScores = useStoredScoresSetting();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -121,14 +100,14 @@ export default function PageOverview() {
   const user = ConfigStore.get('user');
 
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
+    key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
   });
 
   const query = decodeScalar(location.query.query);
 
   const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, enabled: shouldUseStoredScores});
+    useProjectWebVitalsScoresQuery({transaction});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -150,18 +129,19 @@ export default function PageOverview() {
     });
 
   const projectScore =
-    (shouldUseStoredScores && isProjectScoresLoading) || isLoading
+    isProjectScoresLoading || isLoading
       ? undefined
-      : shouldUseStoredScores
-        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-        : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
-  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
-    'DD MMMM YYYY'
-  );
+  const fidDeprecationTimestampString =
+    moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="starfish-browser-webvitals"
+    >
       <Tabs
         value={tab}
         onChange={value => {
@@ -239,16 +219,27 @@ export default function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
-              {shouldUseStoredScores && !isDismissed && (
+              {!isDismissed && (
                 <StyledAlert type="info" showIcon>
                   <AlertContent>
                     <span>
                       {tct(
-                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in our performance score calculation.`,
                         {
-                          scoreMigrationTimestampString,
+                          fidDeprecationTimestampString,
+                          inpStrong: <strong />,
+                          fidStrong: <strong />,
+                        }
+                      )}
+                      <br />
+                      {tct(
+                        `Users should update their Sentry SDKs to the [link:latest version (7.104.0+)] and [enableInp:enable the INP option] to start receiving updated Performance Scores.`,
+                        {
                           link: (
-                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
+                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.104.0" />
+                          ),
+                          enableInp: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#enableinp" />
                           ),
                         }
                       )}
@@ -284,7 +275,6 @@ export default function PageOverview() {
               <PageSamplePerformanceTableContainer>
                 <PageSamplePerformanceTable
                   transaction={transaction}
-                  columnOrder={SAMPLES_COLUMN_ORDER}
                   limit={15}
                   search={query}
                 />

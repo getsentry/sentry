@@ -227,6 +227,7 @@ def record_first_profile(project, **kwargs):
 
 @first_replay_received.connect(weak=False)
 def record_first_replay(project, **kwargs):
+    logger.info("record_first_replay_start")
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
 
     success = OrganizationOnboardingTask.objects.record(
@@ -235,8 +236,10 @@ def record_first_replay(project, **kwargs):
         status=OnboardingTaskStatus.COMPLETE,
         date_completed=django_timezone.now(),
     )
+    logger.info("record_first_replay_onboard_task", extra={"success": success})
 
     if success:
+        logger.info("record_first_replay_analytics_start")
         analytics.record(
             "first_replay.sent",
             user_id=project.organization.default_owner_id,
@@ -244,6 +247,7 @@ def record_first_replay(project, **kwargs):
             project_id=project.id,
             platform=project.platform,
         )
+        logger.info("record_first_replay_analytics_end")
         try_mark_onboarding_complete(project.organization_id)
 
 
@@ -551,7 +555,9 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,

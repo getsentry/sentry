@@ -1,5 +1,6 @@
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
@@ -224,7 +225,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 # These two are already handled by the API client, Just log and return.
                 isinstance(exc, (ApiHostError, ApiTimeoutError))
                 # Most 4xxs are not errors or actionable for us do not re-raise.
-                or (401 <= exc.code <= 404)
+                or (exc.code is not None and (401 <= exc.code <= 404))
                 # 502s are too noisy.
                 or exc.code == 502
             ):

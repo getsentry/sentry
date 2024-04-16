@@ -2,11 +2,11 @@ import dataclasses
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union, cast
+from typing import cast
 
 import requests
 import urllib3
-from arroyo import Topic
+from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 from django.db.models import F, Window
@@ -16,6 +16,7 @@ from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -38,13 +39,13 @@ class GroupValues:
     id: int
     project_id: int
     status: int
-    substatus: Optional[int]
+    substatus: int | None
     first_seen: datetime
     num_comments: int
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(settings.KAFKA_GROUP_ATTRIBUTES)["cluster"]
+    cluster_name = get_topic_definition(Topic.GROUP_ATTRIBUTES)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
@@ -59,7 +60,7 @@ _attribute_snapshot_producer = SingletonProducer(
 def _log_group_attributes_changed(
     operation: Operation,
     model_inducing_snapshot: str,
-    column_inducing_snapshot: Optional[str] = None,
+    column_inducing_snapshot: str | None = None,
 ) -> None:
     metrics.incr(
         "group_attributes.changed",
@@ -72,7 +73,7 @@ def _log_group_attributes_changed(
 
 
 def send_snapshot_values(
-    group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
+    group_id: int | None, group: Group | None, group_deleted: bool = False
 ) -> None:
     group_ids = None
     if group_id:
@@ -86,7 +87,7 @@ def send_snapshot_values(
 
 
 def bulk_send_snapshot_values(
-    group_ids: Optional[list[int]], groups: Optional[list[Group]], group_deleted: bool = False
+    group_ids: list[int] | None, groups: list[Group] | None, group_deleted: bool = False
 ) -> None:
     if not (options.get("issues.group_attributes.send_kafka") or False):
         return
@@ -122,7 +123,9 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
+        _attribute_snapshot_producer.produce(
+            ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
+        )
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:
@@ -155,7 +158,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
 
 
 def _bulk_retrieve_snapshot_values(
-    group_values_list: list[Union[Group, GroupValues]], group_deleted: bool = False
+    group_values_list: list[Group | GroupValues], group_deleted: bool = False
 ) -> list[GroupAttributesSnapshot]:
     group_assignee_map = {
         ga["group_id"]: ga

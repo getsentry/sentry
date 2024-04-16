@@ -1,11 +1,13 @@
 import random
+from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Iterable, Optional, Union
+from typing import Any
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
 from sentry import options
+from sentry.features.rollout import in_random_rollout
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
@@ -94,8 +96,8 @@ def patch_sentry_sdk():
                     unit="byte",
                 )
 
-    MetricsAggregator.add = tracked_add  # type: ignore
-    MetricsAggregator._emit = patched_emit  # type: ignore
+    MetricsAggregator.add = tracked_add  # type: ignore[method-assign]
+    MetricsAggregator._emit = patched_emit  # type: ignore[method-assign]
 
 
 def before_emit_metric(key: str, tags: dict[str, Any]) -> bool:
@@ -107,7 +109,7 @@ def before_emit_metric(key: str, tags: dict[str, Any]) -> bool:
 
 
 def should_summarize_metric(key: str, tags: dict[str, Any]) -> bool:
-    return random.random() < options.get("delightful_metrics.metrics_summary_sample_rate")
+    return in_random_rollout("delightful_metrics.metrics_summary_sample_rate")
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
@@ -116,7 +118,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         return random.random() < sample_rate
 
     @staticmethod
-    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
+    def _to_minimetrics_unit(unit: str | None, default: str | None = None) -> str:
         if unit is None:
             if default is not None:
                 return default
@@ -128,11 +130,11 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
@@ -148,8 +150,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -167,10 +169,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
@@ -195,10 +197,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):

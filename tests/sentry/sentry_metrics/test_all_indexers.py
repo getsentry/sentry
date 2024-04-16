@@ -6,7 +6,7 @@ various backends to see if their external behavior makes sense, and that e.g.
 the mock indexer actually behaves the same as the postgres indexer.
 """
 
-from typing import Mapping
+from collections.abc import Mapping
 
 import pytest
 

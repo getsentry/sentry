@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable
 
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 

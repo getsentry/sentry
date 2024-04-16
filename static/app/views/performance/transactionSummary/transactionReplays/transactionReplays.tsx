@@ -38,7 +38,7 @@ function TransactionReplays() {
         ...location,
         query: {
           ...location.query,
-          statsPeriod: '14d',
+          statsPeriod: '90d',
         },
       }}
       organization={organization}
@@ -144,6 +144,7 @@ function ReplaysContent({
     eventView,
     location,
     organization,
+    queryReferrer: 'transactionReplays',
   });
 
   const replaysWithTx = useReplaysWithTxData({

@@ -1,15 +1,16 @@
 import datetime
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.views.generic import View
 
 from sentry.security.emails import generate_security_email
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 from .mail import MailPreview
 
 
 class DebugPasswordChangedEmailView(View):
-    def get(self, request: HttpRequest) -> HttpResponse:
+    def get(self, request: AuthenticatedHttpRequest) -> HttpResponse:
         email = generate_security_email(
             account=request.user,
             actor=request.user,

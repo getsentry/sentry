@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError

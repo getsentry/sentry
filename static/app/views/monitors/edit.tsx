@@ -20,12 +20,12 @@ import MonitorForm from './components/monitorForm';
 import type {Monitor} from './types';
 
 export default function EditMonitor() {
-  const {monitorSlug} = useParams();
+  const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, monitorSlug, {
+  const queryKey = makeMonitorDetailsQueryKey(organization, projectId, monitorSlug, {
     expand: ['alertRule'],
   });
 
@@ -43,7 +43,7 @@ export default function EditMonitor() {
     setApiQueryData(queryClient, queryKey, data);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        pathname: `/organizations/${organization.slug}/crons/${data.project.slug}/${data.slug}/`,
         query: {
           environment: selection.environments,
           project: selection.projects,
@@ -92,7 +92,7 @@ export default function EditMonitor() {
                     </MonitorBreadcrumb>
                   ),
                   to: normalizeUrl(
-                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                    `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
                   ),
                 },
                 {
@@ -108,7 +108,7 @@ export default function EditMonitor() {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              apiEndpoint={`/projects/${organization.slug}/${projectId}/monitors/${monitor.slug}/`}
               onSubmitSuccess={onSubmitSuccess}
             />
           </Layout.Main>

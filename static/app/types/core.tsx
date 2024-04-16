@@ -83,7 +83,7 @@ export enum DataCategory {
 }
 
 /**
- * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+ * https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
  * Matches the backend singular backend enum directly.
  * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
  */
@@ -117,6 +117,7 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
+  CARDINALITY_LIMITED = 'cardinality_limited',
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;

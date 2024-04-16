@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, TypeVar
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 from snuba_sdk import Condition
 
 from sentry.api.event_search import SearchFilter
+from sentry.replays.lib.new_query.errors import OperatorNotSupported
 from sentry.replays.lib.new_query.parsers import parse_str
 from sentry.replays.usecases.query.conditions import SumOfTagScalar
 from sentry.replays.usecases.query.conditions.base import ComputedBase
@@ -54,7 +56,7 @@ class ComputedField(Generic[T]):
         elif operator == "!=":
             visitor = self.query.visit_not_match
         else:
-            raise Exception(f"Unsupported wildcard search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported wildcard search operator: '{operator}'")
 
         return visitor(value)
 
@@ -64,7 +66,7 @@ class ComputedField(Generic[T]):
         elif operator == "NOT IN":
             visitor = self.query.visit_not_in
         else:
-            raise Exception(f"Unsupported composite search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported composite search operator: '{operator}'")
 
         return visitor(value)
 
@@ -82,7 +84,7 @@ class ComputedField(Generic[T]):
         elif operator == "<=":
             visitor = self.query.visit_lte
         else:
-            raise Exception(f"Unsupported search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported search operator: '{operator}'")
 
         return visitor(value)
 
@@ -128,7 +130,7 @@ class TagField:
         elif operator == "!=":
             visitor = self.query.visit_not_match
         else:
-            raise Exception(f"Unsupported wildcard search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported wildcard search operator: '{operator}'")
 
         return visitor(key, value)
 
@@ -138,7 +140,7 @@ class TagField:
         elif operator == "NOT IN":
             visitor = self.query.visit_not_in
         else:
-            raise Exception(f"Unsupported composite search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported composite search operator: '{operator}'")
 
         return visitor(key, value)
 
@@ -148,6 +150,6 @@ class TagField:
         elif operator == "!=":
             visitor = self.query.visit_neq
         else:
-            raise Exception(f"Unsupported search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported search operator: '{operator}'")
 
         return visitor(key, value)

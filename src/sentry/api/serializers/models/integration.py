@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence
-
-from typing_extensions import TypedDict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
@@ -106,7 +105,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             # Query param "action" only attached in TicketRuleForm modal.
             if self.params.get("action") == "create":
                 # This method comes from IssueBasicMixin within the integration's installation class
-                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore
+                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore[attr-defined]
                     None, user, params=self.params
                 )
 
@@ -143,7 +142,7 @@ class OrganizationIntegrationSerializer(Serializer):
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: RpcIntegration = attrs.get("integration")  # type: ignore
+        integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,
@@ -163,7 +162,7 @@ class OrganizationIntegrationSerializer(Serializer):
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None  # type: ignore
+                config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration

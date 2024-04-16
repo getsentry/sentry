@@ -1,9 +1,15 @@
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -23,14 +29,12 @@ Sentry.init(
     // We recommend adjusting this value in production.
     tracesSampleRate: 1.0,
     integrations: [
-      new SentrySibling.BrowserTracing({
-        // Set "tracePropagationTargets" to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: [
-          "localhost",
-          /^https:\/\/yourserver\.io\/api/,
-        ],
-        routingInstrumentation: SentrySibling.routingInstrumentation,
-      }),
+      SentrySibling.browserTracingIntegration(),
+    ],
+    // Set "tracePropagationTargets" to control for which URLs distributed tracing should be enabled
+    tracePropagationTargets: [
+      "localhost",
+      /^https:\/\/yourserver\.io\/api/,
     ],
   },
   // Forward the init method to the sibling Framework.
@@ -166,8 +170,27 @@ Sentry.nativeCrash();`,
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  crashReportOnboarding,
 };
 
 export default docs;
