@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 
 function maybeCleanupObserver(
   observerRef: React.MutableRefObject<IntersectionObserver | null>
@@ -25,6 +25,10 @@ export interface LazyRenderProps {
   children: React.ReactNode;
   containerHeight?: number;
   observerOptions?: Partial<IntersectionObserverInit>;
+  /**
+   * Removes the wrapping div once rendered
+   */
+  removeWrapper?: boolean;
 }
 
 /**
@@ -78,6 +82,10 @@ export function LazyRender(props: LazyRenderProps) {
     },
     [visible, props.observerOptions, props.containerHeight]
   );
+
+  if (visible && props.removeWrapper) {
+    return <Fragment>{props.children}</Fragment>;
+  }
 
   return <div ref={onRefNode}>{visible ? props.children : null}</div>;
 }
