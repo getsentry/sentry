@@ -242,10 +242,9 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-            except Exception:
-                logger.exception("Failed to resolve assignee for occurrence")
-            else:
                 GroupAssignee.objects.assign(group, assignee, create_only=True)
+            except Exception:
+                logger.exception("Failed process assignment for occurrence")
 
     else:
         group = existing_grouphash.group
