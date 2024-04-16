@@ -15,7 +15,7 @@ class QueryModulationStep(PreparationStep):
     def _get_modulated_intermediate_query(
         self, intermediate_query: IntermediateQuery
     ) -> IntermediateQuery:
-        visitor = ModulatorVisitor(self.projects, self.modulators)
+        visitor = ModulatorVisitor(self.modulators)
         modulated_query = visitor.visit(intermediate_query.metrics_query.query)
 
         return replace(

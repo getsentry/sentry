@@ -28,7 +28,7 @@ class QueryDemodulationStep(PostProcessingStep):
             for result_key in element.keys():
                 for modulator in self.modulators:
                     if modulator.to_key == result_key:
-                        original_value = modulator.demodulate(element[result_key], self.projects)
+                        original_value = modulator.demodulate(element[result_key])
                         updated_element[modulator.from_key] = original_value
                         keys_to_delete.append(result_key)
 
