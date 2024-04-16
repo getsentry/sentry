@@ -1,7 +1,7 @@
 import type {AvatarUser, Member} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import UserBadge, {UserBadgeProps} from './userBadge';
+import UserBadge, {type UserBadgeProps} from './userBadge';
 
 export interface MemberBadgeProps extends Omit<UserBadgeProps, 'user'> {
   member: Member;
