@@ -46,6 +46,8 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
 
 const Key = styled('dt')<{type: Props['type']}>`
   ${commonStyles};
+  display: flex;
+  align-items: center;
   color: ${p => p.theme.textColor};
 `;
 
