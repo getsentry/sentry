@@ -244,7 +244,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             orgSlug: organization.slug,
             transaction: transactionName,
             query: location.query,
-            spanSlug: {op: span.op, group: span.hash},
+            spanSlug: {op: span.op, group: span.sentry_tags?.['group'] ?? ''},
             projectID: event.projectID,
           })}
         >
