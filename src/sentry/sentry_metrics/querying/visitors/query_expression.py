@@ -4,7 +4,6 @@ from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeser
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
 from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
@@ -462,17 +461,14 @@ class ModulatorVisitor(QueryExpressionVisitor):
     by API that need to be translated for Snuba to be able to query the data.
     """
 
-    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
-        self._projects = projects
+    def __init__(self, modulators: Sequence[Modulator]):
         self.modulators = modulators
         self.applied_modulators = []
 
     def _visit_formula(self, formula: Formula) -> TVisited:
         formula = super()._visit_formula(formula)
 
-        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
-            formula.filters
-        )
+        filters = ModulatorConditionVisitor(self.modulators).visit_group(formula.filters)
         formula = formula.set_filters(filters)
 
         if formula.groupby:
@@ -496,9 +492,7 @@ class ModulatorVisitor(QueryExpressionVisitor):
         return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
-            timeseries.filters
-        )
+        filters = ModulatorConditionVisitor(self.modulators).visit_group(timeseries.filters)
         timeseries = timeseries.set_filters(filters)
 
         if timeseries.groupby:

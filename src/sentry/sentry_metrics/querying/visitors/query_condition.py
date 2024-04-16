@@ -100,38 +100,8 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
         )
 
 
-class ProjectToProjectIDTransformationVisitor(QueryConditionVisitor[QueryCondition]):
-    """
-    Visitor that transforms all project name conditions in the query to project IDs. Initial
-    use case of this is to enable the front-end to query projects directly instead of by id
-    """
-
-    def __init__(self, projects: Sequence[Project]):
-        self._projects = projects
-
-    def _visit_condition(self, condition: Condition) -> QueryCondition:
-        if (
-            isinstance(condition.lhs, Column)
-            and condition.lhs.name == "project"
-            and isinstance(condition.rhs, str)
-        ):
-            return Condition(
-                lhs=Column(name="project_id"),
-                op=condition.op,
-                rhs=self._extract_project_id(condition.rhs),
-            )
-
-        return condition
-
-    def _extract_project_id(self, project_slug: str) -> str:
-        for project in self._projects:
-            if project.slug == project_slug:
-                return project.id
-
-
 class ModulatorConditionVisitor(QueryConditionVisitor):
-    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
-        self._projects = projects
+    def __init__(self, modulators: Sequence[Modulator]):
         self.modulators = modulators
         self.applied_modulators = []
 
@@ -146,7 +116,7 @@ class ModulatorConditionVisitor(QueryConditionVisitor):
                 self.applied_modulators.append(modulator)
 
                 if isinstance(rhs, ScalarType):
-                    new_rhs = modulator.modulate(rhs, self._projects)
+                    new_rhs = modulator.modulate(rhs)
                     return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
 
         return condition

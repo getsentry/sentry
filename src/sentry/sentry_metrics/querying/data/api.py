@@ -24,8 +24,6 @@ from sentry.sentry_metrics.querying.data.preparation.units_normalization import 
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
 
-modulators = [Project2ProjectIDModulator(from_key="project", to_key="project_id")]
-
 
 def run_queries(
     mql_queries: Sequence[MQLQuery],
@@ -59,7 +57,6 @@ def run_queries(
     intermediate_queries = []
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(projects=projects, environments=environments, mql_queries=mql_queries)
-
     for query_expression, query_order, query_limit in parser.generate_queries():
         intermediate_queries.append(
             IntermediateQuery(
@@ -70,6 +67,8 @@ def run_queries(
         )
 
     preparation_steps = []
+    modulators = [Project2ProjectIDModulator(projects)]
+
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):

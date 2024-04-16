@@ -27,17 +27,25 @@ class Modulator(abc.ABC):
 
 
 class Project2ProjectIDModulator(Modulator):
-    def modulate(self, formula: Formula, projects: Sequence[Project]) -> Formula:
+    def __init__(
+        self, projects: Sequence[Project], from_key: str = "project", to_key: str = "project_id"
+    ):
+        self.projects = projects
+        self.from_key = from_key
+        self.to_key = to_key
+        self.value_map: dict[Any, Any] = defaultdict(lambda: None)
+
+    def modulate(self, formula: Formula) -> Formula:
         if formula not in self.value_map:
             self.value_map[formula] = None
-            for project in projects:
+            for project in self.projects:
                 if project.slug == formula:
                     self.value_map[formula] = project.id
         return self.value_map[formula]
 
-    def demodulate(self, formula: Formula, projects: Sequence[Project]) -> Formula:
+    def demodulate(self, formula: Formula) -> Formula:
         if formula not in self.value_map:
-            for project in projects:
+            for project in self.projects:
                 if project.id == formula:
                     self.value_map[formula] = project.slug
 
