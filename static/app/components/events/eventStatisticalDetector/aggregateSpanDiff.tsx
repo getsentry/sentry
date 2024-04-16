@@ -107,6 +107,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     enabled: !isSpansOnly,
   });
 
+  // Initialize the search query with has:span.group because only
+  // specific operations have their span.group recorded in the span
+  // metrics dataset
   const search = new MutableSearch('has:span.group');
   search.addFilterValue('transaction', transaction);
 
@@ -132,52 +135,41 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     referrer: 'api.performance.transactions.statistical-detector-root-cause-analysis',
   });
 
-  let data: typeof spansData | typeof rcaData;
-  let isLoading: boolean;
-  let isError: boolean;
-  if (organization.features.includes('statistical-detectors-rca-spans-only')) {
-    data = spansData;
-    isLoading = isSpansDataLoading;
-    isError = isSpansDataError;
-  } else {
-    data = rcaData;
-    isLoading = isRcaLoading;
-    isError = isRcaError;
-  }
-
   const tableData = useMemo(() => {
-    return (
-      data?.map(row => {
-        if (isSpansOnly) {
-          const commonProps = {
-            operation: row['span.op'],
-            group: row['span.group'],
-            description: row['any(span.description)'] || undefined,
-          };
+    if (isSpansOnly) {
+      return spansData?.map(row => {
+        const commonProps = {
+          operation: row['span.op'],
+          group: row['span.group'],
+          description: row['any(span.description)'] || undefined,
+        };
 
-          if (causeType === 'throughput') {
-            const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
-            const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
-            return {
-              ...commonProps,
-              throughputBefore,
-              throughputAfter,
-              percentageChange: throughputAfter / throughputBefore - 1,
-            };
-          }
-
-          const durationBefore =
-            row[`avg_by_timestamp(span.self_time,less,${breakpoint})`] / 1e3;
-          const durationAfter =
-            row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
+        if (causeType === 'throughput') {
+          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
+          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
           return {
             ...commonProps,
-            durationBefore,
-            durationAfter,
-            percentageChange: durationAfter / durationBefore - 1,
+            throughputBefore,
+            throughputAfter,
+            percentageChange: throughputAfter / throughputBefore - 1,
           };
         }
 
+        const durationBefore =
+          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`] / 1e3;
+        const durationAfter =
+          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
+        return {
+          ...commonProps,
+          durationBefore,
+          durationAfter,
+          percentageChange: durationAfter / durationBefore - 1,
+        };
+      });
+    }
+
+    return (
+      rcaData?.map(row => {
         if (causeType === 'throughput') {
           return {
             operation: row.span_op,
@@ -199,7 +191,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         };
       }) || []
     );
-  }, [data, causeType, isSpansOnly, breakpoint]);
+  }, [isSpansOnly, rcaData, spansData, causeType, breakpoint]);
 
   const tableOptions = useMemo(() => {
     return {
@@ -248,8 +240,8 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         causeType={causeType}
         columns={ADDITIONAL_COLUMNS}
         data={tableData}
-        isLoading={isLoading}
-        isError={isError}
+        isLoading={isSpansOnly ? isSpansDataLoading : isRcaLoading}
+        isError={isSpansOnly ? isSpansDataError : isRcaError}
         options={tableOptions}
       />
     </EventDataSection>
