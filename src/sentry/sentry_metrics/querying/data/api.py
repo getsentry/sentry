@@ -10,19 +10,21 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
+from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
+from sentry.sentry_metrics.querying.data.postprocessing.demodulation import QueryDemodulationStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
     run_preparation_steps,
 )
+from sentry.sentry_metrics.querying.data.preparation.modulation import QueryModulationStep
 from sentry.sentry_metrics.querying.data.preparation.units_normalization import (
     UnitsNormalizationStep,
 )
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
-from sentry.sentry_metrics.querying.visitors.query_modulator import QueryModulationStep
+from sentry.sentry_metrics.querying.visitors.modulator import Project2ProjectIDModulator
 
-modulators = [Modulator(from_key="project", to_key="project_id")]
+modulators = [Project2ProjectIDModulator(from_key="project", to_key="project_id")]
 
 
 def run_queries(
@@ -87,12 +89,7 @@ def run_queries(
         executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
-
-    # this is where the query results are adapted to transform into the format that the query expected
-    for result in results:
-        for element in result.series:
-            # we don't actually see in the series_query whether there was a project-slug-filter in the original query -> we have to share some state.
-            pass
+    results = run_postprocessing_steps(results, QueryDemodulationStep(projects, modulators))
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
     return MQLQueriesResult(cast(list[QueryResult], results))
