@@ -1,7 +1,6 @@
 from collections.abc import Mapping, Sequence
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
-from snuba_sdk.expressions import ScalarType
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
@@ -101,7 +100,8 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
 
 
 class ModulatorConditionVisitor(QueryConditionVisitor):
-    def __init__(self, modulators: Sequence[Modulator]):
+    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
+        self.projects = projects
         self.modulators = modulators
         self.applied_modulators = []
 
@@ -115,9 +115,11 @@ class ModulatorConditionVisitor(QueryConditionVisitor):
                 new_lhs = Column(modulator.to_key)
                 self.applied_modulators.append(modulator)
 
-                if isinstance(rhs, ScalarType):
-                    new_rhs = modulator.modulate(rhs)
-                    return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
+                if isinstance(rhs, list):
+                    new_rhs = [modulator.modulate(self.projects, element) for element in rhs]
+                else:
+                    new_rhs = modulator.modulate(self.projects, rhs)
+                return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
 
         return condition
 
