@@ -10,7 +10,7 @@ from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
 from sentry.models.apiapplication import generate_token
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -21,7 +21,7 @@ class SentryAppRotateSecretPermission(SentryPermission):
 
     def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
         # organization that owns an integration
-        organization = Organization.objects.get(id=sentry_app.owner_id)
+        organization = organization_service.get_org_by_id(id=sentry_app.owner_id)
 
         # if user is not a member of an organization owning an integration,
         # return 404 to avoid leaking integration slug
