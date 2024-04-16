@@ -291,10 +291,10 @@ function MonitorForm({
             groupProjects={project =>
               platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
             }
-            groupLabels={{
-              suggested: t('Suggested Projects'),
-              other: t('Other Projects'),
-            }}
+            groups={[
+              {key: 'suggested', label: t('Suggested Projects')},
+              {key: 'other', label: t('Other Projects')},
+            ]}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
