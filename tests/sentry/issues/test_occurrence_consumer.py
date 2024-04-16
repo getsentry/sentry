@@ -458,3 +458,21 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["initial_issue_priority"] = PriorityLevel.HIGH
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
+
+    def test_assignee(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"user:{self.user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] == f"user:{self.user.id}"
+
+    def test_assignee_none(self) -> None:
+        kwargs = _get_kwargs(deepcopy(get_test_message(self.project.id)))
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = ""
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] == ""

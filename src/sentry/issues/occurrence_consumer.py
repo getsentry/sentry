@@ -154,6 +154,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
+                "assignee": payload.get("assignee"),
             }
 
             process_occurrence_data(occurrence_data)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,6 +11,7 @@ from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
+from sentry.utils.actor import ActorTuple
 from sentry.utils.dates import parse_timestamp
 
 DEFAULT_LEVEL = "info"
@@ -36,6 +38,11 @@ class IssueOccurrenceData(TypedDict):
     level: str | None
     culprit: str | None
     initial_issue_priority: NotRequired[int | None]
+    assignee: NotRequired[str | None]
+    """
+    Who to assign the issue to when creating a new issue. Has no effect on existing issues.
+    In the format of an Actor identifier, as defined in `ActorTuple.from_actor_identifier`
+    """
 
 
 @dataclass(frozen=True)
@@ -88,6 +95,7 @@ class IssueOccurrence:
     level: str
     culprit: str
     initial_issue_priority: int | None = None
+    assignee: ActorTuple | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -111,10 +119,13 @@ class IssueOccurrence:
             "level": self.level,
             "culprit": self.culprit,
             "initial_issue_priority": self.initial_issue_priority,
+            "assignee": self.assignee.identifier if self.assignee else None,
         }
 
     @classmethod
     def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
+        from sentry.api.serializers.rest_framework import ValidationError
+
         # Backwards compatibility - we used to not require this field, so set a default when `None`
         level = data.get("level")
         if not level:
@@ -122,6 +133,18 @@ class IssueOccurrence:
         culprit = data.get("culprit")
         if not culprit:
             culprit = ""
+
+        assignee = None
+        try:
+            # Note that this can cause IO, but in practice this will happen only the first time that
+            # the occurrence is sent to the issue platform. We then translate to the id and store
+            # that, so subsequent fetches won't cause IO.
+            assignee = ActorTuple.from_actor_identifier(data.get("assignee"))
+        except ValidationError:
+            logging.exception("Failed to parse assignee actor identifier")
+        except Exception:
+            # We never want this to cause parsing an occurrence to fail
+            logging.exception("Unexpected error parsing assignee")
         return cls(
             data["id"],
             data["project_id"],
@@ -141,6 +164,7 @@ class IssueOccurrence:
             level,
             culprit,
             data.get("initial_issue_priority"),
+            assignee,
         )
 
     @property

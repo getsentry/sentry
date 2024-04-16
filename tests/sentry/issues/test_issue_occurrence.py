@@ -1,5 +1,8 @@
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.utils.actor import ActorTuple
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -15,6 +18,35 @@ class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
         occurrence_data["level"] = None
         occurrence = IssueOccurrence.from_dict(occurrence_data)
         assert occurrence.level == DEFAULT_LEVEL
+
+    def test_assignee(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence_data["assignee"] = f"user:{self.user.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == ActorTuple(self.user.id, User)
+        occurrence_data["assignee"] = f"{self.user.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == ActorTuple(self.user.id, User)
+        occurrence_data["assignee"] = f"{self.user.email}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == ActorTuple(self.user.id, User)
+        occurrence_data["assignee"] = f"{self.user.username}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == ActorTuple(self.user.id, User)
+        occurrence_data["assignee"] = f"team:{self.team.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == ActorTuple(self.team.id, Team)
+
+    def test_assignee_none(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
+        occurrence_data["assignee"] = None
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
+        occurrence_data["assignee"] = ""
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
 
 
 class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
