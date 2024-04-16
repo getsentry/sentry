@@ -47,7 +47,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             "maisey@dogsrule.com" -> look up User by primary email
         """
 
-        if actor_identifier is None:
+        if not actor_identifier:
             return None
 
         # If we have an integer, fall back to assuming it's a User
