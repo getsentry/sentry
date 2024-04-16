@@ -72,7 +72,8 @@
       "static/app/data/world.json",
       "**/*.sourcemap.js",
       "**/*.min.js",
-      "fixtures"
+      "fixtures",
+      ".devenv"
     ]
   },
   "formatter": {

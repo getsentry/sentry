@@ -470,6 +470,7 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'dart',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',
@@ -532,6 +533,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'android',
   'electron',
+  'flutter',
   'java-android',
   'javascript-angular',
   'javascript-astro',
