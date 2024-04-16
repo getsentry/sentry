@@ -238,7 +238,9 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             "view_monitors_link": generate_monitor_overview_url(organization),
         }
         message = MessageBuilder(
-            subject="Your Cron Monitors Aren't Working",
+            subject="{} of your Cron Monitors {} working".format(
+                len(broken_monitors), "isn't" if len(broken_monitors) == 1 else "aren't"
+            ),
             template="sentry/emails/crons/broken-monitors.txt",
             html_template="sentry/emails/crons/broken-monitors.html",
             type="crons.broken_monitors",
@@ -252,7 +254,9 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             "view_monitors_link": generate_monitor_overview_url(organization),
         }
         message = MessageBuilder(
-            subject="Your Cron Monitors have been muted",
+            subject="{} of your Cron Monitors {} been muted".format(
+                len(muted_monitors), "has" if len(muted_monitors) == 1 else "have"
+            ),
             template="sentry/emails/crons/muted-monitors.txt",
             html_template="sentry/emails/crons/muted-monitors.html",
             type="crons.muted_monitors",
