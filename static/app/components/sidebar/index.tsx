@@ -246,11 +246,8 @@ function Sidebar() {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
           organization.features.includes('spans-first-ui') ||
-          organization.features.includes('starfish-browser-webvitals') ||
-          organization.features.includes('performance-screens-view') ||
           organization.features.includes('performance-http-view') ||
-          organization.features.includes('performance-cache-view') ||
-          organization.features.includes('starfish-browser-resource-module-ui')
+          organization.features.includes('performance-cache-view')
         ) {
           return (
             <SidebarAccordion
@@ -303,7 +300,7 @@ function Sidebar() {
                   {...CacheModuleBadgeProps}
                 />
               </Feature>
-              <Feature features="starfish-browser-webvitals" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -316,7 +313,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-screens-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Screen Loads')}
@@ -325,7 +322,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="starfish-mobile-appstart" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}

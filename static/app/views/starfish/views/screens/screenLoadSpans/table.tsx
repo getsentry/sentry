@@ -76,9 +76,7 @@ export function ScreenLoadSpansTable({
     `transaction:"${transaction}"`,
   ]);
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -386,9 +384,7 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          ...(organization.features.includes('mobile-ttid-ttfd-contribution')
-            ? ['affects']
-            : []),
+          ...(organization.features.includes('spans-first-ui') ? ['affects'] : []),
           ...['count()', 'time_spent_percentage()'],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
