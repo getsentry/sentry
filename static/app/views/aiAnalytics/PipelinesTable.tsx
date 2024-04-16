@@ -1,8 +1,9 @@
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -16,6 +17,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
@@ -153,7 +155,11 @@ function renderBodyCell(
       return <span>{row['span.description']}</span>;
     }
     return (
-      <Link to={`/ai-analytics/pipelines/${row['span.group']}`}>
+      <Link
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/ai-analytics/pipelines/${row['span.group']}`
+        )}
+      >
         {row['span.description']}
       </Link>
     );
