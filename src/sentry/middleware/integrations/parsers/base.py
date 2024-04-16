@@ -239,16 +239,6 @@ class BaseRequestParser(abc.ABC):
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
 
-        if extra_logging:
-            logger.info(
-                "integrations.parser.bucket_choice",
-                extra={
-                    "provider": self.provider,
-                    "integration_id": integration.id,
-                    "bucket": bucket_number,
-                },
-            )
-
         return f"{integration.id}:{bucket_number}"
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
