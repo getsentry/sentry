@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -56,6 +56,11 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.PERFORMANCE
 
     def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
@@ -130,6 +135,18 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             params["end"] = max_timestamp + buffer
             snuba_params.start = min_timestamp - buffer
             snuba_params.end = max_timestamp + buffer
+
+            all_projects = self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            )
+            snuba_params.projects = all_projects
+            params["projects"] = snuba_params.projects
+            params["projects_objects"] = snuba_params.projects
+            params["projects_id"] = snuba_params.project_ids
 
             trace_condition = f"trace:[{', '.join(spans_by_trace.keys())}]"
 
