@@ -1,0 +1,53 @@
+from django.http import Http404
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
+from sentry.api.permissions import SentryPermission
+from sentry.api.serializers import serialize
+from sentry.models.apiapplication import generate_token
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.user.service import user_service
+
+
+class SentryAppRotateSecretPermission(SentryPermission):
+    scope_map = {
+        "POST": ["org:write", "org:admin"],
+    }
+
+    def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
+        # organization that owns an integration
+        organization = Organization.objects.get(id=sentry_app.owner_id)
+
+        # if user is not a member of an organization owning an integration,
+        # return 404 to avoid leaking integration slug
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
+        if not any(organization.id == org.id for org in organizations):
+            raise Http404
+
+        # permission check inside an organization
+        self.determine_access(request, organization)
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        return any(request.access.has_scope(s) for s in allowed_scopes)
+
+
+@control_silo_endpoint
+class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+    permission_classes = (SentryAppRotateSecretPermission,)
+
+    def post(self, request: Request, sentry_app: SentryApp) -> Response:
+        new_token = generate_token()
+        sentry_app.application.update(client_secret=new_token)
+        return Response(serialize({"clientSecret": new_token}))
