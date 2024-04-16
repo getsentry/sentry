@@ -514,9 +514,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             cache.set(cache_key, session_count_last_hour, 600)
         return session_count_last_hour
 
-    def get_session_interval(self, session_count: int, interval: int) -> int | None:
+    def get_session_interval(self, session_count: int, interval: str) -> int | None:
         if session_count >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = percent_intervals[str(interval)][1].total_seconds() // 60
+            interval_in_minutes = percent_intervals[interval][1].total_seconds() // 60
             return int(session_count / (60 / interval_in_minutes))
         return None
 
@@ -526,7 +526,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         project_id = event.project_id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
-            session_count_last_hour, int(self.get_option("interval"))
+            session_count_last_hour, self.get_option("interval")
         )
         if avg_sessions_in_interval:
             issue_count = self.get_snuba_query_result(
@@ -563,7 +563,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         project_id = groups[0].project.id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
-            session_count_last_hour, int(self.get_option("interval"))
+            session_count_last_hour, self.get_option("interval")
         )
         if avg_sessions_in_interval:
             error_issues = [
