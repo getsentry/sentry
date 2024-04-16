@@ -101,7 +101,9 @@ def get_approx_start_time(group: Group):
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(),
+    "Users Affected": lambda group: group.count_users_seen(
+        referrer="tagstore.get_groups_user_counts.slack_issue_notification"
+    ),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
     "Approx. Start Time": get_approx_start_time,

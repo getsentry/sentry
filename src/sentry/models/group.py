@@ -872,13 +872,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer="tagstore.get_groups_user_counts"):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod

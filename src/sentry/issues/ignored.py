@@ -111,7 +111,9 @@ def handle_ignored(
             if ignore_count and not ignore_window:
                 state["times_seen"] = group.times_seen
             if ignore_user_count and not ignore_user_window:
-                state["users_seen"] = group.count_users_seen()
+                state["users_seen"] = group.count_users_seen(
+                    referrer="tagstore.get_groups_user_counts.ignored"
+                )
             GroupSnooze.objects.create_or_update(
                 group=group,
                 values={

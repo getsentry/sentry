@@ -87,7 +87,11 @@ class GroupSnooze(Model):
             if self.user_window:
                 if not self.test_user_rates():
                     return False
-            elif self.user_count <= group.count_users_seen() - self.state["users_seen"]:
+            elif (
+                self.user_count
+                <= group.count_users_seen(referrer="tagstore.get_groups_user_counts.groupsnooze")
+                - self.state["users_seen"]
+            ):
                 return False
         return True
 
