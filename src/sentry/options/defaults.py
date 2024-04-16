@@ -2413,6 +2413,6 @@ register(
 register(
     "traces.sample-list.sample-rate",
     type=Float,
-    default=100_000.0,
+    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
