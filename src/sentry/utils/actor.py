@@ -101,6 +101,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve_to_actor(self) -> Actor:
         from sentry.models.actor import Actor, get_actor_for_user
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
 
         obj = self.resolve()
         if isinstance(obj, (User, RpcUser)):
