@@ -171,6 +171,20 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
+  get selectControlStyles() {
+    return {
+      control: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        minWidth: 200,
+        maxWidth: 300,
+      }),
+      container: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        margin: `${space(0.5)}`,
+      }),
+    };
+  }
+
   renderEventTypeFilter() {
     const {organization, disabled, alertType, isErrorMigration} = this.props;
 
@@ -372,17 +386,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           {monitorType === MonitorType.CONTINUOUS && (
             <SelectControl
               name="timeWindow"
-              styles={{
-                control: (provided: {[x: string]: string | number | boolean}) => ({
-                  ...provided,
-                  minWidth: 200,
-                  maxWidth: 300,
-                }),
-                container: (provided: {[x: string]: string | number | boolean}) => ({
-                  ...provided,
-                  margin: `${space(0.5)}`,
-                }),
-              }}
+              styles={this.selectControlStyles}
               options={this.timeWindowOptions}
               required={monitorType === MonitorType.CONTINUOUS}
               isDisabled={disabled}
@@ -426,7 +430,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               }
             >
               <strong>Continuous</strong>
-              <div>Continuously monitor trends for the metrics outlined below</div>
+              <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
             </MonitorCard>
             <MonitorCard
               position="right"
@@ -443,19 +447,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   Monitor{' '}
                   <SelectControl
                     name="activationCondition"
-                    styles={{
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minWidth: 200,
-                        maxWidth: 300,
-                      }),
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        margin: `${space(0.5)}`,
-                      }),
-                    }}
+                    styles={this.selectControlStyles}
                     options={[
                       {
                         value: ActivationConditionType.RELEASE_CREATION,
@@ -477,19 +469,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   for{' '}
                   <SelectControl
                     name="timeWindow"
-                    styles={{
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minWidth: 200,
-                        maxWidth: 300,
-                      }),
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        margin: `${space(0.5)}`,
-                      }),
-                    }}
+                    styles={this.selectControlStyles}
                     options={this.timeWindowOptions}
                     value={timeWindow}
                     onChange={({value}) => onTimeWindowChange(value)}
@@ -498,7 +478,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   />
                 </ActivatedAlertFields>
               ) : (
-                <div>Temporarily monitor specified query given activation condition</div>
+                <div>
+                  {t('Temporarily monitor specified query given activation condition')}
+                </div>
               )}
             </MonitorCard>
           </MonitorSelect>
