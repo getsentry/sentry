@@ -29,7 +29,14 @@ describe('Related Issues View', function () {
     });
     relatedIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
-      body: {same_root_cause: [group1, group2]},
+      body: {
+        data: [
+          {
+            type: 'same_root_cause',
+            data: [group1, group2],
+          },
+        ],
+      },
     });
     issuesInfoMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
