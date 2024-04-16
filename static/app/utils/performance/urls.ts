@@ -4,6 +4,13 @@ import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+/**
+ * Routes to the transaction event details view.
+ *
+ * TODO Abdullah Khan: Add link to new trace view doc explaining why we route to the traceview.
+ *
+ * @deprecated Use generateLinkToEventInTraceView instead, since we are pushing towards events always being displayed in the trace view.
+ */
 export function getTransactionDetailsUrl(
   orgSlug: Organization['slug'],
   eventSlug: string,

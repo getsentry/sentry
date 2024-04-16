@@ -9,15 +9,19 @@ import type {
 } from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
 import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
   meta?: Record<any, any>;
@@ -28,7 +32,7 @@ export function Default({
   meta,
   breadcrumb,
   event,
-  orgSlug,
+  organization,
   searchTerm,
   transactionEvents,
 }: Props) {
@@ -43,7 +47,7 @@ export function Default({
           <FormatMessage
             searchTerm={searchTerm}
             event={event}
-            orgSlug={orgSlug}
+            organization={organization}
             breadcrumb={breadcrumb}
             message={message}
             transactionEvents={transactionEvents}
@@ -64,16 +68,17 @@ function FormatMessage({
   event,
   message,
   breadcrumb,
-  orgSlug,
+  organization,
   transactionEvents,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   message: string;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
   transactionEvents?: BreadcrumbTransactionEvent[];
 }) {
+  const location = useLocation();
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
 
   const isSentryTransaction =
@@ -99,8 +104,16 @@ function FormatMessage({
 
     const description = transactionData ? (
       <Link
-        to={getTransactionDetailsUrl(orgSlug, eventSlug, undefined, {
-          referrer: 'breadcrumbs',
+        to={generateLinkToEventInTraceView({
+          eventSlug,
+          organization: organization,
+          eventView: EventView.fromLocation(location),
+          location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},
+          dataRow: {
+            id: message,
+            project: projectSlug,
+            timestamp: event?.endTimestamp ?? '',
+          },
         })}
       >
         <Highlight text={searchTerm}>{transactionData.title}</Highlight>

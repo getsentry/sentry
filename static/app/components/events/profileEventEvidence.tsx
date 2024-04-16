@@ -4,17 +4,23 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};
 
 export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const evidenceData = event.occurrence?.evidenceData ?? {};
   const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
 
   const keyValueListData = [
     ...(evidenceData.transactionId && evidenceData.transactionName
@@ -26,15 +32,20 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             actionButton: (
               <Button
                 size="xs"
-                to={getTransactionDetailsUrl(
-                  organization.slug,
-                  generateEventSlug({
+                to={generateLinkToEventInTraceView({
+                  dataRow: {
+                    id: evidenceData.transactionId,
+                    trace: traceSlug,
+                    timestamp: evidenceData.timestamp,
+                  },
+                  eventSlug: generateEventSlug({
                     id: evidenceData.transactionId,
                     project: projectSlug,
                   }),
-                  undefined,
-                  {referrer: 'issue'}
-                )}
+                  eventView: EventView.fromLocation(location),
+                  location: {...location, query: {...location.query, referrer: 'issue'}},
+                  organization,
+                })}
               >
                 {t('View Transaction')}
               </Button>

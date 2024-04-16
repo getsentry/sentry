@@ -13,8 +13,14 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -24,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
 
@@ -156,10 +163,24 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
+    const timestamp = getTimeStampFromTableDateField(props.dataRow.timestamp);
+    const dataSelection = EventView.fromLocation(
+      props.baggage.location
+    ).normalizeDateSelection(props.baggage.location);
 
     return (
       <Container>
-        <Link to={`/performance/trace/${props.dataRow[key]}`}>{traceId}</Link>
+        <Link
+          to={getTraceDetailsUrl(
+            props.baggage.organization,
+            props.dataRow[key] ?? '',
+            dataSelection,
+            {},
+            timestamp
+          )}
+        >
+          {traceId}
+        </Link>
       </Container>
     );
   }
@@ -173,7 +194,19 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
     return (
       <Container>
-        <Link to={`/performance/${project.slug}:${props.dataRow[key]}`}>
+        <Link
+          to={generateLinkToEventInTraceView({
+            dataRow: {...props.dataRow, id: props.dataRow[key]},
+            eventSlug: generateEventSlug({
+              id: props.dataRow[key],
+              project: project.slug,
+            }),
+            eventView: EventView.fromLocation(props.baggage.location),
+            location: props.baggage.location,
+            transactionName: props.dataRow.transaction,
+            organization: props.baggage.organization,
+          })}
+        >
           {transactionId}
         </Link>
       </Container>

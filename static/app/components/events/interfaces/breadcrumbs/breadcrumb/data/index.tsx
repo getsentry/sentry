@@ -29,8 +29,6 @@ export function Data({
   meta,
   transactionEvents,
 }: Props) {
-  const orgSlug = organization.slug;
-
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
   }
@@ -53,7 +51,7 @@ export function Data({
   return (
     <Default
       event={event}
-      orgSlug={orgSlug}
+      organization={organization}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
       meta={meta}
