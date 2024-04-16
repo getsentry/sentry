@@ -66,7 +66,7 @@ export function MetricListItemDetails({
   );
 
   const truncatedProjects = metricProjects.slice(0, MAX_PROJECTS_TO_SHOW);
-  // Display customt tags first, then sort alphabetically
+  // Display custom tags first, then sort alphabetically
   const sortedTags = useMemo(
     () =>
       tagsData.toSorted((a, b) => {
