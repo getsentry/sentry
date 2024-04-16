@@ -465,6 +465,25 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["assignee"] == f"user:{self.user.id}"
 
+    def test_assignee_perms(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        random_user = self.create_user()
+        message["assignee"] = f"user:{random_user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = "user:99999999999"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        other_org = self.create_organization()
+        random_team = self.create_team(other_org)
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"team:{random_team.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
     def test_assignee_none(self) -> None:
         kwargs = _get_kwargs(deepcopy(get_test_message(self.project.id)))
         assert kwargs["occurrence_data"]["assignee"] is None
@@ -475,4 +494,4 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message = deepcopy(get_test_message(self.project.id))
         message["assignee"] = ""
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["assignee"] == ""
+        assert kwargs["occurrence_data"]["assignee"] is None
