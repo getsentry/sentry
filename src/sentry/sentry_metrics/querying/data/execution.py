@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import Enum
 from typing import Any, Union, cast
@@ -24,6 +24,7 @@ from sentry.sentry_metrics.querying.visitors import (
     TimeseriesConditionInjectionVisitor,
     UsedGroupBysVisitor,
 )
+from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import bulk_run_query
@@ -145,6 +146,7 @@ class ScheduledQuery:
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
+    modulators: list[Modulator] = field(default_factory=list)
 
     def initialize(
         self,
@@ -476,7 +478,11 @@ class QueryResult:
         # that we can correctly render groups in case they are not returned from the db because of missing data.
         #
         # Sorting of the groups is done to maintain consistency across function calls.
-        return sorted(UsedGroupBysVisitor().visit(self._any_query().metrics_query.query))
+        scheduled_query = self._any_query()
+        modulators = scheduled_query.modulators
+        return sorted(
+            UsedGroupBysVisitor(modulators=modulators).visit(scheduled_query.metrics_query.query)
+        )
 
     @property
     def interval(self) -> int | None:
@@ -824,6 +830,7 @@ class QueryExecutor:
             unit_family=intermediate_query.unit_family,
             unit=intermediate_query.unit,
             scaling_factor=intermediate_query.scaling_factor,
+            modulators=intermediate_query.modulators,
         )
 
         # In case the user chooses to run also a series query, we will duplicate the query and chain it after totals.

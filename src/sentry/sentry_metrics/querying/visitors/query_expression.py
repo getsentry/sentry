@@ -20,6 +20,8 @@ from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
 )
+from sentry.sentry_metrics.querying.visitors.modulator import Modulator
+from sentry.sentry_metrics.querying.visitors.query_modulator import find_modulator
 from sentry.snuba.metrics import parse_mri
 
 
@@ -245,6 +247,9 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     Visitor that recursively computes all the groups of the `QueryExpression`.
     """
 
+    def __init__(self, modulators: list[Modulator] = None):
+        self.modulators = modulators or []
+
     def _visit_formula(self, formula: Formula) -> set[str]:
         group_bys: set[str] = set()
 
@@ -271,10 +276,20 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
 
         string_group_bys = set()
         for group_by in group_bys:
+            modulator = None
             if isinstance(group_by, AliasedExpression):
-                string_group_bys.add(group_by.exp.name)
+                modulator = find_modulator(modulators=self.modulators, to_key=group_by.exp.name)
             elif isinstance(group_by, Column):
-                string_group_bys.add(group_by.name)
+                modulator = find_modulator(modulators=self.modulators, to_key=group_by.name)
+
+            if modulator:
+                string_group_bys.add(modulator.from_key)
+
+            else:
+                if isinstance(group_by, AliasedExpression):
+                    string_group_bys.add(group_by.exp.name)
+                elif isinstance(group_by, Column):
+                    string_group_bys.add(group_by.name)
 
         return string_group_bys
 

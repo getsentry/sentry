@@ -50,6 +50,7 @@ class Project2ProjectIDModulator(Modulator):
             # If the from_value was not set during modulation, e.g. because only a groupby statement was used in the
             # query, retrieve the value mapping on demodulation in order to inject it into the query result.
             for project in projects:
-                self.value_map[project.id] = project.slug
+                if project.id == formula:
+                    self.value_map[formula] = project.slug
 
-        return self.value_map[project.id]
+        return self.value_map[formula]
