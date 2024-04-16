@@ -33,6 +33,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -861,7 +862,7 @@ class SnubaTagStorage(TagStorage):
         end=None,
         dataset=Dataset.Events,
         extra_aggregations=None,
-        referrer="tagstore.__get_groups_user_counts",
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}

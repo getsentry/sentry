@@ -56,6 +56,7 @@ from sentry.notifications.utils.participants import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -102,7 +103,7 @@ def get_approx_start_time(group: Group):
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
     "Users Affected": lambda group: group.count_users_seen(
-        referrer="tagstore.get_groups_user_counts.slack_issue_notification"
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
     ),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),

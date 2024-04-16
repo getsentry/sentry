@@ -47,6 +47,7 @@ from sentry.models.grouphistory import record_group_history, record_group_histor
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
@@ -872,7 +873,7 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self, referrer="tagstore.get_groups_user_counts"):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
