@@ -459,7 +459,6 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    @with_feature({"organizations:derive-code-mappings-go": True})
     def test_derive_code_mappings_go_abs_filename(self):
         repo_name = "go_repo"
         with patch(
@@ -475,7 +474,6 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature({"organizations:derive-code-mappings-go": True})
     def test_derive_code_mappings_go_long_abs_filename(self):
         repo_name = "go_repo"
         with patch(
@@ -491,7 +489,6 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature({"organizations:derive-code-mappings-go": True})
     def test_derive_code_mappings_similar_but_incorrect_file(self):
         repo_name = "go_repo"
         with patch(
