@@ -172,10 +172,11 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
-      return [
-        ['app', `/sentry-apps/${appSlug}/`],
-        ['tokens', `/sentry-apps/${appSlug}/api-tokens/`],
-      ];
+      const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
+      if (this.hasTokenAccess) {
+        endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
+      }
+      return endpoints as [string, string][];
     }
 
     return [];
@@ -230,6 +231,10 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     }
   };
 
+  get hasTokenAccess() {
+    return this.props.organization.access.includes('org:write');
+  }
+
   get isInternal() {
     const {app} = this.state;
     if (app) {
@@ -280,6 +285,11 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   renderTokens = () => {
     const {tokens, newTokens} = this.state;
+    if (!this.hasTokenAccess) {
+      return (
+        <EmptyMessage description={t('You do not have access to view these tokens.')} />
+      );
+    }
     if (tokens.length < 1 && newTokens.length < 1) {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
@@ -446,17 +456,21 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
           {app && app.status === 'internal' && (
             <Panel>
-              <PanelHeader hasButtons>
-                {t('Tokens')}
-                <Button
-                  size="xs"
-                  icon={<IconAdd isCircled />}
-                  onClick={evt => this.onAddToken(evt)}
-                  data-test-id="token-add"
-                >
-                  {t('New Token')}
-                </Button>
-              </PanelHeader>
+              {this.hasTokenAccess ? (
+                <PanelHeader hasButtons>
+                  {t('Tokens')}
+                  <Button
+                    size="xs"
+                    icon={<IconAdd isCircled />}
+                    onClick={evt => this.onAddToken(evt)}
+                    data-test-id="token-add"
+                  >
+                    {t('New Token')}
+                  </Button>
+                </PanelHeader>
+              ) : (
+                <PanelHeader>{t('Tokens')}</PanelHeader>
+              )}
               <PanelBody>{this.renderTokens()}</PanelBody>
             </Panel>
           )}
