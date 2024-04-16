@@ -1,4 +1,4 @@
-import type {ObjectStatus, Project} from 'sentry/types';
+import type {Actor, ObjectStatus, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export enum MonitorType {
@@ -121,7 +121,7 @@ export interface Monitor {
   id: string;
   isMuted: boolean;
   name: string;
-  owner: string;
+  owner: Actor;
   project: Project;
   slug: string;
   status: ObjectStatus;

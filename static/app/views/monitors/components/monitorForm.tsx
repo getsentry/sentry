@@ -215,6 +215,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -239,7 +241,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
-              owner: monitor.owner,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
