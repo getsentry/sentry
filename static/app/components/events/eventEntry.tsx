@@ -109,6 +109,10 @@ function EventEntryContent({
       );
 
     case EntryType.DEBUGMETA:
+      if (isShare) {
+        return null;
+      }
+
       return (
         <DebugMeta
           event={event}
