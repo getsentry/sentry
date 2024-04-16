@@ -168,4 +168,5 @@ const SamplingWarning = styled('div')`
   grid-template-columns: max-content 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.yellow400};
+  align-items: center;
 `;
