@@ -34,7 +34,7 @@ function TeamMembersRow({
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
-        <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+        <IdBadge avatarSize={36} member={member} />
       </div>
       <RoleSelectWrapper>
         <TeamRoleSelect

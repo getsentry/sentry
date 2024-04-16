@@ -74,7 +74,7 @@ class SelectOwners extends Component<Props, State> {
   private selectRef = createRef<any>();
 
   renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
   );
 
   createMentionableUser = (user: User): Owner => ({

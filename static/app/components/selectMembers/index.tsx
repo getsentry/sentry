@@ -77,7 +77,7 @@ class SelectMembers extends Component<Props, State> {
   ];
 
   renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
   );
 
   createMentionableUser = (user: User): MentionableUser => ({

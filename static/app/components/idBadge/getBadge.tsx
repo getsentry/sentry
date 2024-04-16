@@ -5,11 +5,10 @@ import ProjectBadge, {type ProjectBadgeProps} from './projectBadge';
 import {TeamBadge, type TeamBadgeProps} from './teamBadge';
 import UserBadge, {type UserBadgeProps} from './userBadge';
 
-type DisplayName = BaseBadgeProps['displayName'];
-
 interface AddedBaseBadgeProps {
-  displayName?: DisplayName;
+  displayName?: React.ReactNode;
 }
+
 interface GetOrganizationBadgeProps
   extends AddedBaseBadgeProps,
     Omit<BaseBadgeProps, 'displayName' | 'organization'>,
