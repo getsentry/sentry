@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Overlay} from 'sentry/components/overlay';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -142,10 +143,11 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         </SidebarAccordionSubitemsWrap>
       )}
       {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
-        <FloatingAccordion
+        <StyledOverlay
+          animated
           accordionRef={accordionRef}
-          horizontal={horizontal}
           ref={floatingAccordionRef}
+          horizontal={horizontal}
           data-test-id="floating-accordion"
         >
           <SidebarItem
@@ -155,7 +157,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
             isMainItem
           />
           {childrenWithProps}
-        </FloatingAccordion>
+        </StyledOverlay>
       )}
     </SidebarAccordionWrapper>
   );
@@ -212,7 +214,7 @@ function findChildElementsInTree(
   return found;
 }
 
-const FloatingAccordion = styled('div')<{
+const StyledOverlay = styled(Overlay)<{
   accordionRef: React.RefObject<HTMLDivElement>;
   horizontal: boolean;
 }>`
@@ -226,18 +228,6 @@ const FloatingAccordion = styled('div')<{
   left: ${p =>
     p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
   background-color: white;
-
-  animation: fadeIn 0.3s ease-in-out;
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 `;
 
 const SidebarAccordionWrapper = styled('div')`
