@@ -4,6 +4,8 @@ import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+import { normalizeUrl } from '../withDomainRequired';
+
 /**
  * Routes to the transaction event details view.
  *
@@ -27,7 +29,7 @@ export function getTransactionDetailsUrl(
   }
 
   const target = {
-    pathname: `/organizations/${orgSlug}/performance/${eventSlug}/`,
+    pathname: normalizeUrl(`/organizations/${orgSlug}/performance/${eventSlug}/`),
     query: locationQuery,
     hash: defined(spanId) ? spanTargetHash(spanId) : undefined,
   };

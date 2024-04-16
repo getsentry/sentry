@@ -17,10 +17,7 @@ import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -196,12 +193,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       <Container>
         <Link
           to={generateLinkToEventInTraceView({
-            dataRow: {...props.dataRow, id: props.dataRow[key]},
-            eventSlug: generateEventSlug({
-              id: props.dataRow[key],
-              project: project.slug,
-            }),
-            eventView: EventView.fromLocation(props.baggage.location),
+            projectSlug: project.slug,
+            eventId: props.dataRow[key],
+            traceSlug: props.dataRow.trace,
+            timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
             transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,

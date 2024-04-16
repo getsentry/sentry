@@ -24,8 +24,6 @@ import {space} from 'sentry/styles/space';
 import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -517,14 +515,10 @@ function SpanDescription({
   const {projects} = useProjects({slugs: [project]});
   const transactionDetailsTarget = defined(transactionId)
     ? generateLinkToEventInTraceView({
-        dataRow: {
-          id: transactionId,
-          project,
-          trace: trace,
-          timestamp: getTimeStampFromTableDateField(timestamp?.toString()) ?? '',
-        },
-        eventSlug: transactionId,
-        eventView: EventView.fromLocation(location),
+        eventId: transactionId,
+        projectSlug: project,
+        traceSlug: trace,
+        timestamp: timestamp?.toString() ?? '',
         location,
         organization,
         spanId,

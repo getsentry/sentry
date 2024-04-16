@@ -6,11 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {
   isMetricsEquationWidget,
   MetricExpressionType,
@@ -68,10 +64,6 @@ export function MetricScratchpad() {
       }
 
       const isTransaction = sample.id === sample['segment.id'];
-      const eventSlug = generateEventSlug({
-        id: sample['transaction.id'],
-        project: sample.project,
-      });
       const dataRow: {
         id: string;
         project: string;
@@ -92,9 +84,10 @@ export function MetricScratchpad() {
 
       router.push(
         generateLinkToEventInTraceView({
-          dataRow,
-          eventSlug,
-          eventView: EventView.fromLocation(location),
+          traceSlug: dataRow.trace,
+          projectSlug: dataRow.project,
+          eventId: dataRow.id,
+          timestamp: dataRow.timestamp ?? '',
           location: {
             ...location,
             query: {...location.query, referrer: 'metrics', openPanel: 'open'},

@@ -37,10 +37,7 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -192,12 +189,14 @@ function TableView(props: TableViewProps) {
       let target;
       if (dataRow.trace !== null) {
         target = generateLinkToEventInTraceView({
-          eventSlug: generateEventSlug(dataRow),
-          dataRow,
+          traceSlug: dataRow.trace,
+          eventId: dataRow.id,
+          projectSlug: dataRow.project || dataRow['project.name'],
+          timestamp: dataRow.timestamp,
           organization,
-          eventView,
           isHomepage,
           location,
+          eventView,
           type: 'discover',
         });
       } else {
@@ -315,12 +314,14 @@ function TableView(props: TableViewProps) {
 
       if (dataRow.trace !== null) {
         target = generateLinkToEventInTraceView({
-          eventSlug: generateEventSlug(dataRow),
-          dataRow,
+          traceSlug: dataRow.trace?.toString(),
+          eventId: dataRow.id,
+          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
+          timestamp: dataRow.timestamp,
           organization,
-          eventView,
           isHomepage,
           location,
+          eventView,
           type: 'discover',
         });
       } else {

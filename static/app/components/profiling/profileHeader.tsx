@@ -10,11 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,13 +45,10 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
 
   const transactionTarget = transaction?.id
     ? generateLinkToEventInTraceView({
-        dataRow: {
-          id: transaction.id,
-          project: projectSlug,
-          timestamp: transaction.endTimestamp ?? '',
-        },
-        eventSlug: generateEventSlug({project: projectSlug, id: transaction.id}),
-        eventView: EventView.fromLocation(location),
+        timestamp: transaction.endTimestamp ?? '',
+        eventId: transaction.id,
+        projectSlug,
+        traceSlug: transaction.contexts?.trace?.trace_id ?? '',
         location,
         organization,
         transactionName: transactionName,

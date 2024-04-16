@@ -9,11 +9,7 @@ import type {
 } from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -100,20 +96,15 @@ function FormatMessage({
       return content;
     }
     const projectSlug = maybeProject.slug;
-    const eventSlug = generateEventSlug({project: projectSlug, id: message});
-
     const description = transactionData ? (
       <Link
         to={generateLinkToEventInTraceView({
-          eventSlug,
-          organization: organization,
-          eventView: EventView.fromLocation(location),
+          eventId: message,
+          timestamp: event?.endTimestamp ?? '',
+          traceSlug: event?.contexts?.trace?.trace_id ?? '',
+          projectSlug,
+          organization,
           location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},
-          dataRow: {
-            id: message,
-            project: projectSlug,
-            timestamp: event?.endTimestamp ?? '',
-          },
         })}
       >
         <Highlight text={searchTerm}>{transactionData.title}</Highlight>

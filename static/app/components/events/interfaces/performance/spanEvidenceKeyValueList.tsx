@@ -30,11 +30,7 @@ import {
   isTransactionBased,
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -479,21 +475,13 @@ const makeTransactionNameRow = (
     query: {},
   });
 
-  const eventSlug = generateEventSlug({
-    id: event.eventID,
-    project: projectSlug,
-  });
   const traceSlug = event.contexts?.trace?.trace_id ?? '';
 
   const eventDetailsLocation = generateLinkToEventInTraceView({
-    dataRow: {
-      id: event.eventID,
-      trace: traceSlug,
-      project: projectSlug ?? '',
-      timestamp: event.endTimestamp ?? '',
-    },
-    eventSlug,
-    eventView: EventView.fromLocation(location),
+    traceSlug,
+    projectSlug: projectSlug ?? '',
+    eventId: event.eventID,
+    timestamp: event.endTimestamp ?? '',
     location,
     organization,
   });

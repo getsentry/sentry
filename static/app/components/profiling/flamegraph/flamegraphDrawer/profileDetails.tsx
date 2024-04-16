@@ -14,11 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatVersion} from 'sentry/utils/formatters';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -269,16 +265,10 @@ function TransactionEventDetails({
     const transactionTarget =
       transaction.id && project && organization
         ? generateLinkToEventInTraceView({
-            dataRow: {
-              id: transaction.id,
-              trace: traceSlug,
-              timestamp: transaction.endTimestamp,
-            },
-            eventSlug: generateEventSlug({
-              id: transaction.id,
-              project: project.slug,
-            }),
-            eventView: EventView.fromLocation(location),
+            eventId: transaction.id,
+            traceSlug,
+            timestamp: transaction.endTimestamp,
+            projectSlug: project.slug,
             location,
             organization,
             transactionName: transaction.title,
@@ -411,17 +401,10 @@ function ProfileEventDetails({
           const transactionTarget =
             project?.slug && transaction?.id && organization
               ? generateLinkToEventInTraceView({
-                  dataRow: {
-                    id: transaction.id,
-                    project: project.slug,
-                    timestamp: transaction.endTimestamp,
-                    trace: traceSlug,
-                  },
-                  eventSlug: generateEventSlug({
-                    id: transaction.id,
-                    project: project.slug,
-                  }),
-                  eventView: EventView.fromLocation(location),
+                  traceSlug,
+                  projectSlug: project.slug,
+                  eventId: transaction.id,
+                  timestamp: transaction.endTimestamp,
                   location,
                   organization,
                 })

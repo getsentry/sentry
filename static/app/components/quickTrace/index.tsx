@@ -35,11 +35,7 @@ import Projects from 'sentry/utils/projects';
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
 import {
   DropdownContainer,
@@ -409,17 +405,10 @@ function EventNodeSelector({
       : perfIssues.length
         ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
         : generateLinkToEventInTraceView({
-            dataRow: {
-              id: events[0].event_id,
-              project: events[0].project_slug,
-              timestamp: events[0].timestamp,
-              trace: traceSlug,
-            },
-            eventSlug: generateEventSlug({
-              project: events[0].project_slug,
-              id: events[0].event_id,
-            }),
-            eventView: EventView.fromLocation(location),
+            traceSlug,
+            eventId: events[0].event_id,
+            projectSlug: events[0].project_slug,
+            timestamp: events[0].timestamp,
             location,
             organization: {
               slug: organization.slug,
@@ -490,17 +479,10 @@ function EventNodeSelector({
         )}
         {events.slice(0, numEvents).map(event => {
           const target = generateLinkToEventInTraceView({
-            dataRow: {
-              id: event.event_id,
-              project: event.project_slug,
-              timestamp: event.timestamp,
-              trace: traceSlug,
-            },
-            eventSlug: generateEventSlug({
-              project: event.project_slug,
-              id: event.event_id,
-            }),
-            eventView: EventView.fromLocation(location),
+            traceSlug,
+            timestamp: event.timestamp,
+            projectSlug: event.project_slug,
+            eventId: event.event_id,
             location,
             organization: {
               slug: organization.slug,

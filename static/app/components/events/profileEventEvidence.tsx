@@ -4,11 +4,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,16 +29,10 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
               <Button
                 size="xs"
                 to={generateLinkToEventInTraceView({
-                  dataRow: {
-                    id: evidenceData.transactionId,
-                    trace: traceSlug,
-                    timestamp: evidenceData.timestamp,
-                  },
-                  eventSlug: generateEventSlug({
-                    id: evidenceData.transactionId,
-                    project: projectSlug,
-                  }),
-                  eventView: EventView.fromLocation(location),
+                  traceSlug,
+                  timestamp: evidenceData.timestamp,
+                  eventId: evidenceData.transactionId,
+                  projectSlug,
                   location: {...location, query: {...location.query, referrer: 'issue'}},
                   organization,
                 })}

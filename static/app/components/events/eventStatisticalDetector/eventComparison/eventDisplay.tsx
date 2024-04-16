@@ -26,10 +26,7 @@ import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -195,9 +192,10 @@ function EventDisplay({
   const waterfallModel = new WaterfallModel(eventData);
   const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
   const fullEventTarget = generateLinkToEventInTraceView({
-    eventSlug: generateEventSlug({project: project.slug, id: eventData.id}),
-    dataRow: {id: eventData.id, trace: traceSlug, timestamp: eventData.endTimestamp},
-    eventView: EventView.fromLocation(location),
+    eventId: eventData.id,
+    projectSlug: project.slug,
+    traceSlug,
+    timestamp: eventData.endTimestamp,
     location,
     organization,
   });
