@@ -258,14 +258,14 @@ class TestRedisBuffer:
     def group_rule_data_by_project_id(self, buffer, project_ids):
         project_ids_to_rule_data = defaultdict(list)
         for proj_id in project_ids[0]:
-            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id})
+            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
             for pair in rule_group_pairs:
                 for k, v in pair.items():
                     if isinstance(k, bytes):
                         k = k.decode("utf-8")
                     if isinstance(v, bytes):
                         v = v.decode("utf-8")
-                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+                    project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
     def test_enqueue(self):
