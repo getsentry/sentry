@@ -623,6 +623,8 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("kafka-publisher.max-event-size", default=100000, flags=FLAG_AUTOMATOR_MODIFIABLE)
