@@ -1548,8 +1548,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable the org recalibration

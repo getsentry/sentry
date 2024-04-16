@@ -69,7 +69,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
