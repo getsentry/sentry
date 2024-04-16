@@ -35,6 +35,8 @@ import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
 import {ScheduleType} from '../types';
 
+import {platformsWithGuides} from './monitorQuickStartGuide';
+
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
   {value: ScheduleType.INTERVAL, label: t('Interval')},
@@ -286,6 +288,13 @@ function MonitorForm({
           <StyledSentryProjectSelectorField
             name="project"
             aria-label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groupLabels={{
+              suggested: t('Suggested Projects'),
+              other: t('Other Projects'),
+            }}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
