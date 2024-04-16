@@ -14,6 +14,7 @@ interface OffsetOptions {
 }
 
 interface VideoReplayerOptions {
+  duration: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
@@ -56,6 +57,7 @@ export class VideoReplayer {
   private _videos: Map<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
+  private _duration: number;
   public config: VideoReplayerConfig = {
     skipInactive: false,
     speed: 1.0,
@@ -73,6 +75,7 @@ export class VideoReplayer {
       onFinished,
       onLoaded,
       clipWindow,
+      duration,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -86,6 +89,7 @@ export class VideoReplayer {
     };
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
+    this._duration = duration;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -297,7 +301,12 @@ export class VideoReplayer {
 
     // No more segments
     if (nextIndex >= this._attachments.length) {
-      this.stopReplay();
+      // If we're at the end of a segment, but there's a gap
+      // at the end, force the replay to play until the end duration
+      // rather than stopping right away.
+      this._timer.addNotificationAtTime(this._duration, () => {
+        this.stopReplay();
+      });
       return;
     }
 
@@ -598,8 +607,13 @@ export class VideoReplayer {
     const loadedSegmentIndex = await this.loadSegmentAtTime(videoOffsetMs);
 
     if (loadedSegmentIndex === undefined) {
-      // TODO: this shouldn't happen, loadSegment should load the previous
-      // segment until it's time to start the next segment
+      // If we end up here, we seeked into a gap
+      // at the end of the replay.
+      // This tells the timer to stop at the specified duration
+      // and prevents the timer from running infinitely.
+      this._timer.addNotificationAtTime(this._duration, () => {
+        this.stopReplay();
+      });
       return Promise.resolve();
     }
 
