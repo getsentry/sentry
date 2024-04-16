@@ -1,15 +1,10 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {formatBytesBase2} from 'sentry/utils';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -18,11 +13,6 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {
-  DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 function SpanSummaryCharts() {
@@ -34,10 +24,9 @@ function SpanSummaryCharts() {
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
-    transaction: transaction,
+    'span.op': spanOp,
+    transaction: transaction as string,
   };
-
-  console.dir(filters);
 
   const {
     isLoading: isThroughputDataLoading,
@@ -49,7 +38,6 @@ function SpanSummaryCharts() {
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
-  console.dir(throughputData);
 
   const {
     isLoading: isAvgDurationDataLoading,
@@ -61,7 +49,6 @@ function SpanSummaryCharts() {
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
-  console.dir(avgDurationData);
 
   return (
     <BlockContainer>

@@ -53,7 +53,6 @@ function getSuspectSpanPayload(props: RequestProps) {
 }
 
 function SuspectSpansQuery(props: Props) {
-  console.dir(props);
   return (
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"

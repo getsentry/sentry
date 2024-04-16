@@ -21,7 +21,6 @@ import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/trans
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
-import SpanChart from '../spanDetails/chart';
 import SpanTable from '../spanDetails/spanDetailsTable';
 import {ZoomKeys} from '../spanDetails/utils';
 import {SpanSortOthers} from '../types';
@@ -174,7 +173,6 @@ function SpanSummaryContent(props: ContentProps) {
   // There should always be exactly 1 result
   const suspectSpan = suspectSpansResults.suspectSpans?.[0];
   const examples = spanExamplesResults.examples?.[0]?.examples;
-  const transactionCountContainingSpan = suspectSpan?.frequency;
 
   return (
     <Fragment>

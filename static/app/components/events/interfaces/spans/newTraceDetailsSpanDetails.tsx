@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -233,23 +233,22 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     const transactionName = event.title;
-    console.dir(span);
 
     return (
       <ButtonGroup>
         <SpanSummaryButton event={event} organization={organization} span={span} />
-        <StyledButton
+        <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
             transaction: transactionName,
             query: location.query,
-            spanSlug: {op: span.op, group: span.sentry_tags?.['group'] ?? ''},
+            spanSlug: {op: span.op, group: span.sentry_tags?.group ?? ''},
             projectID: event.projectID,
           })}
         >
           {t('View Similar Spans')}
-        </StyledButton>
+        </LinkButton>
       </ButtonGroup>
     );
   }

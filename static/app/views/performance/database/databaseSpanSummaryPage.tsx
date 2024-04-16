@@ -101,8 +101,6 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  console.dir(filters);
-
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
