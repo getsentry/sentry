@@ -87,8 +87,8 @@ export function Content() {
         <DatePageFilter />
       </PageFilterBar>
       <TracesSearchBar query={query} handleSearch={handleSearch} />
-      <Panel>
-        <PanelContent>
+      <StyledPanel>
+        <TracePanelContent>
           <StyledPanelHeader align="right" lightText>
             {t('Trace ID')}
           </StyledPanelHeader>
@@ -108,23 +108,23 @@ export function Content() {
             {t('Issues')}
           </StyledPanelHeader>
           {isLoading && (
-            <StyledPanelItem span={4}>
+            <StyledPanelItem span={6}>
               <LoadingIndicator />
             </StyledPanelItem>
           )}
           {isError && ( // TODO: need an error state
-            <StyledPanelItem span={4}>
+            <StyledPanelItem span={6}>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
           {isEmpty && (
-            <StyledPanelItem span={4}>
+            <StyledPanelItem span={6}>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
           {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
-        </PanelContent>
-      </Panel>
+        </TracePanelContent>
+      </StyledPanel>
     </LayoutMain>
   );
 }
@@ -154,21 +154,44 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       <StyledPanelItem align="right">
         <Count value={trace.numSpans} />
       </StyledPanelItem>
-      <StyledPanelItem align="center">
+      <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
-      <StyledPanelItem align="center">
+      <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
-      {expanded && trace.spans.map(span => <SpanRow key={span.id} span={span} />)}
+      {expanded && (
+        <StyledPanelItem span={6}>
+          <StyledPanel>
+            <SpanPanelContent>
+              <StyledPanelHeader align="left" lightText>
+                {t('Span ID')}
+              </StyledPanelHeader>
+              <StyledPanelHeader align="left" lightText>
+                {t('Span Description')}
+              </StyledPanelHeader>
+              <StyledPanelHeader align="right" lightText />
+              <StyledPanelHeader align="right" lightText>
+                {t('Span Duration')}
+              </StyledPanelHeader>
+              <StyledPanelHeader align="right" lightText>
+                {t('Issues')}
+              </StyledPanelHeader>
+              {trace.spans.map(span => (
+                <SpanRow key={span.id} span={span} trace={trace.trace} />
+              ))}
+            </SpanPanelContent>
+          </StyledPanel>
+        </StyledPanelItem>
+      )}
     </Fragment>
   );
 }
 
-function SpanRow({span}: {span: SpanResult<Field>}) {
+function SpanRow({span, trace}: {span: SpanResult<Field>; trace: string}) {
   return (
     <Fragment>
       <StyledPanelItem align="right">
@@ -176,9 +199,11 @@ function SpanRow({span}: {span: SpanResult<Field>}) {
           projectSlug={span.project}
           transactionId={span['transaction.id']}
           spanId={span.id}
+          trace={trace}
+          timestamp={span.timestamp}
         />
       </StyledPanelItem>
-      <StyledPanelItem align="left" span={2}>
+      <StyledPanelItem align="left">
         <Description>
           <ProjectRenderer projectSlug={span.project} hideName />
           <strong>{span['span.op']}</strong>
@@ -186,13 +211,13 @@ function SpanRow({span}: {span: SpanResult<Field>}) {
           {span['span.description']}
         </Description>
       </StyledPanelItem>
-      <StyledPanelItem align="center">
+      <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
       </StyledPanelItem>
-      <StyledPanelItem align="center">
+      <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
     </Fragment>
@@ -260,18 +285,30 @@ const LayoutMain = styled(Layout.Main)`
   gap: ${space(2)};
 `;
 
-const PanelContent = styled('div')`
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0px;
+`;
+
+const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: repeat(1, min-content) auto repeat(4, min-content);
 `;
 
+const SpanPanelContent = styled('div')`
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(1, min-content) auto repeat(3, min-content);
+`;
+
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
+  padding: ${space(2)} ${space(1)};
 `;
 
 const Description = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: row;
   align-items: center;

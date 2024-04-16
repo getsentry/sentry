@@ -1,8 +1,12 @@
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import type {DateString} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,23 +42,36 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
 interface SpanIdRendererProps {
   projectSlug: string;
   spanId: string;
+  timestamp: string;
+  trace: string;
   transactionId: string;
 }
 
 export function SpanIdRenderer({
   projectSlug,
   spanId,
+  timestamp,
+  trace,
   transactionId,
 }: SpanIdRendererProps) {
+  const location = useLocation();
   const organization = useOrganization();
 
-  const target = getTransactionDetailsUrl(
-    organization.slug,
-    `${projectSlug}:${transactionId}`,
-    undefined,
-    undefined,
-    spanId
-  );
+  const target = generateLinkToEventInTraceView({
+    eventSlug: generateEventSlug({
+      id: transactionId,
+      project: projectSlug,
+    }),
+    organization,
+    location,
+    eventView: EventView.fromLocation(location),
+    dataRow: {
+      id: transactionId,
+      trace,
+      timestamp,
+    },
+    spanId,
+  });
 
   return <Link to={target}>{getShortEventId(spanId)}</Link>;
 }
@@ -89,27 +106,6 @@ export function TraceIdRenderer({
   );
 
   return <Link to={target}>{getShortEventId(traceId)}</Link>;
-}
-
-interface TransactionIdRendererProps {
-  projectSlug: string;
-  transactionId: string;
-}
-
-export function TransactionIdRenderer({
-  projectSlug,
-  transactionId,
-}: TransactionIdRendererProps) {
-  const organization = useOrganization();
-
-  const target = getTransactionDetailsUrl(
-    organization.slug,
-    `${projectSlug}:${transactionId}`,
-    undefined,
-    undefined
-  );
-
-  return <Link to={target}>{getShortEventId(transactionId)}</Link>;
 }
 
 interface TransactionRendererProps {
