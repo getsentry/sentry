@@ -43,7 +43,7 @@ interface SpanIdRendererProps {
   projectSlug: string;
   spanId: string;
   timestamp: string;
-  trace: string;
+  traceId: string;
   transactionId: string;
 }
 
@@ -51,7 +51,7 @@ export function SpanIdRenderer({
   projectSlug,
   spanId,
   timestamp,
-  trace,
+  traceId,
   transactionId,
 }: SpanIdRendererProps) {
   const location = useLocation();
@@ -67,7 +67,7 @@ export function SpanIdRenderer({
     eventView: EventView.fromLocation(location),
     dataRow: {
       id: transactionId,
-      trace,
+      trace: traceId,
       timestamp,
     },
     spanId,

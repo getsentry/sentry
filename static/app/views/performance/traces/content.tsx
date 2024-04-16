@@ -163,35 +163,45 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       <StyledPanelItem align="right">
         <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
       </StyledPanelItem>
-      {expanded && (
-        <StyledPanelItem span={6}>
-          <StyledPanel>
-            <SpanPanelContent>
-              <StyledPanelHeader align="left" lightText>
-                {t('Span ID')}
-              </StyledPanelHeader>
-              <StyledPanelHeader align="left" lightText>
-                {t('Span Description')}
-              </StyledPanelHeader>
-              <StyledPanelHeader align="right" lightText />
-              <StyledPanelHeader align="right" lightText>
-                {t('Span Duration')}
-              </StyledPanelHeader>
-              <StyledPanelHeader align="right" lightText>
-                {t('Issues')}
-              </StyledPanelHeader>
-              {trace.spans.map(span => (
-                <SpanRow key={span.id} span={span} trace={trace.trace} />
-              ))}
-            </SpanPanelContent>
-          </StyledPanel>
-        </StyledPanelItem>
-      )}
+      {expanded && <SpanTable spans={trace.spans} trace={trace} />}
     </Fragment>
   );
 }
 
-function SpanRow({span, trace}: {span: SpanResult<Field>; trace: string}) {
+function SpanTable({
+  spans,
+  trace,
+}: {
+  spans: SpanResult<Field>[];
+  trace: TraceResult<Field>;
+}) {
+  return (
+    <SpanTablePanelItem span={6}>
+      <StyledPanel>
+        <SpanPanelContent>
+          <StyledPanelHeader align="left" lightText>
+            {t('Span ID')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="left" lightText>
+            {t('Span Description')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText />
+          <StyledPanelHeader align="right" lightText>
+            {t('Span Duration')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Issues')}
+          </StyledPanelHeader>
+          {spans.map(span => (
+            <SpanRow key={span.id} span={span} traceId={trace.trace} />
+          ))}
+        </SpanPanelContent>
+      </StyledPanel>
+    </SpanTablePanelItem>
+  );
+}
+
+function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
   return (
     <Fragment>
       <StyledPanelItem align="right">
@@ -199,7 +209,7 @@ function SpanRow({span, trace}: {span: SpanResult<Field>; trace: string}) {
           projectSlug={span.project}
           transactionId={span['transaction.id']}
           spanId={span.id}
-          trace={trace}
+          traceId={traceId}
           timestamp={span.timestamp}
         />
       </StyledPanelItem>
@@ -329,6 +339,10 @@ const StyledPanelItem = styled(PanelItem)<{
         ? `text-align: ${p.align};`
         : undefined}
   ${p => p.span && `grid-column: auto / span ${p.span}`}
+`;
+
+const SpanTablePanelItem = styled(StyledPanelItem)`
+  background-color: ${p => p.theme.gray100};
 `;
 
 const EmptyValueContainer = styled('span')`
