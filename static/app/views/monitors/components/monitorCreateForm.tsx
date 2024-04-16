@@ -6,6 +6,7 @@ import {Observer} from 'mobx-react';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -99,7 +100,7 @@ export default function MonitorCreateForm() {
       submitLabel={t('Create')}
     >
       <FieldContainer>
-        <MultiColumnInput columns="250px 1fr">
+        <MultiColumnInput columns="230px 230px 1fr">
           <StyledSentryProjectSelectorField
             name="project"
             projects={filteredProjects}
@@ -109,6 +110,13 @@ export default function MonitorCreateForm() {
             required
             stacked
             inline={false}
+          />
+          <StyledSentryMemberTeamSelectorField
+            name="owner"
+            placeholder={t('Assign Ownership')}
+            stacked
+            inline={false}
+            menuPlacement="auto"
           />
           <StyledTextField
             name="name"
@@ -284,6 +292,10 @@ const StyledNumberField = styled(NumberField)`
 `;
 
 const StyledSelectField = styled(SelectField)`
+  padding: 0;
+`;
+
+const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding: 0;
 `;
 
