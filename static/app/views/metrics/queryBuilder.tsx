@@ -6,7 +6,8 @@ import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {IconLightning, IconReleases} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
@@ -112,7 +113,10 @@ export const QueryBuilder = memo(function QueryBuilder({
   const groupByOptions = useMemo(() => {
     return uniqBy(tagsData, 'key').map(tag => ({
       key: tag.key,
-      disabled: metricsQuery.query?.includes(tag.key),
+      // So that we don't have to parse the query to determine if the tag is used
+      trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
+        <TagWarningIcon />
+      ) : undefined,
     }));
   }, [tagsData, metricsQuery.query]);
 
@@ -200,20 +204,11 @@ export const QueryBuilder = memo(function QueryBuilder({
       trackAnalytics('ddm.widget.filter', {organization});
       incrementQueryMetric('ddm.widget.filter', {query});
 
-      if (!metricsQuery.groupBy?.length) {
-        onChange({
-          query,
-        });
-      }
-
-      // Since tags should not appear in both in the query and groupBy, we remove them from group by
-      const groupBy = (metricsQuery.groupBy || []).filter(tag => !query.includes(tag));
       onChange({
         query,
-        groupBy,
       });
     },
-    [incrementQueryMetric, onChange, organization, metricsQuery.groupBy]
+    [incrementQueryMetric, onChange, organization]
   );
 
   const handleOpenMetricsMenu = useCallback(
@@ -305,8 +300,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             options={groupByOptions.map(tag => ({
               label: tag.key,
               value: tag.key,
-              disabled: tag.disabled,
-              trailingItems: (
+              trailingItems: tag.trailingItems ?? (
                 <Fragment>
                   {tag.key === 'release' && <IconReleases size="xs" />}
                   {tag.key === 'transaction' && <IconLightning size="xs" />}
@@ -332,6 +326,22 @@ export const QueryBuilder = memo(function QueryBuilder({
     </QueryBuilderWrapper>
   );
 });
+
+function TagWarningIcon() {
+  return (
+    <TooltipIconWrapper>
+      <Tooltip
+        title={t('This tag appears in filter conditions, some groups may be omitted.')}
+      >
+        <IconWarning size="xs" color="warning" />
+      </Tooltip>
+    </TooltipIconWrapper>
+  );
+}
+
+const TooltipIconWrapper = styled('span')`
+  margin-top: ${space(0.25)};
+`;
 
 const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
