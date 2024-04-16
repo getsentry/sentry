@@ -1046,9 +1046,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
             ),
             "sentry:feedback_ai_spam_detection": bool(
-                options.get("sentry:feedback_ai_spam_detection")
+                self.get_value_with_default(attrs, "sentry:feedback_ai_spam_detection")
             ),
-            "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
+            "sentry:replay_rage_click_issues": self.get_value_with_default(
+                attrs, "sentry:replay_rage_click_issues"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 
