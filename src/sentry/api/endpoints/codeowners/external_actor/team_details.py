@@ -28,13 +28,15 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_id_or_slug: int | str,
         team_slug: str,
         external_team_id: int,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
-        args, kwargs = super().convert_args(request, organization_slug, team_slug, *args, **kwargs)
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, team_slug, *args, **kwargs
+        )
         kwargs["external_team"] = self.get_external_actor_or_404(
             external_team_id, kwargs["team"].organization
         )
@@ -45,7 +47,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         Update an External Team
         `````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
         :pparam string external_team_id: id of external_team object

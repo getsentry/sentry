@@ -42,9 +42,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Retrieve a list of releases for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_slug: the id or slug of the project to list the
                                      releases of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
@@ -97,7 +97,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_slug: the slug of the project to create a
                                      release for.

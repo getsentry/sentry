@@ -49,7 +49,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         If on the first page, this endpoint will also include any pre-built dashboards
         that haven't been replaced or removed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
@@ -142,7 +142,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         ``````````````````````````````````````````
 
         Create a new dashboard for the given Organization
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         """
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):

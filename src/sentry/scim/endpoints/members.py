@@ -176,14 +176,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_id_or_slug: int | str,
         member_id: str = "me",
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
         try:
             args, kwargs = super().convert_args(
-                request, organization_slug, member_id, *args, **kwargs
+                request, organization_id_or_slug, member_id, *args, **kwargs
             )
             return args, kwargs
         except ResourceDoesNotExist:

@@ -250,7 +250,7 @@ class APIIdOrSlugPathParamTest(
         self.slug_mappings = {
             "doc_integration_id_or_slug": self.doc_integration,
             "sentry_app_id_or_slug": self.sentry_app,
-            "organization_slug": self.organization,
+            "organization_id_or_slug": self.organization,
             "project_slug": self.project,
             "team_slug": self.team,
             "monitor_slug": self.monitor,

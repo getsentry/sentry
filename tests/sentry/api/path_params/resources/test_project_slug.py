@@ -159,8 +159,8 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         request = Request(self.make_request(user=self.user))
 
         # Even though there is 1 endpoint for this convert_args that doesn't need organization_slug, we need to pass it
-        slug_kwargs["organization_slug"] = self.slug_mappings["organization_slug"].slug
-        id_kwargs["organization_slug"] = self.slug_mappings["organization_slug"].id
+        slug_kwargs["organization_id_or_slug"] = self.slug_mappings["organization_id_or_slug"].slug
+        id_kwargs["organization_id_or_slug"] = self.slug_mappings["organization_id_or_slug"].id
 
         request = Request(self.make_request(user=self.user))
 

@@ -243,7 +243,7 @@ class OrganizationReleasesEndpoint(
         ```````````````````````````````
         Return a list of releases for a given organization.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
@@ -421,7 +421,7 @@ class OrganizationReleasesEndpoint(
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -595,7 +595,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         ```````````````````````````````
         Return a list of releases for a given organization, sorted for most recent releases.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         """
         query = request.GET.get("query")
 

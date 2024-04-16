@@ -172,17 +172,17 @@ urlpatterns += [
         include(
             [
                 re_path(
-                    r"^acs/(?P<organization_slug>[^/]+)/$",
+                    r"^acs/(?P<organization_id_or_slug>[^/]+)/$",
                     SAML2AcceptACSView.as_view(),
                     name="sentry-auth-organization-saml-acs",
                 ),
                 re_path(
-                    r"^sls/(?P<organization_slug>[^/]+)/$",
+                    r"^sls/(?P<organization_id_or_slug>[^/]+)/$",
                     SAML2SLSView.as_view(),
                     name="sentry-auth-organization-saml-sls",
                 ),
                 re_path(
-                    r"^metadata/(?P<organization_slug>[^/]+)/$",
+                    r"^metadata/(?P<organization_id_or_slug>[^/]+)/$",
                     SAML2MetadataView.as_view(),
                     name="sentry-auth-organization-saml-metadata",
                 ),
@@ -200,7 +200,7 @@ urlpatterns += [
                     name="sentry-login",
                 ),
                 re_path(
-                    r"^login/(?P<organization_slug>[^/]+)/$",
+                    r"^login/(?P<organization_id_or_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-organization",
                 ),
@@ -210,7 +210,7 @@ urlpatterns += [
                     name="sentry-auth-channel",
                 ),
                 re_path(
-                    r"^link/(?P<organization_slug>[^/]+)/$",
+                    r"^link/(?P<organization_id_or_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-link-identity",
                 ),
@@ -346,7 +346,7 @@ urlpatterns += [
                     ),
                 ),
                 re_path(
-                    r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
+                    r"^settings/identities/associate/(?P<organization_id_or_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",
                 ),
@@ -453,7 +453,7 @@ urlpatterns += [
         name="sentry-accept-invite",
     ),
     re_path(
-        r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
+        r"^accept/(?P<organization_id_or_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-accept-invite",
     ),
@@ -629,32 +629,32 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/teams/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/teams/$",
                     react_page_view,
                     name="sentry-organization-teams",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/members/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-member-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/auth/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/auth/$",
                     react_page_view,
                     name="sentry-organization-auth-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-sub-page-settings",
                 ),
@@ -671,7 +671,7 @@ urlpatterns += [
         name="integration-installation",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_id_or_slug>\w+)/project/(?P<project_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-project",
     ),
@@ -681,7 +681,7 @@ urlpatterns += [
         name="sentry-customer-domain-unsubscribe-project",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_id_or_slug>\w+)/issue/(?P<issue_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-issue",
     ),
@@ -861,7 +861,7 @@ urlpatterns += [
     ),
     # Organizations
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/$",
         react_page_view,
         name="sentry-organization-home",
     ),
@@ -875,165 +875,165 @@ urlpatterns += [
                     name="sentry-organization-create",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-index",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/stories/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/stories/$",
                     react_page_view,
                     name="sentry-organization-stories",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/issues/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/issues/$",
                     react_page_view,
                     name="sentry-organization-issue-list",
                 ),
                 re_path(
                     # See src.sentry.models.group.Group.get_absolute_url if this changes
-                    r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/issues/(?P<issue_id>\d+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/issues/(?P<issue_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue-detail",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$",
                     react_page_view,
                     name="sentry-organization-event-detail",
                 ),
                 # User Feedback
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/user-feedback/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/user-feedback/$",
                     react_page_view,
                     name="sentry-organization-user-feedback",
                 ),
                 # User Feedback v2
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/feedback/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/feedback/$",
                     react_page_view,
                     name="sentry-organization-feedback-list",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
                     name="sentry-data-export-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-project-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-project-event-redirect",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/api-keys/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/api-keys/$",
                     react_page_view,
                     name="sentry-organization-api-keys",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-api-key-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/auth/configure/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/auth/configure/$",
                     OrganizationAuthSettingsView.as_view(),
                     name="sentry-organization-auth-provider-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$",
                     OrganizationIntegrationSetupView.as_view(),
                     name="sentry-organization-integrations-setup",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/members/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/members/$",
                     RedirectView.as_view(
                         pattern_name="sentry-organization-members", permanent=False
                     ),
                     name="sentry-organization-members-old",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
                     RedirectView.as_view(
                         pattern_name="sentry-organization-member-settings", permanent=False
                     ),
                     name="sentry-organization-member-settings-old",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/performance/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/performance/$",
                     react_page_view,
                     name="sentry-organization-performance",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/performance/summary/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/performance/summary/$",
                     react_page_view,
                     name="sentry-organization-performance-summary",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/stats/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/stats/$",
                     react_page_view,
                     name="sentry-organization-stats",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/replays/$",
                     react_page_view,
                     name="sentry-organization-replays",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-replay-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/dead-clicks/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/replays/dead-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-dead-clicks",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/crons/$",
                     react_page_view,
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/restore/$",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/restore/$",
                     generic_react_page_view,
                     name="sentry-restore-organization",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/disabled-member/$",
+                    r"^(?P<organization_id_or_slug>[^/]+)/disabled-member/$",
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/newest-(?P<issue_type>[\w_-]+)-issue/$",
+                    r"^(?P<organization_id_or_slug>[^/]+)/newest-(?P<issue_type>[\w_-]+)-issue/$",
                     NewestIssueView.as_view(),
                     name="sentry-organization-newest-issue",
                 ),
-                # need to force these to React and ensure organization_slug is captured
+                # need to force these to React and ensure organization_id_or_slug is captured
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/",
+                    r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/",
                     react_page_view,
                     name="sentry-organization-sub-page",
                 ),
@@ -1042,11 +1042,11 @@ urlpatterns += [
     ),
     # Settings - Projects
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$",
         RedirectView.as_view(pattern_name="sentry-manage-project", permanent=False),
     ),
     re_path(
-        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
+        r"^settings/(?P<organization_id_or_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
         react_page_view,
         name="sentry-manage-project",
     ),
@@ -1178,58 +1178,58 @@ urlpatterns += [
         name="sentry-group-shared",
     ),
     re_path(
-        r"^join-request/(?P<organization_slug>[\w_-]+)/$",
+        r"^join-request/(?P<organization_id_or_slug>[\w_-]+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
     # Keep named URL for things using reverse
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,
         name="sentry-short-id",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$",
         react_page_view,
         name="sentry-group",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$",
         react_page_view,
         name="sentry-group-event",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$",
         react_page_view,
         name="sentry-stream",
     ),
     re_path(
-        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
+        r"^organizations/(?P<organization_id_or_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
         react_page_view,
         name="sentry-metric-alert",
     ),
     re_path(
-        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
+        r"^organizations/(?P<organization_id_or_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-metric-alert-details",
     ),
     re_path(
-        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
+        r"^settings/(?P<organization_id_or_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
         GroupPluginActionView.as_view(),
         name="sentry-group-plugin-action",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+        r"^(?P<organization_id_or_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
     ),

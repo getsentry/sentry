@@ -302,8 +302,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
 
-    def convert_args(self, request: Request, organization_slug: str, team_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(
+        self, request: Request, organization_id_or_slug: int | str, team_id, *args, **kwargs
+    ):
+        args, kwargs = super().convert_args(request, organization_id_or_slug)
         try:
             kwargs["team"] = self._get_team(kwargs["organization"], team_id)
         except Team.DoesNotExist:

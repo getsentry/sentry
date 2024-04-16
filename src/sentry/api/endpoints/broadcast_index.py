@@ -50,9 +50,9 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         # used in the SAAS product
         return list(queryset)
 
-    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        if organization_slug:
-            args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(self, request: Request, organization_id_or_slug=None, *args, **kwargs):
+        if organization_id_or_slug:
+            args, kwargs = super().convert_args(request, organization_id_or_slug)
 
         return (args, kwargs)
 

@@ -26,7 +26,7 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
 
         Return a list of commits for a given repository.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :pparam string repo_id: the repository ID
         :auth: required
         """
