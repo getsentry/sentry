@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 
 function maybeCleanupObserver(
   observerRef: React.MutableRefObject<IntersectionObserver | null>
@@ -84,7 +84,7 @@ export function LazyRender(props: LazyRenderProps) {
   );
 
   if (visible && props.withoutWrapper) {
-    return <Fragment>{props.children}</Fragment>;
+    return props.children;
   }
 
   return <div ref={onRefNode}>{visible ? props.children : null}</div>;
