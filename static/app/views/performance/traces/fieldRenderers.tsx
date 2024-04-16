@@ -1,9 +1,12 @@
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import type {DateString} from 'sentry/types';
-import {Container} from 'sentry/utils/discover/styles';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,48 +17,61 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 interface ProjectRendererProps {
   projectSlug: string;
+  hideName?: boolean;
 }
 
-export function ProjectRenderer({projectSlug}: ProjectRendererProps) {
+export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   const organization = useOrganization();
 
   return (
-    <Container>
-      <Projects orgId={organization.slug} slugs={[projectSlug]}>
-        {({projects}) => {
-          const project = projects.find(p => p.slug === projectSlug);
-          return (
-            <ProjectBadge
-              project={project ? project : {slug: projectSlug}}
-              avatarSize={16}
-            />
-          );
-        }}
-      </Projects>
-    </Container>
+    <Projects orgId={organization.slug} slugs={[projectSlug]}>
+      {({projects}) => {
+        const project = projects.find(p => p.slug === projectSlug);
+        return (
+          <ProjectBadge
+            hideName={hideName}
+            project={project ? project : {slug: projectSlug}}
+            avatarSize={16}
+          />
+        );
+      }}
+    </Projects>
   );
 }
 
 interface SpanIdRendererProps {
   projectSlug: string;
   spanId: string;
+  timestamp: string;
+  trace: string;
   transactionId: string;
 }
 
 export function SpanIdRenderer({
   projectSlug,
   spanId,
+  timestamp,
+  trace,
   transactionId,
 }: SpanIdRendererProps) {
+  const location = useLocation();
   const organization = useOrganization();
 
-  const target = getTransactionDetailsUrl(
-    organization.slug,
-    `${projectSlug}:${transactionId}`,
-    undefined,
-    undefined,
-    spanId
-  );
+  const target = generateLinkToEventInTraceView({
+    eventSlug: generateEventSlug({
+      id: transactionId,
+      project: projectSlug,
+    }),
+    organization,
+    location,
+    eventView: EventView.fromLocation(location),
+    dataRow: {
+      id: transactionId,
+      trace,
+      timestamp,
+    },
+    spanId,
+  });
 
   return <Link to={target}>{getShortEventId(spanId)}</Link>;
 }
@@ -89,32 +105,7 @@ export function TraceIdRenderer({
     transactionId
   );
 
-  return (
-    <Container>
-      <Link to={target}>{getShortEventId(traceId)}</Link>
-    </Container>
-  );
-}
-
-interface TransactionIdRendererProps {
-  projectSlug: string;
-  transactionId: string;
-}
-
-export function TransactionIdRenderer({
-  projectSlug,
-  transactionId,
-}: TransactionIdRendererProps) {
-  const organization = useOrganization();
-
-  const target = getTransactionDetailsUrl(
-    organization.slug,
-    `${projectSlug}:${transactionId}`,
-    undefined,
-    undefined
-  );
-
-  return <Link to={target}>{getShortEventId(transactionId)}</Link>;
+  return <Link to={target}>{getShortEventId(traceId)}</Link>;
 }
 
 interface TransactionRendererProps {
@@ -140,9 +131,5 @@ export function TransactionRenderer({
     projectID: String(projects[0]?.id ?? ''),
   });
 
-  return (
-    <Container>
-      <Link to={target}>{transaction}</Link>
-    </Container>
-  );
+  return <Link to={target}>{transaction}</Link>;
 }
