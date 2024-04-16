@@ -324,13 +324,12 @@ const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  padding-top: ${space(0.5)};
   gap: ${space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
     padding-left: ${space(1)};
-    margin-left: ${space(2)};
+    margin-left: 38px;
   `}
 `;
