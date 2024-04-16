@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, Project} from 'sentry/types';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   getMetricsTagsQueryKey,
   useMetricsTags,
@@ -27,6 +28,7 @@ export function MetricListItemDetails({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const isCustomMetric = parseMRI(metric.mri)?.useCase === 'custom';
 
   const projectIds = useMemo(
     () => selectedProjects.map(project => parseInt(project.id, 10)),
@@ -71,9 +73,15 @@ export function MetricListItemDetails({
       <MetricName>
         {/* Add zero width spaces at delimiter characters for nice word breaks */}
         {formatMRI(metric.mri).replaceAll(/([\.\/-_])/g, '\u200b$1')}
+        {!isCustomMetric && (
+          <SamplingWarning>
+            <IconWarning color="yellow400" size="xs" />
+            {t('Prone to client-side sampling')}
+          </SamplingWarning>
+        )}
       </MetricName>
       <DetailsGrid>
-        <DetailsLabel>Project</DetailsLabel>
+        <DetailsLabel>{t('Project')}</DetailsLabel>
         <DetailsValue>
           {truncatedProjects.map(project => (
             <ProjectBadge
@@ -87,11 +95,11 @@ export function MetricListItemDetails({
             <span>{t('+%d more', metricProjects.length - MAX_PROJECTS_TO_SHOW)}</span>
           )}
         </DetailsValue>
-        <DetailsLabel>Type</DetailsLabel>
+        <DetailsLabel>{t('Type')}</DetailsLabel>
         <DetailsValue>{getReadableMetricType(metric.type)}</DetailsValue>
-        <DetailsLabel>Unit</DetailsLabel>
+        <DetailsLabel>{t('Unit')}</DetailsLabel>
         <DetailsValue>{metric.unit}</DetailsValue>
-        <DetailsLabel>Tags</DetailsLabel>
+        <DetailsLabel>{t('Tags')}</DetailsLabel>
         <DetailsValue>
           {tagsIsLoading || !isQueryEnabled ? (
             <StyledLoadingIndicator mini size={12} />
@@ -152,4 +160,12 @@ const DetailsValue = styled('div')`
   border-top-right-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   min-width: 0;
+`;
+
+const SamplingWarning = styled('div')`
+  display: grid;
+  gap: ${space(0.25)};
+  grid-template-columns: max-content 1fr;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.yellow400};
 `;
