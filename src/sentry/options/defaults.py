@@ -2372,6 +2372,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# list of project IDs we want to deny ingesting profiles
+# function metrics to the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
