@@ -97,6 +97,11 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                 "metric": data.get("metric", TransactionMetric.DURATION.value),
                 "edited_by_id": request.user.id,
             },
+            create_defaults={
+                "threshold": data.get("threshold"),
+                "metric": data.get("metric"),
+                "edited_by_id": request.user.id,
+            },
         )
 
         return Response(
