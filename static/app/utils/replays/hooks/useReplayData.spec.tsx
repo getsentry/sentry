@@ -10,7 +10,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -89,7 +89,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -162,7 +162,7 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -294,7 +294,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -371,7 +371,7 @@ describe('useReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,

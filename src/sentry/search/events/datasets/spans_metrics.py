@@ -177,7 +177,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                         fields.MetricArg(
                             "if_col",
-                            allowed_columns=["release"],
+                            allowed_columns=["release", "span.op"],
                         ),
                         fields.SnQLStringArg(
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
@@ -531,6 +531,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="string",
                     redundant_grouping=True,
                 ),
+                fields.MetricsFunction(
+                    "count_op",
+                    required_args=[
+                        SnQLStringArg(
+                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
+                        ),
+                    ],
+                    snql_distribution=self._resolve_count_op,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -853,9 +863,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )
@@ -954,6 +966,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_count_op(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("span.op"),
+                    self.builder.resolve_tag_value(args["op"]),
+                ],
+            ),
+            alias,
+        )
+
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
@@ -966,7 +1001,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
         self.builder = builder
         self.total_span_duration: float | None = None
 
-    def resolve_mri(self, value) -> Column:
+    def resolve_mri(self, value: str) -> Column:
         """Given the public facing column name resolve it to the MRI and return a Column"""
         # If the query builder has not detected a transaction use the light self time metric to get a performance boost
         if value == "span.self_time" and not self.builder.has_transaction:

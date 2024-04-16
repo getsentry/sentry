@@ -778,7 +778,7 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   appConfig.plugins?.push(
     codecovWebpackPlugin({
       enableBundleAnalysis: true,
-      bundleName: 'sentry-webpack-bundle',
+      bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
       debug: true,
     })

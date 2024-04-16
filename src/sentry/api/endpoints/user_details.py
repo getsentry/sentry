@@ -26,6 +26,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
@@ -184,6 +185,13 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
+        if "username" in request.data:
+            verified_email_found = UserEmail.objects.filter(
+                user_id=user.id, email=request.data["username"], is_verified=True
+            ).exists()
+            if not verified_email_found:
+                return Response({"detail": "Verified email address is not found."}, status=400)
+
         # We want to prevent superusers from setting users to superuser or staff
         # because this is only done through _admin. This will always be enforced
         # once the feature flag is removed.
