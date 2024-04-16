@@ -228,7 +228,14 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "duration": 60_100,
                     "start": int(timestamps[0].timestamp() * 1000),
                     "end": int(timestamps[0].timestamp() * 1000) + 60_100,
-                    "breakdown": [],
+                    "breakdowns": [
+                        {
+                            "project": self.project.slug,
+                            "start": int(timestamps[0].timestamp() * 1000),
+                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                            "kind": "project",
+                        },
+                    ],
                     "spans": sorted(
                         [
                             # span_ids[1] does not match
@@ -245,7 +252,14 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "duration": 90_123,
                     "start": int(timestamps[4].timestamp() * 1000),
                     "end": int(timestamps[4].timestamp() * 1000) + 90_123,
-                    "breakdown": [],
+                    "breakdowns": [
+                        {
+                            "project": self.project.slug,
+                            "start": int(timestamps[4].timestamp() * 1000),
+                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                            "kind": "project",
+                        },
+                    ],
                     "spans": sorted(
                         [
                             {"id": span_ids[5], "parent_span": span_ids[4]},
@@ -257,7 +271,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
         )
-        assert 0
 
 
 @pytest.mark.parametrize(
@@ -335,13 +348,20 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "project": "foo",
                     "transaction": "foo1",
                     "first_seen()": 0,
-                    "last_seen()": 75,
+                    "last_seen()": 50,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
                     "first_seen()": 25,
+                    "last_seen()": 75,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "baz",
+                    "transaction": "baz1",
+                    "first_seen()": 50,
                     "last_seen()": 100,
                 },
             ],
@@ -357,12 +377,18 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "bar",
                         "start": 25,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "baz",
+                        "start": 50,
                         "end": 100,
                         "kind": "project",
                     },
                 ],
             },
-            id="two transactions different project overlapping",
+            id="three transactions different project overlapping",
         ),
         pytest.param(
             [
