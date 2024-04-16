@@ -132,7 +132,7 @@ export function Queries({
       {displayType !== DisplayType.BIG_NUMBER && (
         <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
           <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
-            {t('Add query')}
+            {t('Add metric')}
           </Button>
           <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
             {t('Add equation')}
@@ -189,7 +189,7 @@ function QueryContextMenu({
     const removeQueryItem = {
       leadingItems: [<IconClose key="icon" />],
       key: 'delete',
-      label: t('Remove Query'),
+      label: t('Remove Metric'),
       disabled: !canRemoveQuery,
       onAction: () => {
         removeQuery(queryIndex);
