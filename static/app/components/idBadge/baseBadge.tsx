@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject, AvatarUser, Organization, Team} from 'sentry/types';
+import type {Actor, AvatarProject, AvatarUser, Organization, Team} from 'sentry/types';
 
 export interface BaseBadgeProps {
   avatarProps?: Record<string, any>;
@@ -17,6 +17,7 @@ export interface BaseBadgeProps {
 
 interface AllBaseBadgeProps extends BaseBadgeProps {
   displayName: React.ReactNode;
+  actor?: Actor;
   organization?: Organization;
   project?: AvatarProject;
   team?: Team;
@@ -35,6 +36,7 @@ export const BaseBadge = memo(
     user,
     organization,
     project,
+    actor,
     className,
   }: AllBaseBadgeProps) => (
     <Wrapper className={className}>
@@ -46,6 +48,7 @@ export const BaseBadge = memo(
           user={user}
           organization={organization}
           project={project}
+          actor={actor}
         />
       )}
 
