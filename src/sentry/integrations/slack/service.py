@@ -13,6 +13,7 @@ from sentry.models.activity import Activity
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.types.integrations import ExternalProviderEnum
+from sentry.utils import json
 
 _default_logger = getLogger(__name__)
 
@@ -166,6 +167,8 @@ class SlackService:
             block, fallback_text=notification_to_send
         )
         payload.update(slack_payload)
+        # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
+        payload["blocks"] = json.dumps(payload.get("blocks"))
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except Exception as err:
