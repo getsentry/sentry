@@ -3,7 +3,7 @@ from unittest import mock
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_events import RATE_LIMIT
+from sentry.api.endpoints.organization_events import DEFAULT_RATE_LIMIT
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -164,7 +164,7 @@ class OrganizationEventsEndpointTest(APITestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(RATE_LIMIT):
+            for _ in range(DEFAULT_RATE_LIMIT):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 429, response.content
