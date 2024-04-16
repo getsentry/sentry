@@ -73,7 +73,8 @@ def run_queries(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
         preparation_steps.append(UnitsNormalizationStep())
-        preparation_steps.append(QueryModulationStep(projects, modulators))
+
+    preparation_steps.append(QueryModulationStep(projects, modulators))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)

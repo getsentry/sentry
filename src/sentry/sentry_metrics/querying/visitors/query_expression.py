@@ -472,23 +472,9 @@ class ModulatorVisitor(QueryExpressionVisitor):
         formula = formula.set_filters(filters)
 
         if formula.groupby:
-            new_group_bys = []
-            for group in formula.groupby:
-                new_group = group
-                if isinstance(group, Column):
-                    modulator = find_modulator(self.modulators, group.name)
-                    if modulator:
-                        new_group = Column(name=modulator.to_key)
-                        self.applied_modulators.append(modulator)
-                elif isinstance(group, AliasedExpression):
-                    modulator = find_modulator(self.modulators, group.exp.name)
-                    if modulator:
-                        new_group = AliasedExpression(
-                            exp=Column(name=modulator.to_key), alias=group.alias
-                        )
-                    self.applied_modulators.append(modulator)
-                new_group_bys.append(new_group)
+            new_group_bys = self._modulate_groupby(formula.groupby)
             formula = formula.set_groupby(new_group_bys)
+
         return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
@@ -496,21 +482,26 @@ class ModulatorVisitor(QueryExpressionVisitor):
         timeseries = timeseries.set_filters(filters)
 
         if timeseries.groupby:
-            new_group_bys = []
-            for group in timeseries.groupby:
-                new_group = group
-                if isinstance(group, Column):
-                    modulator = find_modulator(self.modulators, group.name)
-                    if modulator:
-                        new_group = Column(name=modulator.to_key)
-                        self.applied_modulators.append(modulator)
-                elif isinstance(group, AliasedExpression):
-                    modulator = find_modulator(self.modulators, group.exp.name)
-                    if modulator:
-                        new_group = AliasedExpression(
-                            exp=Column(name=modulator.to_key), alias=group.alias
-                        )
-                    self.applied_modulators.append(modulator)
-                new_group_bys.append(new_group)
+            new_group_bys = self._modulate_groupby(timeseries.groupby)
             timeseries = timeseries.set_groupby(new_group_bys)
+
         return timeseries
+
+    def _modulate_groupby(self, groupby: list[Column | AliasedExpression] | None = None):
+        new_group_bys = []
+        for group in groupby:
+            new_group = group
+            if isinstance(group, Column):
+                modulator = find_modulator(self.modulators, group.name)
+                if modulator:
+                    new_group = Column(name=modulator.to_key)
+                    self.applied_modulators.append(modulator)
+            elif isinstance(group, AliasedExpression):
+                modulator = find_modulator(self.modulators, group.exp.name)
+                if modulator:
+                    new_group = AliasedExpression(
+                        exp=Column(name=modulator.to_key), alias=group.alias
+                    )
+                self.applied_modulators.append(modulator)
+            new_group_bys.append(new_group)
+        return new_group_bys
