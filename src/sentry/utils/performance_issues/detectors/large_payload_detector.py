@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
@@ -33,7 +34,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
     type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_http_spans: list[Span] = []
 

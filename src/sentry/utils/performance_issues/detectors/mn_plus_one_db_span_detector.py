@@ -260,7 +260,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(self.settings, self.event())
 

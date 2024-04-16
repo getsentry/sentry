@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import timedelta
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -37,7 +38,9 @@ class SlowDBQueryDetector(PerformanceDetector):
     type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
 
     def visit_span(self, span: Span):
