@@ -8,14 +8,6 @@ from snuba_sdk import Formula
 from sentry.models.project import Project
 
 
-class ModulationMetadata:
-    def __init__(self, from_key: str, to_key: str, from_value: str, to_value: str):
-        self.from_key = from_key
-        self.to_key = to_key
-        self.from_value = from_value
-        self.to_value = to_value
-
-
 class Modulator(abc.ABC):
     def __init__(self, from_key: str, to_key: str):
         self.from_key = from_key
@@ -26,7 +18,7 @@ class Modulator(abc.ABC):
         return hash((self.from_key, self.to_key))
 
     @abc.abstractmethod
-    def modulate(self, formula: Formula, **kwargs) -> tuple[ModulationMetadata, Formula]:
+    def modulate(self, formula: Formula, **kwargs) -> Formula:
         return formula
 
     @abc.abstractmethod
