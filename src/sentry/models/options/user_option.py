@@ -245,7 +245,7 @@ class UserOption(Model):
         # not duplicated on import.
         if self.organization_id is None and self.project_id is None:
             colliding_global_user_option = self.objects.filter(
-                user=self.user, organization_id__isnull=True, project_id__isnull=True
+                user=self.user, key=self.key, organization_id__isnull=True, project_id__isnull=True
             ).first()
             if colliding_global_user_option is not None:
                 return None
