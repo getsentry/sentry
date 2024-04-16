@@ -227,7 +227,6 @@ const StyledOverlay = styled(Overlay)<{
       : p.accordionRef.current?.getBoundingClientRect().top};
   left: ${p =>
     p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
-  background-color: white;
 `;
 
 const SidebarAccordionWrapper = styled('div')`
