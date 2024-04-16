@@ -13,6 +13,7 @@ from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
@@ -836,6 +837,48 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == [
             'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
         ]
+
+    def test_highlights(self):
+        # Default with or without flag, ignore update attempt
+        highlight_context = ["red", "robin"]
+        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=highlight_context,
+            highlightTags=highlight_tags,
+        )
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert self.project.get_option("sentry:highlight_tags") is None
+
+        preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightContext"] == preset["context"]
+        assert resp.data["highlightTags"] == preset["tags"]
+
+        with self.feature("organizations:event-tags-tree-ui"):
+            # Set to custom
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+                highlightTags=highlight_tags,
+            )
+            assert self.project.get_option("sentry:highlight_context") == highlight_context
+            assert self.project.get_option("sentry:highlight_tags") == highlight_tags
+            assert resp.data["highlightContext"] == highlight_context
+            assert resp.data["highlightTags"] == highlight_tags
+
+            # Set to empty
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=[],
+                highlightTags=[],
+            )
+            assert self.project.get_option("sentry:highlight_context") == []
+            assert self.project.get_option("sentry:highlight_tags") == []
+            assert resp.data["highlightContext"] == []
+            assert resp.data["highlightTags"] == []
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
