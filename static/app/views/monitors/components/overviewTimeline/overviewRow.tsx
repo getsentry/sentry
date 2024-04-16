@@ -7,13 +7,13 @@ import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types';
-import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {Monitor} from 'sentry/views/monitors/types';
@@ -73,22 +73,22 @@ export function OverviewRow({
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
         </DetailsHeadline>
-        <ProjectScheduleDetails>
-          <DetailsText>{scheduleAsText(monitor.config)}</DetailsText>
-          <ProjectDetails>
-            <ProjectBadge
-              project={monitor.project}
-              avatarSize={12}
-              disableLink
-              hideName
-            />
-            <DetailsText>{trimSlug(monitor.project.slug)}</DetailsText>
-          </ProjectDetails>
-        </ProjectScheduleDetails>
-        <MonitorStatuses>
-          {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
-          {isDisabled && <Tag>{t('Disabled')}</Tag>}
-        </MonitorStatuses>
+        <DetailsContainer>
+          <OwnershipDetails>
+            <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
+            {organization.features.includes('crons-ownership') && monitor.owner && (
+              <ActorBadge actor={monitor.owner} avatarSize={12} />
+            )}
+          </OwnershipDetails>
+          <ScheduleDetails>
+            <IconTimer size="xs" />
+            {scheduleAsText(monitor.config)}
+          </ScheduleDetails>
+          <MonitorStatuses>
+            {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
+            {isDisabled && <Tag>{t('Disabled')}</Tag>}
+          </MonitorStatuses>
+        </DetailsContainer>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -235,34 +235,36 @@ const DetailsActions = styled('div')`
 const DetailsHeadline = styled('div')`
   display: grid;
   gap: ${space(1)};
-
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
-const ProjectScheduleDetails = styled('div')`
+const DetailsContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;
 
-const ProjectDetails = styled('div')`
+const OwnershipDetails = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const MonitorStatuses = styled('div')`
   display: flex;
   gap: ${space(0.5)};
-  margin-top: ${space(1)};
 `;
 
 const Name = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
   word-break: break-word;
+  margin-bottom: ${space(0.5)};
 `;
 
-const DetailsText = styled('small')`
+const ScheduleDetails = styled('small')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
