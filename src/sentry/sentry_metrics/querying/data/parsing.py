@@ -80,8 +80,8 @@ class QueryParser:
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
                     QueryConditionsCompositeVisitor(
-                        LatestReleaseTransformationVisitor(self._projects),
+                        LatestReleaseTransformationVisitor(self._projects)
                     )
                 ).get()
             )
-            yield query_expression, compiled_mql_query
+            yield query_expression, compiled_mql_query.order, compiled_mql_query.limit

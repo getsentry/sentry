@@ -452,31 +452,3 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
 
     def _is_numeric_scalar(self, value: QueryExpression) -> bool:
         return isinstance(value, int) or isinstance(value, float)
-
-
-class GroupByProjectVisitor(QueryExpressionVisitor[QueryExpression]):
-    def __init__(self, projects):
-        self._projects = projects
-
-    def _replace_project_by_project_id(self, column: Column):
-        if column.name == "project":
-            return Column("project_id")
-        return column
-
-    def _visit_groupby(self, groupby: list[Column | AliasedExpression] | None = None):
-        for idx, single_groupby in enumerate(groupby):
-            if isinstance(single_groupby, Column):
-                groupby[idx] = self._replace_project_by_project_id(single_groupby)
-
-            if isinstance(single_groupby, AliasedExpression):
-                groupby[idx] = self._replace_project_by_project_id(single_groupby.exp)
-
-    def _visit_formula(self, formula: Formula) -> QueryExpression:
-        if formula.groupby is not None:
-            self._visit_groupby(formula.groupby)
-        return formula
-
-    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
-        if timeseries.groupby is not None:
-            self._visit_groupby(timeseries.groupby)
-        return timeseries
