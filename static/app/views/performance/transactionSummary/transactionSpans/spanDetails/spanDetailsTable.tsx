@@ -34,7 +34,8 @@ type TableColumnKeys =
   | 'spanDuration'
   | 'occurrences'
   | 'cumulativeDuration'
-  | 'spans';
+  | 'spans'
+  | 'project';
 
 type TableColumn = GridColumnOrder<TableColumnKeys>;
 
@@ -185,6 +186,7 @@ const COLUMN_TYPE: Omit<
   spanDuration: 'duration',
   occurrences: 'integer',
   cumulativeDuration: 'duration',
+  project: 'string',
 };
 
 const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [

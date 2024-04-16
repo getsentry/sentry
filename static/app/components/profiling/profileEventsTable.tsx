@@ -123,7 +123,9 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: Record<F, any>;
+  dataRow: {
+    [key: string]: any;
+  };
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }

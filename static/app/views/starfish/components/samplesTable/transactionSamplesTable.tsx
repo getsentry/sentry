@@ -54,12 +54,14 @@ export type DataRow = {
   'http.status_code': number;
   id: string;
   profile_id: string;
+  project: string;
   'spans.browser': number;
   'spans.db': number;
   'spans.http': number;
   'spans.resource': number;
   'spans.ui': number;
   timestamp: string;
+  trace: string;
   'transaction.duration': number;
   'transaction.status': string;
 };
