@@ -71,6 +71,9 @@ function DurationChart({
     filters['os.name'] = platform;
   }
 
+  console.dir(filters);
+  console.dir(additionalFilters);
+
   const {
     isLoading,
     data: spanMetricsSeriesData,

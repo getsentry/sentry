@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -13,7 +14,10 @@ import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -30,7 +34,10 @@ function SpanSummaryCharts() {
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
+    transaction: transaction,
   };
+
+  console.dir(filters);
 
   const {
     isLoading: isThroughputDataLoading,
@@ -58,26 +65,44 @@ function SpanSummaryCharts() {
 
   return (
     <BlockContainer>
-      {
-        <Block>
-          <ChartPanel title={t('Span Throughput')}>
-            <Chart
-              height={160}
-              data={[throughputData?.[`spm()`]]}
-              loading={isThroughputDataLoading}
-              type={ChartType.LINE}
-              definedAxisTicks={4}
-              aggregateOutputFormat="rate"
-              rateUnit={RateUnit.PER_MINUTE}
-              stacked
-              chartColors={[THROUGHPUT_COLOR]}
-              tooltipFormatterOptions={{
-                valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
-              }}
-            />
-          </ChartPanel>
-        </Block>
-        //
+      <Block>
+        <ChartPanel title={t('Average Duration')}>
+          <Chart
+            height={160}
+            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+            loading={isAvgDurationDataLoading}
+            type={ChartType.LINE}
+            definedAxisTicks={4}
+            aggregateOutputFormat="duration"
+            stacked
+            chartColors={[AVG_COLOR]}
+            // tooltipFormatterOptions={{
+            //   valueFormatter: value => formatDuration({duration: value, DurationUnit.MINUTE}),
+            // }}
+          />
+        </ChartPanel>
+      </Block>
+
+      <Block>
+        <ChartPanel title={t('Span Throughput')}>
+          <Chart
+            height={160}
+            data={[throughputData?.[`spm()`]]}
+            loading={isThroughputDataLoading}
+            type={ChartType.LINE}
+            definedAxisTicks={4}
+            aggregateOutputFormat="rate"
+            rateUnit={RateUnit.PER_MINUTE}
+            stacked
+            chartColors={[THROUGHPUT_COLOR]}
+            tooltipFormatterOptions={{
+              valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
+            }}
+          />
+        </ChartPanel>
+      </Block>
+
+      {/* //
         // <Block>
         // <ChartPanel title={getDurationChartTitle('http')}>
         // <Chart
@@ -114,8 +139,7 @@ function SpanSummaryCharts() {
         //       }}
         // />
         // </ChartPanel>
-        // </Block>
-      }
+        // </Block> */}
     </BlockContainer>
   );
 }
