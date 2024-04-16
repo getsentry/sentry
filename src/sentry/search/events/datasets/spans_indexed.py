@@ -254,19 +254,20 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
-                    "elapsed",
+                    "first_seen",
                     snql_aggregate=lambda args, alias: Function(
-                        "minus",
-                        [
-                            Function(
-                                "max",
-                                [self._resolve_timestamp_with_ms("end_timestamp", "end_ms")],
-                            ),
-                            Function(
-                                "min",
-                                [self._resolve_timestamp_with_ms("start_timestamp", "start_ms")],
-                            ),
-                        ],
+                        "min",
+                        [self._resolve_timestamp_with_ms("start_timestamp", "start_ms")],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "max",
+                        [self._resolve_timestamp_with_ms("end_timestamp", "end_ms")],
                         alias,
                     ),
                     default_result_type="duration",
