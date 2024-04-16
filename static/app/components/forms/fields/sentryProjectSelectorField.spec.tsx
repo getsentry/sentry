@@ -43,9 +43,10 @@ describe('SentryProjectSelectorField', () => {
     render(
       <SentryProjectSelectorField
         groupProjects={project => (project.slug === 'other-project' ? 'other' : 'main')}
-        groupLabels={{
-          main: 'Main projects',
-        }}
+        groups={[
+          {key: 'main', label: 'Main projects'},
+          {key: 'other', label: 'Other'},
+        ]}
         onChange={mock}
         name="project"
         projects={projects}
@@ -55,6 +56,6 @@ describe('SentryProjectSelectorField', () => {
     await selectEvent.openMenu(screen.getByText(/choose sentry project/i));
 
     expect(screen.getByText('Main projects')).toBeInTheDocument();
-    expect(screen.getByText('other')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
   });
 });
