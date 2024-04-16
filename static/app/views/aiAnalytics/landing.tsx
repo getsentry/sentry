@@ -16,6 +16,7 @@ import {
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/aiAnalytics/aiAnalyticsCharts';
+import {PipelinesTable} from 'sentry/views/aiAnalytics/PipelinesTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 function NoAccessComponent() {
@@ -69,6 +70,9 @@ export default function AiAnalyticsPage() {
                     <ModuleLayout.Third>
                       <PipelineDurationChart />
                     </ModuleLayout.Third>
+                    <ModuleLayout.Full>
+                      <PipelinesTable />
+                    </ModuleLayout.Full>
                   </ModuleLayout.Layout>
                 </Layout.Main>
               </Layout.Body>
