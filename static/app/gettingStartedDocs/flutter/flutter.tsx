@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -84,6 +85,110 @@ Future<void> processOrderBatch(ISentrySpan span) async {
     await innerSpan.finish();
   }
 }`;
+
+const getConfigureMetricsSnippet = (params: Params) => `
+import 'package:sentry_flutter/sentry_flutter.dart';
+
+Future<void> main() async {
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = '${params.dsn}';
+      options.enableMetrics = true;
+    },
+    appRunner: initApp, // Init your App.
+  );
+};`;
+
+const metricsOnboarding: OnboardingConfig = {
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need Sentry Flutter SDK version [codeVersion:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
+        {
+          package: <code />,
+          codeVersion: <code />,
+          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'yml',
+          partialLoading: params.sourcePackageRegistries?.isLoading,
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To enable capturing metrics, you need to enable the metrics feature.'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getConfigureMetricsSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          configurations: [
+            {
+              code: [
+                {
+                  label: 'Dart',
+                  value: 'dart',
+                  language: 'dart',
+                  code: `
+// Add 4 to a counter named "hits"
+Sentry.metrics().increment("hits", value: 4);`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/flutter/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -203,6 +308,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  customMetricsOnboarding: metricsOnboarding,
 };
 
 export default docs;
