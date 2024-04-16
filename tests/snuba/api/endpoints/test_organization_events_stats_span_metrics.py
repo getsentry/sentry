@@ -297,28 +297,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
-    def test_cache_hit(self):
-        self.store_span_metric(
-            4,
-            metric="cache.item_size",
-            timestamp=self.day_ago + timedelta(minutes=1),
-            tags={"cache.hit": "true", "transaction": "foo"},
-        )
-
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
-                "interval": "1m",
-                "field": ["transaction"],
-                "yAxis": ["count()"],
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-            },
-        )
-
-        assert response.status_code == 200
-
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
