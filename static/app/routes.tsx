@@ -1491,11 +1491,7 @@ function buildRoutes() {
   );
 
   const aiAnalyticsRoutes = (
-    <Route
-      path="/ai-analytics/"
-      component={make(() => import('sentry/views/aiAnalytics'))}
-      withOrgPath
-    >
+    <Route path="/ai-analytics/" withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
     </Route>
   );
