@@ -2,9 +2,9 @@ from collections.abc import Sequence
 from dataclasses import replace
 
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery, PreparationStep
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
-from sentry.sentry_metrics.querying.visitors.query_modulator import ModulatorVisitor
+from sentry.sentry_metrics.querying.visitors.query_expression import ModulatorVisitor
 
 
 class QueryModulationStep(PreparationStep):

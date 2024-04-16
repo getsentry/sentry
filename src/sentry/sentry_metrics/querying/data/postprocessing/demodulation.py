@@ -3,8 +3,8 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryResult
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
 from sentry.sentry_metrics.querying.data.postprocessing.base import PostProcessingStep
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 
 
 class QueryDemodulationStep(PostProcessingStep):

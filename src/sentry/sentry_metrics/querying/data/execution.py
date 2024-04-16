@@ -11,6 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.data.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
@@ -24,7 +25,6 @@ from sentry.sentry_metrics.querying.visitors import (
     TimeseriesConditionInjectionVisitor,
     UsedGroupBysVisitor,
 )
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import bulk_run_query

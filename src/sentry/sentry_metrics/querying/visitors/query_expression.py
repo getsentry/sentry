@@ -4,7 +4,9 @@ from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeser
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -19,9 +21,9 @@ from sentry.sentry_metrics.querying.units import (
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
+    TVisited,
 )
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
-from sentry.sentry_metrics.querying.visitors.query_modulator import find_modulator
+from sentry.sentry_metrics.querying.visitors.query_condition import ModulatorConditionVisitor
 from sentry.snuba.metrics import parse_mri
 
 
@@ -452,3 +454,69 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
 
     def _is_numeric_scalar(self, value: QueryExpression) -> bool:
         return isinstance(value, int) or isinstance(value, float)
+
+
+class ModulatorVisitor(QueryExpressionVisitor):
+    """
+    Visitor that recursively transforms the QueryExpression components to modulate certain attributes to be queried
+    by API that need to be translated for Snuba to be able to query the data.
+    """
+
+    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
+        self._projects = projects
+        self.modulators = modulators
+        self.applied_modulators = []
+
+    def _visit_formula(self, formula: Formula) -> TVisited:
+        formula = super()._visit_formula(formula)
+
+        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
+            formula.filters
+        )
+        formula = formula.set_filters(filters)
+
+        if formula.groupby:
+            new_group_bys = []
+            for group in formula.groupby:
+                new_group = group
+                if isinstance(group, Column):
+                    modulator = find_modulator(self.modulators, group.name)
+                    if modulator:
+                        new_group = Column(name=modulator.to_key)
+                        self.applied_modulators.append(modulator)
+                elif isinstance(group, AliasedExpression):
+                    modulator = find_modulator(self.modulators, group.exp.name)
+                    if modulator:
+                        new_group = AliasedExpression(
+                            exp=Column(name=modulator.to_key), alias=group.alias
+                        )
+                    self.applied_modulators.append(modulator)
+                new_group_bys.append(new_group)
+            formula = formula.set_groupby(new_group_bys)
+        return formula
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
+        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
+            timeseries.filters
+        )
+        timeseries = timeseries.set_filters(filters)
+
+        if timeseries.groupby:
+            new_group_bys = []
+            for group in timeseries.groupby:
+                new_group = group
+                if isinstance(group, Column):
+                    modulator = find_modulator(self.modulators, group.name)
+                    if modulator:
+                        new_group = Column(name=modulator.to_key)
+                        self.applied_modulators.append(modulator)
+                elif isinstance(group, AliasedExpression):
+                    modulator = find_modulator(self.modulators, group.exp.name)
+                    if modulator:
+                        new_group = AliasedExpression(
+                            exp=Column(name=modulator.to_key), alias=group.alias
+                        )
+                    self.applied_modulators.append(modulator)
+                new_group_bys.append(new_group)
+            timeseries = timeseries.set_groupby(new_group_bys)
+        return timeseries

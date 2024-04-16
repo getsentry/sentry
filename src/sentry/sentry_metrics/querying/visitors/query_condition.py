@@ -1,12 +1,14 @@
 from collections.abc import Mapping, Sequence
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
+from snuba_sdk.expressions import ScalarType
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
-from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
+from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor, TVisited
 
 
 class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
@@ -125,3 +127,33 @@ class ProjectToProjectIDTransformationVisitor(QueryConditionVisitor[QueryConditi
         for project in self._projects:
             if project.slug == project_slug:
                 return project.id
+
+
+class ModulatorConditionVisitor(QueryConditionVisitor):
+    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
+        self._projects = projects
+        self.modulators = modulators
+        self.applied_modulators = []
+
+    def _visit_condition(self, condition: Condition) -> TVisited:
+        lhs = condition.lhs
+        rhs = condition.rhs
+
+        if isinstance(lhs, Column):
+            modulator = find_modulator(self.modulators, lhs.name)
+            if modulator:
+                new_lhs = Column(modulator.to_key)
+                self.applied_modulators.append(modulator)
+
+                if isinstance(rhs, ScalarType):
+                    new_rhs = modulator.modulate(rhs, self._projects)
+                    return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
+
+        return condition
+
+    def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
+        conditions = []
+        for condition in boolean_condition.conditions:
+            conditions.append(self.visit(condition))
+
+        return BooleanCondition(op=boolean_condition.op, conditions=conditions)
