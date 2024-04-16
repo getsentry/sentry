@@ -25,9 +25,14 @@ function FolderContent({path, content}: {content: TreeMapping; path: string}) {
   const location = useLocation<StoriesQuery>();
   const currentFile = location.query.name;
 
+  // sort folders to the top
+  const entries = Object.entries(content).sort(
+    (a, b) => Number(!!Object.keys(b[1]).length) - Number(!!Object.keys(a[1]).length)
+  );
+
   return (
     <UnorderedList>
-      {Object.entries(content).map(([name, children]) => {
+      {entries.map(([name, children]) => {
         const childPath = toPath(path, name);
 
         if (Object.keys(children).length === 0) {
