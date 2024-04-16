@@ -177,6 +177,7 @@ function Controls({
                     aria-label="Add Widget"
                     priority="primary"
                     data-test-id="add-widget-library"
+                    disabled={widgetLimitReached}
                   />
                 ) : (
                   <Button
