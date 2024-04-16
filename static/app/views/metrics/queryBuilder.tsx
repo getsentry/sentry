@@ -109,9 +109,12 @@ export const QueryBuilder = memo(function QueryBuilder({
     [projectIds, projects]
   );
 
-  const tags = useMemo(() => {
-    return uniqBy(tagsData, 'key');
-  }, [tagsData]);
+  const groupByOptions = useMemo(() => {
+    return uniqBy(tagsData, 'key').map(tag => ({
+      key: tag.key,
+      disabled: metricsQuery.query?.includes(tag.key),
+    }));
+  }, [tagsData, metricsQuery.query]);
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
@@ -196,9 +199,21 @@ export const QueryBuilder = memo(function QueryBuilder({
     (query: string) => {
       trackAnalytics('ddm.widget.filter', {organization});
       incrementQueryMetric('ddm.widget.filter', {query});
-      onChange({query});
+
+      if (!metricsQuery.groupBy?.length) {
+        onChange({
+          query,
+        });
+      }
+
+      // Since tags should not appear in both in the query and groupBy, we remove them from group by
+      const groupBy = (metricsQuery.groupBy || []).filter(tag => !query.includes(tag));
+      onChange({
+        query,
+        groupBy,
+      });
     },
-    [incrementQueryMetric, onChange, organization]
+    [incrementQueryMetric, onChange, organization, metricsQuery.groupBy]
   );
 
   const handleOpenMetricsMenu = useCallback(
@@ -287,9 +302,10 @@ export const QueryBuilder = memo(function QueryBuilder({
             multiple
             size="md"
             triggerProps={{prefix: t('Group by')}}
-            options={tags.map(tag => ({
+            options={groupByOptions.map(tag => ({
               label: tag.key,
               value: tag.key,
+              disabled: tag.disabled,
               trailingItems: (
                 <Fragment>
                   {tag.key === 'release' && <IconReleases size="xs" />}
