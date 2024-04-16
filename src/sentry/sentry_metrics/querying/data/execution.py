@@ -318,7 +318,7 @@ class ScheduledQuery:
         return metrics_query, None
 
 
-@dataclass(frozen=True)
+@dataclass
 class QueryResult:
     """
     Represents the result of a ScheduledQuery containing its associated series and totals results.
@@ -447,9 +447,17 @@ class QueryResult:
     def series(self) -> Sequence[Mapping[str, Any]]:
         return self.result["series"]["data"]
 
+    @series.setter
+    def series(self, value: Sequence[Mapping[str, Any]]) -> None:
+        self.result["series"]["data"] = value
+
     @property
     def totals(self) -> Sequence[Mapping[str, Any]]:
         return self.result["totals"]["data"]
+
+    @totals.setter
+    def totals(self, value: Sequence[Mapping[str, Any]]) -> None:
+        self.result["totals"]["data"] = value
 
     @property
     def meta(self) -> Sequence[Mapping[str, str]]:

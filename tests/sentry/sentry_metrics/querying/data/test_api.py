@@ -123,7 +123,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         referrer: str,
         query_type: QueryType = QueryType.TOTALS_AND_SERIES,
     ) -> Mapping[str, Any]:
-        return run_queries(
+        untransformed = run_queries(
             mql_queries,
             start,
             end,
@@ -133,7 +133,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             environments,
             referrer,
             query_type,
-        ).apply_transformer(self.query_transformer)
+        )
+        transformed = untransformed.apply_transformer(self.query_transformer)
+        return transformed
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_no_formulas(self) -> None:
@@ -1717,7 +1719,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert data[0][0]["by"] == {"project_id": self.new_project.id}
+        assert data[0][0]["by"] == {"project": self.new_project.slug}
         assert data[0][0]["series"] == [
             None,
             self.to_reference_unit(3.0),
