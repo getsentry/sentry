@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
-import moment from 'moment';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -125,12 +124,6 @@ export const interchangeableFilterOperators = {
 };
 
 const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
-
-const numberUnits = {
-  b: 1_000_000_000,
-  m: 1_000_000,
-  k: 1_000,
-};
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -498,7 +491,7 @@ export class TokenConverter {
   tokenValueIso8601Date = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
-    value: moment(value),
+    value: value,
   });
 
   tokenValueRelativeDate = (
@@ -563,14 +556,13 @@ export class TokenConverter {
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: ['1', 'true'].includes(value.toLowerCase()),
+    value: value,
   });
 
   tokenValueNumber = (value: string, unit: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER as const,
     value,
-    rawValue: Number(value) * (numberUnits[unit] ?? 1),
     unit,
   });
 

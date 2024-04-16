@@ -43,7 +43,7 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
+
           "unit": null
         }
       },
@@ -97,7 +97,7 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
+
           "unit": null
         }
       },
@@ -151,7 +151,7 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
+
           "unit": null
         }
       },
@@ -205,7 +205,7 @@
         "value": {
           "type": "valueNumber",
           "value": "3",
-          "rawValue": 3000,
+
           "unit": "k"
         }
       },

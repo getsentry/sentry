@@ -17,7 +17,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -26,7 +26,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -35,7 +35,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "rawValue": 502,
+
                 "unit": null
               }
             }
@@ -63,7 +63,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -72,7 +72,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -81,7 +81,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "rawValue": 502,
+
                 "unit": null
               }
             }
@@ -109,7 +109,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -118,7 +118,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -127,7 +127,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "rawValue": 502,
+
                 "unit": null
               }
             }
@@ -155,7 +155,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -164,7 +164,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -173,7 +173,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "rawValue": 502,
+
                 "unit": null
               }
             }
@@ -195,7 +195,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "100",
-                "rawValue": 100,
+
                 "unit": null
               }
             }
@@ -224,7 +224,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -233,7 +233,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -242,7 +242,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "rawValue": 502,
+
                 "unit": null
               }
             }
@@ -299,7 +299,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -308,7 +308,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             },
@@ -340,7 +340,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "rawValue": 500,
+
                 "unit": null
               }
             },
@@ -349,7 +349,7 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "rawValue": 501,
+
                 "unit": null
               }
             }
