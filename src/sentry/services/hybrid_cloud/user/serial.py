@@ -89,7 +89,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type_map = dict(UserAvatar.AVATAR_TYPES)
             avatar = RpcAvatar(
                 id=avatar_dict["id"],
-                file_id=avatar_dict["file_id"],
+                file_id=avatar_dict["control_file_id"],
                 ident=avatar_dict["ident"],
                 avatar_type=avatar_type_map.get(avatar_dict["avatar_type"], "letter_avatar"),
             )
@@ -117,7 +117,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
 def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
     return RpcAvatar(
         id=avatar.id,
-        file_id=avatar.file_id,
+        file_id=avatar.control_file_id,
         ident=avatar.ident,
         avatar_type=avatar.get_avatar_type_display(),
     )

@@ -2,9 +2,9 @@ import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
-import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, IssueAttachment, Project} from 'sentry/types';

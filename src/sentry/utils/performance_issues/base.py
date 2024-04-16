@@ -92,11 +92,6 @@ class PerformanceDetector(ABC):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
-        self.init()
-
-    @abstractmethod
-    def init(self):
-        raise NotImplementedError
 
     def find_span_prefix(self, settings, span_op: str):
         allowed_span_ops = settings.get("allowed_span_ops", [])

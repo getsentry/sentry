@@ -2,7 +2,6 @@ import {useContext, useEffect, useMemo} from 'react';
 
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -16,7 +15,6 @@ import SelectField from './selectField';
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
-  projects?: Project[];
   /**
    * Use the slug as the select field value. Without setting this the numeric id
    * of the project will be used.

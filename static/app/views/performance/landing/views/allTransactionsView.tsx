@@ -53,7 +53,9 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
     }
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE);
+    if (props.organization.features.includes('starfish-browser-webvitals')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE);
+    }
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);

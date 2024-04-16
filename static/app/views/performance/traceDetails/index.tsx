@@ -97,6 +97,7 @@ class TraceSummary extends Component<Props> {
     const traceSlug = this.getTraceSlug();
     const {start, end, statsPeriod} = this.getDateSelection();
     const dateSelected = Boolean(statsPeriod || (start && end));
+    const backend = decodeScalar(location.query.backend);
 
     const content = ({
       isLoading,
@@ -147,7 +148,7 @@ class TraceSummary extends Component<Props> {
 
     return (
       <TraceFullDetailedQuery
-        type="detailed"
+        type={backend === 'indexedSpans' ? 'spans' : 'detailed'}
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}

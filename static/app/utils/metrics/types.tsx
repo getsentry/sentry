@@ -15,6 +15,11 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
+export enum MetricSeriesFilterUpdateType {
+  ADD = 'add',
+  EXCLUDE = 'exclude',
+}
+
 export interface FocusedMetricsSeries {
   id: string;
   groupBy?: Record<string, string>;

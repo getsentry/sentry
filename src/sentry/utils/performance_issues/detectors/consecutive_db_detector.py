@@ -64,7 +64,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []
