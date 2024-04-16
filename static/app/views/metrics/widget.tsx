@@ -36,6 +36,7 @@ import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   FocusedMetricsSeries,
   MetricDisplayType,
+  MetricSeriesFilterUpdateType,
   MetricsQueryWidget,
   MetricsWidget,
   SortState,
@@ -58,7 +59,7 @@ import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
-import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
+import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
@@ -364,9 +365,13 @@ const MetricWidgetBody = memo(
     );
 
     const handleRowFilter = useCallback(
-      (queryIndex, series) => {
+      (
+        queryIndex: number,
+        series: FocusedMetricsSeries,
+        updateType: MetricSeriesFilterUpdateType
+      ) => {
         const queryToUpdate = queries[queryIndex];
-        if (!queryToUpdate) {
+        if (!queryToUpdate || !series.groupBy) {
           return;
         }
 
@@ -375,10 +380,14 @@ const MetricWidgetBody = memo(
           return;
         }
 
-        const newQuery = extendQueryWithGroupBys(queryToUpdate.query, [series.groupBy]);
+        const newQuery = updateQueryWithSeriesFilter(
+          queryToUpdate,
+          series.groupBy,
+          updateType
+        );
         const indexToUpdate = queries.length > 1 ? queryIndex : widgetIndex;
 
-        onQueryChange?.(indexToUpdate, {query: newQuery});
+        onQueryChange?.(indexToUpdate, newQuery);
       },
       [queries, onQueryChange, widgetIndex]
     );
