@@ -160,7 +160,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
-    const timestamp = getTimeStampFromTableDateField(props.dataRow['timestamp']);
+    const timestamp = getTimeStampFromTableDateField(props.dataRow.timestamp);
     const dataSelection = EventView.fromLocation(
       props.baggage.location
     ).normalizeDateSelection(props.baggage.location);
@@ -195,10 +195,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           to={generateLinkToEventInTraceView({
             projectSlug: project.slug,
             eventId: props.dataRow[key],
-            traceSlug: props.dataRow['trace'],
-            timestamp: props.dataRow['timestamp'],
+            traceSlug: props.dataRow.trace,
+            timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
-            transactionName: props.dataRow['transaction'],
+            transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,
           })}
         >

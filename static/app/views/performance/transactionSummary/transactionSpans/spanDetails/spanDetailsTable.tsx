@@ -162,7 +162,7 @@ function renderBodyCellWithMeta(
         eventId: dataRow.id,
         traceSlug,
         timestamp: dataRow.timestamp / 1000,
-        projectSlug: dataRow['project'],
+        projectSlug: dataRow.project,
         location,
         organization,
         spanId: worstSpan.id,

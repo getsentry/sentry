@@ -187,8 +187,8 @@ export function TransactionSamplesTable({
             location,
             eventId: row.id,
             timestamp: row.timestamp,
-            traceSlug: row['trace'],
-            projectSlug: row['project'] || row['project.name'],
+            traceSlug: row.trace,
+            projectSlug: row.project || row['project.name'],
           })}
         >
           {row.id.slice(0, 8)}
