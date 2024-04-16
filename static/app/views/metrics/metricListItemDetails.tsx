@@ -19,6 +19,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 const MAX_PROJECTS_TO_SHOW = 3;
 const MAX_TAGS_TO_SHOW = 5;
 
+const STANDARD_TAGS = ['release', 'environment', 'transaction'];
+
 export function MetricListItemDetails({
   metric,
   selectedProjects,
@@ -66,7 +68,25 @@ export function MetricListItemDetails({
   );
 
   const truncatedProjects = metricProjects.slice(0, MAX_PROJECTS_TO_SHOW);
-  const truncatedTags = tagsData.slice(0, MAX_TAGS_TO_SHOW);
+  // Display custom tags first, then sort alphabetically
+  const sortedTags = useMemo(
+    () =>
+      tagsData.toSorted((a, b) => {
+        const aIsStandard = STANDARD_TAGS.includes(a.key);
+        const bIsStandard = STANDARD_TAGS.includes(b.key);
+
+        if (aIsStandard && !bIsStandard) {
+          return 1;
+        }
+        if (!aIsStandard && bIsStandard) {
+          return -1;
+        }
+
+        return a.key.localeCompare(b.key);
+      }),
+    [tagsData]
+  );
+  const truncatedTags = sortedTags.slice(0, MAX_TAGS_TO_SHOW);
 
   return (
     <DetailsWrapper>
