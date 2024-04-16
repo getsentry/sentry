@@ -283,8 +283,8 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
 
         # store the rules and group per project
         self.buf.push_to_hash(
@@ -357,32 +357,57 @@ class TestRedisBuffer:
         group_id = 3
         event_id = 4
 
+        project2_id = 5
+        rule2_id = 6
+        group2_id = 7
+        event2_id = 8
+
+        now = datetime.datetime(2024, 4, 15, 3, 30, 00, tzinfo=datetime.UTC)
+        one_minute_from_now = (now).replace(minute=31)
+
         # add a set and a hash to the buffer
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
-            value=event_id,
-        )
+        with freeze_time(now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project_id},
+                field=f"{rule_id}:{group_id}",
+                value=event_id,
+            )
+        with freeze_time(one_minute_from_now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project2_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project2_id},
+                field=f"{rule2_id}:{group2_id}",
+                value=event2_id,
+            )
 
         # retrieve them
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        assert len(project_ids)
+        assert len(project_ids[0]) == 2
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert len(rule_group_pairs)
 
-        # delete them
+        # delete only the first project ID by time
+        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
+
+        # retrieve again to make sure only project_id was removed
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        if isinstance(project_ids[0][0][0], bytes):
+            assert project_ids == [
+                [(bytes(str(project2_id), "utf-8"), one_minute_from_now.timestamp())]
+            ]
+        else:
+            assert project_ids == [[(str(project2_id), one_minute_from_now.timestamp())]]
+
+        # delete the project_id hash
         self.buf.delete_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
         )
-        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY)
 
-        # attempt to retrieve again to make sure it's empty
-        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        assert project_ids == [set()]
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert rule_group_pairs == [{}]
 

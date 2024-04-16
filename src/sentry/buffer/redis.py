@@ -84,12 +84,12 @@ redis_buffer_registry = BufferHookRegistry()
 
 
 class RedisOperation(Enum):
-    SET_ADD = "sadd"
-    SET_GET = "smembers"
+    SORTED_SET_ADD = "zadd"
+    SORTED_SET_GET_RANGE = "zrange"
+    SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
     HASH_DELETE = "hdel"
-    DELETE = "delete"
 
 
 class PendingBuffer:
@@ -265,22 +265,26 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline(transaction=transaction)
         return pipe
 
-    def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
+    def _execute_redis_operation(
+        self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
+    ) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        getattr(pipe, operation.value)(key, *args)
+        getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
         return pipe.execute()
 
-    def push_to_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
     def get_set(self, key: str) -> list[set[int]]:
-        return self._execute_redis_operation(key, RedisOperation.SET_GET)
+        return self._execute_redis_operation(
+            key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
+        )
 
-    def delete_key(self, key: str) -> None:
-        self._execute_redis_operation(key, RedisOperation.DELETE)
+    def delete_key(self, key: str, min: int, max: int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
 
     def delete_hash(
         self,
