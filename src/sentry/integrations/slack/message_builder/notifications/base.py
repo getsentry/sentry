@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.notifications.notifications.base import BaseNotification
@@ -24,7 +24,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         self.context = context
         self.recipient = recipient
 
-    def build(self) -> SlackAttachment | SlackBlock:
+    def build(self) -> SlackBlock:
         callback_id_raw = self.notification.get_callback_data()
         title = self.notification.build_attachment_title(self.recipient)
         title_link = self.notification.get_title_link(self.recipient, ExternalProviders.SLACK)

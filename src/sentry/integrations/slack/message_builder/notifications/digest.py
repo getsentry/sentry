@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry.digests import Digest
 from sentry.digests.utils import get_groups
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -23,7 +23,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         super().__init__(notification, context, recipient)
         self.notification: DigestNotification = notification
 
-    def build(self) -> SlackAttachment | SlackBlock:
+    def build(self) -> SlackBlock:
         """
         It's currently impossible in mypy to have recursive types so we need a
         hack to get this to return a SlackBody.
