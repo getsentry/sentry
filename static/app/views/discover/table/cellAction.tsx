@@ -254,9 +254,7 @@ class CellAction extends Component<Props, State> {
     const cellActions = makeCellActions(this.props);
 
     return (
-      <Container
-        data-test-id={cellActions === null ? undefined : 'cell-action-container'}
-      >
+      <Container data-test-id="cell-action-container">
         {children}
         {cellActions?.length && (
           <DropdownMenu

@@ -27,7 +27,7 @@ describe('updateQueryWithSeriesFilter', () => {
       mri: 'd:transactions/duration@milisecond' as MRI,
       op: 'count',
       groupBy: [],
-      query: 'project:2',
+      query: 'release:latest AND (environment:production OR environment:staging)',
     };
 
     const updatedQuery = updateQueryWithSeriesFilter(
@@ -36,7 +36,9 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:1');
+    expect(updatedQuery.query).toEqual(
+      '( release:latest AND ( environment:production OR environment:staging ) ) project:1'
+    );
     expect(updatedQuery.groupBy).toEqual([]);
   });
 
@@ -63,7 +65,7 @@ describe('updateQueryWithSeriesFilter', () => {
       mri: 'd:transactions/duration@milisecond' as MRI,
       op: 'count',
       groupBy: [],
-      query: 'project:2',
+      query: 'environment:prod1 OR environment:prod2',
     };
 
     const updatedQuery = updateQueryWithSeriesFilter(
@@ -72,7 +74,9 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.EXCLUDE
     );
 
-    expect(updatedQuery.query).toEqual('!project:2');
+    expect(updatedQuery.query).toEqual(
+      '( environment:prod1 OR environment:prod2 ) !project:2'
+    );
     expect(updatedQuery.groupBy).toEqual([]);
   });
 

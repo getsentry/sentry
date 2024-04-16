@@ -39,7 +39,11 @@ export function updateQueryWithSeriesFilter(
   groupBys: Record<string, string>,
   updateType: MetricSeriesFilterUpdateType
 ) {
-  const mutableSearch = new MutableSearch(query.query ?? '');
+  // TODO(metrics): This is a temporary solution to handle the case where the query has OR operator.
+  // since addToFilter and excludeFromFilter do not handle it properly. We should refactor this to use
+  // search syntax parser instead.
+  const queryStr = query.query?.includes('OR') ? `(${query.query})` : query.query ?? '';
+  const mutableSearch = new MutableSearch(queryStr);
 
   const groupByEntries = Object.entries(groupBys);
   groupByEntries.forEach(([key, value]) => {
