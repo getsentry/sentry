@@ -89,19 +89,21 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
+        defaults = {"edited_by_id": request.user.id}
+        if data.get("threshold") is not None:
+            defaults["threshold"] = data.get("threshold")
+        if data.get("metric") is not None:
+            defaults["metric"] = data.get("metric")
+
         project_threshold, created = ProjectTransactionThreshold.objects.update_or_create(
             project=project,
             organization=project.organization,
-            defaults={
+            create_defaults={
                 "threshold": data.get("threshold", 300),
                 "metric": data.get("metric", TransactionMetric.DURATION.value),
                 "edited_by_id": request.user.id,
             },
-            create_defaults={
-                "threshold": data.get("threshold"),
-                "metric": data.get("metric"),
-                "edited_by_id": request.user.id,
-            },
+            defaults=defaults,
         )
 
         return Response(

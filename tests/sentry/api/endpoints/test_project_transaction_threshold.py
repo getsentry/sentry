@@ -87,7 +87,7 @@ class ProjectTransactionThresholdTest(APITestCase):
 
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "300"
-        assert response.data["metric"] == "duralcption"
+        assert response.data["metric"] == "lcp"
 
         with self.feature(self.feature_name):
             response = self.client.post(
@@ -97,7 +97,7 @@ class ProjectTransactionThresholdTest(APITestCase):
                 },
             )
 
-        assert response.status_code == 201, response.content
+        assert response.status_code == 200, response.content
         assert response.data["threshold"] == "400"
         assert response.data["metric"] == "lcp"
 
