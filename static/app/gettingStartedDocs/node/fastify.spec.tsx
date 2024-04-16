@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs from './express';
+import docs from './fastify';
 
-describe('express onboarding docs', function () {
+describe('fastify onboarding docs', function () {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

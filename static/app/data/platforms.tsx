@@ -398,10 +398,10 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'node-fastify',
-    name: 'Express',
+    name: 'Fastify',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+    link: 'https://docs.sentry.io/platforms/node/guides/fastify/',
   },
   {
     id: 'node-gcpfunctions',
@@ -412,10 +412,10 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'node-hapi',
-    name: 'Express',
+    name: 'Hapi',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+    link: 'https://docs.sentry.io/platforms/node/guides/hapi/',
   },
   {
     id: 'node-koa',
@@ -426,10 +426,10 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'node-nestjs',
-    name: 'Express',
+    name: 'Nest.js',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+    link: 'https://docs.sentry.io/platforms/node/guides/nestjs/',
   },
   {
     id: 'node-serverlesscloud',
