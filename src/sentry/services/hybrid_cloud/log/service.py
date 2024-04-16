@@ -38,6 +38,7 @@ class LogService(RpcService):
         organization_id: int | None,
         target_object_id: int | None,
         event: int | None,
+        data: dict[str, str] | None,
     ) -> AuditLogEvent | None:
         pass
 
