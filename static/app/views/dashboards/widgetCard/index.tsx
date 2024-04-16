@@ -365,7 +365,7 @@ class WidgetCard extends Component<Props, State> {
                     chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
-                  <LazyRender containerHeight={200} withoutWrapper>
+                  <LazyRender containerHeight={200} withoutContainer>
                     <WidgetCardChartContainer
                       location={location}
                       api={api}

@@ -28,7 +28,7 @@ export interface LazyRenderProps {
   /**
    * Removes the wrapping div once visible
    */
-  withoutWrapper?: boolean;
+  withoutContainer?: boolean;
 }
 
 /**
@@ -83,7 +83,7 @@ export function LazyRender(props: LazyRenderProps) {
     [visible, props.observerOptions, props.containerHeight]
   );
 
-  if (visible && props.withoutWrapper) {
+  if (visible && props.withoutContainer) {
     return props.children;
   }
 
