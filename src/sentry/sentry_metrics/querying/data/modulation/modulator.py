@@ -42,3 +42,15 @@ class Project2ProjectIDModulator(Modulator):
                     self.value_map[formula] = project.slug
 
         return self.value_map[formula]
+
+
+def find_modulator(
+    modulators: Sequence[Modulator], from_key: str = None, to_key: str = None
+) -> Modulator:
+    for modulator in modulators:
+        if from_key:
+            if modulator.from_key == from_key:
+                return modulator
+        if to_key:
+            if modulator.to_key == to_key:
+                return modulator

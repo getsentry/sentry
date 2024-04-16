@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 
 from snuba_sdk import MetricsQuery
 
+from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
 from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
-from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 
 
 @dataclass(frozen=True)

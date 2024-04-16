@@ -9,6 +9,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
+from sentry.sentry_metrics.querying.data.modulation.modulator import Project2ProjectIDModulator
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.demodulation import QueryDemodulationStep
@@ -22,7 +23,6 @@ from sentry.sentry_metrics.querying.data.preparation.units_normalization import 
 )
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
-from sentry.sentry_metrics.querying.visitors.modulator import Project2ProjectIDModulator
 
 modulators = [Project2ProjectIDModulator(from_key="project", to_key="project_id")]
 
