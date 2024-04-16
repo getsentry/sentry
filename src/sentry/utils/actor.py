@@ -14,12 +14,6 @@ if TYPE_CHECKING:
 
 
 class ActorTuple(namedtuple("Actor", "id type")):
-    """
-    This is an artifact from before we had the Actor model.
-    We want to eventually drop this model and merge functionality with Actor
-    This should happen more easily if we move GroupAssignee, GroupOwner, etc. to use the Actor model.
-    """
-
     @property
     def identifier(self):
         return f"{self.type.__name__.lower()}:{self.id}"
