@@ -1638,7 +1638,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_groupby_using_project_name_gets_visited_correctly(self) -> None:
-        self.new_project = self.create_project(name="Bar Again")
+        self.new_project_1 = self.create_project(name="Bar Again")
         for value, transaction, platform, env, time in (
             (1, "/hello", "android", "prod", self.now()),
             (3, "/hello", "android", "prod", self.now()),
@@ -1648,8 +1648,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
         ):
             self.store_metric(
-                self.new_project.organization.id,
-                self.new_project.id,
+                self.new_project_1.organization.id,
+                self.new_project_1.id,
                 "distribution",
                 TransactionMRI.DURATION.value,
                 {
@@ -1671,16 +1671,109 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
             organization=self.project.organization,
-            projects=[self.project, self.new_project],
+            projects=[self.project, self.new_project_1],
             environments=[],
             referrer="metrics.data.api",
         )
         data = results["data"]
         assert len(data) == 1
-        assert data[0][0]["by"] == {"project": self.new_project.slug}
+        assert data[0][0]["by"] == {"project": self.new_project_1.slug}
         assert data[0][0]["series"] == [
             None,
             self.to_reference_unit(3.0),
             self.to_reference_unit(5.0),
         ]
         assert data[0][0]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_and_filter_by_project_name(self) -> None:
+        self.new_project_1 = self.create_project(name="Bar Again")
+        self.new_project_2 = self.create_project(name="Bar Yet Again")
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_1.organization.id,
+                self.new_project_1.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_2.organization.id,
+                self.new_project_2.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+        mqls = [
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:[bar,bar-again]",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="!project:bar-yet-again",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:bar or project:bar-again",
+            ),
+        ]
+        for mql in mqls:
+            query = MQLQuery(mql)
+
+            results = self.run_query(
+                mql_queries=[query],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project, self.new_project_1, self.new_project_2],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {"project": self.new_project_1.slug}
+            assert data[0][0]["series"] == [
+                None,
+                self.to_reference_unit(3.0),
+                self.to_reference_unit(5.0),
+            ]
+            assert data[0][0]["totals"] == self.to_reference_unit(4.0)

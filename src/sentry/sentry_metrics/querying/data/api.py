@@ -67,7 +67,7 @@ def run_queries(
         )
 
     preparation_steps = []
-    modulators = [Project2ProjectIDModulator(projects)]
+    modulators = [Project2ProjectIDModulator()]
 
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
