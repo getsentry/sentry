@@ -4,7 +4,7 @@ import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import { normalizeUrl } from '../withDomainRequired';
+import {normalizeUrl} from '../withDomainRequired';
 
 /**
  * Routes to the transaction event details view.
