@@ -123,7 +123,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         referrer: str,
         query_type: QueryType = QueryType.TOTALS_AND_SERIES,
     ) -> Mapping[str, Any]:
-        untransformed = run_queries(
+        return run_queries(
             mql_queries,
             start,
             end,
@@ -133,9 +133,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             environments,
             referrer,
             query_type,
-        )
-        transformed = untransformed.apply_transformer(self.query_transformer)
-        return transformed
+        ).apply_transformer(self.query_transformer)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_no_formulas(self) -> None:

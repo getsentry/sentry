@@ -19,8 +19,6 @@ class QueryDemodulationStep(PostProcessingStep):
             if query_result.series:
                 query_result.series = self._demodulate_data(query_result.series)
 
-            # query_result.group_bys = self._demodulate_groupbys(query_result.group_bys)
-
         return query_results
 
     def _demodulate_data(self, data: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
@@ -39,10 +37,3 @@ class QueryDemodulationStep(PostProcessingStep):
             element.update(updated_element)
 
         return data
-
-    def _demodulate_groupbys(self, group_bys: list[str]) -> list[str]:
-        for idx, group in enumerate(group_bys):
-            for modulator in self.modulators:
-                group_bys[idx] = modulator.demodulate(group, self.projects)
-
-        return group_bys

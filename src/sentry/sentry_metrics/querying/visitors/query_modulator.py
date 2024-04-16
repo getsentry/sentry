@@ -63,16 +63,13 @@ class ModulatorVisitor(QueryExpressionVisitor):
         self.applied_modulators = []
 
     def _visit_formula(self, formula: Formula) -> TVisited:
-        # visit the params recursively
         formula = super()._visit_formula(formula)
 
-        # visit the filters
         filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
             formula.filters
         )
         formula = formula.set_filters(filters)
 
-        # visit the groupby
         if formula.groupby:
             new_group_bys = []
             for group in formula.groupby:
@@ -94,16 +91,11 @@ class ModulatorVisitor(QueryExpressionVisitor):
         return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        # visit the parameters recursively
-        timeseries = super()._visit_timeseries(timeseries)
-
-        # visit the filters
         filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
             timeseries.filters
         )
         timeseries = timeseries.set_filters(filters)
 
-        # visit the groupby
         if timeseries.groupby:
             new_group_bys = []
             for group in timeseries.groupby:

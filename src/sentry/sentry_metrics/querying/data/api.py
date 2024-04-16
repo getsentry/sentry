@@ -57,19 +57,17 @@ def run_queries(
     )
 
     intermediate_queries = []
-    compiled_mql_queries = []
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(projects=projects, environments=environments, mql_queries=mql_queries)
 
-    for query_expression, compiled_mql_query in parser.generate_queries():
+    for query_expression, query_order, query_limit in parser.generate_queries():
         intermediate_queries.append(
             IntermediateQuery(
                 metrics_query=base_query.set_query(query_expression),
-                order=compiled_mql_query.order,
-                limit=compiled_mql_query.limit,
+                order=query_order,
+                limit=query_limit,
             )
         )
-        compiled_mql_queries.append(compiled_mql_query)
 
     preparation_steps = []
     if features.has(
@@ -77,8 +75,6 @@ def run_queries(
     ):
         preparation_steps.append(UnitsNormalizationStep())
         preparation_steps.append(QueryModulationStep(projects, modulators))
-
-        # replace names and values in query
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
