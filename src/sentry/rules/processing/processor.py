@@ -145,7 +145,7 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: Mapping[str, Any],
+        condition: MutableMapping[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
