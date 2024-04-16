@@ -29,6 +29,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {ProjectRenderer, SpanIdRenderer, TraceIdRenderer} from './fieldRenderers';
 import {TracesSearchBar} from './tracesSearchBar';
+import {normalizeTraces} from './utils';
 
 const DEFAULT_PER_PAGE = 20;
 
@@ -77,7 +78,7 @@ export function Content() {
   const isLoading = traces.isFetching;
   const isError = !isLoading && traces.isError;
   const isEmpty = !isLoading && !isError && (traces?.data?.data?.length ?? 0) === 0;
-  const data = !isLoading && !isError ? traces?.data?.data : undefined;
+  const data = normalizeTraces(!isLoading && !isError ? traces?.data?.data : undefined);
 
   return (
     <LayoutMain fullWidth>
@@ -236,7 +237,7 @@ function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
 
 type SpanResult<F extends string> = Record<F, any>;
 
-interface TraceResult<F extends string> {
+export interface TraceResult<F extends string> {
   duration: number;
   name: string | null;
   numSpans: number;
