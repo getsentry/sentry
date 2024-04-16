@@ -207,21 +207,6 @@ class BaseTestCase(Fixtures):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
 
-    @pytest.fixture(autouse=True)
-    def mock_group_attributes_snuba(self):
-        responses.add(
-            responses.POST,
-            f"{settings.SENTRY_SNUBA}/tests/entities/groupedmessage/insert",
-            body="not used",
-            passthrough=True,
-        )
-        responses.add(
-            responses.POST,
-            f"{settings.SENTRY_SNUBA}/tests/entities/group_attributes/insert",
-            body="not used",
-            passthrough=True,
-        )
-
     def tasks(self):
         return TaskRunner()
 
@@ -1335,35 +1320,46 @@ class SnubaTestCase(BaseTestCase):
     def store_group(self, group):
         data = [self.__wrap_group(group)]
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/groupedmessage/insert",
-                data=json.dumps(data),
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/groupedmessage/insert",
+                body=json.dumps(data),
+                headers={},
+            ).status
             == 200
         )
 
     def store_outcome(self, group):
         data = [self.__wrap_group(group)]
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/outcomes/insert",
+                body=json.dumps(data),
+                headers={},
+            ).status
             == 200
         )
 
     def store_span(self, span):
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/spans/insert",
+                body=json.dumps([span]),
+                headers={},
+            ).status
             == 200
         )
 
     def store_spans(self, spans):
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/spans/insert",
+                body=json.dumps(spans),
+                headers={},
+            ).status
             == 200
         )
 
