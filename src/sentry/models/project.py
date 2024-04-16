@@ -110,7 +110,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "minidump",
     "native",
     "native-qt",
-    "nintendo",
+    "nintendo-switch",
     "node",
     "node-awslambda",
     "node-azurefunctions",

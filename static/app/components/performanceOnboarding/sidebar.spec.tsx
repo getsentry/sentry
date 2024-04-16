@@ -11,6 +11,7 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import type {PlatformKey, Project} from 'sentry/types';
 
 import {generateDocKeys} from './utils';
 
@@ -59,6 +60,9 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays boost performance card', async function () {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
+    ]);
     renderSidebar({
       organization: {
         ...organization,
@@ -82,7 +86,10 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
-  it('checklist feature disabled', async function () {
+  it('checklist feature supported by platform but disabled', async function () {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
+    ]);
     renderSidebar({
       organization: {
         ...organization,
@@ -177,15 +184,18 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({platform: 'elixir', firstTransactionEvent: false}),
-    ]);
+    const project = ProjectFixture({
+      platform: 'elixir',
+      firstTransactionEvent: false,
+    }) as Project & {platform: PlatformKey};
+    ProjectsStore.loadInitialData([project]);
     renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
+
     window.open = jest.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Quick Start');
@@ -198,12 +208,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
     expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
-    const performanceCard = screen.getByTestId('setup_transactions');
-
-    await userEvent.click(performanceCard);
-    expect(window.open).not.toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/performance/');
+    expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
   it('displays checklist', async function () {
