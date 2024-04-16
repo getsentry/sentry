@@ -101,6 +101,9 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "python"
+        # The lack of a \ after the drive letter in the third frame signals that
+        # this is a relative path. This may be unlikely to occur in practice,
+        # but worth testing nonetheless.
         self.event_data = self.generate_data(
             [
                 {"in_app": True, "filename": "\\sentry\\mouse.py"},
