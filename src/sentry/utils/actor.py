@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, overload
 
 from rest_framework import serializers
 
-from sentry.services.hybrid_cloud.user.service import user_service
-
 if TYPE_CHECKING:
     from sentry.models.actor import Actor
     from sentry.models.team import Team
@@ -40,6 +38,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def from_actor_identifier(cls, actor_identifier: int | str | None) -> ActorTuple | None:
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         """
         Returns an Actor tuple corresponding to a User or Team associated with
@@ -124,6 +123,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :return:
         """
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         if not actors:
             return []
@@ -157,6 +157,7 @@ def fetch_actor_by_id(cls: type[Team], id: int) -> Team:
 def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user.service import user_service
 
     if cls is Team:
         return Team.objects.get(id=id)
