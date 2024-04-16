@@ -8,6 +8,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -107,6 +108,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     !isActive ||
     !hasProjectAccess ||
     currentProject === undefined ||
+    !shouldShowPerformanceTasks(projects) ||
     !projectsLoaded ||
     !projects ||
     projects.length <= 0 ||
