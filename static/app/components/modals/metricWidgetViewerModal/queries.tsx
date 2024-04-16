@@ -261,8 +261,8 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
   const tooltipTitle =
     type === MetricExpressionType.QUERY
       ? isHidden
-        ? t('Show query')
-        : t('Hide query')
+        ? t('Show metric')
+        : t('Hide metric')
       : isHidden
         ? t('Show equation')
         : t('Hide equation');
