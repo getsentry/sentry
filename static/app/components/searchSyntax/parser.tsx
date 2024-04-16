@@ -501,7 +501,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: Number(value),
+    value: value,
     sign,
     unit,
   });
@@ -513,7 +513,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: Number(value),
+    value: value,
     unit,
   });
 
@@ -543,14 +543,14 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_SIZE as const,
-    value: Number(value),
+    value: value,
     unit,
   });
 
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: Number(value),
+    value: value,
   });
 
   tokenValueBoolean = (value: string) => ({

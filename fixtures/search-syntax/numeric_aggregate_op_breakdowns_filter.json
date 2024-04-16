@@ -259,7 +259,7 @@
         "operator": "",
         "value": {
           "type": "valueDuration",
-          "value": 2,
+          "value": "2",
           "unit": "m"
         }
       },

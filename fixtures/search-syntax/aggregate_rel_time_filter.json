@@ -15,7 +15,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueRelativeDate", "value": 7, "sign": "+", "unit": "d"}
+        "value": {"type": "valueRelativeDate", "value": "7", "sign": "+", "unit": "d"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -36,7 +36,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueRelativeDate", "value": 2, "sign": "-", "unit": "w"}
+        "value": {"type": "valueRelativeDate", "value": "2", "sign": "-", "unit": "w"}
       },
       {"type": "spaces", "value": ""}
     ]
