@@ -215,16 +215,15 @@ class WithProgressBar:
         self.caption = str(caption or "Progress")
 
     def __iter__(self):
-        widgets = [
-            f"{self.caption}: ",
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.ETA(),
-        ]
         pbar = progressbar.ProgressBar(
-            widgets=widgets,
+            widgets=[
+                f"{self.caption}: ",
+                progressbar.Percentage(),
+                " ",
+                progressbar.Bar(),
+                " ",
+                progressbar.ETA(),
+            ],
             max_value=self.count,
             # The default update interval is every 0.1s,
             # which for large migrations would easily logspam GoCD.

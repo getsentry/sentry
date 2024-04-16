@@ -1334,7 +1334,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
@@ -1360,7 +1360,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     const descriptionTextArea = await screen.findByRole('textbox', {
@@ -1391,7 +1391,7 @@ describe('WidgetBuilder', function () {
     const alertMock = jest.fn();
     const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
     setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
+      return alertMock();
     });
 
     // Click Cancel
@@ -1622,7 +1622,7 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
     await userEvent.paste('This should persist');
 
-    // 1 for the table, 1 for the the column selector, 1 for the sort
+    // 1 for the table, 1 for the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
     await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 

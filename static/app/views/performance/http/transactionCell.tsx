@@ -22,7 +22,7 @@ export function TransactionCell({
   const location = useLocation();
   const organization = useOrganization();
 
-  if (!domain || !transaction) {
+  if (!transaction) {
     return NULL_DESCRIPTION;
   }
 

@@ -4,12 +4,12 @@ import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -58,7 +58,9 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 
   const projectFeatures = new Set(project ? project.features : []);

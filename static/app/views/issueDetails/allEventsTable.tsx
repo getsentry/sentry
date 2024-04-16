@@ -10,11 +10,12 @@ import {
 import {t} from 'sentry/locale';
 import type {EventTransaction, Group, Organization, PlatformKey} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types';
-import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -63,7 +64,9 @@ function AllEventsTable(props: Props) {
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
-  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   useEffect(() => {
     setError('');
@@ -149,6 +152,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'id',
     'transaction',
     'title',
+    'timestamp',
     'release',
     'environment',
     'user.display',
@@ -156,13 +160,13 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'os',
     ...platformSpecificFields,
     ...(isPerfIssue ? ['transaction.duration'] : []),
-    'timestamp',
   ];
 
   const columnTitles: string[] = [
     t('event id'),
     t('transaction'),
     t('title'),
+    t('timestamp'),
     t('release'),
     t('environment'),
     t('user'),
@@ -170,7 +174,6 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     t('os'),
     ...platformSpecificColumnTitles,
     ...(isPerfIssue ? [t('total duration')] : []),
-    t('timestamp'),
     t('minidump'),
   ];
 

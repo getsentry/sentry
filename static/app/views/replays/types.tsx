@@ -41,6 +41,10 @@ export type ReplayRecord = {
    */
   finished_at: Date;
   /**
+   * Whether the currently authenticated user has seen this replay or not.
+   */
+  has_viewed: boolean;
+  /**
    * The ID of the Replay instance
    */
   id: string;
@@ -120,6 +124,7 @@ export const REPLAY_LIST_FIELDS = [
   'count_rage_clicks',
   'duration',
   'finished_at',
+  'has_viewed',
   'id',
   'is_archived',
   'os.name',
@@ -139,6 +144,7 @@ export type ReplayListRecord = Pick<
   | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
+  | 'has_viewed'
   | 'id'
   | 'is_archived'
   | 'os'
@@ -170,7 +176,11 @@ export interface ReplayError {
 
 export type DeadRageSelectorItem = {
   aria_label: string;
-  dom_element: {fullSelector: string; projectId: number; selector: string};
+  dom_element: {
+    fullSelector: string;
+    projectId: number;
+    selector: string;
+  };
   element: string;
   project_id: number;
   count_dead_clicks?: number;
@@ -191,6 +201,7 @@ export type ReplayClickElement = {
   alt: string;
   aria_label: string;
   class: string[];
+  component_name: string;
   id: string;
   role: string;
   tag: string;

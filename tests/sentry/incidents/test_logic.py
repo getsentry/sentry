@@ -75,7 +75,7 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
@@ -84,7 +84,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -310,13 +310,13 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         assert get_incident_aggregates(incident) == {"count": 4}
 
 
-class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
+class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Sessions
+        self.dataset = Dataset.Metrics
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -334,14 +334,6 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         incident_aggregates = get_incident_aggregates(incident)
         assert "count" in incident_aggregates
         assert incident_aggregates["count"] == 100.0
-
-
-class GetCrashRateMetricsIncidentAggregatesTest(
-    GetCrashRateIncidentAggregatesTest, BaseMetricsTestCase
-):
-    def setUp(self):
-        super().setUp()
-        self.dataset = Dataset.Metrics
 
 
 @freeze_time()
@@ -676,7 +668,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule_1.owner.id == get_actor_for_user(self.user).id
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -706,38 +698,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
-
-    def test_session_to_metric_alert(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "session alert rule",
-            "",
-            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
-        )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
-
-        with self.feature("organizations:alert-crash-free-metrics"):
-            alert_rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                "session converted alert rule",
-                "",
-                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-                query_type=SnubaQuery.Type.CRASH_RATE,
-                dataset=Dataset.Sessions,
-            )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
@@ -1000,7 +960,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
@@ -1010,17 +970,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
+        assert alert_rule.owner.id == get_actor_for_user(self.user).id
 
         update_alert_rule(
             alert_rule=alert_rule,
@@ -1044,28 +1004,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         update_alert_rule(self.alert_rule, comparison_delta=None)
         assert self.alert_rule.comparison_delta is None
         assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-
-    def test_session_to_metric_alert(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "session alert rule",
-            "",
-            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
-        )
-        alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
-
-        with self.feature("organizations:alert-crash-free-metrics"):
-            alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(

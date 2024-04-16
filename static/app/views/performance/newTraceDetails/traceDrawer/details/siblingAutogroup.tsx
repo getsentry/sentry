@@ -5,10 +5,13 @@ import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type SiblingAutogroupNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type SiblingAutogroupNode,
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -17,7 +20,7 @@ export function SiblingAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  scrollToNode,
+  onTabScrollToNode,
 }: TraceTreeNodeDetailsProps<SiblingAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
@@ -40,7 +43,7 @@ export function SiblingAutogroupNodeDetails({
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
         </TraceDrawerComponents.Actions>
@@ -53,7 +56,7 @@ export function SiblingAutogroupNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>

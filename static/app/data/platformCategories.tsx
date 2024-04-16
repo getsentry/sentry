@@ -194,6 +194,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
+  'nintendo-switch',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -453,6 +454,7 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'dart',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',
@@ -512,6 +514,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'android',
   'electron',
+  'flutter',
   'java-android',
   'javascript-angular',
   'javascript-astro',
