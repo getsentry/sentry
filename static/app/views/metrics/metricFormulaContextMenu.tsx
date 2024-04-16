@@ -82,7 +82,7 @@ export function MetricFormulaContextMenu({
       {
         leadingItems: [<IconClose key="icon" />],
         key: 'delete',
-        label: t('Remove Query'),
+        label: t('Remove Equation'),
         disabled: !canDelete,
         onAction: () => {
           Sentry.metrics.increment('ddm.widget.delete');

@@ -123,7 +123,7 @@ export function Queries() {
           icon={<IconAdd isCircled />}
           onClick={() => handleAddWidget(MetricExpressionType.QUERY)}
         >
-          {t('Add query')}
+          {t('Add metric')}
         </Button>
         <Button
           size="sm"
@@ -132,13 +132,15 @@ export function Queries() {
         >
           {t('Add equation')}
         </Button>
-        <SwitchWrapper>
-          {t('One chart per query')}
-          <SwitchButton
-            isActive={isMultiChartMode}
-            toggle={() => setIsMultiChartMode(!isMultiChartMode)}
-          />
-        </SwitchWrapper>
+        {widgets.length > 1 && (
+          <SwitchWrapper>
+            {t('One chart per metric')}
+            <SwitchButton
+              isActive={isMultiChartMode}
+              toggle={() => setIsMultiChartMode(!isMultiChartMode)}
+            />
+          </SwitchWrapper>
+        )}
       </ButtonBar>
     </Fragment>
   );
