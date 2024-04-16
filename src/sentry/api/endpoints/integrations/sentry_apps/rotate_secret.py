@@ -21,7 +21,13 @@ class SentryAppRotateSecretPermission(SentryPermission):
 
     def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
         # organization that owns an integration
-        organization = organization_service.get_org_by_id(id=sentry_app.owner_id)
+        org_context = organization_service.get_organization_by_id(id=sentry_app.owner_id)
+        if org_context is None:
+            raise Http404
+
+        organization = org_context.organization
+        if organization is None:
+            raise Http404
 
         # if user is not a member of an organization owning an integration,
         # return 404 to avoid leaking integration slug
@@ -48,6 +54,9 @@ class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppRotateSecretPermission,)
 
     def post(self, request: Request, sentry_app: SentryApp) -> Response:
+        if sentry_app.application is None:
+            return Response(status=404)
+
         new_token = generate_token()
         sentry_app.application.update(client_secret=new_token)
         return Response(serialize({"clientSecret": new_token}))
