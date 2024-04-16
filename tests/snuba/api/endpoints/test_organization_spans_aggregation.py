@@ -166,7 +166,7 @@ MOCK_SNUBA_RESPONSE = {
 class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:starfish-aggregate-span-waterfall",
+        "organizations:spans-first-ui",
         "organizations:performance-view",
     ]
 
