@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -23,6 +15,7 @@ import {
   getHiddenOptions,
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
+import {GrowingInput} from 'sentry/components/growingInput';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -45,6 +38,7 @@ interface ComboBoxProps<Value extends string>
   'aria-label': string;
   className?: string;
   disabled?: boolean;
+  growingInput?: boolean;
   isLoading?: boolean;
   loadingMessage?: string;
   menuSize?: FormSize;
@@ -64,6 +58,7 @@ function ComboBox<Value extends string>({
   loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
+  growingInput = false,
   menuWidth,
   ...props
 }: ComboBoxProps<Value>) {
@@ -71,7 +66,6 @@ function ComboBox<Value extends string>({
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const sizingRef = useRef<HTMLDivElement>(null);
 
   const state = useComboBoxState({
     // Mapping our disabled prop to react-aria's isDisabled
@@ -82,23 +76,6 @@ function ComboBox<Value extends string>({
     {listBoxRef, inputRef, popoverRef, isDisabled: disabled, ...props},
     state
   );
-
-  // Sync input width with sizing div
-  // TODO: think of making this configurable with a prop
-  // TODO: extract into separate component
-  useLayoutEffect(() => {
-    if (sizingRef.current && inputRef.current) {
-      const computedStyles = window.getComputedStyle(inputRef.current);
-
-      const newTotalInputSize =
-        sizingRef.current.offsetWidth +
-        parseInt(computedStyles.paddingLeft, 10) +
-        parseInt(computedStyles.paddingRight, 10) +
-        parseInt(computedStyles.borderWidth, 10) * 2;
-
-      inputRef.current.style.width = `${newTotalInputSize}px`;
-    }
-  }, [state.inputValue]);
 
   // Make popover width constant while it is open
   useEffect(() => {
@@ -136,6 +113,8 @@ function ComboBox<Value extends string>({
     }
   }, [state, menuTrigger]);
 
+  const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
+
   return (
     <SelectContext.Provider
       value={{
@@ -144,16 +123,13 @@ function ComboBox<Value extends string>({
       }}
     >
       <ControlWrapper className={className}>
-        <StyledInput
+        <InputComponent
           {...inputProps}
           onClick={handleInputClick}
           placeholder={placeholder}
           ref={mergeRefs([inputRef, triggerProps.ref])}
           size={size}
         />
-        <SizingDiv aria-hidden ref={sizingRef} size={size}>
-          {state.inputValue}
-        </SizingDiv>
         <StyledPositionWrapper
           {...overlayProps}
           zIndex={theme.zIndex?.tooltip}
@@ -337,14 +313,9 @@ const StyledInput = styled(Input)`
   max-width: inherit;
   min-width: inherit;
 `;
-
-const SizingDiv = styled('div')<{size?: FormSize}>`
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-  position: fixed;
-  white-space: pre;
-  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+const StyledGrowingInput = styled(GrowingInput)`
+  max-width: inherit;
+  min-width: inherit;
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {

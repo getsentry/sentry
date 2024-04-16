@@ -20,7 +20,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -674,9 +673,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_title_link_notification_uuid(self, mock_post):
-        # TODO: make this a block kit test
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -700,7 +697,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["title_link"]
+            in json.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

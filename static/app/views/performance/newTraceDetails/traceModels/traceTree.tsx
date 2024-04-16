@@ -256,11 +256,18 @@ export function makeTraceNodeBarColor(
   if (isMissingInstrumentationNode(node)) {
     return theme.gray300;
   }
-  if (isTraceErrorNode(node)) {
-    return theme.red300;
-  }
   if (isNoDataNode(node)) {
     return theme.yellow300;
+  }
+  if (isTraceErrorNode(node)) {
+    // Theme defines this as orange, yet everywhere in our product we show red for errors
+    if (node.value.level === 'error' || node.value.level === 'fatal') {
+      return theme.red300;
+    }
+    if (node.value.level) {
+      return theme.level[node.value.level] ?? theme.red300;
+    }
+    return theme.red300;
   }
   return pickBarColor('default');
 }
@@ -766,7 +773,15 @@ export class TraceTree {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
+      const index = node.parent.children.indexOf(node);
+      node.parent.children[index] = autoGroupedNode;
+
+      autoGroupedNode.head.parent = autoGroupedNode;
       autoGroupedNode.groupCount = groupMatchCount + 1;
+      autoGroupedNode.space = [
+        start * autoGroupedNode.multiplier,
+        (end - start) * autoGroupedNode.multiplier,
+      ];
 
       for (const error of errors) {
         autoGroupedNode.errors.add(error);
@@ -776,18 +791,10 @@ export class TraceTree {
         autoGroupedNode.performance_issues.add(performanceIssue);
       }
 
-      autoGroupedNode.space = [
-        start * autoGroupedNode.multiplier,
-        (end - start) * autoGroupedNode.multiplier,
-      ];
-
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
         queue.push(c);
       }
-
-      const index = node.parent.children.indexOf(node);
-      node.parent.children[index] = autoGroupedNode;
     }
   }
 
@@ -1137,7 +1144,34 @@ export class TraceTree {
 
       // We are at the last path segment (the node that the user clicked on)
       // and we should scroll the view to this node.
-      const index = tree.list.findIndex(node => node === current);
+      let index = current ? tree.list.findIndex(node => node === current) : -1;
+
+      // We have found the node, yet it is somehow not in the visible tree.
+      // This means that the path we were given did not match the current tree.
+      // This sometimes happens when we receive external links like span-x, txn-y
+      // however the resulting tree looks like span-x, autogroup, txn-y. In this case,
+      // we should expand the autogroup node and try to find the node again.
+      if (current && index === -1) {
+        let parent_node = current.parent;
+        while (parent_node) {
+          // Transactions break autogrouping chains, so we can stop here
+          if (isTransactionNode(parent_node)) {
+            break;
+          }
+          if (isAutogroupedNode(parent_node)) {
+            tree.expand(parent_node, true);
+            index = current ? tree.list.findIndex(node => node === current) : -1;
+            // This is very wasteful as it performs O(n^2) search each time we expand a node...
+            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
+            // a low autogrouped node count.
+            if (index !== -1) {
+              break;
+            }
+          }
+          parent_node = parent_node.parent;
+        }
+      }
+
       if (index === -1) {
         throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
@@ -1553,6 +1587,22 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this._spanChildren;
   }
 
+  private _max_severity: keyof Theme['level'] | undefined;
+  get max_severity(): keyof Theme['level'] {
+    if (this._max_severity) {
+      return this._max_severity;
+    }
+
+    for (const error of this.errors) {
+      if (error.level === 'error' || error.level === 'fatal') {
+        this._max_severity = error.level;
+        return this.max_severity;
+      }
+    }
+
+    return 'default';
+  }
+
   /**
    * Invalidate the visual data used to render the tree, forcing it
    * to be recalculated on the next render. This is useful when for example
@@ -1707,10 +1757,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
-      if (predicate(next)) return next;
+      if (predicate(next)) {
+        return next;
+      }
 
-      for (const child of next.children) {
-        queue.push(child);
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        for (const child of next.children) {
+          queue.push(child);
+        }
       }
     }
 
@@ -1836,12 +1892,6 @@ export class NoDataNode extends TraceTreeNode<null> {
 
 // Generates a ID of the tree node based on its type
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
-  if (isTransactionNode(n)) {
-    return `txn-${n.value.event_id}`;
-  }
-  if (isSpanNode(n)) {
-    return `span-${n.value.span_id}`;
-  }
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
       return `ag-${n.head.value.span_id}`;
@@ -1852,6 +1902,12 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
         return `ag-${child.value.span_id}`;
       }
     }
+  }
+  if (isTransactionNode(n)) {
+    return `txn-${n.value.event_id}`;
+  }
+  if (isSpanNode(n)) {
+    return `span-${n.value.span_id}`;
   }
   if (isTraceNode(n)) {
     return `trace-root`;
@@ -2059,7 +2115,6 @@ function findInTreeFromSegment(
     if (type === 'txn' && isTransactionNode(node)) {
       return node.value.event_id === id;
     }
-
     if (type === 'span' && isSpanNode(node)) {
       return node.value.span_id === id;
     }

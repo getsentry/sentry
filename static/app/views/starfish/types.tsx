@@ -52,7 +52,6 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
-  | 'span.domain'
   | 'span.group'
   | 'transaction'
   | 'transaction.method'
@@ -64,6 +63,7 @@ export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
 } & {
   [SpanMetricsField.PROJECT_ID]?: string;
+  [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';
@@ -84,6 +84,17 @@ export const SPAN_FUNCTIONS = [
   'http_error_count',
 ] as const;
 
+const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
+type BreakpointCondition = (typeof BREAKPOINT_CONDITIONS)[number];
+
+type RegressionFunctions = [
+  `regression_score(${string},${string})`,
+  `avg_by_timestamp(${string},${BreakpointCondition},${string})`,
+  `epm_by_timestamp(${BreakpointCondition},${string})`,
+][number];
+
+type SpanAnyFunction = `any(${string})`;
+
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
@@ -102,6 +113,10 @@ export type MetricsResponse = {
   'http_response_rate(5)': number;
 } & {
   ['project.id']: number;
+} & {
+  [Function in RegressionFunctions]: number;
+} & {
+  [Function in SpanAnyFunction]: string;
 };
 
 export type MetricsFilters = {

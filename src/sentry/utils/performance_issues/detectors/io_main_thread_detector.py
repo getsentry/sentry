@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from typing import Any
 
 import sentry_sdk
 
@@ -31,7 +32,9 @@ from ..types import Span
 class BaseIOMainThreadDetector(PerformanceDetector):
     __slots__ = ("spans_involved", "stored_problems")
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.spans_involved = {}
         self.most_recent_start_time = {}
         self.most_recent_hash = {}
@@ -206,7 +209,9 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.spans_involved = {}
         self.most_recent_start_time = {}
         self.most_recent_hash = {}
