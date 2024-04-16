@@ -40,7 +40,6 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -58,7 +57,7 @@ import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
+  generateTransactionIdLink,
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
@@ -85,7 +84,6 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  unfilteredTotalValues?: Record<string, number> | null;
 };
 
 function SummaryContent({
@@ -100,7 +98,6 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
-  unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
@@ -394,7 +391,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionLink(transactionName),
+              id: generateTransactionIdLink(transactionName),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               replayId: generateReplayLink(routes),
               'profile.id': generateProfileLink(),
@@ -449,12 +446,6 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
-        <TransactionPercentage
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          unfilteredTotals={unfilteredTotalValues}
-        />
         <UserStats
           organization={organization}
           location={location}

@@ -57,6 +57,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             start=filter_params["start"],
             end=filter_params["end"],
             organization=project.organization,
+            request_user_id=request.user.id,
         )
 
         response = process_raw_response(

@@ -11,6 +11,7 @@ from sentry import options
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.rules.processing.delayed_processing import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -268,7 +269,6 @@ class TestRedisBuffer:
         return project_ids_to_rule_data
 
     def test_enqueue(self):
-        PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
         project_id = 1
         rule_id = 2
         group_id = 3
@@ -339,6 +339,14 @@ class TestRedisBuffer:
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
 
         redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.buf
+
+    def test_process_batch(self):
+        """Test that the registry's callbacks are invoked when we process a batch"""
+        mock = Mock()
+        redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
+        self.buf.process_batch()
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.buf
 

@@ -28,6 +28,115 @@ from sentry.utils.samples import load_data
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.start = before_now(minutes=1)
+        self.end = timezone.now()
+
+        self.event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=30)),
+                "fingerprint": ["group-1"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        self.event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-2"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        self.environment2 = self.create_environment(name="staging")
+        self.event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": self.environment2.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-3"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
+        perf_event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(seconds=12),
+            start_timestamp=before_now(seconds=13),
+            fingerprint=[fingerprint],
+        )
+        perf_event_data["user"] = {"id": uuid4().hex}
+        perf_event_data["environment"] = self.environment.name
+
+        # Store a performance event
+        self.perf_event = self.create_performance_issue(
+            event_data=perf_event_data,
+            project_id=self.project.id,
+            fingerprint=fingerprint,
+        )
+
+
+class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
+    rule_cls = EventFrequencyCondition
+
+    def test_batch_query(self):
+        condition_inst = self.rule_cls(self.event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 1,
+        }
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 1}
+
+
+class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
+    rule_cls = EventUniqueUserFrequencyCondition
+
+    def test_batch_query_user(self):
+        condition_inst = self.rule_cls(self.event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 1,
+        }
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: 1}
+
+
 class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
         data["timestamp"] = iso_format(timestamp)
@@ -72,7 +181,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 
 @pytest.mark.snuba_ci
-class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
+class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):

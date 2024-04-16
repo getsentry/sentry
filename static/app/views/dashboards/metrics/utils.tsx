@@ -18,7 +18,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
@@ -214,12 +214,12 @@ function getWidgetEquation(metricsEquation: DashboardMetricsEquation): WidgetQue
 export function expressionsToWidget(
   expressions: DashboardMetricsExpression[],
   title: string,
-  displayType: DisplayType
+  displayType: DisplayType,
+  interval = '5m'
 ): Widget {
   return {
     title,
-    // The interval has no effect on metrics widgets but the BE requires it
-    interval: '5m',
+    interval,
     displayType: displayType,
     widgetType: WidgetType.METRICS,
     limit: 10,

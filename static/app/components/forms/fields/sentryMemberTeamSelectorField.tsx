@@ -30,13 +30,21 @@ function SentryMemberTeamSelectorField({
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
-  const currentItems = form?.getValue<string[]>(props.name, []);
+  const {multiple} = props;
+  const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
+
+  // Coerce value to always be a list of items
+  const currentValue = useMemo(
+    () =>
+      Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : undefined,
+    [fieldValue]
+  );
 
   // Ensure the current value of the fields members is loaded
   const ensureUserIds = useMemo(
     () =>
-      currentItems?.filter(item => item.startsWith('member:')).map(user => user.slice(7)),
-    [currentItems]
+      currentValue?.filter(item => item.startsWith('user:')).map(user => user.slice(7)),
+    [currentValue]
   );
   useMembers({ids: ensureUserIds});
 
@@ -51,7 +59,7 @@ function SentryMemberTeamSelectorField({
   // frustratingly that is difficult likely because we're recreating this
   // object on every re-render.
   const memberOptions = members?.map(member => ({
-    value: `member:${member.id}`,
+    value: `user:${member.id}`,
     label: member.name,
     leadingItems: <Avatar user={member} size={avatarSize} />,
   }));
@@ -59,8 +67,8 @@ function SentryMemberTeamSelectorField({
   // Ensure the current value of the fields teams is loaded
   const ensureTeamIds = useMemo(
     () =>
-      currentItems?.filter(item => item.startsWith('team:')).map(user => user.slice(5)),
-    [currentItems]
+      currentValue?.filter(item => item.startsWith('team:')).map(user => user.slice(5)),
+    [currentValue]
   );
   useTeamsById({ids: ensureTeamIds});
 

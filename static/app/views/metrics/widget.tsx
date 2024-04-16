@@ -18,11 +18,12 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
+  areResultsLimited,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
@@ -35,6 +36,7 @@ import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   FocusedMetricsSeries,
   MetricDisplayType,
+  MetricSeriesFilterUpdateType,
   MetricsQueryWidget,
   MetricsWidget,
   SortState,
@@ -52,12 +54,10 @@ import type {Series} from 'sentry/views/metrics/chart/types';
 import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
 import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
-import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
-import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
+import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
@@ -190,16 +190,9 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols &&
-              queryId !== undefined &&
-              (queries[0] && isMetricFormula(queries[0]) ? (
-                <EquationSymbol
-                  equationId={queryId}
-                  isSelected={isSelected && hasSiblings}
-                />
-              ) : (
-                <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
-              ))}
+            {showQuerySymbols && queryId !== undefined && queries[0] && (
+              <span>{queries[0].name}:</span>
+            )}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
@@ -311,14 +304,21 @@ const MetricWidgetBody = memo(
       });
     }, [queries]);
 
+    // Pause refetching if focus area is drawn
+    const enableRefetch = !focusAreaProps.selection;
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsQuery(orderedQueries, filters, {
-      interval: interval,
-    });
+    } = useMetricsQuery(orderedQueries, filters, {interval}, enableRefetch);
+
+    const limitedResults = useMemo(() => {
+      if (!timeseriesData) {
+        return false;
+      }
+      return areResultsLimited(timeseriesData);
+    }, [timeseriesData]);
 
     const {chartRef, setHoveredSeries} = useSeriesHover();
 
@@ -356,9 +356,13 @@ const MetricWidgetBody = memo(
     );
 
     const handleRowFilter = useCallback(
-      (queryIndex, series) => {
+      (
+        queryIndex: number,
+        series: FocusedMetricsSeries,
+        updateType: MetricSeriesFilterUpdateType
+      ) => {
         const queryToUpdate = queries[queryIndex];
-        if (!queryToUpdate) {
+        if (!queryToUpdate || !series.groupBy) {
           return;
         }
 
@@ -367,10 +371,14 @@ const MetricWidgetBody = memo(
           return;
         }
 
-        const newQuery = extendQueryWithGroupBys(queryToUpdate.query, [series.groupBy]);
+        const newQuery = updateQueryWithSeriesFilter(
+          queryToUpdate,
+          series.groupBy,
+          updateType
+        );
         const indexToUpdate = queries.length > 1 ? queryIndex : widgetIndex;
 
-        onQueryChange?.(indexToUpdate, {query: newQuery});
+        onQueryChange?.(indexToUpdate, newQuery);
       },
       [queries, onQueryChange, widgetIndex]
     );
@@ -473,6 +481,14 @@ const MetricWidgetBody = memo(
 
     return (
       <StyledMetricWidgetBody>
+        {limitedResults && (
+          <LimitAlert type="warning" showIcon>
+            {tct(
+              'The queries in this chart generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
+              {numOfGroups: chartSeries.length}
+            )}
+          </LimitAlert>
+        )}
         <TransparentLoadingMask visible={isLoading} />
         <MetricChart
           ref={chartRef}
@@ -612,7 +628,7 @@ const MetricWidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   padding-left: ${space(2)};
   padding-top: ${space(1.5)};
   padding-right: ${space(2)};
@@ -623,6 +639,10 @@ const WidgetTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: inline-grid;
   grid-auto-flow: column;
+`;
+
+const LimitAlert = styled(Alert)`
+  margin-bottom: 0;
 `;
 
 const StyledTooltip = styled(Tooltip)`

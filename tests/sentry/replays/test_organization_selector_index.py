@@ -60,6 +60,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 is_dead=1,
                 is_rage=1,
                 text="Hello",
+                component_name="SignUpForm",
             )
         )
         self.store_replays(
@@ -79,6 +80,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 is_dead=1,
                 is_rage=0,
                 text="Hello",
+                component_name="SignUpForm",
             )
         )
 
@@ -93,7 +95,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["project_id"] == project.id
             assert (
                 response_data["data"][0]["dom_element"]
-                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
+                == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"][component_name="SignUpForm"]'
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
@@ -105,6 +107,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["tag"] == "div"
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
+            assert response_data["data"][0]["element"]["component_name"] == "SignUpForm"
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
@@ -128,6 +131,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 aria_label="AriaLabel",
                 title="MyTitle",
                 text="Hello",
+                component_name="SignUpForm",
                 is_dead=True,
                 is_rage=False,
             )
@@ -147,6 +151,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 aria_label="AriaLabel",
                 title="MyTitle",
                 text="Hello",
+                component_name="SignUpForm",
                 is_dead=True,
                 is_rage=True,
             )

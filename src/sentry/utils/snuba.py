@@ -136,6 +136,7 @@ SPAN_COLUMN_MAP = {
     "user": "user",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
+    "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -979,9 +980,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+        scope = sentry_sdk.Scope.get_current_scope()
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(

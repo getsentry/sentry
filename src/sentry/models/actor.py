@@ -25,7 +25,10 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.models.user import User
 
-ACTOR_TYPES = {"team": 0, "user": 1}
+ACTOR_TYPES = {
+    "team": 0,
+    "user": 1,
+}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
@@ -156,12 +159,18 @@ class Actor(Model):
     def get_actor_tuple(self) -> ActorTuple:
         # Returns ActorTuple version of the Actor model.
         actor_type = actor_type_to_class(self.type)
-        return ActorTuple(self.resolve().id, actor_type)
+
+        if self.type == ACTOR_TYPES["user"]:
+            return ActorTuple(self.user_id, actor_type)
+        if self.type == ACTOR_TYPES["team"]:
+            return ActorTuple(self.team_id, actor_type)
+
+        raise ValueError("Unknown actor type")
 
     def get_actor_identifier(self):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
-        return self.get_actor_tuple().get_actor_identifier()
+        return self.get_actor_tuple().identifier
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
@@ -194,10 +203,6 @@ class Actor(Model):
         return (self.pk, ImportKind.Inserted)
 
 
-def get_actor_id_for_user(user: User | RpcUser) -> int:
-    return get_actor_for_user(user).id
-
-
 def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     if isinstance(user, int):
         user_id = user
@@ -213,6 +218,21 @@ def get_actor_for_user(user: int | User | RpcUser) -> Actor:
     return actor
 
 
+def get_actor_for_team(team: int | Team) -> Actor:
+    if isinstance(team, int):
+        team_id = team
+    else:
+        team_id = team.id
+    try:
+        with transaction.atomic(router.db_for_write(Actor)):
+            actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["team"], team_id=team_id)
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
+        actor = Actor.objects.filter(type=ACTOR_TYPES["team"], team_id=team_id).first()
+    return actor
+
+
 class ActorTuple(namedtuple("Actor", "id type")):
     """
     This is an artifact from before we had the Actor model.
@@ -220,7 +240,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
     This should happen more easily if we move GroupAssignee, GroupOwner, etc. to use the Actor model.
     """
 
-    def get_actor_identifier(self):
+    @property
+    def identifier(self):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @overload
@@ -274,6 +295,30 @@ class ActorTuple(namedtuple("Actor", "id type")):
             return cls(user.id, User)
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
+
+    @classmethod
+    def from_id(cls, user_id: int | None, team_id: int | None) -> ActorTuple | None:
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        if user_id and team_id:
+            raise ValueError("user_id and team_id may not both be specified")
+        if user_id and not team_id:
+            return cls(user_id, User)
+        if team_id and not user_id:
+            return cls(team_id, Team)
+
+        return None
+
+    @classmethod
+    def from_ids(cls, user_ids: Sequence[int], team_ids: Sequence[int]) -> Sequence[ActorTuple]:
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        return [
+            *[cls(user_id, User) for user_id in user_ids],
+            *[cls(team_id, Team) for team_id in team_ids],
+        ]
 
     def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
