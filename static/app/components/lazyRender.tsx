@@ -26,7 +26,7 @@ export interface LazyRenderProps {
   containerHeight?: number;
   observerOptions?: Partial<IntersectionObserverInit>;
   /**
-   * Removes the wrapping div once rendered
+   * Removes the wrapping div once visible
    */
   withoutWrapper?: boolean;
 }
