@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import cast
 from unittest.mock import patch
 
 import responses
@@ -35,12 +36,13 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
                 },
             )
             self.model.add_organization(self.organization, self.user)
-        self.integration = GitHubEnterpriseIntegration(self.model, self.organization.id)
+        install = self.model.get_installation(self.organization.id)
+        self.install = cast(GitHubEnterpriseIntegration, install)
 
     def _check_proxying(self) -> None:
         assert len(responses.calls) == 1
         request = responses.calls[0].request
-        assert request.headers[PROXY_OI_HEADER] == str(None)
+        assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
         assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
         assert PROXY_SIGNATURE_HEADER in request.headers
 
@@ -60,7 +62,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
         )
 
         repo = "getsentry/sentry"
-        assert self.integration.get_allowed_assignees(repo) == (
+        assert self.install.get_allowed_assignees(repo) == (
             ("", "Unassigned"),
             ("MeredithAnya", "MeredithAnya"),
         )
@@ -93,7 +95,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
         repo = "getsentry/sentry"
         # results should be sorted alphabetically
-        assert self.integration.get_repo_labels(repo) == (
+        assert self.install.get_repo_labels(repo) == (
             ("bug", "bug"),
             ("duplicate", "duplicate"),
             ("enhancement", "enhancement"),
@@ -136,7 +138,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             "description": "This is the description",
         }
 
-        assert self.integration.create_issue(form_data) == {
+        assert self.install.create_issue(form_data) == {
             "key": 321,
             "description": "This is the description",
             "title": "hello",
@@ -177,7 +179,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             json=[{"number": 321, "title": "hello", "body": "This is the description"}],
         )
         repo = "getsentry/sentry"
-        assert self.integration.get_repo_issues(repo) == ((321, "#321 hello"),)
+        assert self.install.get_repo_issues(repo) == ((321, "#321 hello"),)
 
         if self.should_call_api_without_proxying():
             assert len(responses.calls) == 2
@@ -213,7 +215,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
         data = {"repo": "getsentry/sentry", "externalIssue": issue_id, "comment": "hello"}
 
-        assert self.integration.get_issue(issue_id, data=data) == {
+        assert self.install.get_issue(issue_id, data=data) == {
             "key": issue_id,
             "description": "This is the description",
             "title": "hello",
@@ -252,7 +254,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             organization_id=self.organization.id, integration_id=self.model.id, key="hello#321"
         )
 
-        self.integration.after_link_issue(external_issue, data=data)
+        self.install.after_link_issue(external_issue, data=data)
 
         if self.should_call_api_without_proxying():
             assert len(responses.calls) == 2
