@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
-from openai import OpenAI, RateLimitError
+from openai import AzureOpenAI, OpenAI, RateLimitError
 
 from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
@@ -121,7 +121,14 @@ def get_openai_client() -> OpenAI:
         return openai_client
 
     # this will raise if OPENAI_API_KEY is not set
-    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    if settings.OPENAI_AZURE_API_ENDPOINT:
+        openai_client = AzureOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            azure_endpoint=settings.OPENAI_AZURE_API_ENDPOINT,
+            api_version=settings.OPENAI_AZURE_API_VERSION,
+        )
+    else:
+        openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
     return openai_client
 

@@ -40,13 +40,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -2396,6 +2394,10 @@ SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
 OPENAI_API_KEY: str | None = None
+
+# Azure Specific Settings for OpenAI
+OPENAI_AZURE_API_VERSION: str | None = None
+OPENAI_AZURE_API_ENDPOINT: str | None = None
 
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")

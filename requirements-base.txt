@@ -1,5 +1,3 @@
---index-url https://pypi.devinfra.sentry.io/simple
-
 beautifulsoup4>=4.7.1
 boto3>=1.34.8
 botocore>=1.34.8
