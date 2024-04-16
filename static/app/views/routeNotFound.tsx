@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -16,7 +16,7 @@ function RouteNotFound({router, location}: Props) {
 
   const isMissingSlash = pathname[pathname.length - 1] !== '/';
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Attempt to fix trailing slashes first
     if (isMissingSlash) {
       router.replace(`${pathname}/${search}${hash}`);
