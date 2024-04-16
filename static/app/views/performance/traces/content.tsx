@@ -27,7 +27,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {ProjectRenderer, SpanIdRenderer, TraceIdRenderer} from './fieldRenderers';
+import {
+  ProjectRenderer,
+  SpanIdRenderer,
+  TraceBreakdownRenderer,
+  TraceIdRenderer,
+} from './fieldRenderers';
 import {TracesSearchBar} from './tracesSearchBar';
 import {normalizeTraces} from './utils';
 
@@ -157,7 +162,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <Count value={trace.numSpans} />
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+        <TraceBreakdownRenderer trace={trace} />
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={trace.duration} abbreviation />

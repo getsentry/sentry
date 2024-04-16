@@ -1,5 +1,11 @@
+import styled from '@emotion/styled';
+
+import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {Tooltip} from 'sentry/components/tooltip';
 import type {DateString} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -7,6 +13,7 @@ import {
   generateLinkToEventInTraceView,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,6 +43,47 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
         );
       }}
     </Projects>
+  );
+}
+
+const RelativeOpsBreakdown = styled('div')`
+  position: relative;
+  display: flex;
+  min-width: 150px;
+`;
+
+const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
+  position: relative;
+  width: 100%;
+`;
+
+export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
+  const widthPercentage = 1.0;
+  const operationName = 'trace';
+  const spanOpDuration = 1000;
+  return (
+    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+      <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
+        <Tooltip
+          title={
+            <div>
+              <div>{operationName}</div>
+              <div>
+                <Duration seconds={spanOpDuration / 1000} fixedDigits={2} abbreviation />
+              </div>
+            </div>
+          }
+          containerDisplayMode="block"
+        >
+          <RectangleRelativeOpsBreakdown
+            style={{
+              backgroundColor: pickBarColor(operationName),
+            }}
+            onClick={_ => {}}
+          />
+        </Tooltip>
+      </div>
+    </RelativeOpsBreakdown>
   );
 }
 
