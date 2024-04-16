@@ -120,6 +120,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
+        "highlightContext",
+        "highlightTags",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
