@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.digests import Digest
 from sentry.digests.utils import get_groups
 from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
@@ -31,18 +30,6 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         """
         digest: Digest = self.context.get("digest", {})
         digest_groups = get_groups(digest)
-        if not features.has("organizations:slack-block-kit", self.notification.organization):
-            return [
-                SlackIssuesMessageBuilder(
-                    group=group,
-                    event=event,
-                    rules=[rule],
-                    issue_details=True,
-                    notification=self.notification,
-                    recipient=self.recipient,
-                ).build()
-                for rule, group, event in digest_groups
-            ]
         blocks = []
         for rule, group, event in digest_groups:
             alert_as_blocks = SlackIssuesMessageBuilder(
