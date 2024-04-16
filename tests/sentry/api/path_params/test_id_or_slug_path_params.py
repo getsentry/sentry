@@ -248,8 +248,8 @@ class APIIdOrSlugPathParamTest(
         # Step 2: Add new slugs to the mappings
         # Add slug mappings for the test methods
         self.slug_mappings = {
-            "doc_integration_slug": self.doc_integration,
-            "sentry_app_slug": self.sentry_app,
+            "doc_integration_id_or_slug": self.doc_integration,
+            "sentry_app_id_or_slug": self.sentry_app,
             "organization_slug": self.organization,
             "project_slug": self.project,
             "team_slug": self.team,
