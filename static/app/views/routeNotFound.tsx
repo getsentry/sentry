@@ -25,6 +25,8 @@ function RouteNotFound({router, location}: Props) {
 
     Sentry.withScope(scope => {
       scope.setFingerprint(['RouteNotFound']);
+      scope.setTag('isMissingSlash', isMissingSlash);
+      scope.setTag('pathname', pathname);
       Sentry.captureException(new Error('Route not found'));
     });
   }, [pathname, search, hash, isMissingSlash, router]);
