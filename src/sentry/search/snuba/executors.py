@@ -1430,7 +1430,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 orderby=[OrderBy(sort_func, direction=Direction.DESC)],
                 limit=Limit(limit + 1),
             )
-            dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+            dataset = (
+                Dataset.Events.value if joined_entity.alias == "e" else Dataset.IssuePlatform.value
+            )
             request = Request(
                 dataset=dataset,
                 app_id="group_attributes",
