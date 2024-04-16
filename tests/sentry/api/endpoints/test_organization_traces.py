@@ -1,8 +1,10 @@
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -191,7 +193,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "project": [self.project.id],
             "field": ["id", "parent_span"],
             "query": "foo:bar",
-            "maxSpansPerTrace": 3,
+            "maxSpansPerTrace": 2,
         }
 
         response = self.do_request(query)
@@ -224,6 +226,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "numSpans": 4,
                     "name": "foo",
                     "duration": 60_100,
+                    "start": int(timestamps[0].timestamp() * 1000),
+                    "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                    "breakdown": [],
                     "spans": sorted(
                         [
                             # span_ids[1] does not match
@@ -238,6 +243,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "numSpans": 3,
                     "name": "bar",
                     "duration": 90_123,
+                    "start": int(timestamps[4].timestamp() * 1000),
+                    "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                    "breakdown": [],
                     "spans": sorted(
                         [
                             {"id": span_ids[5], "parent_span": span_ids[4]},
@@ -249,3 +257,478 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
         )
+        assert 0
+
+
+@pytest.mark.parametrize(
+    ["data", "expected"],
+    [
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="single transaction",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 25,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 25,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 25,
+                        "end": 75,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 75,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions different project nested",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 75,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 25,
+                    "last_seen()": 100,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 25,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 25,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions different project overlapping",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 25,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 50,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 25,
+                        "kind": "project",
+                    },
+                    {
+                        "project": None,
+                        "start": 25,
+                        "end": 50,
+                        "kind": "missing",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 50,
+                        "end": 75,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions different project non overlapping",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo2",
+                    "first_seen()": 25,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions same project nested",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 75,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo2",
+                    "first_seen()": 25,
+                    "last_seen()": 100,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions same project overlapping",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 25,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo2",
+                    "first_seen()": 50,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 25,
+                        "kind": "project",
+                    },
+                    {
+                        "project": None,
+                        "start": 25,
+                        "end": 50,
+                        "kind": "missing",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 50,
+                        "end": 75,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="two transactions same project non overlapping",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 20,
+                    "last_seen()": 80,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "baz",
+                    "transaction": "baz1",
+                    "first_seen()": 40,
+                    "last_seen()": 60,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 20,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 20,
+                        "end": 40,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "baz",
+                        "start": 40,
+                        "end": 60,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 60,
+                        "end": 80,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 80,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions different project nested",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 25,
+                    "last_seen()": 50,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "baz",
+                    "transaction": "baz1",
+                    "first_seen()": 50,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 25,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 25,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "baz",
+                        "start": 50,
+                        "end": 75,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 75,
+                        "end": 100,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions different project 2 overlap the first",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 20,
+                    "last_seen()": 30,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "baz",
+                    "transaction": "baz1",
+                    "first_seen()": 50,
+                    "last_seen()": 75,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 20,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 20,
+                        "end": 30,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 30,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "baz",
+                        "start": 50,
+                        "end": 75,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions different project 1 overlap the first and other non overlap",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 20,
+                    "last_seen()": 30,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "baz",
+                    "transaction": "baz1",
+                    "first_seen()": 40,
+                    "last_seen()": 60,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 20,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 20,
+                        "end": 30,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "baz",
+                        "start": 40,
+                        "end": 60,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions different project 2 overlap and second extend past parent",
+        ),
+    ],
+)
+def test_process_breakdowns(data, expected):
+    assert process_breakdowns(data) == expected
