@@ -43,7 +43,7 @@ class Project2ProjectIDModulator(Modulator):
             for project in projects:
                 if project.slug == formula:
                     self.value_map[formula] = project.id
-        return formula
+        return self.value_map[formula]
 
     def demodulate(self, formula: Formula, projects: Sequence[Project]) -> Formula:
         if formula not in self.value_map:

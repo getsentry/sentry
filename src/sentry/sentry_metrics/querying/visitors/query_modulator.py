@@ -28,12 +28,12 @@ class ModulatorConditionVisitor(QueryConditionVisitor):
         if isinstance(lhs, Column):
             modulator = find_modulator(self.modulators, lhs.name)
             if modulator:
-                lhs = Column(modulator.to_key)
+                new_lhs = Column(modulator.to_key)
+                self.applied_modulators.append(modulator)
 
                 if isinstance(rhs, ScalarType):
-                    new_value = modulator.modulate(rhs, self._projects)
-                    rhs = new_value
-                    return Condition(lhs=lhs, op=condition.op, rhs=rhs)
+                    new_rhs = modulator.modulate(rhs, self._projects)
+                    return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
 
         return condition
 
@@ -42,7 +42,7 @@ class ModulatorConditionVisitor(QueryConditionVisitor):
         for condition in boolean_condition.conditions:
             conditions.append(self.visit(condition))
 
-            return BooleanCondition(op=boolean_condition.op, conditions=conditions)
+        return BooleanCondition(op=boolean_condition.op, conditions=conditions)
 
 
 class ModulatorVisitor(QueryExpressionVisitor):
@@ -57,45 +57,19 @@ class ModulatorVisitor(QueryExpressionVisitor):
         self.applied_modulators = []
 
     def _visit_formula(self, formula: Formula) -> TVisited:
+        # visit the params recursively
         formula = super()._visit_formula(formula)
+
+        # visit the filters
         filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
             formula.filters
         )
         formula = formula.set_filters(filters)
 
-        groupby = formula.groupby
-        if groupby:
-            groups = []
-            for group in groupby:
-                new_group = group
-                if isinstance(group, Column):
-                    modulator = find_modulator(self.modulators, group.name)
-                    if modulator:
-                        new_group = Column(name=modulator.to_key)
-                        self.applied_modulators.append(modulator)
-                elif isinstance(group, AliasedExpression):
-                    modulator = find_modulator(self.modulators, group.exp.name)
-                    if modulator:
-                        new_group = AliasedExpression(
-                            exp=Column(name=modulator.to_key), alias=group.alias
-                        )
-                        self.applied_modulators.append(modulator)
-
-                groups.append(new_group)
-
-            formula = formula.set_groupby(groups)
-        return formula
-
-    def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        timeseries = super()._visit_timeseries(timeseries)
-        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
-            timeseries.filters
-        )
-        timeseries.set_filters(filters)
-        groupby = timeseries.groupby
-        if groupby:
-            groups = []
-            for group in groupby:
+        # visit the groupby
+        if formula.groupby:
+            new_group_bys = []
+            for group in formula.groupby:
                 new_group = group
                 if isinstance(group, Column):
                     modulator = find_modulator(self.modulators, group.name)
@@ -109,6 +83,37 @@ class ModulatorVisitor(QueryExpressionVisitor):
                             exp=Column(name=modulator.to_key), alias=group.alias
                         )
                     self.applied_modulators.append(modulator)
-                groups.append(new_group)
-            timeseries = timeseries.set_groupby(groups)
+                new_group_bys.append(new_group)
+            formula = formula.set_groupby(new_group_bys)
+        return formula
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
+        # visit the parameters recursively
+        timeseries = super()._visit_timeseries(timeseries)
+
+        # visit the filters
+        filters = ModulatorConditionVisitor(self._projects, self.modulators).visit_group(
+            timeseries.filters
+        )
+        timeseries = timeseries.set_filters(filters)
+
+        # visit the groupby
+        if timeseries.groupby:
+            new_group_bys = []
+            for group in timeseries.groupby:
+                new_group = group
+                if isinstance(group, Column):
+                    modulator = find_modulator(self.modulators, group.name)
+                    if modulator:
+                        new_group = Column(name=modulator.to_key)
+                        self.applied_modulators.append(modulator)
+                elif isinstance(group, AliasedExpression):
+                    modulator = find_modulator(self.modulators, group.exp.name)
+                    if modulator:
+                        new_group = AliasedExpression(
+                            exp=Column(name=modulator.to_key), alias=group.alias
+                        )
+                    self.applied_modulators.append(modulator)
+                new_group_bys.append(new_group)
+            timeseries = timeseries.set_groupby(new_group_bys)
         return timeseries
