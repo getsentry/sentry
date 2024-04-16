@@ -38,9 +38,11 @@ class IssueOccurrenceData(TypedDict):
     level: str | None
     culprit: str | None
     initial_issue_priority: NotRequired[int | None]
-    # Who to assign the issue to when creating a new issue. Has no effect on existing issues.
-    # In the format of an Actor identifier, as defined in `ActorTuple.from_actor_identifier`
     assignee: NotRequired[str | None]
+    """
+    Who to assign the issue to when creating a new issue. Has no effect on existing issues.
+    In the format of an Actor identifier, as defined in `ActorTuple.from_actor_identifier`
+    """
 
 
 @dataclass(frozen=True)
