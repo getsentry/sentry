@@ -24,12 +24,20 @@ function ReplaysList() {
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
+      end: decodeScalar,
+      environment: decodeList,
       project: decodeList,
       query: decodeScalar,
       sort: value => decodeScalar(value, '-started_at'),
+      start: decodeScalar,
       statsPeriod: decodeScalar,
+      utc: decodeScalar,
     },
   });
+  const filteredQuery = useMemo(
+    () => Object.fromEntries(Object.entries(query).filter(([_key, val]) => val !== '')),
+    [query]
+  );
 
   const {
     data: replays,
@@ -37,7 +45,7 @@ function ReplaysList() {
     isLoading,
     error,
   } = useFetchReplayList({
-    options: {query},
+    options: {query: filteredQuery},
     organization,
     queryReferrer: 'replayList',
   });
