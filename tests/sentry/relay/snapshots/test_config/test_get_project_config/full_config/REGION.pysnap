@@ -92,6 +92,8 @@ config:
       - '*/health'
       - '*/healthy'
       - '*/healthz'
+      - '*/_health'
+      - '*/\[_health\]'
       - '*/live'
       - '*/livez'
       - '*/ready'
