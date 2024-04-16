@@ -792,7 +792,7 @@ class QueryExecutor:
         while continue_execution:
             continue_execution = self._bulk_execute()
 
-    def execute(self) -> Sequence[QueryResult]:
+    def execute(self) -> list[QueryResult]:
         """
         Executes the scheduled queries in the execution loop.
 
@@ -816,7 +816,7 @@ class QueryExecutor:
                     "Not all queries were executed in the execution loop"
                 )
 
-        return cast(Sequence[QueryResult], self._query_results)
+        return cast(list[QueryResult], self._query_results)
 
     def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
         """
