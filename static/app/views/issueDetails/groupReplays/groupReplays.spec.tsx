@@ -201,6 +201,7 @@ describe('GroupReplays', () => {
                 'count_rage_clicks',
                 'duration',
                 'finished_at',
+                'has_viewed',
                 'id',
                 'is_archived',
                 'os',
@@ -527,7 +528,7 @@ describe('GroupReplays', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
-        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+        organizationProps: {features: ['session-replay']},
       }));
       const mockGroup = GroupFixture();
 

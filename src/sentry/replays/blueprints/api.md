@@ -369,20 +369,21 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column             | Type          | Description                                        |
-| ------------------ | ------------- | -------------------------------------------------- |
-| count_dead_clicks  | number        | The number of dead clicks for a given DOM element. |
-| count_rage_clicks  | number        | The number of rage clicks for a given DOM element. |
-| dom_element        | string        | -                                                  |
-| element.alt        | string        | -                                                  |
-| element.aria_label | string        | -                                                  |
-| element.class      | array[string] | -                                                  |
-| element.id         | string        | -                                                  |
-| element.role       | string        | -                                                  |
-| element.tag        | string        | -                                                  |
-| element.testid     | string        | -                                                  |
-| element.title      | string        | -                                                  |
-| project_id         | string        | -                                                  |
+| Column                 | Type          | Description                                        |
+| ---------------------- | ------------- | -------------------------------------------------- |
+| count_dead_clicks      | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks      | number        | The number of rage clicks for a given DOM element. |
+| dom_element            | string        | -                                                  |
+| element.alt            | string        | -                                                  |
+| element.aria_label     | string        | -                                                  |
+| element.class          | array[string] | -                                                  |
+| element.component_name | string        | -                                                  |
+| element.id             | string        | -                                                  |
+| element.role           | string        | -                                                  |
+| element.tag            | string        | -                                                  |
+| element.testid         | string        | -                                                  |
+| element.title          | string        | -                                                  |
+| project_id             | string        | -                                                  |
 
 - Response 200
 
@@ -397,6 +398,7 @@ Retrieve a collection of selectors.
           "alt": "",
           "aria_label": "",
           "class": ["class1", "class2"],
+          "component_name": "",
           "id": "myid",
           "role": "",
           "tag": "div",

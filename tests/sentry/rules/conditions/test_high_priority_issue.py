@@ -46,21 +46,6 @@ class HighPriorityIssueConditionTest(RuleTestCase):
         )
 
     @with_feature("projects:high-priority-alerts")
-    def test_with_threshold_without_priority(self):
-        self.project.flags.has_high_priority_alerts = True
-        self.project.save()
-        rule = self.get_rule(rule=self.rule)
-
-        self.event.group.data["metadata"] = {"severity": "0.7"}
-        self.assertPasses(rule, self.event, is_new=True, has_reappeared=False)
-        self.assertDoesNotPass(rule, self.event, is_new=False, has_reappeared=False)
-
-        self.event.group.data["metadata"] = {"severity": "0.0"}
-        self.assertPasses(rule, self.event, is_new=False, has_reappeared=False, has_escalated=True)
-        self.assertPasses(rule, self.event, is_new=False, has_reappeared=False, has_escalated=True)
-        self.assertDoesNotPass(rule, self.event, is_new=True, has_reappeared=False)
-
-    @with_feature("projects:high-priority-alerts")
     @with_feature("projects:issue-priority")
     def test_with_threshold_and_priority(self):
         self.project.flags.has_high_priority_alerts = True

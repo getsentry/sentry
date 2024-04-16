@@ -15,9 +15,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
@@ -25,8 +30,6 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-
-import {generateTransactionLink} from '../../utils';
 
 type TableColumnKeys =
   | 'id'
@@ -59,9 +62,9 @@ export default function SpanTable(props: Props) {
     project,
     examples,
     suspectSpan,
-    transactionName,
     isLoading,
     pageLinks,
+    transactionName,
   } = props;
 
   if (!defined(examples)) {
@@ -152,17 +155,22 @@ function renderBodyCellWithMeta(
     let rendered = fieldRenderer(dataRow, {location, organization});
 
     if (column.key === 'id') {
+      const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
       const worstSpan = dataRow.spans.length
         ? dataRow.spans.reduce((worst, span) =>
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const target = generateTransactionLink(transactionName)(
+
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow: {...dataRow, trace: traceSlug, timestamp: dataRow.timestamp / 1000},
+        eventView: EventView.fromLocation(location),
+        location,
         organization,
-        dataRow,
-        location.query,
-        worstSpan.id
-      );
+        spanId: worstSpan.id,
+        transactionName: transactionName,
+      });
 
       rendered = <Link to={target}>{rendered}</Link>;
     }

@@ -2,7 +2,7 @@ import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,7 +37,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -75,7 +75,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -111,7 +111,7 @@ describe('useReplaysFromIssue', () => {
       body: {},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,

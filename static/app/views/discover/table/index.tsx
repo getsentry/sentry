@@ -123,13 +123,13 @@ class Table extends PureComponent<TableProps, TableState> {
     if (
       eventView.hasAggregateField() &&
       apiPayload.field.includes('trace') &&
-      !apiPayload.field.includes('max(timestamp)')
+      !apiPayload.field.includes('max(timestamp)') &&
+      !apiPayload.field.includes('timestamp')
     ) {
       apiPayload.field.push('max(timestamp)');
     } else if (
       apiPayload.field.includes('trace') &&
-      !apiPayload.field.includes('timestamp') &&
-      !apiPayload.field.includes('max(timestamp)')
+      !apiPayload.field.includes('timestamp')
     ) {
       apiPayload.field.push('timestamp');
     }
@@ -138,6 +138,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
     if (!eventView.hasAggregateField()) {
       apiPayload.field.push('trace');
+      apiPayload.field.push('event.type');
     }
 
     apiPayload.referrer = 'api.discover.query-table';
