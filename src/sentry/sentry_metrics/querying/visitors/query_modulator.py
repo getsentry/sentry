@@ -9,10 +9,16 @@ from sentry.sentry_metrics.querying.visitors.base import TVisited
 from sentry.sentry_metrics.querying.visitors.modulator import Modulator
 
 
-def find_modulator(modulators: Sequence[Modulator], from_key: str) -> Modulator:
+def find_modulator(
+    modulators: Sequence[Modulator], from_key: str = None, to_key: str = None
+) -> Modulator:
     for modulator in modulators:
-        if modulator.from_key == from_key:
-            return modulator
+        if from_key:
+            if modulator.from_key == from_key:
+                return modulator
+        if to_key:
+            if modulator.to_key == to_key:
+                return modulator
 
 
 class ModulatorConditionVisitor(QueryConditionVisitor):

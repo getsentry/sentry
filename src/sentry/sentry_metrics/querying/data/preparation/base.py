@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from snuba_sdk import MetricsQuery
 
@@ -28,7 +28,7 @@ class IntermediateQuery:
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
-    modulators: list[Modulator] | None = None
+    modulators: list[Modulator] = field(default_factory=list)
 
 
 class PreparationStep(ABC):
