@@ -6,6 +6,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -101,7 +102,7 @@ describe('useIndexedSpans', () => {
     const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
         useIndexedSpans({
-          filters,
+          search: MutableSearch.fromQueryObject(filters),
           fields,
           sorts,
           limit,

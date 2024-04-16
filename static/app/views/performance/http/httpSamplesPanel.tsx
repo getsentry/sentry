@@ -203,7 +203,7 @@ export function HTTPSamplesPanel() {
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
   } = useIndexedSpans({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       SpanIndexedField.PROJECT,
       SpanIndexedField.TRACE,
