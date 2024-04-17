@@ -1,6 +1,5 @@
-from typing import Any
-
 from sentry.llm.providers.base import LlmModelBase
+from sentry.llm.types import UseCaseConfig
 
 
 class PreviewLLM(LlmModelBase):
@@ -13,7 +12,7 @@ class PreviewLLM(LlmModelBase):
     def _complete_prompt(
         self,
         *,
-        usecase_config: dict[str, Any],
+        usecase_config: UseCaseConfig,
         prompt: str,
         message: str,
         temperature: float = 0.7,

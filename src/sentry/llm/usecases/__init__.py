@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Any
 
 from sentry import options
 from sentry.llm.exceptions import InvalidProviderError, InvalidUsecaseError
@@ -7,6 +6,7 @@ from sentry.llm.providers.base import LlmModelBase
 from sentry.llm.providers.openai import OpenAIProvider
 from sentry.llm.providers.preview import PreviewLLM
 from sentry.llm.providers.vertex import VertexProvider
+from sentry.llm.types import ProviderConfig, UseCaseConfig
 
 SENTRY_LLM_SERVICE_ALIASES = {
     "vertex": VertexProvider,
@@ -74,7 +74,7 @@ def complete_prompt(
     )
 
 
-def get_usecase_config(usecase: str) -> dict[str, Any]:
+def get_usecase_config(usecase: str) -> UseCaseConfig:
     usecase_options_all = options.get("llm.usecases.options")
     if not usecase_options_all:
         raise InvalidUsecaseError(
@@ -89,7 +89,7 @@ def get_usecase_config(usecase: str) -> dict[str, Any]:
     return usecase_options_all[usecase]
 
 
-def get_provider_config(provider: str) -> dict[str, Any]:
+def get_provider_config(provider: str) -> ProviderConfig:
     llm_provider_options_all = options.get("llm.provider.options")
     if not llm_provider_options_all:
         raise InvalidProviderError("LLM provider option value not found")

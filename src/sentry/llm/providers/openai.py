@@ -1,8 +1,7 @@
-from typing import Any
-
 from openai import OpenAI
 
 from sentry.llm.providers.base import LlmModelBase
+from sentry.llm.types import UseCaseConfig
 
 
 class OpenAIProvider(LlmModelBase):
@@ -12,7 +11,7 @@ class OpenAIProvider(LlmModelBase):
     def _complete_prompt(
         self,
         *,
-        usecase_config: dict[str, Any],
+        usecase_config: UseCaseConfig,
         prompt: str,
         message: str,
         temperature: float,
@@ -42,13 +41,9 @@ class OpenAIProvider(LlmModelBase):
 openai_client: OpenAI | None = None
 
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
 def get_openai_client(api_key: str) -> OpenAI:
-    global openai_client
-
-    if openai_client:
-        return openai_client
-
-    # this will raise if OPENAI_API_KEY is not set
-    openai_client = OpenAI(api_key=api_key)
-
-    return openai_client
+    return OpenAI(api_key=api_key)

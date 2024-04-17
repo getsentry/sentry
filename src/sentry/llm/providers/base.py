@@ -1,17 +1,16 @@
-from typing import Any
-
 from sentry.llm.exceptions import InvalidModelError, InvalidProviderError
+from sentry.llm.types import ProviderConfig, UseCaseConfig
 from sentry.utils.services import Service
 
 
 class LlmModelBase(Service):
-    def __init__(self, provider_config: dict[str, Any]) -> None:
+    def __init__(self, provider_config: ProviderConfig) -> None:
         self.provider_config = provider_config
 
     def complete_prompt(
         self,
         *,
-        usecase_config: dict[str, Any],
+        usecase_config: UseCaseConfig,
         prompt: str,
         message: str,
         temperature: float,
@@ -30,7 +29,7 @@ class LlmModelBase(Service):
     def _complete_prompt(
         self,
         *,
-        usecase_config: dict[str, Any],
+        usecase_config: UseCaseConfig,
         prompt: str,
         message: str,
         temperature: float,

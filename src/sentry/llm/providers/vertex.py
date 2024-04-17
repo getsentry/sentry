@@ -1,11 +1,11 @@
 import logging
-from typing import Any
 
 import google.auth
 import google.auth.transport.requests
 import requests
 
 from sentry.llm.providers.base import LlmModelBase
+from sentry.llm.types import UseCaseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +16,13 @@ class VertexProvider(LlmModelBase):
     """
 
     provider_name = "vertex"
-
-    def get_provider_options(self) -> dict[str, Any]:
-        return self.provider_config[self.provider_name]["options"]
-
     candidate_count = 1  # we only want one candidate returned at the moment
     top_p = 1  # TODO: make this configurable?
 
     def _complete_prompt(
         self,
         *,
-        usecase_config: dict[str, Any],
+        usecase_config: UseCaseConfig,
         prompt: str,
         message: str,
         temperature: float,
