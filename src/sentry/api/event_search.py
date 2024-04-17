@@ -172,7 +172,6 @@ duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") 
 size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
 percentage_format    = numeric "%"
 
-
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
