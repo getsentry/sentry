@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -19,6 +20,7 @@ from sentry.snuba.referrer import Referrer
 
 @region_silo_endpoint
 class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
