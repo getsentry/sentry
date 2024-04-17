@@ -21,8 +21,8 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';

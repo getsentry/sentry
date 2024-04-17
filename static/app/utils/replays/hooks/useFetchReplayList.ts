@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   type ApiQueryKey,
