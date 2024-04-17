@@ -1583,8 +1583,8 @@ class QueryBuilder(BaseQueryBuilder):
                     label = "Filter Trace ID"
                 elif name == "profile.id":
                     label = "Filter Profile ID"
-                # elif name == "replay.id":
-                #     label = "Filter Replay ID"
+                elif name == "replay.id":
+                    label = "Filter Replay ID"
                 else:
                     label = "Filter ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))

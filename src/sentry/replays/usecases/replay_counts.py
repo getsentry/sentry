@@ -11,9 +11,6 @@ from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover, issue_platform
-
-# from sentry.search.events.builder import QueryBuilder
-# from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
