@@ -1,4 +1,4 @@
-import type {EventAttachment} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types/group';
 
 export function EventAttachmentFixture(params = {}): EventAttachment {
   return {

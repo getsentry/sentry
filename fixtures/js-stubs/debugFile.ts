@@ -1,4 +1,5 @@
-import {type DebugFile, DebugFileFeature, DebugFileType} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import {DebugFileFeature, DebugFileType} from 'sentry/types/debugFiles';
 
 export function DebugFileFixture(params = {}): DebugFile {
   return {

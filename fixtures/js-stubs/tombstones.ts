@@ -1,4 +1,5 @@
-import {EventOrGroupType, GroupTombstone} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {GroupTombstone} from 'sentry/types/group';
 
 export function TombstonesFixture(params = []): GroupTombstone[] {
   return [

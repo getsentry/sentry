@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {CommonStoreDefinition} from 'sentry/stores/types';
-import type {PlatformExternalIssue} from 'sentry/types';
+import type {PlatformExternalIssue} from 'sentry/types/integrations';
 
 interface ExternalIssueStoreDefinition
   extends CommonStoreDefinition<PlatformExternalIssue[]> {

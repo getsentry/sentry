@@ -1,4 +1,4 @@
-import {Health} from 'sentry/types';
+import type {Health} from 'sentry/types/release';
 
 export function HealthFixture(params: Partial<Health> = {}): Health {
   return {

@@ -11,7 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

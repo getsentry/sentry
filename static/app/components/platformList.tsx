@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {

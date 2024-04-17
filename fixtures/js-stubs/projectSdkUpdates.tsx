@@ -1,4 +1,4 @@
-import type {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 
 export function ProjectSdkUpdatesFixture(
   overrides?: Partial<ProjectSdkUpdates>

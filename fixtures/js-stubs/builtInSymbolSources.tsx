@@ -1,4 +1,4 @@
-import type {BuiltinSymbolSource} from 'sentry/types';
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 
 export function BuiltInSymbolSourcesFixture(
   params: BuiltinSymbolSource[] = []

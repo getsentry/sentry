@@ -1,6 +1,6 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member} from 'sentry/types';
+import type {Member} from 'sentry/types/organization';
 
 export function MemberFixture(params: Partial<Member> = {}): Member {
   return {

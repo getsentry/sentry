@@ -1,4 +1,4 @@
-import {OrgRole, TeamRole} from 'sentry/types';
+import type {OrgRole, TeamRole} from 'sentry/types/organization';
 
 export function OrgRoleListFixture(
   params: OrgRole[] = [],

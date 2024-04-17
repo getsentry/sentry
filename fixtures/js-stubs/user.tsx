@@ -1,4 +1,4 @@
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 export function UserFixture(params: Partial<User> = {}): User {
   return {

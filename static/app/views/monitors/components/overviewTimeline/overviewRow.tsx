@@ -13,7 +13,7 @@ import {IconEllipsis, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {Monitor} from 'sentry/views/monitors/types';

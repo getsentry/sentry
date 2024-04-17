@@ -1,7 +1,7 @@
 import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 interface ProjectsStatsStoreDefinition extends StoreDefinition {
   getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];

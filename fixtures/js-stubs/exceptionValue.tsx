@@ -1,4 +1,4 @@
-import type {ExceptionValue} from 'sentry/types';
+import type {ExceptionValue} from 'sentry/types/event';
 
 export function ExceptionValueFixture(
   props: Partial<ExceptionValue> = {}

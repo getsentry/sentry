@@ -1,6 +1,6 @@
 import type {Layout} from 'react-grid-layout';
 
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 

@@ -19,7 +19,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types/group';
 import {
   setApiQueryData,
   useApiQuery,

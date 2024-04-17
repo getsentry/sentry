@@ -18,7 +18,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {

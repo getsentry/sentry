@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 export function ProjectFixture(params: Partial<Project> = {}): Project {
   const team = TeamFixture();

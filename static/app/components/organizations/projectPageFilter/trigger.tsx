@@ -8,7 +8,7 @@ import PlatformList from 'sentry/components/platformList';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
 import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';

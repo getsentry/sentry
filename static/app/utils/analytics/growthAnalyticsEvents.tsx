@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;

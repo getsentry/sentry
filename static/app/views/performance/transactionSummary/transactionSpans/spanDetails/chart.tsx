@@ -12,7 +12,7 @@ import {
 import Count from 'sentry/components/count';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';

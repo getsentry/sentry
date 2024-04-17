@@ -16,7 +16,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {

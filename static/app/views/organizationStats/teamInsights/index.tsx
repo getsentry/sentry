@@ -2,7 +2,7 @@ import {cloneElement, isValidElement} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

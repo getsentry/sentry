@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/indicator');
 

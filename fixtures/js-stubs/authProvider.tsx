@@ -1,4 +1,4 @@
-import type {AuthProvider} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
 
 export function AuthProviderFixture(params: Partial<AuthProvider> = {}): AuthProvider {
   return {

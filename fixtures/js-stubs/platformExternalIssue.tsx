@@ -1,4 +1,4 @@
-import {PlatformExternalIssue} from 'sentry/types';
+import type {PlatformExternalIssue} from 'sentry/types/integrations';
 
 export function PlatformExternalIssueFixture(
   params: Partial<PlatformExternalIssue> = {}

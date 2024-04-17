@@ -5,13 +5,13 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {DateString} from 'sentry/types/core';
+import type {IssueAttachment} from 'sentry/types/group';
 import type {
-  DateString,
   EventsStats,
-  IssueAttachment,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'sentry/types';
+} from 'sentry/types/organization';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';

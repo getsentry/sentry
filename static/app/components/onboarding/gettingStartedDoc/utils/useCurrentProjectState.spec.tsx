@@ -13,7 +13,7 @@ import {
 } from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();

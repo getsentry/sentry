@@ -7,7 +7,7 @@ import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetc
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   crashReportId: string;

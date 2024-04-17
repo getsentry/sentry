@@ -9,7 +9,7 @@ import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCre
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import useProjects from 'sentry/utils/useProjects';
 
 type Props = {

@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import type {NewQuery, SavedQuery} from 'sentry/types';
+import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,

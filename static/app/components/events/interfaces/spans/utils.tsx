@@ -8,7 +8,6 @@ import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
-import type {Organization} from 'sentry/types';
 import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
@@ -17,6 +16,7 @@ import type {
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
