@@ -219,13 +219,12 @@ class BaseModel(models.Model):
         elif "name" in field_names:
             sanitizer.set_name(json, SanitizableField(model_name, "name"))
 
-        # Auto-sanitize all `models.DateTimeField` fields on this class.
         for f in fields:
+            # Auto-sanitize all `models.DateTimeField` fields on this class.
             if isinstance(f, models.DateTimeField):
                 sanitizer.set_datetime(json, SanitizableField(model_name, f.name))
 
-        # Auto-sanitize all `models.EmailField` fields on this class.
-        for f in fields:
+            # Auto-sanitize all `models.EmailField` fields on this class.
             if isinstance(f, models.EmailField):
                 sanitizer.set_email(json, SanitizableField(model_name, f.name))
 
