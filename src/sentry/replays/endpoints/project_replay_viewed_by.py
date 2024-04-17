@@ -120,11 +120,11 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             tenant_id={"organization_id": project.organization.id} if project.organization else {},
             referrer="replays.endpoints.viewed_by_post",
         )["data"]
+        if not finished_at_response:
+            return Response(status=404)
 
-        finished_at_ts = None
-        if finished_at_response:
-            finished_at = finished_at_response[0]["finished_at"]
-            finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
+        finished_at = finished_at_response[0]["finished_at"]
+        finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
 
         message = viewed_event(
             project.id,
@@ -133,7 +133,6 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             finished_at_ts if finished_at_ts else time.time(),
         )
         publish_replay_event(message, is_async=False)
-
         return Response(status=204)
 
 
