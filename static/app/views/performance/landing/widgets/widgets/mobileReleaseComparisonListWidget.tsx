@@ -338,7 +338,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <GrowLink
                 to={normalizeUrl({
-                  pathname: `${targetModulePath}/spans/`,
+                  pathname: `${targetModulePath}spans/`,
                   query: {
                     project: listItem['project.id'],
                     transaction,
