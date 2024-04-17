@@ -8,6 +8,9 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
+from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
+    QueryModulationValueMap,
+)
 from sentry.sentry_metrics.querying.data.modulation.modulator import (
     Modulator,
     Project2ProjectIDModulator,
@@ -70,6 +73,7 @@ def run_queries(
         )
 
     preparation_steps: list[PreparationStep] = []
+    modulation_value_map = QueryModulationValueMap()
     modulators: list[Modulator] = [Project2ProjectIDModulator()]
 
     if features.has(
@@ -77,7 +81,7 @@ def run_queries(
     ):
         preparation_steps.append(UnitsNormalizationStep())
 
-    preparation_steps.append(QueryModulationStep(projects, modulators))
+    preparation_steps.append(QueryModulationStep(projects, modulators, modulation_value_map))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
@@ -88,7 +92,9 @@ def run_queries(
         executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
-    results = run_postprocessing_steps(results, QueryDemodulationStep(projects, modulators))
+    results = run_postprocessing_steps(
+        results, QueryDemodulationStep(projects, modulators, modulation_value_map)
+    )
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
     return MQLQueriesResult(results)
