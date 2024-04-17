@@ -283,9 +283,10 @@ search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? numeric) unit:[kmb]? &(end_value / comma / closed_bracket) {
+  = value:("-"? numeric) unit:numeric_unit? &(end_value / comma / closed_bracket) {
       return tc.tokenValueNumber(value.join(''), unit);
     }
+numeric_unit = ("k"i / "m"i / "b"i)
 
 boolean_value
   = value:("true"i / "1" / "false"i / "0") &end_value {
@@ -345,17 +346,23 @@ rel_date_format
 
 duration_format
   = value:numeric
-    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
+    unit:(duration_unit)
     &end_value {
       return tc.tokenValueDuration(value, unit);
     }
 
+duration_unit = "ms" / "s" / "min" / "m" / "hr" / "h" / "day" / "d" / "wk" / "w"
+
 size_format
   = value:numeric
-    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
+    unit:(size_unit)
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
+
+size_unit = bytes / bits
+bytes = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
+bits = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
 
 percentage_format
   = value:numeric "%" {
