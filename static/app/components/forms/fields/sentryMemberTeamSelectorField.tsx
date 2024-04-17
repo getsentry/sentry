@@ -1,7 +1,9 @@
 import {useContext, useEffect, useMemo} from 'react';
+import partition from 'lodash/partition';
 
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
+import {Team} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -75,13 +77,18 @@ function SentryMemberTeamSelectorField({
     fetching: fetchingTeams,
     onSearch: onTeamSearch,
     loadMore: loadMoreTeams,
-  } = useTeams({provideUserTeams: true});
+  } = useTeams();
 
-  const teamOptions = teams?.map(team => ({
+  const makeTeamOption = (team: Team) => ({
     value: `team:${team.id}`,
     label: `#${team.slug}`,
     leadingItems: <Avatar team={team} size={avatarSize} />,
-  }));
+  });
+
+  const [myTeams, otherTeams] = partition(teams, team => team.isMember);
+
+  const myTeamOptions = myTeams.map(makeTeamOption);
+  const otherTeamOptions = otherTeams.map(makeTeamOption);
 
   // TODO(epurkhiser): This is an unfortunate hack right now since we don't
   // actually load members anywhere and the useMembers and useTeams hook don't
@@ -114,8 +121,12 @@ function SentryMemberTeamSelectorField({
           options: memberOptions,
         },
         {
-          label: t('Teams'),
-          options: teamOptions,
+          label: t('My Teams'),
+          options: myTeamOptions,
+        },
+        {
+          label: t('Other Teams'),
+          options: otherTeamOptions,
         },
       ]}
       {...props}
