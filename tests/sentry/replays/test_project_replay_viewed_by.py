@@ -132,6 +132,9 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
     @patch("sentry.replays.endpoints.project_replay_viewed_by.publish_replay_event")
     def test_post_replay_viewed_by(self, publish_replay_event):
         with self.feature(REPLAYS_FEATURES):
+            finished_at_dt = datetime.datetime.now() - datetime.timedelta(seconds=20)
+            self.store_replays(mock_replay(finished_at_dt, self.project.id, self.replay_id))
+
             response = self.client.post(self.url, data="")
             assert response.status_code == 204
             assert publish_replay_event.called
@@ -139,3 +142,13 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             replay_event = json.loads(publish_replay_event.call_args[0][0])
             payload = json.loads(bytes(replay_event["payload"]))
             assert payload["type"] == "replay_viewed"
+            assert payload["viewed_by_id"] == self.user.id
+            assert isinstance(payload["timestamp"], float)
+
+            # time should match the last replay segment with second-level precision
+            assert int(payload["timestamp"]) == int(finished_at_dt.timestamp())
+
+    def test_post_replay_viewed_by_not_exist(self):
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.post(self.url, data="")
+            assert response.status_code == 404

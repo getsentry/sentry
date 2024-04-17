@@ -1,3 +1,5 @@
+import time
+
 from sentry.replays.usecases.events import archive_event, viewed_event
 from sentry.utils import json
 
@@ -28,7 +30,8 @@ def test_archive_event():
 
 def test_viewed_event():
     """Test "replay_viewed" event generator."""
-    event = viewed_event(1, "2", 3)
+    ts = time.time()
+    event = viewed_event(1, "2", 3, ts)
 
     parsed_event = json.loads(event)
     assert parsed_event["type"] == "replay_event"
@@ -40,4 +43,4 @@ def test_viewed_event():
     payload = json.loads(bytes(parsed_event["payload"]))
     assert payload["type"] == "replay_viewed"
     assert payload["viewed_by_id"] == 3
-    assert isinstance(payload["timestamp"], float)
+    assert payload["timestamp"] == ts
