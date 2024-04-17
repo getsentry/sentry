@@ -138,11 +138,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         :param token: A plaintext string of the token
         :raises PlaintextSecretAlreadyRead: when the token has already been read once
         """
-        existing_token = None
+        existing_token: str | None = None
         try:
-            existing_token = self.__plaintext_token  # type: ignore[has-type]
+            existing_token = self.__plaintext_token
         except AttributeError:
-            self.__plaintext_token = token
+            self.__plaintext_token: str = token
 
         if existing_token == TOKEN_REDACTED:
             raise PlaintextSecretAlreadyRead()
@@ -155,11 +155,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         :param token: A plaintext string of the refresh token
         :raises PlaintextSecretAlreadyRead: if the token has already been read once
         """
-        existing_refresh_token = None
+        existing_refresh_token: str | None = None
         try:
-            existing_refresh_token = self.__plaintext_refresh_token  # type: ignore[has-type]
+            existing_refresh_token = self.__plaintext_refresh_token
         except AttributeError:
-            self.__plaintext_refresh_token = token
+            self.__plaintext_refresh_token: str = token
 
         if existing_refresh_token == TOKEN_REDACTED:
             raise PlaintextSecretAlreadyRead()
