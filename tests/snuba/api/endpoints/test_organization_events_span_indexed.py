@@ -96,6 +96,43 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["sentry_tags[transaction.method]"] == "foo"
         assert meta["dataset"] == "spansIndexed"
 
+    def test_module_alias(self):
+        # Delegates `span.module` to `sentry_tags[category]`. Maps `"db.redis"` spans to the `"cache"` module
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "db.redis",
+                        "description": "EXEC *",
+                        "sentry_tags": {
+                            "description": "EXEC *",
+                            "category": "db",
+                            "op": "db.redis",
+                            "transaction": "/app/index",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.module", "span.description"],
+                "query": "span.module:cache",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.module"] == "cache"
+        assert data[0]["span.description"] == "EXEC *"
+        assert meta["dataset"] == "spansIndexed"
+
     def test_device_class_filter_unknown(self):
         self.store_spans(
             [
