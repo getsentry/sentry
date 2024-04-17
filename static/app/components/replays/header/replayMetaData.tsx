@@ -97,10 +97,10 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
       </KeyMetricData>
       <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
       <KeyMetricData>
-        {viewersResult.data ? (
-          <AvatarList avatarSize={25} users={viewersResult.data.data.viewed_by} />
-        ) : (
+        {viewersResult.isLoading ? (
           <HeaderPlaceholder width="55px" height="27px" />
+        ) : (
+          <AvatarList avatarSize={25} users={viewersResult.data?.data.viewed_by} />
         )}
       </KeyMetricData>
     </KeyMetrics>
