@@ -20,12 +20,12 @@ _default_logger = logging.getLogger(__name__)
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:
     log_params = {"activity_id": activity_id}
-    _default_logger.info("async processing for activity", extra=log_params)
+    _default_logger.debug("async processing for activity", extra=log_params)
 
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
-        _default_logger.info("activity does not exist", extra=log_params)
+        _default_logger.debug("activity does not exist", extra=log_params)
         return
 
     organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
@@ -34,10 +34,10 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
     org_has_flag = features.has("organizations:slack-thread-issue-alert", organization)
     log_params["org_has_flag"] = org_has_flag
     if not org_has_flag:
-        _default_logger.info("org does not have flag, skipping", extra=log_params)
+        _default_logger.debug("org does not have flag, skipping", extra=log_params)
         return
 
-    _default_logger.info("attempting to send notifications", extra=log_params)
+    _default_logger.debug("attempting to send notifications", extra=log_params)
     slack_service = SlackService.default()
     try:
         slack_service.notify_all_threads_for_activity(activity=activity)
@@ -49,14 +49,14 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
         _default_logger.info(
             "Failed to send notifications for activity",
             exc_info=err,
-            extra={"activity_id": activity_id},
+            extra=log_params,
         )
         metrics.incr(
             "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications.failure",
             sample_rate=1.0,
         )
 
-    _default_logger.info("task finished for sending notifications", extra=log_params)
+    _default_logger.debug("task finished for sending notifications", extra=log_params)
 
 
 def activity_created_receiver(instance, created, **kwargs) -> None:
@@ -64,9 +64,9 @@ def activity_created_receiver(instance, created, **kwargs) -> None:
     If an activity is created for an issue, this will trigger, and we can kick off an async process
     """
     log_params = {"activity_id": instance.id, "activity_object_created": created}
-    _default_logger.info("receiver for activity event", extra=log_params)
+    _default_logger.debug("receiver for activity event", extra=log_params)
     if not created:
-        _default_logger.info("instance is not created, skipping post processing", extra=log_params)
+        _default_logger.debug("instance is not created, skipping post processing", extra=log_params)
         return
 
     transaction.on_commit(
