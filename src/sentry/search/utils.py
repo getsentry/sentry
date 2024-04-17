@@ -105,9 +105,6 @@ def parse_size(value: str, size: str) -> float:
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid size value")
 
-    # Search grammer is case insensitive for size units
-    size = size.lower()
-
     if size == "bit":
         byte = size_value / 8
     elif size == "nb":
