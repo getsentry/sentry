@@ -198,9 +198,6 @@ SHARED_TAG_STRINGS = {
     "outcome.id": PREFIX + 276,
     "outcome.reason": PREFIX + 277,
     "cardinality.window": PREFIX + 278,
-    "cardinality.limit": PREFIX + 279,
-    "cardinality.scope": PREFIX + 280,
-    "cache.hit": PREFIX + 281,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -228,7 +225,6 @@ SPAN_METRICS_NAMES = {
     "d:spans/webvital.score.weight.inp@ratio": PREFIX + 416,
     "d:spans/webvital.inp@millisecond": PREFIX + 417,
     "c:spans/usage@none": PREFIX + 418,
-    "d:spans/cache.item_size@byte": PREFIX + 419,
     # Last possible index: 499
 }
 

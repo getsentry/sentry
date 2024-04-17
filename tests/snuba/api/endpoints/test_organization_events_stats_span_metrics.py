@@ -275,7 +275,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             4,
             metric="cache.item_size",
             timestamp=self.day_ago + timedelta(minutes=1),
-            tags={"transaction": "foo"},
+            tags={"transaction": "foo", "cache.hit": "true"},
         )
 
         response = self.do_request(
@@ -284,6 +284,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
                 "end": iso_format(self.day_ago + timedelta(minutes=2)),
                 "interval": "1m",
                 "yAxis": "avg(cache.item_size)",
+                "field": ["cache.hit"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "excludeOther": 0,
