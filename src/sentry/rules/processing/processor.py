@@ -53,6 +53,26 @@ def is_condition_slow(
     return False
 
 
+def split_conditions_and_filters(
+    data: Mapping[str, Any],
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+    conditions_and_filters = data.get("conditions", [])
+    conditions = []
+    filters = []
+    for condition_or_filter in conditions_and_filters:
+        id = condition_or_filter["id"]
+        rule_cls = rules.get(id)
+        if rule_cls is None:
+            logger.warning("Unregistered condition or filter %r", id)
+            continue
+
+        if rule_cls.rule_type == EventFilter.rule_type:
+            filters.append(condition_or_filter)
+        elif rule_cls.rule_type == EventCondition.rule_type:
+            conditions.append(condition_or_filter)
+    return conditions, filters
+
+
 class RuleProcessor:
     def __init__(
         self,
