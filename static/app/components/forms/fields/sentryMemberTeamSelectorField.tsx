@@ -3,7 +3,7 @@ import partition from 'lodash/partition';
 
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
