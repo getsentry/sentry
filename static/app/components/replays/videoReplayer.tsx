@@ -14,7 +14,7 @@ interface OffsetOptions {
 }
 
 interface VideoReplayerOptions {
-  duration: number;
+  durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
@@ -57,7 +57,7 @@ export class VideoReplayer {
   private _videos: Map<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
-  private _duration: number;
+  private _durationMs: number;
   public config: VideoReplayerConfig = {
     skipInactive: false,
     speed: 1.0,
@@ -75,7 +75,7 @@ export class VideoReplayer {
       onFinished,
       onLoaded,
       clipWindow,
-      duration,
+      durationMs,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -89,7 +89,7 @@ export class VideoReplayer {
     };
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
-    this._duration = duration;
+    this._durationMs = durationMs;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -304,7 +304,7 @@ export class VideoReplayer {
       // If we're at the end of a segment, but there's a gap
       // at the end, force the replay to play until the end duration
       // rather than stopping right away.
-      this._timer.addNotificationAtTime(this._duration, () => {
+      this._timer.addNotificationAtTime(this._durationMs, () => {
         this.stopReplay();
       });
       return;
@@ -611,7 +611,7 @@ export class VideoReplayer {
       // at the end of the replay.
       // This tells the timer to stop at the specified duration
       // and prevents the timer from running infinitely.
-      this._timer.addNotificationAtTime(this._duration, () => {
+      this._timer.addNotificationAtTime(this._durationMs, () => {
         this.stopReplay();
       });
       return Promise.resolve();
