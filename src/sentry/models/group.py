@@ -829,7 +829,10 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get("type", "default")
+        val = self.data.get("type", "default")
+        if not isinstance(val, str):
+            raise TypeError(f'Expected "type" to be str but got: {val}->{type(val)}')
+        return val
 
     def get_event_metadata(self) -> dict[str, Any]:
         """
@@ -837,7 +840,10 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data["metadata"]
+        meta = self.data["metadata"]
+        if not isinstance(meta, dict):
+            raise TypeError(f'Expected "metadata" to be a dict but got: {meta}->{type(meta)}')
+        return meta
 
     @property
     def title(self) -> str:
