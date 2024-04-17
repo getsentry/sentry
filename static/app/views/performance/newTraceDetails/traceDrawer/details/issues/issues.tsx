@@ -201,6 +201,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                       start: dateSelection.start,
                       end: dateSelection.end,
                       statsPeriod: dateSelection.statsPeriod,
+                      project: -1,
                     },
                   }}
                 >
