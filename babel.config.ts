@@ -26,20 +26,6 @@ const config: TransformOptions = {
   env: {
     production: {
       plugins: [
-        [
-          'transform-react-remove-prop-types',
-          {
-            mode: 'remove', // remove from bundle
-            removeImport: true, // removes `prop-types` import statements
-            classNameMatchers: [
-              'SelectField',
-              'FormField',
-              'DeprecatedAsyncComponent',
-              'DeprecatedAsyncView',
-            ],
-            additionalLibraries: [/app\/sentryTypes$/],
-          },
-        ],
         ['babel-plugin-add-react-displayname'],
         '@sentry/babel-plugin-component-annotate',
       ],
