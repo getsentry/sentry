@@ -4,6 +4,9 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
+    QueryModulationValueMap,
+)
 from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
@@ -100,10 +103,16 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
 
 
 class ModulatorConditionVisitor(QueryConditionVisitor):
-    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
+    def __init__(
+        self,
+        projects: Sequence[Project],
+        modulators: Sequence[Modulator],
+        value_map: QueryModulationValueMap,
+    ):
         self.projects = projects
         self.modulators = modulators
         self.applied_modulators = []
+        self.value_map = value_map
 
     def _visit_condition(self, condition: Condition) -> TVisited:
         lhs = condition.lhs
@@ -116,9 +125,12 @@ class ModulatorConditionVisitor(QueryConditionVisitor):
                 self.applied_modulators.append(modulator)
 
                 if isinstance(rhs, list):
-                    new_rhs = [modulator.modulate(self.projects, element) for element in rhs]
+                    new_rhs = [
+                        modulator.modulate(self.projects, self.value_map, element)
+                        for element in rhs
+                    ]
                 else:
-                    new_rhs = modulator.modulate(self.projects, rhs)
+                    new_rhs = modulator.modulate(self.projects, self.value_map, rhs)
                 return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
 
         return condition

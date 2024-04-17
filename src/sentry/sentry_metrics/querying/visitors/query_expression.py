@@ -6,6 +6,9 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
+from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
+    QueryModulationValueMap,
+)
 from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
@@ -461,17 +464,23 @@ class ModulatorVisitor(QueryExpressionVisitor):
     by API that need to be translated for Snuba to be able to query the data.
     """
 
-    def __init__(self, projects: Sequence[Project], modulators: Sequence[Modulator]):
+    def __init__(
+        self,
+        projects: Sequence[Project],
+        modulators: Sequence[Modulator],
+        value_map: QueryModulationValueMap,
+    ):
         self.projects = projects
         self.modulators = modulators
+        self.value_map = value_map
         self.applied_modulators: list[Modulator] = []
 
     def _visit_formula(self, formula: Formula) -> Formula:
         formula = super()._visit_formula(formula)
 
-        filters = ModulatorConditionVisitor(self.projects, self.modulators).visit_group(
-            formula.filters
-        )
+        filters = ModulatorConditionVisitor(
+            self.projects, self.modulators, self.value_map
+        ).visit_group(formula.filters)
         formula = formula.set_filters(filters)
 
         if formula.groupby:
@@ -481,9 +490,9 @@ class ModulatorVisitor(QueryExpressionVisitor):
         return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> Timeseries:
-        filters = ModulatorConditionVisitor(self.projects, self.modulators).visit_group(
-            timeseries.filters
-        )
+        filters = ModulatorConditionVisitor(
+            self.projects, self.modulators, self.value_map
+        ).visit_group(timeseries.filters)
         timeseries = timeseries.set_filters(filters)
 
         if timeseries.groupby:
