@@ -122,7 +122,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             },
         }
 
-        super().__init__(*args, **kwargs)  # type:ignore[misc]
+        super().__init__(*args, **kwargs)
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
