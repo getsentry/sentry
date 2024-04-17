@@ -214,7 +214,7 @@ export function updateNote(
 type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
-  project?: number[] | null;
+  project?: number[] | string[] | null;
   query?: string;
 };
 
@@ -227,16 +227,16 @@ type QueryArgs =
   | {
       query: string;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       id: Array<number> | Array<string>;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     };
 
 /**
