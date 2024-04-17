@@ -9,7 +9,7 @@ type Opts = {
 
 export type OnDimensionChange = (index: number) => void;
 
-export default function useVirtualListDimentionChange({cache, listRef}: Opts) {
+export default function useVirtualListDimensionChange({cache, listRef}: Opts) {
   const handleDimensionChange = useCallback(
     (index: number) => {
       cache.clear(index, 0);

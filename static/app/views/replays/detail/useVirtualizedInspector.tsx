@@ -2,7 +2,7 @@ import type {MouseEvent, RefObject} from 'react';
 import {useCallback} from 'react';
 import type {CellMeasurerCache, List} from 'react-virtualized';
 
-import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
+import useVirtualListDimensionChange from 'sentry/views/replays/detail/useVirtualListDimensionChange';
 
 type Opts = {
   cache: CellMeasurerCache;
@@ -18,7 +18,7 @@ export type OnDimensionChange = (
 ) => void;
 
 export default function useVirtualizedInspector({cache, listRef, expandPathsRef}: Opts) {
-  const {handleDimensionChange} = useVirtualListDimentionChange({cache, listRef});
+  const {handleDimensionChange} = useVirtualListDimensionChange({cache, listRef});
 
   return {
     expandPaths: expandPathsRef.current,

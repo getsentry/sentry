@@ -16,15 +16,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
-  organization,
   isVideoReplay,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
-  // The new trace table inside Breadcrumb items:
-  const hasTraceTable = organization.features.includes('session-replay-trace-table');
-
   // For video replays, we hide the console, a11y, trace, and memory tabs
   // The console tab isn't useful for video replays; most of the useful logging
   // context will come from breadcrumbs
@@ -35,8 +31,7 @@ function getReplayTabs({
     [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),
-    [TabKey.PERF]: null,
+    [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip
