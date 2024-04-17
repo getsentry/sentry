@@ -449,7 +449,7 @@ describe('AlertRulesList', () => {
     );
   });
 
-  it('does not display ACTIVATED Metric Alerts', async () => {
+  it('renders ACTIVATED Metric Alerts', async () => {
     rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
@@ -463,7 +463,7 @@ describe('AlertRulesList', () => {
         MetricRuleFixture({
           id: '345',
           projects: ['earth'],
-          name: 'Omitted Test Metric Alert',
+          name: 'activated Test Metric Alert',
           monitorType: 1,
           latestIncident: IncidentFixture({
             status: IncidentStatus.CRITICAL,
@@ -484,7 +484,6 @@ describe('AlertRulesList', () => {
 
     expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
-
-    expect(screen.queryByText('Omitted Test Metric Alert')).not.toBeInTheDocument();
+    expect(await screen.findByText('activated Test Metric Alert')).toBeInTheDocument();
   });
 });
