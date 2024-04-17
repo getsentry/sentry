@@ -5,7 +5,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import ReleaseContext from './releaseContext';

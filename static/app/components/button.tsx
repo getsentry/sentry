@@ -282,7 +282,7 @@ function BaseButton({
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !!child)
+    ? children.some(child => child?.type !== null)
     : !!children;
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.

@@ -560,7 +560,7 @@ class RuleProcessorTestFilters(TestCase):
             results = list(rp.apply())
             assert len(results) == 0
 
-    @mock.patch("sentry.rules.processing.processor.RuleProcessor.logger")
+    @mock.patch("sentry.rules.processing.processor.logger")
     def test_invalid_predicate(self, mock_logger):
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 

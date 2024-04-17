@@ -1,7 +1,5 @@
 import {useCallback} from 'react';
 
-import type {Organization} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
@@ -11,42 +9,32 @@ export enum TabKey {
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',
-  PERF = 'perf',
   TAGS = 'tags',
   TRACE = 'trace',
 }
 
-function isReplayTab(tab: string, organization: Organization): tab is TabKey {
-  const hasPerfTab = organization.features.includes('session-replay-trace-table');
-
-  if (tab === TabKey.PERF) {
-    return hasPerfTab;
-  }
-
+function isReplayTab(tab: string): tab is TabKey {
   return Object.values<string>(TabKey).includes(tab);
 }
 
 function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
   const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
-  const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue, organization) ? (paramValue as TabKey) : defaultTab),
-      [organization, paramValue, defaultTab]
+      () => (isReplayTab(paramValue) ? (paramValue as TabKey) : defaultTab),
+      [paramValue, defaultTab]
     ),
     setActiveTab: useCallback(
       (value: string) => {
         setParamValue(
-          isReplayTab(value.toLowerCase(), organization)
-            ? value.toLowerCase()
-            : defaultTab
+          isReplayTab(value.toLowerCase()) ? value.toLowerCase() : defaultTab
         );
       },
-      [organization, setParamValue, defaultTab]
+      [setParamValue, defaultTab]
     ),
   };
 }
