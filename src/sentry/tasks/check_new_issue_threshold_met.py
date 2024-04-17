@@ -60,13 +60,18 @@ def calculate_threshold_met(project_id: int) -> bool:
     default_retry_delay=60,
     max_retries=1,
 )
-def check_new_issue_threshold_met(project: Project) -> None:
+def check_new_issue_threshold_met(project_id: int) -> None:
     """
     Check if the new issue threshold has been met for a project and sets the project flag accordingly.
 
     The calculation is done once per day and the result is cached for 24 hours.
     Rules with {new_issue_threshold_met: False} will default to using the FirstSeenEventCondition condition when applied.
     """
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return
+
     if project.flags.has_high_priority_alerts:
         return
 

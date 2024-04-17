@@ -1478,7 +1478,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
         lock = locks.get(project_key, duration=10)
         with lock.acquire():
-            check_new_issue_threshold_met.delay(event.project)
+            check_new_issue_threshold_met.delay(event.project.id)
     except UnableToAcquireLock:
         pass
     except Exception as e:

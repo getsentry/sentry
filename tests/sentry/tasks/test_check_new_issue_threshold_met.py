@@ -21,7 +21,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
     def test_threshold_not_met(self, mock_calculate):
         assert not self.project.flags.has_high_priority_alerts
 
-        check_new_issue_threshold_met(self.project)
+        check_new_issue_threshold_met(self.project.id)
         self.project.refresh_from_db()
 
         assert mock_calculate.call_count == 1
@@ -33,7 +33,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         self.project.save()
 
         cache.set(new_issue_threshold_key(self.project.id), True, 10)
-        check_new_issue_threshold_met(self.project)
+        check_new_issue_threshold_met(self.project.id)
 
         self.project.refresh_from_db()
 
@@ -43,7 +43,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met", return_value=True)
     def test_threshold_newly_met(self, mock_calculate):
         assert not self.project.flags.has_high_priority_alerts
-        check_new_issue_threshold_met(self.project)
+        check_new_issue_threshold_met(self.project.id)
 
         self.project.refresh_from_db()
 
