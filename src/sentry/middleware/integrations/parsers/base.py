@@ -23,7 +23,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -239,16 +239,6 @@ class BaseRequestParser(abc.ABC):
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
 
-        if extra_logging:
-            logger.info(
-                "integrations.parser.bucket_choice",
-                extra={
-                    "provider": self.provider,
-                    "integration_id": integration.id,
-                    "bucket": bucket_number,
-                },
-            )
-
         return f"{integration.id}:{bucket_number}"
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
@@ -330,8 +320,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

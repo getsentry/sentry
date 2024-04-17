@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {

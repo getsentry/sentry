@@ -1,4 +1,4 @@
-import type {Broadcast} from 'sentry/types';
+import type {Broadcast} from 'sentry/types/system';
 
 export function BroadcastFixture(params: Partial<Broadcast> = {}): Broadcast {
   return {

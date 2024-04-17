@@ -46,11 +46,17 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueRelativeDate", "value": "2", "sign": "-", "unit": "w", "parsed": {
+        "value": {
+          "type": "valueRelativeDate",
+          "value": "2",
           "sign": "-",
           "unit": "w",
-          "value": "2017-10-03T02:41:20.000Z"
-        }}
+          "parsed": {
+            "sign": "-",
+            "unit": "w",
+            "value": "2017-10-03T02:41:20.000Z"
+          }
+        }
       },
       {"type": "spaces", "value": ""}
     ]

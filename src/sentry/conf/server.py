@@ -1108,7 +1108,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12", day_of_week="monday"),
+        "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-daily-organization-reports": {
@@ -1548,8 +1548,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable the org recalibration

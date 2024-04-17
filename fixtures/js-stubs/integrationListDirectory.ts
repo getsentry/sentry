@@ -1,4 +1,9 @@
-import type {Integration, IntegrationProvider, Plugin, SentryApp} from 'sentry/types';
+import type {
+  Integration,
+  IntegrationProvider,
+  Plugin,
+  SentryApp,
+} from 'sentry/types/integrations';
 
 export function ProviderListFixture(): {providers: IntegrationProvider[]} {
   return {

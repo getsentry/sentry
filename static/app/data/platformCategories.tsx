@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
   FRONTEND,
@@ -513,6 +513,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-ios',
   'electron',
   'flutter',
   'java-android',

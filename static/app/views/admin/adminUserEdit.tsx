@@ -14,7 +14,7 @@ import FormModel from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const userEditForm: JsonFormObject = {
