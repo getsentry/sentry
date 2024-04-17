@@ -2,7 +2,7 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import {space} from 'sentry/styles/space';
+import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor, AvatarProject, AvatarUser, Organization, Team} from 'sentry/types';
 
 export interface BaseBadgeProps {
@@ -38,35 +38,40 @@ export const BaseBadge = memo(
     project,
     actor,
     className,
-  }: AllBaseBadgeProps) => (
-    <Wrapper className={className}>
-      {!hideAvatar && (
-        <Avatar
-          {...avatarProps}
-          size={avatarSize}
-          team={team}
-          user={user}
-          organization={organization}
-          project={project}
-          actor={actor}
-        />
-      )}
+  }: AllBaseBadgeProps) => {
+    // Space items appropriatley depending on avatar size
+    const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
-      {(!hideName || !!description) && (
-        <DisplayNameAndDescription>
-          {!hideName && (
-            <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
-          )}
-          {!!description && <Description>{description}</Description>}
-        </DisplayNameAndDescription>
-      )}
-    </Wrapper>
-  )
+    return (
+      <Wrapper className={className} gap={wrapperGap}>
+        {!hideAvatar && (
+          <Avatar
+            {...avatarProps}
+            size={avatarSize}
+            team={team}
+            user={user}
+            organization={organization}
+            project={project}
+            actor={actor}
+          />
+        )}
+
+        {(!hideName || !!description) && (
+          <DisplayNameAndDescription>
+            {!hideName && (
+              <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+            )}
+            {!!description && <Description>{description}</Description>}
+          </DisplayNameAndDescription>
+        )}
+      </Wrapper>
+    );
+  }
 );
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{gap: ValidSize}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => space(p.gap)};
   align-items: center;
   flex-shrink: 0;
 `;

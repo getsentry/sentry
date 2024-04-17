@@ -123,7 +123,7 @@ export function OverviewTimeline({monitorList}: Props) {
   };
 
   return (
-    <MonitorListPanel>
+    <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
         <HeaderControlsLeft>
@@ -156,20 +156,22 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
 
-      {monitorList.map(monitor => (
-        <OverviewRow
-          key={monitor.id}
-          monitor={monitor}
-          timeWindowConfig={timeWindowConfig}
-          bucketedData={monitorStats?.[monitor.id]}
-          width={timelineWidth}
-          onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
-          onToggleMuteEnvironment={(env, isMuted) =>
-            handleToggleMuteEnvironment(monitor, env, isMuted)
-          }
-          onToggleStatus={handleToggleStatus}
-        />
-      ))}
+      <MonitorRows>
+        {monitorList.map(monitor => (
+          <OverviewRow
+            key={monitor.id}
+            monitor={monitor}
+            timeWindowConfig={timeWindowConfig}
+            bucketedData={monitorStats?.[monitor.id]}
+            width={timelineWidth}
+            onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+            onToggleMuteEnvironment={(env, isMuted) =>
+              handleToggleMuteEnvironment(monitor, env, isMuted)
+            }
+            onToggleStatus={handleToggleStatus}
+          />
+        ))}
+      </MonitorRows>
     </MonitorListPanel>
   );
 }
@@ -212,6 +214,15 @@ const AlignedGridLineLabels = styled(GridLineLabels)`
 const MonitorListPanel = styled(Panel)`
   display: grid;
   grid-template-columns: 350px 135px 1fr max-content;
+`;
+
+const MonitorRows = styled('ul')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 `;
 
 const HeaderControlsLeft = styled('div')`
