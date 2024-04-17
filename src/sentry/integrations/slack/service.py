@@ -218,7 +218,7 @@ class SlackService:
         """
         try:
             activity_type: ActivityType = ActivityType(activity.type)
-        except Exception as err:
+        except ValueError as err:
             self._logger.info(
                 "there was an error trying to get activity type, assuming activity is unsupported",
                 exc_info=err,
