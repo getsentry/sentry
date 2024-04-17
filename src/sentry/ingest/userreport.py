@@ -87,7 +87,10 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+        if (
+            features.has("organizations:user-feedback-ingest", project.organization, actor=None)
+            and event
+        ):
             shim_to_feedback(report, event, project, source)
 
         return report_instance
