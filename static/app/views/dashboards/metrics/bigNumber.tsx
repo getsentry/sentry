@@ -3,29 +3,21 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {parseMRI} from 'sentry/utils/metrics/mri';
-import {
-  isMetricFormula,
-  type MetricsQueryApiQueryParams,
-  type MetricsQueryApiRequestQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 interface MetricBigNumberContainerProps {
   isLoading: boolean;
-  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
 export function MetricBigNumberContainer({
   timeseriesData,
-  metricQueries,
   isLoading,
 }: MetricBigNumberContainerProps) {
   const bigNumberData = useMemo(() => {
-    return timeseriesData ? getBigNumberData(timeseriesData, metricQueries) : undefined;
-  }, [timeseriesData, metricQueries]);
+    return timeseriesData ? getBigNumberData(timeseriesData) : undefined;
+  }, [timeseriesData]);
 
   return (
     <BigNumberWrapper>
@@ -35,23 +27,14 @@ export function MetricBigNumberContainer({
   );
 }
 
-export function getBigNumberData(
-  data: MetricsQueryApiResponse,
-  queries: MetricsQueryApiQueryParams[]
-): string {
-  const filteredQueries = queries.filter(
-    query => !isMetricFormula(query)
-  ) as MetricsQueryApiRequestQuery[];
-
-  const firstQuery = filteredQueries[0];
-
+export function getBigNumberData(data: MetricsQueryApiResponse): string {
+  // Big number widgets only have one query
   const value = data.data[0][0].totals;
+  const lastMetaEntry = data.meta[0][1];
+  const metaUnit =
+    (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
 
-  return formatMetricsUsingUnitAndOp(
-    value,
-    parseMRI(firstQuery.mri)?.unit!,
-    firstQuery.op
-  );
+  return formatMetricUsingUnit(value, metaUnit);
 }
 
 const BigNumberWrapper = styled('div')`
