@@ -7,24 +7,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {
-  SpanMetricsField,
-  SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
-interface HeaderProps {
-  avgDuration: number;
-  spanSlug: SpanSlug;
-  totalCount: number | null;
-  suspectSpan?: SuspectSpan;
-}
-
-export default function SpanSummaryHeader(props: HeaderProps) {
+export default function SpanSummaryHeader() {
   // const {spanSlug, suspectSpan, totalCount} = props;
 
   const {spanSlug} = useParams();

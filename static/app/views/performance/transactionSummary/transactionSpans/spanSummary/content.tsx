@@ -7,10 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {ChildrenProps as SpanExamplesProps} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import SpanExamplesQuery from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import type {ChildrenProps as SuspectSpansProps} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -21,9 +18,7 @@ import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/trans
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
-import SpanTable from '../spanDetails/spanDetailsTable';
 import {ZoomKeys} from '../spanDetails/utils';
-import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
@@ -98,44 +93,15 @@ export default function SpanSummaryContentWrapper(props: Props) {
               }
 
               return (
-                <SuspectSpansQuery
+                <SpanSummaryContent
                   location={location}
-                  orgSlug={organization.slug}
-                  eventView={getSpansEventView(eventView)}
-                  perSuspect={0}
-                  spanOps={[spanSlug.op]}
-                  spanGroups={[spanSlug.group]}
-                  cursor="0:0:1"
-                  minExclusiveTime={minExclusiveTime}
-                  maxExclusiveTime={maxExclusiveTime}
-                >
-                  {suspectSpansResults => (
-                    <SpanExamplesQuery
-                      location={location}
-                      orgSlug={organization.slug}
-                      eventView={eventView}
-                      spanOp={spanSlug.op}
-                      spanGroup={spanSlug.group}
-                      limit={10}
-                      minExclusiveTime={minExclusiveTime}
-                      maxExclusiveTime={maxExclusiveTime}
-                    >
-                      {spanExamplesResults => (
-                        <SpanSummaryContent
-                          location={location}
-                          organization={organization}
-                          project={project}
-                          eventView={eventView}
-                          spanSlug={spanSlug}
-                          transactionName={transactionName}
-                          totalCount={totalCount}
-                          suspectSpansResults={suspectSpansResults}
-                          spanExamplesResults={spanExamplesResults}
-                        />
-                      )}
-                    </SpanExamplesQuery>
-                  )}
-                </SuspectSpansQuery>
+                  organization={organization}
+                  project={project}
+                  eventView={eventView}
+                  spanSlug={spanSlug}
+                  transactionName={transactionName}
+                  totalCount={totalCount}
+                />
               );
             }}
           </DiscoverQuery>
@@ -150,29 +116,13 @@ type ContentProps = {
   location: Location;
   organization: Organization;
   project: Project | undefined;
-  spanExamplesResults: SpanExamplesProps;
   spanSlug: SpanSlug;
-  suspectSpansResults: SuspectSpansProps;
   totalCount: number;
   transactionName: string;
 };
 
 function SpanSummaryContent(props: ContentProps) {
-  const {
-    location,
-    organization,
-    project,
-    eventView,
-    spanSlug,
-    transactionName,
-    totalCount,
-    suspectSpansResults,
-    spanExamplesResults,
-  } = props;
-
-  // There should always be exactly 1 result
-  const suspectSpan = suspectSpansResults.suspectSpans?.[0];
-  const examples = spanExamplesResults.examples?.[0]?.examples;
+  const {location, organization, eventView} = props;
 
   return (
     <Fragment>
@@ -183,14 +133,9 @@ function SpanSummaryContent(props: ContentProps) {
           eventView={eventView}
         />
       </Feature>
-      <SpanSummaryHeader
-        avgDuration={0}
-        spanSlug={spanSlug}
-        totalCount={totalCount}
-        suspectSpan={suspectSpan}
-      />
+      <SpanSummaryHeader />
       <SpanSummaryCharts />
-      <SpanTable
+      {/* <SpanTable
         location={location}
         organization={organization}
         project={project}
@@ -199,24 +144,7 @@ function SpanSummaryContent(props: ContentProps) {
         isLoading={spanExamplesResults.isLoading}
         examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}
-      />
+      /> */}
     </Fragment>
   );
-}
-
-function getSpansEventView(eventView: EventView): EventView {
-  // TODO: There is a bug where if the sort is not avg occurrence,
-  // then the avg occurrence will never be added to the fields
-  eventView = eventView.withSorts([{field: SpanSortOthers.AVG_OCCURRENCE, kind: 'desc'}]);
-  eventView.fields = [
-    {field: 'count()'},
-    {field: 'count_unique(id)'},
-    {field: 'equation|count() / count_unique(id)'},
-    {field: 'sumArray(spans_exclusive_time)'},
-    {field: 'percentileArray(spans_exclusive_time, 0.50)'},
-    {field: 'percentileArray(spans_exclusive_time, 0.75)'},
-    {field: 'percentileArray(spans_exclusive_time, 0.95)'},
-    {field: 'percentileArray(spans_exclusive_time, 0.99)'},
-  ];
-  return eventView;
 }
