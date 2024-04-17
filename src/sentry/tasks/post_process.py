@@ -758,15 +758,20 @@ def post_process_group(
             # We see occasional metrics being recorded with very old data,
             # temporarily log some information about these groups to help
             # investigate.
-            if duration and duration > 604_800:  # 7 days (7*24*60*60)
+            if duration and duration > 432_000:  # 5 days (5*24*60*60)
                 logger.warning(
                     "tasks.post_process.old_time_to_post_process",
                     extra={
                         "group_id": group_id,
                         "project_id": project_id,
                         "duration": duration,
-                        "original_issue_id": get_path(
-                            event.data, "contexts", "reprocessing", "original_issue_id"
+                        "received": event.data["received"],
+                        "platform": event.data["platform"],
+                        "reprocessing": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing")
+                        ),
+                        "original_issue_id": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing", "original_issue_id")
                         ),
                     },
                 )
