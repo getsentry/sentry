@@ -22,7 +22,6 @@ class UseCaseID(Enum):
     ESCALATING_ISSUES = "escalating_issues"
     CUSTOM = "custom"
     PROFILES = "profiles"
-    BUNDLE_ANALYSIS = "bundle_analysis"
     METRIC_STATS = "metric_stats"
 
 
