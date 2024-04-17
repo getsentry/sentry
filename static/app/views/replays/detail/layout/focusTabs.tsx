@@ -25,9 +25,14 @@ function getReplayTabs({
   // The new trace table inside Breadcrumb items:
   const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
+  // For video replays, we hide the console, a11y, trace, and memory tabs
+  // The console tab isn't useful for video replays; most of the useful logging
+  // context will come from breadcrumbs
+  // A11y, trace, and memory aren't applicable for mobile
+
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),

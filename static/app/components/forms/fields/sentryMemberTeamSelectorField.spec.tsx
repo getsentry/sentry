@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -16,7 +15,6 @@ describe('SentryMemberTeamSelectorField', () => {
   const org = OrganizationFixture();
   const mockUsers = [UserFixture()];
   const mockTeams = [TeamFixture()];
-  const mockProjects = [ProjectFixture()];
 
   beforeEach(() => {
     MemberListStore.init();
@@ -46,7 +44,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
       />
     );
 
@@ -68,7 +65,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
       />
     );
 
@@ -90,7 +86,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
         multiple
       />
     );

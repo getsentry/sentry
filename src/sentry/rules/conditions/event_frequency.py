@@ -496,10 +496,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             ],
         }
 
-    def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+    def get_session_count(
+        self, project_id: int, environment_id: str, start: datetime, end: datetime
     ) -> int:
-        project_id = event.project_id
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
@@ -513,12 +512,23 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 )
 
             cache.set(cache_key, session_count_last_hour, 600)
+        return session_count_last_hour
 
-        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
-            )
-            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+    def get_session_interval(self, session_count: int, interval: str) -> int | None:
+        if session_count >= MIN_SESSIONS_TO_FIRE:
+            interval_in_minutes = percent_intervals[interval][1].total_seconds() // 60
+            return int(session_count / (60 / interval_in_minutes))
+        return None
+
+    def query_hook(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+    ) -> int:
+        project_id = event.project_id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
             issue_count = self.get_snuba_query_result(
                 tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
@@ -540,10 +550,44 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            percent: int = 100 * round(issue_count / avg_sessions_in_interval, 4)
+            percent: int = int(100 * round(issue_count / avg_sessions_in_interval, 4))
             return percent
 
         return 0
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_percents: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        project_id = groups[0].project.id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
+            error_issues = [
+                group for group in groups if group.issue_category == GroupCategory.ERROR
+            ]
+            if error_issues:
+                error_issue_count = self.get_chunked_result(
+                    tsdb_function=self.tsdb.get_sums,
+                    model=get_issue_tsdb_group_model(error_issues[0].issue_category),
+                    groups=error_issues,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="alert_event_frequency_percent",
+                )
+                for group_id, count in error_issue_count.items():
+                    percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+                    batch_percents[group_id] = percent
+        else:
+            percent = 0
+            for group in groups:
+                batch_percents[group.id] = percent
+
+        return batch_percents
 
     def passes_activity_frequency(
         self, activity: ConditionActivity, buckets: dict[datetime, int]
