@@ -115,7 +115,11 @@ export class VideoReplayer {
         this.stopReplay();
       });
     } else {
-      // Otherwise, if there's no clip window set, we should
+      // Tell the timer to stop at the replay end
+      this._timer.addNotificationAtTime(this._durationMs, () => {
+        this.stopReplay();
+      });
+      // If there's no clip window set, we should
       // load the first segment by default so that users are not staring at a
       // blank replay. This initially caused some issues
       // (https://github.com/getsentry/sentry/pull/67911), but the problem was
@@ -251,10 +255,14 @@ export class VideoReplayer {
     this._isPlaying = true;
     this._timer.start(videoOffsetMs);
 
-    // This is used when a replay clip is restarted
+    // This is used when a replay is restarted
     // Add another stop notification so the timer doesn't run over
     if (this._clipDuration) {
       this._timer.addNotificationAtTime(this._clipDuration, () => {
+        this.stopReplay();
+      });
+    } else {
+      this._timer.addNotificationAtTime(this._durationMs, () => {
         this.stopReplay();
       });
     }
@@ -301,13 +309,16 @@ export class VideoReplayer {
 
     // No more segments
     if (nextIndex >= this._attachments.length) {
-      // If we're at the end of a segment, but there's a gap
-      // at the end, force the replay to play until the end duration
-      // rather than stopping right away.
-      this._timer.addNotificationAtTime(this._durationMs, () => {
-        this.stopReplay();
-      });
-      return;
+      if (this.getCurrentTime() < this._durationMs) {
+        // If we're at the end of a segment, but there's a gap
+        // at the end, force the replay to play until the end duration
+        // rather than stopping right away.
+        this._timer.addNotificationAtTime(this._durationMs, () => {
+          this.stopReplay();
+        });
+        return;
+      }
+      this.stopReplay();
     }
 
     // Final check in case replay was stopped immediately after a video
