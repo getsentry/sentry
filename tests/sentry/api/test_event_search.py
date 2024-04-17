@@ -111,7 +111,12 @@ def result_transformer(result):
             return SearchValue(raw_value=[item["value"]["value"] for item in token["items"]])
 
         if token["type"] == "valueNumberList":
-            return SearchValue(raw_value=[item["value"]["rawValue"] for item in token["items"]])
+            return SearchValue(
+                raw_value=[
+                    parse_numeric_value(item["value"]["value"], item["value"]["unit"])
+                    for item in token["items"]
+                ]
+            )
 
         if token["type"] == "valueIso8601Date":
             return SearchValue(raw_value=parse_datetime_string(token["value"]))
