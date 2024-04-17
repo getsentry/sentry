@@ -1787,6 +1787,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Experimental performance issue for streamed spans - ingestion
+    "organizations:performance-streamed-spans-exp-ingest": False,
+    # Experimental performance issue for streamed spans - UI
+    "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
     # Enable processing slow issue alerts
