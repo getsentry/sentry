@@ -48,6 +48,7 @@ import {
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
@@ -313,6 +314,21 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       );
     };
 
+  const isAppStartup = [
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
+  ].includes(props.chartSetting);
+  const targetPathname = isAppStartup
+    ? '/performance/mobile/app-startup/spans/'
+    : '/performance/mobile/screens/spans/';
+  const targetQueryParams = isAppStartup
+    ? {
+        app_start_type:
+          props.chartSetting === PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START
+            ? 'cold'
+            : 'warm',
+      }
+    : {};
   const getItems = provided =>
     provided.widgetData.list.data.map(
       listItem =>
@@ -323,13 +339,14 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <GrowLink
                 to={normalizeUrl({
-                  pathname: `/performance/mobile/screens/spans/`,
+                  pathname: targetPathname,
                   query: {
                     project: listItem['project.id'],
                     transaction,
                     primaryRelease,
                     secondaryRelease,
                     ...normalizeDateTimeParams(location.query),
+                    ...targetQueryParams,
                   },
                 })}
               >
