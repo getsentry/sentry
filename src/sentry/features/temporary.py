@@ -222,7 +222,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:session-replay-slack-new-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("organizations:session-replay-trace-table", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
