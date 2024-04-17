@@ -8,12 +8,9 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
-from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
-    QueryModulationValueMap,
-)
-from sentry.sentry_metrics.querying.data.modulation.modulator import (
-    Modulator,
-    Project2ProjectIDModulator,
+from sentry.sentry_metrics.querying.data.modulation.mapper import (
+    MapperConfig,
+    Project2ProjectIDMapper,
 )
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
@@ -29,6 +26,8 @@ from sentry.sentry_metrics.querying.data.preparation.units_normalization import 
 )
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
+
+mapper_config: MapperConfig = MapperConfig().add(Project2ProjectIDMapper)
 
 
 def run_queries(
@@ -73,15 +72,13 @@ def run_queries(
         )
 
     preparation_steps: list[PreparationStep] = []
-    modulation_value_map = QueryModulationValueMap()
-    modulators: list[Modulator] = [Project2ProjectIDModulator()]
 
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
         preparation_steps.append(UnitsNormalizationStep())
 
-    preparation_steps.append(QueryModulationStep(projects, modulators, modulation_value_map))
+    preparation_steps.append(QueryModulationStep(projects, mapper_config))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
@@ -92,9 +89,7 @@ def run_queries(
         executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
-    results = run_postprocessing_steps(
-        results, QueryDemodulationStep(projects, modulators, modulation_value_map)
-    )
+    results = run_postprocessing_steps(results, QueryDemodulationStep(projects))
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
     return MQLQueriesResult(results)

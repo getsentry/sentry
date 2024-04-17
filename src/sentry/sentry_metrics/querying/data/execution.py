@@ -11,7 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
+from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.data.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
@@ -146,7 +146,7 @@ class ScheduledQuery:
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
-    modulators: list[Modulator] = field(default_factory=list)
+    mappers: list[Mapper] = field(default_factory=list)
 
     def initialize(
         self,
@@ -479,9 +479,9 @@ class QueryResult:
         #
         # Sorting of the groups is done to maintain consistency across function calls.
         scheduled_query = self._any_query()
-        modulators = scheduled_query.modulators
+        mappers = scheduled_query.mappers
         return sorted(
-            UsedGroupBysVisitor(modulators=modulators).visit(scheduled_query.metrics_query.query)
+            UsedGroupBysVisitor(mappers=mappers).visit(scheduled_query.metrics_query.query)
         )
 
     @property
@@ -831,7 +831,7 @@ class QueryExecutor:
             unit_family=intermediate_query.unit_family,
             unit=intermediate_query.unit,
             scaling_factor=intermediate_query.scaling_factor,
-            modulators=intermediate_query.modulators,
+            mappers=intermediate_query.mappers,
         )
 
         # In case the user chooses to run also a series query, we will duplicate the query and chain it after totals.

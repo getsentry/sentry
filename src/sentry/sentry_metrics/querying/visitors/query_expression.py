@@ -6,10 +6,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
-from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
-    QueryModulationValueMap,
-)
-from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
+from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper, MapperConfig
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -25,7 +22,7 @@ from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
 )
-from sentry.sentry_metrics.querying.visitors.query_condition import ModulatorConditionVisitor
+from sentry.sentry_metrics.querying.visitors.query_condition import MapperConditionVisitor
 from sentry.snuba.metrics import parse_mri
 
 
@@ -251,8 +248,8 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     Visitor that recursively computes all the groups of the `QueryExpression`.
     """
 
-    def __init__(self, modulators: list[Modulator] = None):
-        self.modulators = modulators or []
+    def __init__(self, mappers: list[Mapper] = None):
+        self.mappers = mappers or []
 
     def _visit_formula(self, formula: Formula) -> set[str]:
         group_bys: set[str] = set()
@@ -280,14 +277,21 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
 
         string_group_bys = set()
         for group_by in group_bys:
-            modulator = None
-            if isinstance(group_by, AliasedExpression):
-                modulator = find_modulator(modulators=self.modulators, to_key=group_by.exp.name)
-            elif isinstance(group_by, Column):
-                modulator = find_modulator(modulators=self.modulators, to_key=group_by.name)
+            selected_mapper = None
 
-            if modulator:
-                string_group_bys.add(modulator.from_key)
+            if isinstance(group_by, AliasedExpression):
+                for mapper in self.mappers:
+                    if mapper.to_key == group_by.exp.name:
+                        selected_mapper = mapper
+                        break
+            elif isinstance(group_by, Column):
+                for mapper in self.mappers:
+                    if mapper.to_key == group_by.name:
+                        selected_mapper = mapper
+                        break
+
+            if selected_mapper:
+                string_group_bys.add(selected_mapper.from_key)
 
             else:
                 if isinstance(group_by, AliasedExpression):
@@ -464,60 +468,71 @@ class ModulatorVisitor(QueryExpressionVisitor):
     by API that need to be translated for Snuba to be able to query the data.
     """
 
-    def __init__(
-        self,
-        projects: Sequence[Project],
-        modulators: Sequence[Modulator],
-        value_map: QueryModulationValueMap,
-    ):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
-        self.modulators = modulators
-        self.value_map = value_map
-        self.applied_modulators: list[Modulator] = []
+        self.mapper_config = mapper_config
+        self.mappers: list[Mapper] = []
+
+    def get_or_create_mapper(
+        self, from_key: str | None = None, to_key: int | None = None
+    ) -> Mapper | None:
+        # retrieve the mapper type that is applicable for the given key
+        mapper_class = self.mapper_config.get(from_key=from_key, to_key=to_key)
+        # check if a mapper of the type already exists
+        if mapper_class:
+            for mapper in self.mappers:
+                if mapper_class == type(mapper):
+                    # if a mapper already exists, return the existing mapper
+                    return mapper
+            else:
+                # if no mapper exists yet, instantiate the object and append it to the mappers list
+                mapper_instance = mapper_class()
+                self.mappers.append(mapper_instance)
+                return mapper_instance
+        else:
+            # if no mapper is configured for the key, return None
+            return None
 
     def _visit_formula(self, formula: Formula) -> Formula:
         formula = super()._visit_formula(formula)
-
-        filters = ModulatorConditionVisitor(
-            self.projects, self.modulators, self.value_map
-        ).visit_group(formula.filters)
+        visitor = MapperConditionVisitor(self.projects, self.mapper_config)
+        filters = visitor.visit_group(formula.filters)
         formula = formula.set_filters(filters)
+        if len(visitor.mappers) > 0:
+            self.mappers.extend(visitor.mappers)
 
         if formula.groupby:
-            new_group_bys = self._modulate_groupby(formula.groupby)
+            new_group_bys = self._map_groupby(formula.groupby)
             formula = formula.set_groupby(new_group_bys)
 
         return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> Timeseries:
-        filters = ModulatorConditionVisitor(
-            self.projects, self.modulators, self.value_map
-        ).visit_group(timeseries.filters)
+        visitor = MapperConditionVisitor(self.projects, self.mapper_config)
+        filters = visitor.visit_group(timeseries.filters)
         timeseries = timeseries.set_filters(filters)
+        if len(visitor.mappers) > 0:
+            self.mappers.extend(visitor.mappers)
 
         if timeseries.groupby:
-            new_group_bys = self._modulate_groupby(timeseries.groupby)
+            new_group_bys = self._map_groupby(timeseries.groupby)
             timeseries = timeseries.set_groupby(new_group_bys)
 
         return timeseries
 
-    def _modulate_groupby(
+    def _map_groupby(
         self, groupby: list[Column | AliasedExpression] | None = None
     ) -> list[Column | AliasedExpression]:
         new_group_bys = []
         for group in groupby:
             new_group = group
             if isinstance(group, Column):
-                modulator = find_modulator(self.modulators, group.name)
-                if modulator:
-                    new_group = Column(name=modulator.to_key)
-                    self.applied_modulators.append(modulator)
+                mapper = self.get_or_create_mapper(from_key=group.name)
+                if mapper:
+                    new_group = Column(name=mapper.to_key)
             elif isinstance(group, AliasedExpression):
-                modulator = find_modulator(self.modulators, group.exp.name)
-                if modulator:
-                    new_group = AliasedExpression(
-                        exp=Column(name=modulator.to_key), alias=group.alias
-                    )
-                self.applied_modulators.append(modulator)
+                mapper = self.get_or_create_mapper(from_key=group.exp.name)
+                if mapper:
+                    new_group = AliasedExpression(exp=Column(name=mapper.to_key), alias=group.alias)
             new_group_bys.append(new_group)
         return new_group_bys

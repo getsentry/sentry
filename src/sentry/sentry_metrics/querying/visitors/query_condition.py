@@ -4,10 +4,7 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
-    QueryModulationValueMap,
-)
-from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator, find_modulator
+from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper, MapperConfig
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
 from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor, TVisited
@@ -102,35 +99,45 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
         )
 
 
-class ModulatorConditionVisitor(QueryConditionVisitor):
-    def __init__(
-        self,
-        projects: Sequence[Project],
-        modulators: Sequence[Modulator],
-        value_map: QueryModulationValueMap,
-    ):
+class MapperConditionVisitor(QueryConditionVisitor):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
-        self.modulators = modulators
-        self.applied_modulators = []
-        self.value_map = value_map
+        self.mapper_config = mapper_config
+        self.mappers = []
+
+    def get_or_create_mapper(
+        self, from_key: str | None = None, to_key: int | None = None
+    ) -> Mapper | None:
+        # retrieve the mapper type that is applicable for the given key
+        mapper_class = self.mapper_config.get(from_key=from_key, to_key=to_key)
+        # check if a mapper of the type already exists
+        if mapper_class:
+            for mapper in self.mappers:
+                if mapper_class == type(mapper):
+                    # if a mapper already exists, return the existing mapper
+                    return mapper
+            else:
+                # if no mapper exists yet, instantiate the object and append it to the mappers list
+                mapper_instance = mapper_class()
+                self.mappers.append(mapper_instance)
+                return mapper_instance
+        else:
+            # if no mapper is configured for the key, return None
+            return None
 
     def _visit_condition(self, condition: Condition) -> TVisited:
         lhs = condition.lhs
         rhs = condition.rhs
 
         if isinstance(lhs, Column):
-            modulator = find_modulator(self.modulators, lhs.name)
-            if modulator:
-                new_lhs = Column(modulator.to_key)
-                self.applied_modulators.append(modulator)
-
+            mapper = self.get_or_create_mapper(from_key=lhs.name)
+            if mapper:
+                new_lhs = Column(mapper.to_key)
                 if isinstance(rhs, list):
-                    new_rhs = [
-                        modulator.modulate(self.projects, self.value_map, element)
-                        for element in rhs
-                    ]
+                    new_rhs = [mapper.forward(self.projects, element) for element in rhs]
                 else:
-                    new_rhs = modulator.modulate(self.projects, self.value_map, rhs)
+                    new_rhs = mapper.forward(self.projects, rhs)
+
                 return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
 
         return condition

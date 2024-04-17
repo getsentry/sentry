@@ -2,35 +2,26 @@ from collections.abc import Sequence
 from dataclasses import replace
 
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.modulation.modulation_value_map import (
-    QueryModulationValueMap,
-)
-from sentry.sentry_metrics.querying.data.modulation.modulator import Modulator
+from sentry.sentry_metrics.querying.data.modulation.mapper import MapperConfig
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery, PreparationStep
 from sentry.sentry_metrics.querying.visitors.query_expression import ModulatorVisitor
 
 
 class QueryModulationStep(PreparationStep):
-    def __init__(
-        self,
-        projects: Sequence[Project],
-        modulators: list[Modulator],
-        value_map: QueryModulationValueMap,
-    ):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
-        self.modulators = modulators
-        self.value_map = value_map
+        self.mapper_config = mapper_config
 
     def _get_modulated_intermediate_query(
         self, intermediate_query: IntermediateQuery
     ) -> IntermediateQuery:
-        visitor = ModulatorVisitor(self.projects, self.modulators, self.value_map)
+        visitor = ModulatorVisitor(self.projects, self.mapper_config)
         modulated_query = visitor.visit(intermediate_query.metrics_query.query)
 
         return replace(
             intermediate_query,
             metrics_query=intermediate_query.metrics_query.set_query(modulated_query),
-            modulators=visitor.applied_modulators,
+            mappers=visitor.mappers,
         )
 
     def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
