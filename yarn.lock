@@ -11329,11 +11329,6 @@ u2f-api@1.0.10:
   resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-1.0.10.tgz#38d898a72daa6362040b27e37c8286d96cb8d320"
   integrity sha512-0Zh+IqM2l6xaA/IUJDT9WwoEM6nwPx6ive4flVVYEfzzgXIrKFRaenieItsEkbXIgOZEw13nO3o3oLtSDOyesA==
 
-ua-parser-js@<=0.7.28:
-  version "0.7.28"
-  resolved "https://registry.yarnpkg.com/ua-parser-js/-/ua-parser-js-0.7.28.tgz#8ba04e653f35ce210239c64661685bf9121dec31"
-  integrity sha512-6Gurc1n//gjp9eQNXjD9O3M/sMwVtN5S8Lv9bvOYBfKfDNiIIhqiyi01vMBO45u4zkDE420w/e0se7Vs+sIg+g==
-
 unbox-primitive@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/unbox-primitive/-/unbox-primitive-1.0.2.tgz#29032021057d5e6cdbd08c5129c226dff8ed6f9e"
