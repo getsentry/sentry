@@ -1477,7 +1477,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
     # Enable Id or slug path params support for apis
-    "organizations:api-id-or-slug-enabled": True,
+    "organizations:api-id-or-slug-enabled": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enables the cron job to auto-enable codecov integrations.
