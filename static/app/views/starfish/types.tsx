@@ -174,6 +174,7 @@ export type IndexedResponse = {
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];
+  [SpanIndexedField.RAW_DOMAIN]: string;
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;

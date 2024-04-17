@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -37,7 +38,7 @@ export function DatabaseSpanDescription({
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
-    filters: {'span.group': groupId},
+    search: MutableSearch.fromQueryObject({'span.group': groupId}),
     sorts: [INDEXED_SPAN_SORT],
     limit: 1,
     fields: [

@@ -8,6 +8,7 @@ describe('utils/tokenizeSearch', function () {
       [{transaction: '/index', 'span.domain': undefined}, 'transaction:/index'],
       [{'span.domain': '*hello*'}, 'span.domain:*hello*'],
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
+      [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
       [{transaction: '(empty)'}, '!has:transaction'],
     ])('converts %s to search string', (query, result) => {
       expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
