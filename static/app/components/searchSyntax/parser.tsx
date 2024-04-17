@@ -1064,7 +1064,6 @@ export type SearchConfig = {
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   supportedTags?: TagCollection;
-
   /**
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
