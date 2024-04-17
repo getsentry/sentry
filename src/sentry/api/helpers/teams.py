@@ -20,7 +20,7 @@ def is_team_admin(org_member: OrganizationMember, team: Team | None = None) -> b
 
 def get_teams(request, organization, teams=None):
     # do normal teams lookup based on request params
-    requested_teams = set(request.GET.getlist("team", [])) if teams is None else teams
+    requested_teams = set(request.GET.getlist("team", []) if teams is None else teams)
 
     verified_ids = set()
 
