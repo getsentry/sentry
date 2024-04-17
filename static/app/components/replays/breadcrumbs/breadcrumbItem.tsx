@@ -22,8 +22,6 @@ import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
-import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
@@ -34,7 +32,6 @@ interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onDimensionChange: () => void;
   onInspectorExpanded: (
     path: string,
     expandedState: Record<string, boolean>,
@@ -43,7 +40,6 @@ interface Props {
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
-  traces: ReplayTraceRow | undefined;
   className?: string;
   expandPaths?: string[];
   style?: CSSProperties;
@@ -55,13 +51,11 @@ function BreadcrumbItem({
   frame,
   expandPaths,
   onClick,
-  onDimensionChange,
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
   style,
-  traces,
 }: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
@@ -135,14 +129,6 @@ function BreadcrumbItem({
               </CodeSnippet>
             </CodeContainer>
           ) : null}
-
-          {traces?.flattenedTraces.map((flatTrace, i) => (
-            <TraceGrid
-              key={i}
-              flattenedTrace={flatTrace}
-              onDimensionChange={onDimensionChange}
-            />
-          ))}
 
           {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
             <CrumbErrorIssue frame={frame} />
