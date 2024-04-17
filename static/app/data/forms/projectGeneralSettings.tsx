@@ -111,20 +111,38 @@ export const fields: Record<string, Field> = {
   },
   highlightContext: {
     name: 'highlightContext',
-    type: 'string',
+    type: 'textarea',
     multiline: true,
     autosize: true,
     rows: 1,
     placeholder: t('browser, runtime, user, my-context'),
     label: t('Highlighted Context'),
     help: tct(
-      '[link:Structured context] to promote to the top of each issue page for quick debugging. Separate entries with a newline.',
+      'Structured context keys to promote for quick debugging. Click [link:here] for documentation',
       {
         link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
       }
     ),
-    getValue: val => extractMultilineFields(val),
-    setValue: val => convertMultilineFieldValue(val),
+    getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
+    setValue: (val: string) => {
+      const schema = JSON.stringify(val, null, 2);
+      if (schema === '{}') {
+        return '';
+      }
+      return schema;
+    },
+    validate: ({id, form}) => {
+      if (!form.schema) {
+        return [];
+      }
+
+      try {
+        JSON.parse(form.schema);
+      } catch (e) {
+        return [[id, 'Invalid JSON']];
+      }
+      return [];
+    },
   },
 
   subjectPrefix: {
