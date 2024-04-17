@@ -9,6 +9,7 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
@@ -115,7 +116,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     [`/projects/${organization.slug}/${project?.slug}/keys/`],
     {
       staleTime: Infinity,
-      enabled: !!project,
+      enabled: defined(project),
     }
   );
 
@@ -124,7 +125,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     !project ||
     projectKeysIsError ||
     projectKeysIsLoading ||
-    !projectKeys
+    !projectKeys ||
+    projectKeys.length === 0
   ) {
     return null;
   }
@@ -154,7 +156,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
       <Divider />
       <Body>
         <Setup>
-          <BodyTitle>{t('Set up Sentry SDK')}</BodyTitle>
+          <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
           <GuidedSteps>
             <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
               <div>
@@ -257,7 +259,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           </GuidedSteps>
         </Setup>
         <Preview>
-          <BodyTitle>Preview Sentry Issue</BodyTitle>
+          <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
           <ArcadeWrapper>
             <Arcade
               src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
