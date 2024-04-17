@@ -4,6 +4,9 @@ from sentry.api.endpoints.organization_event_details import OrganizationEventDet
 from sentry.api.endpoints.organization_member.team_details import (
     OrganizationMemberTeamDetailsEndpoint,
 )
+from sentry.api.endpoints.organization_transaction_details import (
+    OrganizationTransactionDetailsEndpoint,
+)
 from sentry.api.endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from sentry.incidents.models.incident import Incident, IncidentActivity
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -24,6 +27,7 @@ class APIIdOrSlugTestMixin:
         return {
             OrganizationEventDetailsEndpoint,
             OrganizationMemberTeamDetailsEndpoint,
+            OrganizationTransactionDetailsEndpoint,
             ProjectTeamDetailsEndpoint,
         }
 
