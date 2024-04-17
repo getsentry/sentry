@@ -90,7 +90,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
   return childData;
 }
 
-function SlowScreensByTTID(props: PerformanceWidgetProps) {
+function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
@@ -374,6 +374,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
       HeaderActions={() => (
         <LinkButton
           to={normalizeUrl({
+            // TODO(nar): Needs to switch to app starts route
             pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
             query: {
               ...normalizeDateTimeParams(pageFilter),
@@ -404,7 +405,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
   );
 }
 
-export default SlowScreensByTTID;
+export default MobileReleaseComparisonListWidget;
 
 const StyledDurationWrapper = styled('div')`
   padding: 0 ${space(1)};
