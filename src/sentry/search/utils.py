@@ -91,9 +91,9 @@ def parse_duration(value: str, interval: str) -> float:
 
 
 def parse_bool(value: str) -> bool:
-    if value.lower() == "true" or value == "1":
+    if value == "1" or value.lower() == "true":
         return True
-    if value.lower() == "false" or value == "0":
+    if value == "0" or value.lower() == "false":
         return False
     raise InvalidQuery(f"{value} is not a valid boolean value")
 
