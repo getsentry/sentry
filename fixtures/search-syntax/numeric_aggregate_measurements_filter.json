@@ -141,7 +141,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "<",
-        "value": {"type": "valueNumber", "value": "3",  "unit": "k"}
+        "value": {"type": "valueNumber", "value": "3", "unit": "k"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -174,7 +174,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueNumber", "value": "2",  "unit": "m"}
+        "value": {"type": "valueNumber", "value": "2", "unit": "m"}
       },
       {"type": "spaces", "value": ""}
     ]
