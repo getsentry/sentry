@@ -12,14 +12,16 @@ from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalConsumer
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import IMMEDIATE, Commit
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
 )
-from arroyo.types import BrokerValue, Commit, Partition, Topic
+from arroyo.types import BrokerValue
+from arroyo.types import Commit as ConsumerCommit
+from arroyo.types import Partition, Topic
 
 from sentry.consumers.synchronized import SynchronizedConsumer, commit_codec
 
@@ -518,10 +520,10 @@ def test_commits_correct_offset() -> None:
 
     commit_mock = mock.Mock()
 
-    class PassthroughFactory(ProcessingStrategyFactory):
+    class PassthroughFactory(ProcessingStrategyFactory[KafkaPayload]):
         def create_with_partitions(
-            self, _commit: Commit, _partitions: Mapping[Partition, int]
-        ) -> ProcessingStrategy:
+            self, _commit: ConsumerCommit, _partitions: Mapping[Partition, int]
+        ) -> ProcessingStrategy[KafkaPayload]:
             return CommitOffsets(commit_mock)
 
     processor = StreamProcessor(synchronized_consumer, topic, PassthroughFactory(), IMMEDIATE)
