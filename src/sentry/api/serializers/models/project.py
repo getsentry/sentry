@@ -953,7 +953,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
                 "highlightContext": attrs["options"].get(
                     "sentry:highlight_context",
-                    attrs["highlight_preset"].get("context", []),
+                    attrs["highlight_preset"].get("context", {}),
                 ),
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
                 "groupingEnhancements": self.get_value_with_default(

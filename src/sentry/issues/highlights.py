@@ -1,30 +1,63 @@
+from collections.abc import Mapping
 from typing import TypedDict
 
+from jsonschema import Draft7Validator
+from jsonschema.exceptions import ValidationError as SchemaValidationError
+from rest_framework import serializers
+from rest_framework.serializers import ValidationError
+
 from sentry.models.project import Project
+from sentry.utils.json import JSONData
 from sentry.utils.platform_categories import BACKEND, FRONTEND, MOBILE
+
+HIGHLIGHT_CONTEXT_SCHEMA: JSONData = {
+    "type": "object",
+    "patternProperties": {"^.*$": {"type": "array", "items": {"type": "string"}}},
+    "additionalProperties": False,
+}
+
+
+class HighlightContextField(serializers.Field):
+    def to_internal_value(self, data):
+        if data is None:
+            return
+
+        if data == "" or data == {} or data == []:
+            return {}
+
+        v = Draft7Validator(HIGHLIGHT_CONTEXT_SCHEMA)
+        try:
+            v.validate(data)
+        except SchemaValidationError as e:
+            raise ValidationError(e.message)
+
+        return data
 
 
 class HighlightPreset(TypedDict):
     tags: list[str]
-    context: list[str]
+    context: Mapping[str, list[str]]
 
 
 SENTRY_TAGS = ["handled", "level", "release", "environment"]
 
 BACKEND_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["url", "transaction", "status_code"],
-    "context": ["trace", "runtime"],
+    "context": {"trace": ["trace_id"], "runtime": ["name", "version"]},
 }
 FRONTEND_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["url", "transaction", "browser", "replayId", "user"],
-    "context": ["browser", "state"],
+    "context": {"browser": ["name"], "user": ["email"]},
 }
 MOBILE_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["mobile", "main_thread"],
-    "context": ["profile", "app", "device"],
+    "context": {"profile": ["profile_id"], "app": ["name"], "device": ["family"]},
 }
 
-FALLBACK_HIGLIGHTS: HighlightPreset = {"tags": SENTRY_TAGS, "context": ["user", "trace"]}
+FALLBACK_HIGLIGHTS: HighlightPreset = {
+    "tags": SENTRY_TAGS,
+    "context": {"user": ["email"], "trace": ["trace_id"]},
+}
 
 
 def get_highlight_preset_for_project(project: Project) -> HighlightPreset:
