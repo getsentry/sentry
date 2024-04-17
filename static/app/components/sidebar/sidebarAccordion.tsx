@@ -220,7 +220,7 @@ const StyledOverlay = styled(Overlay)<{
 }>`
   position: absolute;
   width: ${p => (p.horizontal ? '100%' : '200px')};
-  padding: ${space(1.5)};
+  padding: ${space(0.5)};
   top: ${p =>
     p.horizontal
       ? p.theme.sidebar.mobileHeight
