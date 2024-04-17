@@ -122,12 +122,12 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         )["data"]
 
         if finished_at_response:
-            finished_at_iso = finished_at_response[0]["finished_at"]
-            finished_at = datetime.fromisoformat(finished_at_iso).timestamp()
+            finished_at = finished_at_response[0]["finished_at"]
+            finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
         else:
-            finished_at = time.time()
+            finished_at_ts = time.time()
 
-        message = viewed_event(project.id, replay_id, request.user.id, finished_at)
+        message = viewed_event(project.id, replay_id, request.user.id, finished_at_ts)
         publish_replay_event(message, is_async=False)
 
         return Response(status=204)
