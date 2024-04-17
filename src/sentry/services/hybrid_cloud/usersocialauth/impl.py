@@ -37,7 +37,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
         """
         Calls UserSocialAuth.revoke_token() on all matching results, returning the modified RpcUserSocialAuths.
         """
-        db_auths = self._FQ._query_many(filter=filter)
+        db_auths = self._FQ.query_many(filter=filter)
         for db_auth in db_auths:
             db_auth.revoke_token(drop_token=drop_token)
         return self.get_many(filter=filter)
@@ -46,7 +46,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
         """
         Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
         """
-        db_auths = self._FQ._query_many(filter=filter)
+        db_auths = self._FQ.query_many(filter=filter)
         for db_auth in db_auths:
             db_auth.refresh_token()
         return self.get_many(filter=filter)
@@ -78,7 +78,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
                 query = query.filter(uid=filters["uid"])
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet[UserSocialAuth]:
+        def base_query(self, select_related: bool = True) -> QuerySet[UserSocialAuth]:
             return UserSocialAuth.objects.filter()
 
         def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], str | None]:

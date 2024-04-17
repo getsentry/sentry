@@ -168,8 +168,8 @@ class DatabaseBackedAppService(AppService):
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet[SentryAppInstallation]:
-            if ids_only:
+        def base_query(self, select_related: bool = True) -> QuerySet[SentryAppInstallation]:
+            if not select_related:
                 return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
 

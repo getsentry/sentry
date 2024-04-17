@@ -17,7 +17,12 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcAvatar, RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.model import (
+    RpcAvatar,
+    RpcUserProfile,
+    RpcVerifyUserEmail,
+    UserIdEmailArgs,
+)
 from sentry.silo import SiloMode
 
 
@@ -51,6 +56,11 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_many_ids(self, *, filter: UserFilterArgs) -> list[int]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_many_profiles(self, *, filter: UserFilterArgs) -> list[RpcUserProfile]:
         pass
 
     @rpc_method
