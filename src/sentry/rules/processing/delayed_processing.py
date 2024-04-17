@@ -28,13 +28,15 @@ logger = logging.getLogger("sentry.rules.delayed_processing")
 PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
-def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, Any] | None]:
+def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str] | None]:
     """
     Returns the slow conditions of a rule model instance.
     """
     conditions_and_filters = rule.data.get("conditions", ())
     conditions, _ = split_conditions_and_filters(conditions_and_filters)
-    slow_conditions = [cond for cond in conditions if is_condition_slow(cond)]
+    slow_conditions: list[MutableMapping[str, str] | None] = [
+        cond for cond in conditions if is_condition_slow(cond)
+    ]
 
     return slow_conditions
 
@@ -111,20 +113,21 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            unique_condition = UniqueCondition(
-                condition_data["id"], condition_data["interval"], rule.environment_id
-            )
-
-            # Add to set of group_ids if there are already group_ids
-            # that apply to the unique condition
-            if data_and_groups := condition_groups.get(unique_condition):
-                data_and_groups.group_ids.update(rules_to_groups[rule.id])
-            # Otherwise, create the tuple containing the condition data and the
-            # set of group_ids that apply to the unique condition
-            else:
-                condition_groups[unique_condition] = DataAndGroups(
-                    condition_data, rules_to_groups[rule.id]
+            if condition_data:
+                unique_condition = UniqueCondition(
+                    condition_data["id"], condition_data["interval"], rule.environment_id
                 )
+
+                # Add to set of group_ids if there are already group_ids
+                # that apply to the unique condition
+                if data_and_groups := condition_groups.get(unique_condition):
+                    data_and_groups.group_ids.update(rules_to_groups[rule.id])
+                # Otherwise, create the tuple containing the condition data and the
+                # set of group_ids that apply to the unique condition
+                else:
+                    condition_groups[unique_condition] = DataAndGroups(
+                        condition_data, rules_to_groups[rule.id]
+                    )
 
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
@@ -155,7 +158,6 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             option_override_cm = options_override({"consistent": False})
 
         with option_override_cm:
-            # print("start: ", end - duration)
             start = end - duration
             results = condition_inst.batch_query(
                 group_ids=group_ids,
@@ -166,22 +168,23 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
             # If the condition is a percent comparison, we need to query the
             # previous interval to compare against the current interval
-            comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
-            if comparison_type == ComparisonType.PERCENT:
-                comparison_interval = condition_inst.intervals[unique_condition.interval][1]
-                comparison_end = end - comparison_interval
-                start = comparison_end - duration
-                comparison_results = condition_inst.batch_query(
-                    group_ids=group_ids,
-                    start=start.replace(tzinfo=UTC),
-                    end=comparison_end.replace(tzinfo=UTC),
-                    environment_id=unique_condition.environment_id,
-                )
+            if condition_data:
+                comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
+                if comparison_type == ComparisonType.PERCENT:
+                    comparison_interval = condition_inst.intervals[unique_condition.interval][1]
+                    comparison_end = end - comparison_interval
+                    start = comparison_end - duration
+                    comparison_results = condition_inst.batch_query(
+                        group_ids=group_ids,
+                        start=start.replace(tzinfo=UTC),
+                        end=comparison_end.replace(tzinfo=UTC),
+                        environment_id=unique_condition.environment_id,
+                    )
 
-                results = {
-                    group_id: percent_increase(results[group_id], comparison_results[group_id])
-                    for group_id in group_ids
-                }
+                    results = {
+                        group_id: percent_increase(results[group_id], comparison_results[group_id])
+                        for group_id in group_ids
+                    }
 
         condition_group_results[unique_condition] = results
 

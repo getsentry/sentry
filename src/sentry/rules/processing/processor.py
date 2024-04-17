@@ -55,7 +55,7 @@ def is_condition_slow(
 
 def split_conditions_and_filters(
     data: list[Mapping[str, Any]],
-) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+) -> tuple[list[MutableMapping[str, Any]], list[Mapping[str, Any]]]:
     conditions = []
     filters = []
     for condition_or_filter in data:
