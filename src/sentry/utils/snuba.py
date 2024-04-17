@@ -151,7 +151,6 @@ SPAN_COLUMN_MAP = {
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
-    "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
@@ -1225,6 +1224,7 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
+
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif (
@@ -1249,7 +1249,6 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-
         return f"tags[{col}]"
 
     return _resolve_column

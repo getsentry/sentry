@@ -747,7 +747,6 @@ class Columns(Enum):
         issue_platform_name="replay_id",
         alias="replay.id",
     )
-
     # We used to set the replay_id as a tag on error events as
     # replayId. We allow this query for backwards compatibility,
     # but in the future shouldn't be displayed in the UI anywhere
