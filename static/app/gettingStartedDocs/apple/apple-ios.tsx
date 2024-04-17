@@ -252,7 +252,6 @@ const metricsOnboarding: OnboardingConfig = {
       description: tct(
         'You need Sentry Cocoa SDK version [codeVersion:8.23.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
         {
-          package: <code />,
           codeVersion: <code />,
           docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
         }
