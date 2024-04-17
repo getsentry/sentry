@@ -841,7 +841,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
         <PermissionAlert project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
-            <Feature features="organizations:starfish-browser-resource-module-image-view">
+            <Feature features="organizations:spans-first-ui">
               <Form
                 initialData={this.state.general}
                 saveOnBlur

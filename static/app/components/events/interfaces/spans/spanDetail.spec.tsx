@@ -150,7 +150,7 @@ describe('SpanDetail', function () {
           }),
           organization: OrganizationFixture({
             ...organization,
-            features: ['performance-database-view'],
+            features: ['spans-first-ui'],
           }),
         })
       );

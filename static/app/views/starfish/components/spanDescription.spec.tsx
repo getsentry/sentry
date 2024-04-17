@@ -13,9 +13,7 @@ jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanDescription', function () {
-  const organization = OrganizationFixture({
-    features: ['performance-database-view-query-source'],
-  });
+  const organization = OrganizationFixture();
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   const project = ProjectFixture();

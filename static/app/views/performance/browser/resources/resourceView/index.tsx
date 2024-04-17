@@ -86,7 +86,7 @@ function ResourceView() {
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
   const {features} = useOrganization();
-  const hasImageView = features.includes('starfish-browser-resource-module-image-view');
+  const hasImageView = features.includes('spans-first-ui');
 
   const options: Option[] = [
     {value: '', label: 'All'},

@@ -40,7 +40,7 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
-  if (organization.features.includes('performance-screens-view')) {
+  if (organization.features.includes('spans-first-ui')) {
     doubleRowAllowedCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
   if (
