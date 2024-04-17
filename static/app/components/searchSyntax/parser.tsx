@@ -947,8 +947,18 @@ function numeric(input: string) {
 function parseDuration(input: string, _unit: string): number {
   return numeric(input);
 }
-function parseNumber(input: string, _unit: string) {
-  return numeric(input);
+function parseNumber(input: string, unit: 'k' | 'm' | 'b') {
+  const number = numeric(input);
+  switch (unit) {
+    case 'k':
+      return number * 1e3;
+    case 'm':
+      return number * 1e6;
+    case 'b':
+      return number * 1e9;
+    default:
+      throw new Error('Invalid unit');
+  }
 }
 function parseSize(input: string, _unit: string) {
   return numeric(input);
