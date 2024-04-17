@@ -7,6 +7,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
@@ -17,6 +19,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
+from sentry.utils.json import JSONData
 
 ON_DEMAND_ENABLED_KEY = "enabled"
 
@@ -143,6 +146,22 @@ class DashboardWidgetQuery(Model):
 
     __repr__ = sane_repr("widget", "type", "name")
 
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        sanitizer.set_string(json, SanitizableField(model_name, "title"))
+        sanitizer.set_string(json, SanitizableField(model_name, "description"))
+
+        json["fields"]["aggregates"] = None
+        json["fields"]["columns"] = None
+        json["fields"]["conditions"] = ""
+        json["fields"]["field_aliases"] = None
+        json["fields"]["fields"] = '["count()"]'
+        json["fields"]["orderby"] = ""
+        return super().sanitize_relocation_json(json, sanitizer, model_name)
+
 
 @region_silo_model
 class DashboardWidgetQueryOnDemand(Model):
@@ -211,6 +230,15 @@ class DashboardWidgetQueryOnDemand(Model):
 
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+
+        json["fields"]["spec_hashes"] = "[]"
+        return super().sanitize_relocation_json(json, sanitizer, model_name)
+
 
 @region_silo_model
 class DashboardWidget(Model):
@@ -241,3 +269,15 @@ class DashboardWidget(Model):
         unique_together = (("dashboard", "order"),)
 
     __repr__ = sane_repr("dashboard", "title")
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_name(json, SanitizableField(model_name, "title"))
+        sanitizer.set_string(json, SanitizableField(model_name, "description"))
+        json["fields"]["detail"] = None
+        json["fields"]["thresholds"] = None

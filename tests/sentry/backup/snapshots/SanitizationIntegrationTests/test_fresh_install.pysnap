@@ -1,5 +1,5 @@
 ---
-created: '2024-05-02T21:07:54.051381+00:00'
+created: '2024-05-02T22:32:53.157905+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -109,10 +109,12 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - user_email
 - model_name: sentry.organizationmember
   ordinal: 2
   sanitized_fields:
   - date_added
+  - user_email
 - model_name: sentry.project
   ordinal: 1
   sanitized_fields:
@@ -122,12 +124,17 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.projectkey
   ordinal: 1
   sanitized_fields:
+  - data
   - date_added
+  - label
+  - public_key
   - secret_key
 - model_name: sentry.rule
   ordinal: 1
   sanitized_fields:
+  - data
   - date_added
+  - label
 - model_name: sentry.projectteam
   ordinal: 1
   sanitized_fields: []

@@ -3,10 +3,13 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils.hashlib import md5_text
+from sentry.utils.json import JSONData
 
 MAX_RECENT_SEARCHES = 30
 
@@ -33,6 +36,20 @@ class RecentSearch(Model):
         unique_together = (("user_id", "organization", "type", "query_hash"),)
 
     __repr__ = sane_repr("organization_id", "user_id", "type", "query")
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "query"), lambda _: "assigned:me")
+        sanitizer.set_string(
+            json,
+            SanitizableField(model_name, "query_hash"),
+            lambda _: "60f3c0a69e1c167b4bea16306949dd0f",
+        )
 
 
 def remove_excess_recent_searches(organization, user, search_type):

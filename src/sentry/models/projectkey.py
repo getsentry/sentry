@@ -16,8 +16,9 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -30,6 +31,7 @@ from sentry.db.models import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils.json import JSONData
 
 _token_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -350,3 +352,21 @@ class ProjectKey(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_name(json, SanitizableField(model_name, "label"))
+        sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
+        sanitizer.set_string(json, SanitizableField(model_name, "secret_key"))
+
+        # Good enough default value.
+        sanitizer.set_json(
+            json,
+            SanitizableField(model_name, "data"),
+            {"dynamicSdkLoaderOptions": {"hasPerformance": True, "hasReplay": False}},
+        )

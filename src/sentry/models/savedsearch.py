@@ -5,13 +5,15 @@ from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
+from sentry.utils.json import JSONData
 
 
 class SortOptions:
@@ -115,3 +117,12 @@ class SavedSearch(Model):
             return None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "query"), lambda _: "assigned:me")

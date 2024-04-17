@@ -11,8 +11,9 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     ArrayField,
@@ -26,6 +27,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.models.organization import Organization
+from sentry.utils.json import JSONData
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -234,6 +236,16 @@ class Incident(Model):
             self.detection_uuid = uuid4()
         return old_pk
 
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_name(json, SanitizableField(model_name, "title"))
+        sanitizer.set_uuid(json, SanitizableField(model_name, "detection_uuid"))
+
 
 @region_silo_model
 class PendingIncidentSnapshot(Model):
@@ -322,6 +334,18 @@ class IncidentActivity(Model):
         if self.notification_uuid:
             self.notification_uuid = uuid4()
         return old_pk
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "comment"))
+        sanitizer.set_string(json, SanitizableField(model_name, "value"))
+        sanitizer.set_uuid(json, SanitizableField(model_name, "notification_uuid"))
+        sanitizer.set_string(json, SanitizableField(model_name, "previous_value"))
 
 
 @region_silo_model

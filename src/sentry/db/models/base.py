@@ -222,6 +222,8 @@ class BaseModel(models.Model):
             )
         elif "name" in field_names:
             sanitizer.set_name(json, SanitizableField(model_name, "name"))
+        elif "slug" in field_names:
+            sanitizer.set_slug(json, SanitizableField(model_name, "slug"))
 
         for f in fields:
             # Auto-sanitize all `models.DateTimeField` fields on this class.

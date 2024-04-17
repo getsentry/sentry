@@ -5,12 +5,19 @@ from typing import ClassVar, Self
 from django.db import models
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.utils.json import JSONData
 
 
 class QueryAggregations(Enum):
@@ -69,6 +76,27 @@ class SnubaQuery(Model):
         ).values_list("snuba_query_id", flat=True)
 
         return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "dataset"), lambda _: "transactions"
+        )
+        sanitizer.set_string(
+            json,
+            SanitizableField(model_name, "query"),
+            lambda _: "http.url:http://testservice.com/stats",
+        )
+        sanitizer.set_string(
+            json,
+            SanitizableField(model_name, "aggregate"),
+            lambda _: "p50(transaction.duration)",
+        )
 
 
 @region_silo_model
@@ -143,3 +171,12 @@ class QuerySubscription(Model):
         subscription.save()
 
         return (subscription.pk, ImportKind.Inserted)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        json["fields"]["query_extra"] = None

@@ -7,10 +7,13 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager import BaseManager
 from sentry.models.releases.constants import DB_VERSION_LENGTH
+from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
@@ -40,6 +43,15 @@ class AlertRuleActivationCondition(Model):
         app_label = "sentry"
         db_table = "sentry_alertruleactivationcondition"
         unique_together = (("alert_rule", "label"),)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_name(json, SanitizableField(model_name, "label"))
 
 
 class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):

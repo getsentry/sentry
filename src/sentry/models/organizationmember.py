@@ -22,8 +22,9 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
-from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -50,6 +51,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -662,3 +664,13 @@ class OrganizationMember(ReplicatedRegionModel):
             self.token_expires_at = None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_email(json, SanitizableField(model_name, "user_email"))
+        sanitizer.set_string(json, SanitizableField(model_name, "token"))

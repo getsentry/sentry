@@ -327,8 +327,31 @@ class Sanitizer:
         """
 
         name = self.map_name(old_name)
+        if old_slug is None:
+            return (name, None)
+
+        interned_slug = self.interned_strings.get(old_slug)
+        if interned_slug is not None:
+            return (name, interned_slug)
+
         slug = None if old_slug is None else slugify(old_name.lower().replace("_", "-").strip("-"))
+        self.interned_strings[old_slug] = slug
         return (name, slug)
+
+    def map_slug(self, old: str) -> str:
+        """
+        Maps a proper noun slug with some randomly generated "petname" value (ex: "Hairy Tortoise").
+        If the `old` slug has already been seen, the already-generated value for that existing key
+        will be used instead. If it has not, we'll generate a new one. This ensures that all
+        identical existing slugs are swapped with identical replacements everywhere they occur.
+
+        If you wish to update an actual JSON model in-place with this newly generated slug,
+        `set_slug()` is the preferred method for doing so.
+        """
+
+        name = petname.generate(2, " ", letters=len(old)).title()
+        slug = slugify(name.lower().replace("_", "-").strip("-"))
+        return self.map_string(old, lambda _: slug)
 
     def map_string(
         self, old: str, generate: Callable[[str], str] = default_string_sanitizer
@@ -571,6 +594,37 @@ class Sanitizer:
             _set_field_value(json, slug_field, slugify(name.lower().replace("_", "-").strip("-")))
 
         return (name, slug)
+
+    def set_slug(
+        self,
+        json: JSONData,
+        field: SanitizableField,
+    ) -> str | None:
+        """
+        Replaces a proper noun slug with some randomly generated "petname" value (ex:
+        "hairy-tortoise"). If the existing value of the slug has already been seen, the
+        already-generated value for that existing key will be used instead. If it has not, we'll
+        generate a new one. This ensures that all identical existing slugs are swapped with
+        identical replacements everywhere they occur.
+
+        This method updates the JSON in-place if the specified field is a non-null value, then
+        returns the newly generated replacement. If the specified field could not be found in the
+        supplied JSON model, `None` is returned instead.
+
+        If you wish to merely generate a string without updating the JSON in-place, consider using
+        `map_slug()` instead.
+        """
+
+        field.validate_json_model(json)
+        old = _get_field_value(json, field)
+        if old is None:
+            return None
+        if not isinstance(old, str):
+            raise TypeError("Existing value must be a string")
+
+        return _set_field_value(
+            json, field, slugify(self.map_name(old).lower().replace("_", "-").strip("-"))
+        )
 
     def set_string(
         self,

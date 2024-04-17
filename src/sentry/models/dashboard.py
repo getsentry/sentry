@@ -5,12 +5,15 @@ from typing import Any
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.utils.json import JSONData
 
 
 @region_silo_model
@@ -71,6 +74,16 @@ class Dashboard(Model):
         if dashboard_id in PREBUILT_DASHBOARDS:
             return PREBUILT_DASHBOARDS[dashboard_id]
         return None
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_name(json, SanitizableField(model_name, "title"))
+        sanitizer.set_json(json, SanitizableField(model_name, "filters"), [])
 
 
 @region_silo_model

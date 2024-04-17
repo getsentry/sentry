@@ -1,8 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.utils.json import JSONData
 
 
 @region_silo_model
@@ -33,3 +36,12 @@ class ProjectRedirect(Model):
 
         if not created:
             redirect.update(project=project)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_slug(json, SanitizableField(model_name, "redirect_slug"))

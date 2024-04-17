@@ -16,8 +16,9 @@ from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -40,6 +41,7 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.actor import ActorTuple
+from sentry.utils.json import JSONData
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -434,6 +436,15 @@ class Monitor(Model):
         # Generate a new UUID.
         self.guid = uuid4()
         return old_pk
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_json(json, SanitizableField(model_name, "config"), {})
 
 
 @receiver(pre_save, sender=Monitor)
