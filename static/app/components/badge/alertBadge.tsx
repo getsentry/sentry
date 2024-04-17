@@ -6,8 +6,8 @@ import {
   IconEllipsis,
   IconExclamation,
   IconFire,
-  IconHappy,
   IconIssues,
+  IconShow,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -63,11 +63,11 @@ function AlertBadge({status, withText, isIssue, activationStatus}: Props) {
 
   if (activationStatus === ActivationStatus.WAITING) {
     statusText = t('Ready');
-    Icon = IconHappy;
+    Icon = IconEllipsis;
     color = 'purple300';
   } else if (activationStatus === ActivationStatus.MONITORING) {
     statusText = t('Monitoring');
-    Icon = IconEllipsis;
+    Icon = IconShow;
   }
 
   return (
