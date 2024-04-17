@@ -313,7 +313,7 @@ const getActiveStyle = ({
       &:active,
       &:focus,
       &:hover {
-        color: ${theme?.gray500};
+        color: ${theme?.gray400};
       }
     `;
   }
