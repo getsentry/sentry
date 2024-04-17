@@ -18,8 +18,8 @@ from sentry.event_manager import (
     _get_or_create_group_release,
     _increment_release_associated_counts,
     _process_existing_aggregate,
-    _save_grouphash_and_group,
     get_event_type,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
@@ -122,7 +122,6 @@ class OccurrenceMetadata(TypedDict):
     title: str
     location: str | None
     last_received: str
-    initial_priority: int | None
 
 
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
@@ -137,6 +136,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+    event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -154,7 +154,6 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "metadata": event_metadata,
         "location": event.location,
         "last_received": json.datetime_to_str(event.datetime),
-        "initial_priority": occurrence.initial_issue_priority,
     }
 
 
@@ -200,16 +199,16 @@ def save_issue_from_occurrence(
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
-        with sentry_sdk.start_span(
-            op="issues.save_issue_from_occurrence.transaction"
-        ) as span, metrics.timer(
-            "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
-            sample_rate=1.0,
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            metrics.timer(
+                "issues.save_issue_from_occurrence.transaction",
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                sample_rate=1.0,
+            ) as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = _save_grouphash_and_group(
+            group, is_new = save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )
             is_regression = False

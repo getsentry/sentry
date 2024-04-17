@@ -30,14 +30,12 @@ from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -265,7 +263,6 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
-@region_silo_test
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -285,7 +282,6 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
-@region_silo_test
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
@@ -676,7 +672,6 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert unused_on_frontend_first_element in result_with_all_flags["features"]
 
 
-@region_silo_test
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -692,7 +687,6 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
-@region_silo_test
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -745,8 +739,16 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:feedback_user_report_notifications"] is False
 
+    def test_replay_rage_click_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_rage_click_issues"] is True
 
-@region_silo_test
+        self.project.update_option("sentry:replay_rage_click_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_rage_click_issues"] is False
+
+
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):

@@ -138,7 +138,7 @@ class ScheduleWebhooksTest(TestCase):
     @override_options({"hybridcloud.webhookpayload.use_parallel": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
     def test_schedule_mailbox_parallel_task(self, mock_deliver):
-        for _ in range(0, MAX_MAILBOX_DRAIN + 1):
+        for _ in range(0, int(MAX_MAILBOX_DRAIN / 2 + 1)):
             self.create_webhook_payload(
                 mailbox_name="github:123",
                 region_name="us",
@@ -512,7 +512,7 @@ class DrainMailboxParallelTest(TestCase):
             status=200,
             body="",
         )
-        records = create_payloads(3, "github:123")
+        records = create_payloads(20, "github:123")
 
         # Make old records
         for record in records:

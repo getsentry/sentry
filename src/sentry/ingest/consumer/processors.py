@@ -4,6 +4,7 @@ import random
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -20,7 +21,7 @@ from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import RateLimitExceeded
@@ -118,7 +119,8 @@ def process_event(
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload, use_rapid_json=True, skip_trace=True)
+    data = orjson.loads(payload)
+
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
@@ -215,6 +217,8 @@ def process_event(
         # emit event_accepted once everything is done
         event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
     except Exception as exc:
+        if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
+            raise
         raise Retriable(exc)
 
 
@@ -300,7 +304,8 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> bool:
     start_time = to_datetime(message["start_time"])
-    feedback = json.loads(message["payload"], use_rapid_json=True)
+    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+        feedback = orjson.loads(message["payload"])
 
     try:
         save_userreport(

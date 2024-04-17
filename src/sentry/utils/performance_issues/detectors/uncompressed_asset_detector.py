@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
@@ -33,7 +34,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type = DetectorType.UNCOMPRESSED_ASSETS
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.any_compression = False
 

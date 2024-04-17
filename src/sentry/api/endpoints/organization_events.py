@@ -46,6 +46,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS.value,
     Referrer.API_PROFILING_LANDING_TABLE.value,
     Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
     Referrer.API_PROFILING_PROFILE_SUMMARY_TOTALS.value,
@@ -93,13 +94,9 @@ ALLOWED_EVENTS_REFERRERS = {
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 30
-RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 15
-
-DEFAULT_RATE_LIMIT = 50
+DEFAULT_RATE_LIMIT = 30
 DEFAULT_RATE_LIMIT_WINDOW = 1
-DEFAULT_CONCURRENT_RATE_LIMIT = 50
+DEFAULT_CONCURRENT_RATE_LIMIT = 15
 
 DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
     "GET": {
@@ -117,25 +114,7 @@ DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
 
 
 def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
-    try:
-        organization = Organization.objects.get_from_cache(slug=organization_slug)
-    except Organization.DoesNotExist:
-        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
-    # Check for feature flag to enforce rate limit otherwise use default rate limit
-    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
-        return {
-            "GET": {
-                RateLimitCategory.IP: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.USER: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-            }
-        }
+    # TODO: keeping this function for future use, as we'll add more rate limits soon
     return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
 
 

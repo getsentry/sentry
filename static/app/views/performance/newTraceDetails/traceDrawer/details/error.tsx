@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -11,14 +10,20 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, Organization} from 'sentry/types';
+import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {useLocation} from 'sentry/utils/useLocation';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -26,16 +31,14 @@ import {TraceDrawerComponents} from './styles';
 export function ErrorNodeDetails({
   node,
   organization,
-  location,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.TraceError>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
+  const location = useLocation();
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
   const {isLoading, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -65,23 +68,23 @@ export function ErrorNodeDetails({
           <TraceDrawerComponents.IconBorder
             backgroundColor={makeTraceNodeBarColor(theme, node)}
           >
-            <IconFire size="md" />
+            <TraceIcons.Icon event={node.value} />
           </TraceDrawerComponents.IconBorder>
-          <div>
-            <div>{t('error')}</div>
+          <TraceDrawerComponents.TitleText>
+            <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
               {node.value.title}
             </TraceDrawerComponents.TitleOp>
-          </div>
+          </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event_id}
-            projectSlug={node.metadata.project_slug}
+            node={node}
+            organization={organization}
           />
           <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
@@ -89,7 +92,7 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList issues={node.errors} node={node} organization={organization} />
+      <IssueList issues={issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
@@ -121,7 +124,7 @@ export function ErrorNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>

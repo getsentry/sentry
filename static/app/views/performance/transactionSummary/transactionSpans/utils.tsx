@@ -152,7 +152,11 @@ export function generateSpansEventView({
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: [...Object.values(SpanSortOthers), ...Object.values(SpanSortPercentiles)],
+      fields: [
+        ...Object.values(SpanSortOthers),
+        ...Object.values(SpanSortPercentiles),
+        'trace',
+      ],
       query: conditions.formatString(),
       projects: [],
     },

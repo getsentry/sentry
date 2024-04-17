@@ -31,7 +31,7 @@ const getConfigureSnippet = (params: Params) => `
   dsn: "${params.dsn}",
   environment_name: Mix.env(),
   enable_source_code_context: true,
-  root_source_code_paths: File.cwd!()`;
+  root_source_code_paths: [File.cwd!()]`;
 
 const getPlugSnippet = () => `
  defmodule MyAppWeb.Endpoint

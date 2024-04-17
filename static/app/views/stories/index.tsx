@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
@@ -19,31 +20,29 @@ type Props = RouteComponentProps<{}, {}, any, StoriesQuery>;
 export default function Stories({location}: Props) {
   const story = useStoriesLoader({filename: location.query.name});
   const [searchTerm, setSearchTerm] = useState('');
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
 
   return (
     <OrganizationContainer>
       <Layout>
-        <div
-          style={{
-            gridArea: 'aside',
-            display: 'flex',
-            gap: `${space(2)}`,
-            flexDirection: 'column',
-          }}
-        >
+        <StoryHeader style={{gridArea: 'head'}} />
+
+        <Sidebar style={{gridArea: 'aside'}}>
           <Input
+            ref={searchInput}
             placeholder="Search files by name"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
-          <Sidebar>
+          <TreeContainer>
             <StoryTree
               files={storiesContext()
                 .files()
                 .filter(s => s.toLowerCase().includes(searchTerm))}
             />
-          </Sidebar>
-        </div>
-        <StoryHeader style={{gridArea: 'head'}} />
+          </TreeContainer>
+        </Sidebar>
 
         {story.error ? (
           <VerticalScroll style={{gridArea: 'body'}}>
@@ -78,7 +77,15 @@ const Layout = styled('div')`
 `;
 
 const Sidebar = styled('aside')`
-  overflow: auto;
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const TreeContainer = styled('div')`
+  overflow: scroll;
+  flex-grow: 1;
 `;
 
 const VerticalScroll = styled('main')`

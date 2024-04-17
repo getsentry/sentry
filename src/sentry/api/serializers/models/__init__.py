@@ -1,6 +1,7 @@
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
 from .alert_rule import *  # noqa: F401,F403
+from .alert_rule_activations import *  # noqa: F401,F403
 from .alert_rule_trigger import *  # noqa: F401,F403
 from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403

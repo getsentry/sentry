@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
 from sentry.utils.env import log_gcp_credentials_details
 
@@ -36,7 +37,9 @@ class RelocationPublicKeyEndpoint(Endpoint):
 
         logger.info("publickeys.relocations.get.start", extra={"caller": request.user.id})
 
-        if not options.get("relocation.enabled"):
+        # We only honor the `relocation.enabled` flag for non-superusers/staff.
+        elevated_user = has_elevated_mode(request)
+        if not options.get("relocation.enabled") and not elevated_user:
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         # TODO(getsentry/team-ospo#190): We should support per-user keys in the future.

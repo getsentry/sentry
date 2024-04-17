@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
 import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

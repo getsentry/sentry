@@ -31,6 +31,15 @@ _parameterization_regex_str = r"""(?x)
     (?P<url>
         \b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*
     ) |
+    (?P<hostname> # Top 100 TLDs. The complete list is 1000s long.
+        \b
+        ([a-zA-Z0-9\-]{1,63}\.)+?
+        (
+            (COM|NET|ORG|JP|DE|UK|FR|BR|IT|RU|ES|ME|GOV|PL|CA|AU|CN|CO|IN|NL|EDU|INFO|EU|CH|ID|AT|KR|CZ|MX|BE|TV|SE|TR|TW|AL|UA|IR|VN|CL|SK|LY|CC|TO|NO|FI|US|PT|DK|AR|HU|TK|GR|IL|NEWS|RO|MY|BIZ|IE|ZA|NZ|SG|EE|TH|IO|XYZ|PE|BG|HK|RS|LT|LINK|PH|CLUB|SI|SITE|MOBI|BY|CAT|WIKI|LA|GA|XXX|CF|HR|NG|JOBS|ONLINE|KZ|UG|GQ|AE|IS|LV|PRO|FM|TIPS|MS|SA|APP)|
+            (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
+        )
+        \b
+    ) |
     (?P<ip>
         (
             ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
@@ -173,11 +182,12 @@ UNIQ_ID_TOKEN_LENGTH_MINIMUM = (
     4  # Tokens smaller than this are unlikely to be unique ids regardless of other attributes
 )
 UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT = 0.5
-UNIQ_ID_TOKEN_LENGTH_LONG = 8
+UNIQ_ID_TOKEN_LENGTH_LONG = 10
 UNIQ_ID_TOKEN_LENGTH_RATIO_LONG = 0.4
 
 
 def is_probably_uniq_id(token_str: str) -> bool:
+    token_str = token_str.strip("\"'[]{}():;")
     if len(token_str) < UNIQ_ID_TOKEN_LENGTH_MINIMUM:
         return False
     if token_str[0] == "<" and token_str[-1] == ">":  # Don't replace already-parameterized tokens

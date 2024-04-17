@@ -82,11 +82,12 @@ function Onboarding(props: Props) {
   const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+  const projectSlug =
+    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
-    projectSlug:
-      onboardingSteps[stepIndex].id === 'setup-docs' ? selectedProjectSlug : undefined,
+    projectSlug,
   });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
@@ -142,7 +143,7 @@ function Onboarding(props: Props) {
   ]);
 
   const shallProjectBeDeleted =
-    onboardingSteps[stepIndex].id === 'setup-docs' &&
+    stepObj?.id === 'setup-docs' &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it
     recentCreatedProject.firstError === false &&
@@ -330,7 +331,9 @@ function Onboarding(props: Props) {
     );
   };
 
-  if (!stepObj || stepIndex === -1) {
+  // Redirect to the first step if we end up in an invalid state
+  const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
+  if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
     return (
       <Redirect
         to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}

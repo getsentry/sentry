@@ -86,6 +86,7 @@ export type ProjectKey = {
   dateCreated: string;
   dsn: {
     cdn: string;
+    crons: string;
     csp: string;
     minidump: string;
     public: string;
@@ -211,6 +212,7 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-minidump'
   | 'native-qt'
+  | 'nintendo-switch'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'

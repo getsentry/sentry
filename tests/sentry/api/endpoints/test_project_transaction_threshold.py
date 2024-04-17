@@ -2,10 +2,8 @@ from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:performance-view"
 
@@ -76,6 +74,32 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert ProjectTransactionThreshold.objects.filter(
             project=self.project, organization=self.project.organization
         ).exists()
+
+    def test_update_single_field_project_threshold(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "metric": "lcp",
+                    "threshold": "300",
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["threshold"] == "300"
+        assert response.data["metric"] == "lcp"
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "threshold": "400",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["threshold"] == "400"
+        assert response.data["metric"] == "lcp"
 
     def test_project_threshold_permissions(self):
         user = self.create_user()

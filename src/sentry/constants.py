@@ -298,6 +298,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     ]
 )
 
@@ -704,6 +705,8 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",
@@ -905,6 +908,9 @@ EXTENSION_LANGUAGE_MAP = {
     "pm": "perl",
     "psgi": "perl",
     "t": "perl",
+    "ps1": "powershell",
+    "psd1": "powershell",
+    "psm1": "powershell",
     "py": "python",
     "gyp": "python",
     "gypi": "python",

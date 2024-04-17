@@ -24,6 +24,15 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self._run_tasks = self.tasks()
+        self._run_tasks.__enter__()
+
+    def tearDown(self):
+        super().tearDown()
+        self._run_tasks.__exit__(None, None, None)
+
     def create_monitor_env(self, monitor, environment_id):
         return MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -202,15 +211,23 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             project_id=second_project.id,
             environment_id=second_env.id,
         )
+        third_monitor, third_monitor_environment = self.create_monitor_and_env(
+            name="third monitor",
+            organization_id=second_org.id,
+            project_id=second_project.id,
+            environment_id=second_env.id,
+        )
 
         self.create_incident_for_monitor_env(monitor, monitor_environment)
         self.create_incident_for_monitor_env(second_monitor, second_monitor_environment)
+        self.create_incident_for_monitor_env(third_monitor, third_monitor_environment)
 
         detect_broken_monitor_envs()
         broken_detections = MonitorEnvBrokenDetection.objects.all()
-        assert len(broken_detections) == 2
+        assert len(broken_detections) == 3
         assert broken_detections[0].user_notified_timestamp == now
         assert broken_detections[1].user_notified_timestamp == now
+        assert broken_detections[2].user_notified_timestamp == now
         # should build 3 emails, 2 for self.user from the 2 orgs, and 1 for second_user
         expected_contexts = [
             {
@@ -229,12 +246,254 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         second_monitor.slug,
                         f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
-                    )
+                    ),
+                    (
+                        third_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
                 ],
                 "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
             },
             {
                 "broken_monitors": [
+                    (
+                        second_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                    (
+                        third_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                ],
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+            },
+        ]
+        expected_subjects = [
+            "1 of your Cron Monitors isn't working",
+            "2 of your Cron Monitors aren't working",
+            "2 of your Cron Monitors aren't working",
+        ]
+
+        builder.assert_has_calls(
+            [
+                call(
+                    **{
+                        "subject": subject,
+                        "template": "sentry/emails/crons/broken-monitors.txt",
+                        "html_template": "sentry/emails/crons/broken-monitors.html",
+                        "type": "crons.broken_monitors",
+                        "context": context,
+                    }
+                )
+                for subject, context in zip(expected_subjects, expected_contexts)
+            ],
+            any_order=True,
+        )
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    @patch("django.utils.timezone.now")
+    def test_disables_environments_and_sends_email(self, mock_now, builder):
+        now = before_now()
+        mock_now.return_value = now
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        second_user = self.create_user("second_user@example.com")
+        second_org = self.create_organization(owner=second_user)
+        self.create_member(user=self.user, organization=second_org)
+        second_team = self.create_team(organization=second_org, members=[second_user, self.user])
+        second_project = self.create_project(organization=second_org, teams=[second_team])
+        second_env = self.create_environment(second_project, name="production")
+
+        second_monitor, second_monitor_environment = self.create_monitor_and_env(
+            name="second monitor",
+            organization_id=second_org.id,
+            project_id=second_project.id,
+            environment_id=second_env.id,
+        )
+        third_monitor, third_monitor_environment = self.create_monitor_and_env(
+            name="third monitor",
+            organization_id=second_org.id,
+            project_id=second_project.id,
+            environment_id=second_env.id,
+        )
+
+        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
+        second_incident = self.create_incident_for_monitor_env(
+            second_monitor, second_monitor_environment
+        )
+        third_incident = self.create_incident_for_monitor_env(
+            third_monitor, third_monitor_environment
+        )
+
+        broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident,
+            detection_timestamp=now - timedelta(days=14),
+            user_notified_timestamp=now - timedelta(days=14),
+        )
+        second_broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=second_incident,
+            detection_timestamp=now - timedelta(days=14),
+            user_notified_timestamp=now - timedelta(days=14),
+        )
+        third_broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=third_incident,
+            detection_timestamp=now - timedelta(days=14),
+            user_notified_timestamp=now - timedelta(days=14),
+        )
+
+        detect_broken_monitor_envs()
+
+        # should have the two monitor environments as muted
+        monitor_environment.refresh_from_db()
+        second_monitor_environment.refresh_from_db()
+        third_monitor_environment.refresh_from_db()
+        assert monitor_environment.is_muted
+        assert second_monitor_environment.is_muted
+        assert third_monitor_environment.is_muted
+
+        broken_detection.refresh_from_db()
+        second_broken_detection.refresh_from_db()
+        third_broken_detection.refresh_from_db()
+
+        assert broken_detection.env_muted_timestamp == now
+        assert second_broken_detection.env_muted_timestamp == now
+        assert third_broken_detection.env_muted_timestamp == now
+
+        # should build 3 emails, 2 for self.user from the 2 orgs, and 1 for second_user
+        expected_contexts = [
+            {
+                "muted_monitors": [
+                    (
+                        monitor.slug,
+                        f"http://testserver/organizations/{self.organization.slug}/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        timezone.now() - timedelta(days=14),
+                    )
+                ],
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+            },
+            {
+                "muted_monitors": [
+                    (
+                        second_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                    (
+                        third_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                ],
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+            },
+            {
+                "muted_monitors": [
+                    (
+                        second_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                    (
+                        third_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    ),
+                ],
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+            },
+        ]
+        expected_subjects = [
+            "1 of your Cron Monitors has been muted",
+            "2 of your Cron Monitors have been muted",
+            "2 of your Cron Monitors have been muted",
+        ]
+
+        builder.assert_has_calls(
+            [
+                call(
+                    **{
+                        "subject": subject,
+                        "template": "sentry/emails/crons/muted-monitors.txt",
+                        "html_template": "sentry/emails/crons/muted-monitors.html",
+                        "type": "crons.muted_monitors",
+                        "context": context,
+                    }
+                )
+                for subject, context in zip(expected_subjects, expected_contexts)
+            ],
+            any_order=True,
+        )
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    @patch("django.utils.timezone.now")
+    def test_disables_corrects_environments_and_sends_email(self, mock_now, builder):
+        now = before_now()
+        mock_now.return_value = now
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        second_user = self.create_user("second_user@example.com")
+        second_org = self.create_organization(owner=second_user)
+        self.create_member(user=self.user, organization=second_org)
+        second_team = self.create_team(organization=second_org, members=[second_user, self.user])
+        second_project = self.create_project(organization=second_org, teams=[second_team])
+        second_env = self.create_environment(second_project, name="production")
+
+        second_monitor, second_monitor_environment = self.create_monitor_and_env(
+            name="second monitor",
+            organization_id=second_org.id,
+            project_id=second_project.id,
+            environment_id=second_env.id,
+        )
+
+        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
+        second_incident = self.create_incident_for_monitor_env(
+            second_monitor, second_monitor_environment
+        )
+
+        # This broken detection shouldn't be automatically disabled, because it's not long enough
+        broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident,
+            detection_timestamp=now - timedelta(days=0),
+            user_notified_timestamp=now - timedelta(days=0),
+        )
+        second_broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=second_incident,
+            detection_timestamp=now - timedelta(days=14),
+            user_notified_timestamp=now - timedelta(days=14),
+        )
+
+        detect_broken_monitor_envs()
+
+        # should have the one monitor environment as muted
+        monitor_environment.refresh_from_db()
+        second_monitor_environment.refresh_from_db()
+        assert not monitor_environment.is_muted
+        assert second_monitor_environment.is_muted
+
+        broken_detection.refresh_from_db()
+        second_broken_detection.refresh_from_db()
+        assert broken_detection.env_muted_timestamp is None
+        assert second_broken_detection.env_muted_timestamp == now
+
+        # should build 3 emails, 2 for self.user from the 2 orgs, and 1 for second_user
+        expected_contexts = [
+            {
+                "muted_monitors": [
+                    (
+                        second_monitor.slug,
+                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        timezone.now() - timedelta(days=14),
+                    )
+                ],
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+            },
+            {
+                "muted_monitors": [
                     (
                         second_monitor.slug,
                         f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
@@ -249,14 +508,14 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             [
                 call(
                     **{
-                        "subject": "Your monitors are broken!",
-                        "template": "sentry/emails/crons/broken-monitors.txt",
-                        "html_template": "sentry/emails/crons/broken-monitors.html",
-                        "type": "crons.broken_monitors",
+                        "subject": "1 of your Cron Monitors has been muted",
+                        "template": "sentry/emails/crons/muted-monitors.txt",
+                        "html_template": "sentry/emails/crons/muted-monitors.html",
+                        "type": "crons.muted_monitors",
                         "context": context,
                     }
                 )
-                for context in expected_contexts[:1]
+                for context in expected_contexts
             ],
             any_order=True,
         )

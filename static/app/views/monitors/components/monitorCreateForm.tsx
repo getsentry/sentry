@@ -6,6 +6,7 @@ import {Observer} from 'mobx-react';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -22,16 +23,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {MockTimelineVisualization} from 'sentry/views/monitors/components/mockTimelineVisualization';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {ScheduleType} from 'sentry/views/monitors/types';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
+
+import {MockTimelineVisualization} from './mockTimelineVisualization';
 import {
   DEFAULT_CRONTAB,
   DEFAULT_MONITOR_TYPE,
   mapMonitorFormErrors,
   transformMonitorFormData,
-} from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {ScheduleType} from 'sentry/views/monitors/types';
-import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
+} from './monitorForm';
 
 const DEFAULT_SCHEDULE_CONFIG = {
   scheduleType: 'crontab',
@@ -78,7 +81,7 @@ export default function MonitorCreateForm() {
   }
 
   function changeScheduleType(type: ScheduleType) {
-    form.current.setValue('config.schedule_type', type);
+    form.current.setValue('config.scheduleType', type);
   }
 
   return (
@@ -91,13 +94,13 @@ export default function MonitorCreateForm() {
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
-        'config.schedule_type': DEFAULT_SCHEDULE_CONFIG.scheduleType,
+        'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
       }}
       onSubmitSuccess={onCreateMonitor}
       submitLabel={t('Create')}
     >
       <FieldContainer>
-        <MultiColumnInput columns="250px 1fr">
+        <MultiColumnInput columns="230px 230px 1fr">
           <StyledSentryProjectSelectorField
             name="project"
             projects={filteredProjects}
@@ -107,6 +110,13 @@ export default function MonitorCreateForm() {
             required
             stacked
             inline={false}
+          />
+          <StyledSentryMemberTeamSelectorField
+            name="owner"
+            placeholder={t('Assign Ownership')}
+            stacked
+            inline={false}
+            menuPlacement="auto"
           />
           <StyledTextField
             name="name"
@@ -120,10 +130,10 @@ export default function MonitorCreateForm() {
         <ScheduleOptions>
           <Observer>
             {() => {
-              const currScheduleType = form.current.getValue('config.schedule_type');
+              const currScheduleType = form.current.getValue('config.scheduleType');
               const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
               const parsedSchedule = form.current.getError('config.schedule')
-                ? ''
+                ? null
                 : crontabAsText(
                     form.current.getValue('config.schedule')?.toString() ?? ''
                   );
@@ -155,7 +165,9 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                        <CronstrueText>{parsedSchedule}</CronstrueText>
+                        <CronstrueText>
+                          {parsedSchedule ?? t('(invalid schedule)')}
+                        </CronstrueText>
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
@@ -198,13 +210,15 @@ export default function MonitorCreateForm() {
         </ScheduleOptions>
         <Observer>
           {() => {
-            const scheduleType = form.current.getValue('config.schedule_type');
+            const scheduleType = form.current.getValue('config.scheduleType');
             const cronSchedule = form.current.getValue('config.schedule');
+            const timezone = form.current.getValue('config.timezone');
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
 
             const schedule = {
               scheduleType,
+              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
@@ -219,7 +233,7 @@ export default function MonitorCreateForm() {
 }
 
 const FieldContainer = styled('div')`
-  width: 800px;
+  max-width: 800px;
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
@@ -278,6 +292,10 @@ const StyledNumberField = styled(NumberField)`
 `;
 
 const StyledSelectField = styled(SelectField)`
+  padding: 0;
+`;
+
+const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding: 0;
 `;
 

@@ -2,13 +2,15 @@
 import logging
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 from django.db.utils import DatabaseError
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 
-def _backfill(apps, schema_editor):
+def _backfill(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     cls = apps.get_model("sentry", "Group")
 
     for obj in RangeQuerySetWrapperWithProgressBarApprox(cls.objects.all()):
@@ -21,7 +23,7 @@ def _backfill(apps, schema_editor):
 
 class Migration(CheckedMigration):
     # data migration: must be run out of band
-    is_dangerous = True
+    is_post_deployment = True
 
     # data migration: run outside of a transaction
     atomic = False

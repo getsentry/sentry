@@ -29,24 +29,40 @@ MAX_ATTEMPTS = 3
 logger = logging.getLogger(__name__)
 
 
+class SymbolicatorPlatform(Enum):
+    """The platforms for which we want to
+    invoke Symbolicator."""
+
+    jvm = "jvm"
+    js = "js"
+    native = "native"
+
+
 @dataclass(frozen=True)
 class SymbolicatorTaskKind:
-    is_js: bool = False
+    """Bundles information about a symbolication task:
+    the platform, whether it's on the low priority queue, and
+    whether it's an existing event being reprocessed.
+    """
+
+    platform: SymbolicatorPlatform
     is_low_priority: bool = False
     is_reprocessing: bool = False
 
     def with_low_priority(self, is_low_priority: bool) -> SymbolicatorTaskKind:
         return dataclasses.replace(self, is_low_priority=is_low_priority)
 
-    def with_js(self, is_js: bool) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, is_js=is_js)
+    def with_platform(self, platform: SymbolicatorPlatform) -> SymbolicatorTaskKind:
+        return dataclasses.replace(self, platform=platform)
 
 
 class SymbolicatorPools(Enum):
     default = "default"
     js = "js"
+    jvm = "jvm"
     lpq = "lpq"
     lpq_js = "lpq_js"
+    lpq_jvm = "lpq_jvm"
 
 
 class Symbolicator:
@@ -60,12 +76,16 @@ class Symbolicator:
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            if task_kind.is_js:
+            if task_kind.platform == SymbolicatorPlatform.js:
                 pool = SymbolicatorPools.lpq_js.value
+            elif task_kind.platform == SymbolicatorPlatform.jvm:
+                pool = SymbolicatorPools.lpq_jvm.value
             else:
                 pool = SymbolicatorPools.lpq.value
-        elif task_kind.is_js:
+        elif task_kind.platform == SymbolicatorPlatform.js:
             pool = SymbolicatorPools.js.value
+        elif task_kind.platform == SymbolicatorPlatform.jvm:
+            pool = SymbolicatorPools.jvm.value
 
         base_url = (
             URLS.get(pool)
@@ -228,8 +248,10 @@ class Symbolicator:
 
         :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
         :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
-        :param modules: ProGuard modules to use for deobfuscation. They must contain a `uuid`.
+        :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
+                        `type` of either "proguard" or "source".
         :param release_package: The name of the release's package. This is optional.
+                                Used for determining whether frames are in-app.
         :param apply_source_context: Whether to add source context to frames.
         """
         source = get_internal_source(self.project)

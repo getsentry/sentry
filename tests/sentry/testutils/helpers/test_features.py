@@ -5,10 +5,8 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TestTestUtilsFeatureHelper(TestCase):
     def setUp(self):
         self.org = self.create_organization()

@@ -13,11 +13,9 @@ from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, Schedule
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
@@ -275,7 +273,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         assert response.data[0]["environments"][0]["status"] == "ok"
 
 
-@region_silo_test
 class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
@@ -290,6 +287,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
+            "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -299,6 +297,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
@@ -457,7 +457,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
 
-@region_silo_test
 class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"

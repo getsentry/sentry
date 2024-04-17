@@ -4,9 +4,9 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
@@ -77,9 +77,7 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const hasAggregateWaterfall = organization.features.includes(
-    'starfish-aggregate-span-waterfall'
-  );
+  const hasAggregateWaterfall = organization.features.includes('spans-first-ui');
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -110,8 +108,14 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForTransaction(transactionName);
+
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
 
   return (
     <Layout.Header>
@@ -195,7 +199,10 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
+              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
+                {t('Spans')}
+              </TabList.Item>
+
               <TabList.Item
                 key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}

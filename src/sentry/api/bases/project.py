@@ -12,7 +12,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -111,25 +111,46 @@ class ProjectEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
+        organization_slug: str | int,
+        project_slug: str | int,
         *args,
         **kwargs,
     ):
         try:
-            project = (
-                Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
-                .select_related("organization")
-                .prefetch_related("teams")
-                .get()
-            )
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization_slug)
+            ):
+                project = (
+                    Project.objects.filter(
+                        organization__slug__id_or_slug=organization_slug,
+                        slug__id_or_slug=project_slug,
+                    )
+                    .select_related("organization")
+                    .prefetch_related("teams")
+                    .get()
+                )
+            else:
+                project = (
+                    Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
+                    .select_related("organization")
+                    .prefetch_related("teams")
+                    .get()
+                )
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
                 redirect = ProjectRedirect.objects.select_related("project")
-                redirect = redirect.get(
-                    organization__slug=organization_slug, redirect_slug=project_slug
-                )
+                if id_or_slug_path_params_enabled(
+                    self.convert_args.__qualname__, str(organization_slug)
+                ):
+                    redirect = redirect.get(
+                        organization__slug__id_or_slug=organization_slug,
+                        redirect_slug__id_or_slug=project_slug,
+                    )
+                else:
+                    redirect = redirect.get(
+                        organization__slug=organization_slug, redirect_slug=project_slug
+                    )
                 # Without object permissions don't reveal the rename
                 self.check_object_permissions(request, redirect.project)
 

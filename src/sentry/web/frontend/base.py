@@ -25,7 +25,11 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
+from sentry.api.utils import (
+    generate_organization_url,
+    id_or_slug_path_params_enabled,
+    is_member_disabled_from_limit,
+)
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -249,10 +253,17 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_slug: str | int
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization.slug)
+            ):
+                project = Project.objects.get(
+                    slug__id_or_slug=project_slug, organization=organization
+                )
+            else:
+                project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 
@@ -710,7 +721,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str | int, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:

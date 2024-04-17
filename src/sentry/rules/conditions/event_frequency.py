@@ -4,7 +4,8 @@ import abc
 import contextlib
 import logging
 import re
-from collections.abc import Mapping
+from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -15,15 +16,19 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
     round_to_five_minute,
 )
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
 standard_intervals = {
@@ -49,6 +54,7 @@ comparison_types = {
     COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
     COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
 }
+SNUBA_LIMIT = 10000
 
 
 class EventFrequencyForm(forms.Form):
@@ -170,6 +176,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
+        """
+        Queries Snuba for a unique condition for a single group.
+        """
         query_result = self.query_hook(event, start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
@@ -183,8 +192,36 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        """ """
-        raise NotImplementedError  # subclass must implement
+        """
+        Abstract method that specifies how to query Snuba for a single group
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    def batch_query(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Queries Snuba for a unique condition for multiple groups.
+        """
+        batch_query_result = self.batch_query_hook(group_ids, start, end, environment_id)
+        metrics.incr(
+            "rules.conditions.queried_snuba",
+            tags={
+                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
+                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
+            },
+        )
+        return batch_query_result
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        """
+        Abstract method that specifies how to query Snuba for multiple groups
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
 
     def get_rate(self, event: GroupEvent, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
@@ -210,6 +247,56 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result
 
+    def get_snuba_query_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        keys: list[int],
+        group: Group,
+        model: TSDBModel,
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> Mapping[int, int]:
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
+            referrer_suffix=referrer_suffix,
+        )
+        return result
+
+    def get_chunked_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        model: TSDBModel,
+        groups: list[Group],
+        start: datetime,
+        end: datetime,
+        environment_id: str,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        group = groups[0]
+        for group_chunk in chunked(groups, SNUBA_LIMIT):
+            result = self.get_snuba_query_result(
+                tsdb_function=tsdb_function,
+                model=model,
+                keys=[group.id for group in group_chunk],
+                group=group,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+            )
+            batch_totals.update(result)
+        return batch_totals
+
     @property
     def is_guessed_to_be_created_on_project_creation(self) -> bool:
         """
@@ -234,18 +321,51 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(event.group.issue_category),
+        sums: Mapping[int, int] = self.get_snuba_query_result(
+            tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
+            group=event.group,
+            model=get_issue_tsdb_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_frequency",
         )
         return sums[event.group_id]
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
+
+        if error_issues:
+            error_sums = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_sums,
+                model=get_issue_tsdb_group_model(error_issues[0].issue_category),
+                groups=error_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
+            )
+            batch_sums.update(error_sums)
+
+        if generic_issues:
+            generic_sums = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_sums,
+                model=get_issue_tsdb_group_model(generic_issues[0].issue_category),
+                groups=generic_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_frequency",
+            )
+            batch_sums.update(generic_sums)
+
+        return batch_sums
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "count", "roundedTime"
@@ -258,18 +378,51 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
-        totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(event.group.issue_category),
+        totals: Mapping[int, int] = self.get_snuba_query_result(
+            tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
+            group=event.group,
+            model=get_issue_tsdb_user_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_uniq_user_frequency",
         )
         return totals[event.group_id]
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
+
+        if error_issues:
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                model=get_issue_tsdb_user_group_model(error_issues[0].issue_category),
+                groups=error_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(error_totals)
+
+        if generic_issues:
+            generic_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                model=get_issue_tsdb_user_group_model(generic_issues[0].issue_category),
+                groups=generic_issues,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(generic_totals)
+
+        return batch_totals
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
@@ -343,10 +496,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             ],
         }
 
-    def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+    def get_session_count(
+        self, project_id: int, environment_id: str, start: datetime, end: datetime
     ) -> int:
-        project_id = event.project_id
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
@@ -360,24 +512,34 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 )
 
             cache.set(cache_key, session_count_last_hour, 600)
+        return session_count_last_hour
 
-        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
-            )
-            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+    def get_session_interval(self, session_count: int, interval: str) -> int | None:
+        if session_count >= MIN_SESSIONS_TO_FIRE:
+            interval_in_minutes = percent_intervals[interval][1].total_seconds() // 60
+            return int(session_count / (60 / interval_in_minutes))
+        return None
 
-            issue_count = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(event.group.issue_category),
+    def query_hook(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+    ) -> int:
+        project_id = event.project_id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
+            issue_count = self.get_snuba_query_result(
+                tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
+                group=event.group,
+                model=get_issue_tsdb_group_model(event.group.issue_category),
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                use_cache=True,
-                jitter_value=event.group_id,
-                tenant_ids={"organization_id": event.group.project.organization_id},
                 referrer_suffix="alert_event_frequency_percent",
             )[event.group_id]
+
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now
                 self.logger.info(
@@ -388,10 +550,44 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            percent: int = 100 * round(issue_count / avg_sessions_in_interval, 4)
+            percent: int = int(100 * round(issue_count / avg_sessions_in_interval, 4))
             return percent
 
         return 0
+
+    def batch_query_hook(
+        self, group_ids: Sequence[int], start: datetime, end: datetime, environment_id: str
+    ) -> dict[int, int]:
+        batch_percents: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids)
+        project_id = groups[0].project.id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
+            error_issues = [
+                group for group in groups if group.issue_category == GroupCategory.ERROR
+            ]
+            if error_issues:
+                error_issue_count = self.get_chunked_result(
+                    tsdb_function=self.tsdb.get_sums,
+                    model=get_issue_tsdb_group_model(error_issues[0].issue_category),
+                    groups=error_issues,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="alert_event_frequency_percent",
+                )
+                for group_id, count in error_issue_count.items():
+                    percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+                    batch_percents[group_id] = percent
+        else:
+            percent = 0
+            for group in groups:
+                batch_percents[group.id] = percent
+
+        return batch_percents
 
     def passes_activity_frequency(
         self, activity: ConditionActivity, buckets: dict[datetime, int]

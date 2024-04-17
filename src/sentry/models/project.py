@@ -110,17 +110,22 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "minidump",
     "native",
     "native-qt",
+    "nintendo-switch",
     "node",
     "node-awslambda",
     "node-azurefunctions",
     "node-connect",
     "node-express",
+    "node-fastify",
     "node-gcpfunctions",
+    "node-hapi",
     "node-koa",
+    "node-nestjs",
     "node-serverlesscloud",
     "php",
     "php-laravel",
     "php-symfony",
+    "powershell",
     "python",
     "python-aiohttp",
     "python-asgi",
@@ -292,6 +297,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # This Project has custom metrics
         has_custom_metrics: bool
+
+        # This Project has enough issue volume to use high priority alerts
+        has_high_priority_alerts: bool
 
         bitfield_default = 10
         bitfield_null = True

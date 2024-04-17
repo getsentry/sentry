@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry import options
 from sentry.utils import json, redis
 
 SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
-TWO_MINUTES = 2 * 60  # 2 min delay in seconds
 
 
-def get_redis_client() -> RedisCluster | StrictRedis:
-    return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER, decode_responses=False)
+def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+    return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
 def get_segment_key(project_id: str | int, segment_id: str) -> str:
@@ -62,7 +63,7 @@ class RedisSpansBuffer:
 
         return timestamp > int(last_processed_timestamp)
 
-    def read_and_expire_many_segments(self, keys: list[str]) -> list[tuple[str, list[str | bytes]]]:
+    def read_and_expire_many_segments(self, keys: list[str]) -> list[list[str | bytes]]:
         values = []
         with self.client.pipeline() as p:
             for key in keys:
@@ -80,16 +81,23 @@ class RedisSpansBuffer:
         key = get_unprocessed_segments_key(partition)
         results = self.client.lrange(key, 0, -1) or []
 
+        buffer_window = options.get("standalone-spans.buffer-window.seconds")
+
         ltrim_index = 0
         segment_keys = []
+        processed_segment_ts = None
         for result in results:
             segment_timestamp, segment_key = json.loads(result)
-            if now - segment_timestamp < TWO_MINUTES:
+            if now - segment_timestamp < buffer_window:
                 break
 
+            processed_segment_ts = segment_timestamp
             ltrim_index += 1
             segment_keys.append(segment_key)
 
         self.client.ltrim(key, ltrim_index, -1)
+
+        segment_context = {"current_timestamp": now, "segment_timestamp": processed_segment_ts}
+        sentry_sdk.set_context("processed_segment", segment_context)
 
         return segment_keys

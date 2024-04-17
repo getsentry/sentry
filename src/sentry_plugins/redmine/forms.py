@@ -6,6 +6,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from sentry.utils import json
+from sentry.utils.forms import set_field_choices
 
 from .client import RedmineClient
 
@@ -26,8 +27,8 @@ class RedmineOptionsForm(forms.Form):
         required=False,
     )
 
-    def __init__(self, data=None, *args, **kwargs):
-        super().__init__(data=data, *args, **kwargs)
+    def __init__(self, data=None, **kwargs):
+        super().__init__(data=data, **kwargs)
 
         initial = kwargs.get("initial") or {}
         for key, value in self.data.items():
@@ -46,7 +47,7 @@ class RedmineOptionsForm(forms.Form):
                     (p["id"], "{} ({})".format(p["name"], p["identifier"]))
                     for p in projects["projects"]
                 ]
-                self.fields["project_id"].choices = project_choices
+                set_field_choices(self.fields["project_id"], project_choices)
 
         if client is not None and has_credentials:
             try:
@@ -55,7 +56,7 @@ class RedmineOptionsForm(forms.Form):
                 del self.fields["tracker_id"]
             else:
                 tracker_choices = [(p["id"], p["name"]) for p in trackers["trackers"]]
-                self.fields["tracker_id"].choices = tracker_choices
+                set_field_choices(self.fields["tracker_id"], tracker_choices)
 
             try:
                 priorities = client.get_priorities()
@@ -63,7 +64,7 @@ class RedmineOptionsForm(forms.Form):
                 del self.fields["default_priority"]
             else:
                 tracker_choices = [(p["id"], p["name"]) for p in priorities["issue_priorities"]]
-                self.fields["default_priority"].choices = tracker_choices
+                set_field_choices(self.fields["default_priority"], tracker_choices)
 
         if not has_credentials:
             del self.fields["project_id"]
@@ -94,7 +95,7 @@ class RedmineOptionsForm(forms.Form):
         Ensure that the value provided is either a valid JSON dictionary,
         or the empty string.
         """
-        extra_fields_json = self.cleaned_data.get("extra_fields").strip()
+        extra_fields_json = self.cleaned_data["extra_fields"].strip()
         if not extra_fields_json:
             return ""
 

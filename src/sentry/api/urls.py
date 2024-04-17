@@ -4,6 +4,7 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
+from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
@@ -65,6 +66,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.incidents.endpoints.organization_alert_rule_activations import (
+    OrganizationAlertRuleActivationsEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -110,10 +114,6 @@ from sentry.issues.endpoints import (
 from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
     MonitorIngestCheckinAttachmentEndpoint,
 )
-from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
-    MonitorIngestCheckInDetailsEndpoint,
-)
-from sentry.monitors.endpoints.monitor_ingest_checkin_index import MonitorIngestCheckInIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
     OrganizationMonitorCheckInAttachmentEndpoint,
 )
@@ -166,6 +166,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
+from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -434,6 +435,7 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_region import OrganizationRegionEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -466,6 +468,7 @@ from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_traces import OrganizationTracesEndpoint
 from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
@@ -764,6 +767,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAiAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
+            GroupAutofixSetupCheck.as_view(),
+            name=f"{name_prefix}-group-autofix-setup",
         ),
         # Load plugin group urls
         re_path(
@@ -1080,6 +1088,11 @@ ORGANIZATION_URLS = [
     ),
     # Alert Rules
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
+        OrganizationAlertRuleIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rules",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
         OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-available-actions",
@@ -1090,11 +1103,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-alert-rule-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
-        OrganizationAlertRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rules",
+        r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
+        OrganizationAlertRuleActivationsEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-activations",
     ),
-    re_path(
+    re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
@@ -1349,6 +1362,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/traces/$",
+        OrganizationTracesEndpoint.as_view(),
+        name="sentry-api-0-organization-traces",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
@@ -1606,28 +1624,8 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-        # XXX(epurkhiser): When removing method dispatch (once the legacy
-        # ingest endpoints are removed) we need to update apidocs/hooks.py to
-        # remove these from the explicit endpoints
-        method_dispatch(
-            GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
-            OPTIONS=OrganizationMonitorCheckInIndexEndpoint.as_view(),
-            POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
-            csrf_exempt=True,
-        ),
+        OrganizationMonitorCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-index",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        # XXX(epurkhiser): When removing method dispatch (once the legacy
-        # ingest endpoints are removed) we need to update apidocs/hooks.py to
-        # remove these from the explicit endpoints
-        method_dispatch(
-            PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
-            OPTIONS=MonitorIngestCheckInDetailsEndpoint.as_view(),
-            csrf_exempt=True,
-        ),
-        name="sentry-api-0-organization-monitor-check-in-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
@@ -2091,6 +2089,11 @@ ORGANIZATION_URLS = [
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/region/$",
+        OrganizationRegionEndpoint.as_view(),
+        name="sentry-api-0-organization-region",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2411,6 +2414,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
+        ProjectReplayViewedByEndpoint.as_view(),
+        name="sentry-api-0-project-replay-viewed-by",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
@@ -3091,18 +3099,6 @@ urlpatterns = [
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
-    ),
-    # Top-level monitor checkin APIs. NOTE that there are also organization
-    # level checkin ingest APIs.
-    re_path(
-        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-        MonitorIngestCheckInIndexEndpoint.as_view(),
-        name="sentry-api-0-monitor-ingest-check-in-index",
-    ),
-    re_path(
-        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        MonitorIngestCheckInDetailsEndpoint.as_view(),
-        name="sentry-api-0-monitor-ingest-check-in-details",
     ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.

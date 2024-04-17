@@ -26,7 +26,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {
   isAutogroupedNode,
@@ -44,6 +44,8 @@ type IssueProps = {
 };
 
 const MAX_DISPLAYED_ISSUES_COUNT = 10;
+
+const MIN_ISSUES_TABLE_WIDTH = 600;
 
 function Issue(props: IssueProps) {
   const {
@@ -174,10 +176,20 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     return {start, end, statsPeriod};
   }, []);
 
+  const [singular, plural] = useMemo((): [string, string] => {
+    const label = [t('Issue'), t('Issues')] as [string, string];
+    for (const event of errors) {
+      if (event.level === 'error' || event.level === 'fatal') {
+        return [t('Error'), t('Errors')];
+      }
+    }
+    return label;
+  }, [errors]);
+
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
+        {errors.size + performance_issues.size > MAX_DISPLAYED_ISSUES_COUNT
           ? tct(`[count]+  issues, [link]`, {
               count: MAX_DISPLAYED_ISSUES_COUNT,
               link: (
@@ -196,30 +208,30 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                 </StyledLink>
               ),
             })
-          : errors.length > 0 && performance_issues.length === 0
+          : errors.size > 0 && performance_issues.size === 0
             ? tct('[count] [text]', {
-                count: errors.length,
-                text: tn('Error', 'Errors', errors.length),
+                count: errors.size,
+                text: errors.size > 1 ? plural : singular,
               })
-            : performance_issues.length > 0 && errors.length === 0
+            : performance_issues.size > 0 && errors.size === 0
               ? tct('[count] [text]', {
-                  count: performance_issues.length,
+                  count: performance_issues.size,
                   text: tn(
                     'Performance issue',
                     'Performance Issues',
-                    performance_issues.length
+                    performance_issues.size
                   ),
                 })
               : tct(
                   '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                   {
-                    errors: errors.length,
-                    performance_issues: performance_issues.length,
-                    errorsText: tn('Error', 'Errors', errors.length),
+                    errors: errors.size,
+                    performance_issues: performance_issues.size,
+                    errorsText: errors.size > 1 ? plural : singular,
                     performanceIssuesText: tn(
                       'performance issue',
                       'performance issues',
-                      performance_issues.length
+                      performance_issues.size
                     ),
                   }
                 )}
@@ -257,6 +269,10 @@ const GraphHeading = styled(Heading)`
   width: 160px;
   display: flex;
   justify-content: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const UsersHeading = styled(Heading)`
@@ -265,14 +281,12 @@ const UsersHeading = styled(Heading)`
 `;
 
 const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-  border: 1px solid ${p => p.theme.red200};
+  container-type: inline-size;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.red200};
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
@@ -305,6 +319,10 @@ const IssueSummaryWrapper = styled('div')`
 const ChartWrapper = styled('div')`
   width: 200px;
   align-self: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const ColumnWrapper = styled('div')`

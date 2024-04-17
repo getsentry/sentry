@@ -1,4 +1,5 @@
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 
 import click
@@ -15,7 +16,7 @@ class RollbackLocally(Exception):
 
 
 @contextmanager
-def catchable_atomic():
+def catchable_atomic() -> Generator[None, None, None]:
     try:
         with transaction.atomic("default"):
             yield
@@ -23,7 +24,7 @@ def catchable_atomic():
         pass
 
 
-def sync_docs():
+def sync_docs() -> None:
     click.echo("Forcing documentation sync")
     from sentry.utils.integrationdocs import DOC_FOLDER, sync_docs
 
@@ -39,7 +40,7 @@ def sync_docs():
 
 
 @region_silo_function
-def create_missing_dsns():
+def create_missing_dsns() -> None:
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
 
@@ -53,7 +54,7 @@ def create_missing_dsns():
 
 
 @region_silo_function
-def fix_group_counters():
+def fix_group_counters() -> None:
     from django.db import connection
 
     click.echo("Correcting Group.num_comments counter")
@@ -76,7 +77,7 @@ def fix_group_counters():
     help="Synchronize and repair embedded documentation. This " "is disabled by default.",
 )
 @configuration
-def repair(with_docs):
+def repair(with_docs: bool) -> None:
     """Attempt to repair any invalid data.
 
     This by default will correct some common issues like projects missing

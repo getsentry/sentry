@@ -185,7 +185,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert group.priority == PriorityLevel.LOW
 
     @with_feature("projects:issue-priority")
-    def test_issue_platform_override_priority(self):
+    @with_feature("projects:first-event-severity-calculation")
+    @mock.patch("sentry.event_manager._get_severity_score")
+    def test_issue_platform_override_priority(self, mock_get_severity_score):
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
         message["initial_issue_priority"] = PriorityLevel.HIGH.value
@@ -194,8 +196,10 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
+        assert mock_get_severity_score.call_count == 0
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.HIGH
+        assert "severity" not in group.data["metadata"]
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
@@ -454,3 +458,21 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["initial_issue_priority"] = PriorityLevel.HIGH
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
+
+    def test_assignee(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"user:{self.user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] == f"user:{self.user.id}"
+
+    def test_assignee_none(self) -> None:
+        kwargs = _get_kwargs(deepcopy(get_test_message(self.project.id)))
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = ""
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] == ""
