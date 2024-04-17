@@ -29,6 +29,7 @@ interface Props {
   value: ReactText | undefined;
   align?: 'left' | 'right';
   isLoading?: boolean;
+  minimumValue?: number;
   tooltip?: React.ReactNode;
 }
 
@@ -40,7 +41,14 @@ export function MetricReadout(props: Props) {
   );
 }
 
-function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Props) {
+function ReadoutContent({
+  unit,
+  value,
+  tooltip,
+  align = 'right',
+  isLoading,
+  minimumValue,
+}: Props) {
   if (isLoading) {
     return (
       <LoadingContainer align={align}>
@@ -58,7 +66,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
   if (isARateUnit(unit)) {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
+        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit, {
+          minimumValue: minimumValue ?? MINIMUM_RATE,
+        })}
       </NumberContainer>
     );
   }
@@ -96,7 +106,13 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
   if (unit === 'percentage') {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatPercentage(typeof value === 'string' ? parseFloat(value) : value)}
+        {formatPercentage(
+          typeof value === 'string' ? parseFloat(value) : value,
+          undefined,
+          {
+            minimumValue: minimumValue ?? MINIMUM_PERCENTAGE,
+          }
+        )}
       </NumberContainer>
     );
   }
@@ -113,6 +129,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
 
   return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
 }
+
+const MINIMUM_RATE = 0.01;
+const MINIMUM_PERCENTAGE = 0.01;
 
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
   text-align: ${p => p.align};
