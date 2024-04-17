@@ -81,13 +81,20 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
 
         try:
             data = json.loads(self.request.body)
-        except ValueError as e:
-            logger.info("gitlab.body.parse_error", extra={"error": str(e)})
+        except ValueError:
             data = {}
 
+        identifier = self.get_mailbox_identifier(integration, data)
+        logger.info(
+            "gitlab.webhookpayload.save",
+            extra={
+                "identifier": identifier,
+                "integration_id": integration.id,
+            },
+        )
         return self.get_response_from_webhookpayload(
             regions=regions,
-            identifier=self.get_mailbox_identifier(integration, data),
+            identifier=identifier,
             integration_id=integration.id,
         )
 
