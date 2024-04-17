@@ -8,6 +8,14 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {
+  SpanMetricsField,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 
 interface HeaderProps {
   avgDuration: number;
@@ -17,17 +25,60 @@ interface HeaderProps {
 }
 
 export default function SpanSummaryHeader(props: HeaderProps) {
-  const {spanSlug, suspectSpan, totalCount} = props;
+  // const {spanSlug, suspectSpan, totalCount} = props;
+
+  const {spanSlug} = useParams();
+  const [spanOp, groupId] = spanSlug.split(':');
+
+  const location = useLocation();
+  const {transaction} = location.query;
+
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    'span.op': spanOp,
+    transaction: transaction as string,
+  };
 
   const {
-    description,
-    frequency,
-    p50ExclusiveTime,
-    p75ExclusiveTime,
-    p95ExclusiveTime,
-    p99ExclusiveTime,
-    sumExclusiveTime,
-  } = suspectSpan ?? {};
+    isLoading: isPercentileDataLoading,
+    data: percentileData,
+    error: percentileDataError,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      'span.description',
+      'p50(span.self_time)',
+      'p75(span.self_time)',
+      'p95(span.self_time)',
+      'p99(span.self_time)',
+    ],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page',
+  });
+
+  // Break these fields into a second request, since they take longer to fetch
+  const {
+    isLoading: isSecondaryDataLoading,
+    data: secondaryData,
+    error: secondaryDataError,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: ['avg(span.self_time)', 'sum(span.self_time)', 'count()'],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page',
+  });
+
+  console.dir(percentileData);
+  console.dir(secondaryData);
+
+  const description = percentileData[0]?.['span.description'] ?? t('unknown');
+  const p50ExclusiveTime = percentileData[0]?.['p50(span.self_time)'];
+  const p75ExclusiveTime = percentileData[0]?.['p75(span.self_time)'];
+  const p95ExclusiveTime = percentileData[0]?.['p95(span.self_time)'];
+  const p99ExclusiveTime = percentileData[0]?.['p99(span.self_time)'];
+
+  const sumExclusiveTime = secondaryData[0]?.['sum(span.self_time)'];
+  const avgDuration = secondaryData[0]?.['avg(span.self_time)'];
 
   return (
     <ContentHeader>
@@ -36,7 +87,7 @@ export default function SpanSummaryHeader(props: HeaderProps) {
         <SectionBody>
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
-        <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
+        <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
         <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
@@ -86,8 +137,8 @@ export default function SpanSummaryHeader(props: HeaderProps) {
       <HeaderInfo data-test-id="header-avg-duration">
         <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
         <SectionBody>
-          {defined(frequency) && defined(totalCount)
-            ? formatMetricUsingUnit(100, 'milliseconds') // formatPercentage(Math.min(frequency, totalCount) / totalCount)
+          {defined(avgDuration)
+            ? formatMetricUsingUnit(avgDuration, 'milliseconds') // formatPercentage(Math.min(frequency, totalCount) / totalCount)
             : '\u2014'}
         </SectionBody>
         <SectionSubtext>
@@ -107,8 +158,8 @@ export default function SpanSummaryHeader(props: HeaderProps) {
           )}
         </SectionBody>
         <SectionSubtext>
-          {defined(frequency)
-            ? tct('[events] events', {events: <Count value={frequency} />})
+          {defined(100)
+            ? tct('[events] events', {events: <Count value={100} />})
             : '\u2014'}
         </SectionSubtext>
       </HeaderInfo>
