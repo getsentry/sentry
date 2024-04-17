@@ -42,6 +42,7 @@ export default function SpanSummaryHeader() {
   const description = data[0]?.['span.description'] ?? t('unknown');
   const sumExclusiveTime = data[0]?.['sum(span.self_time)'];
   const avgDuration = data[0]?.['avg(span.self_time)'];
+  const spanCount = data[0]?.['count()'];
 
   return (
     <ContentHeader>
@@ -76,8 +77,8 @@ export default function SpanSummaryHeader() {
           )}
         </SectionBody>
         <SectionSubtext>
-          {defined(100)
-            ? tct('[events] events', {events: <Count value={100} />})
+          {defined(spanCount)
+            ? tct('[spanCount] spans', {spanCount: <Count value={spanCount} />})
             : '\u2014'}
         </SectionSubtext>
       </HeaderInfo>
