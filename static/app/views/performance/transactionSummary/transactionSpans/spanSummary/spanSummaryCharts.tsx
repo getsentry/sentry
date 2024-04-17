@@ -1,9 +1,15 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
+import {
+  type DiscoverQueryProps,
+  useGenericDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   AVG_COLOR,
@@ -20,6 +26,7 @@ import {
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 function SpanSummaryCharts() {
+  const organization = useOrganization();
   const {spanSlug} = useParams();
   const [spanOp, groupId] = spanSlug.split(':');
 
@@ -40,7 +47,7 @@ function SpanSummaryCharts() {
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
     enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
+    referrer: 'api.starfish.span-summary-page-charts',
   });
 
   const {
@@ -51,8 +58,62 @@ function SpanSummaryCharts() {
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
+    referrer: 'api.starfish.span-summary-page-charts',
   });
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      yAxis: ['count()'],
+      name: 'Transaction Throughput',
+      query: MutableSearch.fromQueryObject({
+        transaction: transaction as string,
+      }).formatString(),
+      fields: [],
+      version: 2,
+    },
+    location
+  );
+
+  const {
+    isLoading: isTxnThroughputDataLoading,
+    data: txnThroughputData,
+    error: txnThroughputError,
+  } = useGenericDiscoverQuery<
+    {
+      data: any[];
+      meta: MetaType;
+    },
+    DiscoverQueryProps
+  >({
+    route: 'events-stats',
+    eventView,
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...eventView.getEventsAPIPayload(location),
+      yAxis: eventView.yAxis,
+      topEvents: eventView.topEvents,
+      excludeOther: 0,
+      partial: 1,
+      orderby: undefined,
+      interval: eventView.interval,
+    }),
+    options: {
+      refetchOnWindowFocus: false,
+    },
+    referrer: 'api.starfish.span-summary-page-charts',
+  });
+
+  const transactionSeries: Series = {
+    seriesName: 'Throughput',
+    data:
+      txnThroughputData?.data.map(datum => ({
+        value: datum[1][0].count,
+        name: datum[0],
+      })) ?? [],
+  };
+
+  console.dir(txnThroughputData);
 
   return (
     <BlockContainer>
@@ -99,14 +160,14 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Transaction Throughput')}>
           <Chart
             height={160}
-            data={[throughputData?.[`spm()`]]}
-            loading={isThroughputDataLoading}
+            data={[transactionSeries]}
+            loading={isTxnThroughputDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             stacked
-            error={throughputError}
+            error={txnThroughputError}
             chartColors={[TXN_THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),

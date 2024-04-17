@@ -29,45 +29,19 @@ export default function SpanSummaryHeader() {
   };
 
   const {
-    isLoading: isPercentileDataLoading,
-    data: percentileData,
-    error: percentileDataError,
+    isLoading: isDataLoading,
+    data,
+    error,
   } = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      'span.description',
-      'p50(span.self_time)',
-      'p75(span.self_time)',
-      'p95(span.self_time)',
-      'p99(span.self_time)',
-    ],
+    fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page',
   });
 
-  // Break these fields into a second request, since they take longer to fetch
-  const {
-    isLoading: isSecondaryDataLoading,
-    data: secondaryData,
-    error: secondaryDataError,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: ['avg(span.self_time)', 'sum(span.self_time)', 'count()'],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page',
-  });
-
-  console.dir(percentileData);
-  console.dir(secondaryData);
-
-  const description = percentileData[0]?.['span.description'] ?? t('unknown');
-  const p50ExclusiveTime = percentileData[0]?.['p50(span.self_time)'];
-  const p75ExclusiveTime = percentileData[0]?.['p75(span.self_time)'];
-  const p95ExclusiveTime = percentileData[0]?.['p95(span.self_time)'];
-  const p99ExclusiveTime = percentileData[0]?.['p99(span.self_time)'];
-
-  const sumExclusiveTime = secondaryData[0]?.['sum(span.self_time)'];
-  const avgDuration = secondaryData[0]?.['avg(span.self_time)'];
+  const description = data[0]?.['span.description'] ?? t('unknown');
+  const sumExclusiveTime = data[0]?.['sum(span.self_time)'];
+  const avgDuration = data[0]?.['avg(span.self_time)'];
 
   return (
     <ContentHeader>
@@ -77,51 +51,6 @@ export default function SpanSummaryHeader() {
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
-      </HeaderInfo>
-      <HeaderInfo data-test-id="header-percentiles">
-        <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
-        <PercentileHeaderBodyWrapper>
-          <div data-test-id="section-p50">
-            <SectionBody>
-              {defined(p50ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p50ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p50')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p75">
-            <SectionBody>
-              {defined(p75ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p75ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p75')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p95">
-            <SectionBody>
-              {defined(p95ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p95ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p95')}</SectionSubtext>
-          </div>
-          <div data-test-id="section-p99">
-            <SectionBody>
-              {defined(p99ExclusiveTime) ? (
-                <PerformanceDuration abbreviation milliseconds={p99ExclusiveTime} />
-              ) : (
-                '\u2014'
-              )}
-            </SectionBody>
-            <SectionSubtext>{t('p99')}</SectionSubtext>
-          </div>
-        </PercentileHeaderBodyWrapper>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-avg-duration">
         <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
