@@ -258,9 +258,7 @@ function ActivatedRuleListRow({
     <ErrorBoundary>
       <AlertNameWrapper>
         <AlertNameAndStatus>
-          <AlertName>
-            <div>{rule.name}</div>
-          </AlertName>
+          <AlertName>{rule.name}</AlertName>
           <AlertActivationDate>{renderLatestActivation()}</AlertActivationDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
@@ -295,12 +293,7 @@ function ActivatedRuleListRow({
           <ActorAvatar actor={teamActor} size={24} />
         ) : (
           <AssigneeWrapper>
-            {!projectsLoaded && (
-              <LoadingIndicator
-                mini
-                style={{height: '24px', margin: 0, marginRight: 11}}
-              />
-            )}
+            {!projectsLoaded && <StyledLoadingIndicator mini />}
             {projectsLoaded && (
               <DropdownAutoComplete
                 data-test-id="alert-row-assignee"
@@ -351,6 +344,7 @@ function ActivatedRuleListRow({
   );
 }
 
+// TODO: see static/app/components/profiling/flex.tsx and utilize the FlexContainer styled component
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
@@ -434,23 +428,29 @@ const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: ${p => p.theme.iconSizes.lg};
+  height: ${p => p.theme.iconSizes.lg};
   flex-shrink: 0;
 `;
 
 const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: 6px;
+  margin-left: ${space(0.75)};
 `;
 
 const MarginLeft = styled('div')`
   margin-left: ${space(1)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  height: 24px;
+  margin: 0;
+  margin-right: ${space(1.5)};
 `;
 
 export default ActivatedRuleListRow;
