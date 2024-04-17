@@ -513,6 +513,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-ios',
   'electron',
   'flutter',
   'java-android',
