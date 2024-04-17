@@ -237,40 +237,88 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
 
 def process_breakdowns(data):
-    trace_stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
-    breakdowns_by_trace: Mapping[str, list[TraceInterval]] = defaultdict(list)
+    breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
+    stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
-    def breakdown_append(breakdown, interval):
+    def breakdown_push(trace, interval):
+        breakdown = breakdowns[trace]
+
+        if breakdown:
+            last_interval = breakdown[-1]
+
+            # An interval that overlaps with existing part of the breakdown was
+            # pushed, truncate it to remove the overlapping area.
+            if last_interval["end"] > interval["start"]:
+                interval["start"] = last_interval["end"]
+
+        # empty interval, skip it
+        if interval["start"] == interval["end"]:
+            return
+
+        if breakdown:
+            last_interval = breakdown[-1]
+
+            # A gap in the breakdown was found, fill it with an interval
+            if last_interval["end"] < interval["start"]:
+                last = stack_peek(trace)
+                if last:
+                    # Something is still on the stack, so attribute this gap to
+                    # that project
+                    breakdown.append(
+                        {
+                            "project": last["project"],
+                            "start": last_interval["end"],
+                            "end": interval["start"],
+                            "kind": "project",
+                        }
+                    )
+                else:
+                    # Nothing is found on the stack, so label it as missing
+                    breakdown.append(
+                        {
+                            "project": None,
+                            "start": last_interval["end"],
+                            "end": interval["start"],
+                            "kind": "missing",
+                        }
+                    )
+
         breakdown.append(interval)
 
-    def stack_pop(stack):
-        interval = stack.pop()
-        if stack:
-            # when popping an interval off the stack, it means that we've
-            # consumed up to this point in time, so we update the transaction
-            # above it to the remaining interval
-            stack[-1]["start"] = interval["end"]
+    def stack_push(trace, interval):
+        last = stack_peek(trace)
+        if (
+            last is not None
+            and last["project"] == interval["project"]
+            and last["end"] >= interval["start"]
+        ):
+            # The new interval can be merged with last interval
+            last["end"] = max(interval["end"], last["end"])
+        else:
+            stacks[trace].append(interval)
+
+    def stack_peek(trace):
+        if not stacks[trace]:
+            return None
+        return stacks[trace][-1]
+
+    def stack_pop(trace):
+        interval = stacks[trace].pop()
+
         return interval
 
-    def stack_clear(breakdown, stack, until=None):
-        interval = None
-        while stack:
-            if until is not None and stack[-1]["end"] > until:
+    def stack_clear(trace, until=None, insert=True):
+        while stacks[trace]:
+            if until is not None and stack_peek(trace)["end"] > until:
                 break
 
-            item = stack_pop(stack)
-
-            # While popping the stack, we adjust the start
-            # of the intervals in the stack, so it's possible
-            # we produce an invalid interval. Make sure to
-            # filter them out here
-            if item["start"] <= item["end"]:
-                interval = item
-                breakdown_append(breakdown, interval)
-        return interval
+            interval = stack_pop(trace)
+            if insert:
+                breakdown_push(trace, interval)
 
     for row in data:
-        stack = trace_stacks[row["trace"]]
+        trace = row["trace"]
+
         cur: TraceInterval = {
             "project": row["project"],
             "start": row["first_seen()"],
@@ -278,46 +326,36 @@ def process_breakdowns(data):
             "kind": "project",
         }
 
-        # nothing on the stack yet, so directly push onto
-        # stack and wait for next item to come so an
-        # interval can be determined
-        if not stack:
-            stack.append(cur)
+        # Nothing on the stack yet, so directly push onto the stack and wait for
+        # next item to come so an interval can be determined
+        if not stack_peek(trace):
+            stack_push(trace, cur)
             continue
 
-        breakdown = breakdowns_by_trace[row["trace"]]
-        prev = stack[-1]
-        if prev["end"] <= cur["start"]:
-            # This implies there's no overlap between this transaction
-            # and the previous transaction. So we're done with the whole stack
+        # Clear the stack of any intervals that end before the current interval
+        # starts while pushing them to the breakdowns.
+        stack_clear(trace, until=cur["start"], insert=True)
 
-            last = stack_clear(breakdown, stack, until=cur["start"])
+        # At this point, any interval remaining on the stack MUST overlap with
+        # the current interval we're working with because we've cleared the
+        # stack of all intervals that have ended.
 
-            # if there's a gap between prev end and cur start
-            if not stack or stack[-1]["end"] < cur["start"]:
-                if last is not None and last["end"] < cur["start"]:
-                    breakdown_append(
-                        breakdown,
-                        {
-                            "project": None,
-                            "start": prev["end"],
-                            "end": cur["start"],
-                            "kind": "missing",
-                        },
-                    )
-        elif prev["project"] == cur["project"]:
-            # If the intervals are in the same project,
-            # we need to merge them into the same interval.
-            new_end = max(prev["end"], cur["end"])
-            prev["end"] = new_end
+        # This is the last interval that is active during the current interval
+        prev = stack_peek(trace)
+
+        if prev is not None and prev["project"] == cur["project"]:
+            # Same project as the previous interval, so push it to the stack and
+            # let them merge.
+            stack_push(trace, cur)
             continue
-        else:
-            # This imples that there is some overlap between this transaction
+
+        if prev is not None:
+            # This implies that there is some overlap between this transaction
             # and the previous transaction. So we need push the interval up to
             # the current item to the breakdown.
 
-            breakdown_append(
-                breakdown,
+            breakdown_push(
+                trace,
                 {
                     "project": prev["project"],
                     "start": prev["start"],
@@ -326,13 +364,14 @@ def process_breakdowns(data):
                 },
             )
 
-            if prev["end"] <= cur["end"]:
-                stack_pop(stack)
+        # Clear the stack of any intervals that end before the current interval
+        # ends. Here we do not need to push them to the breakdowns because
+        # that time has already be attributed to the most recent interval.
+        stack_clear(trace, until=cur["end"], insert=False)
 
-        stack.append(cur)
+        stack_push(trace, cur)
 
-    for trace, stack in trace_stacks.items():
-        breakdown = breakdowns_by_trace[trace]
-        stack_clear(breakdown, stack)
+    for trace in stacks:
+        stack_clear(trace, insert=True)
 
-    return breakdowns_by_trace
+    return breakdowns

@@ -745,6 +745,12 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "kind": "project",
                     },
                     {
+                        "project": "foo",
+                        "start": 30,
+                        "end": 40,
+                        "kind": "project",
+                    },
+                    {
                         "project": "baz",
                         "start": 40,
                         "end": 60,
@@ -754,7 +760,57 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="three transactions different project 2 overlap and second extend past parent",
         ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 10,
+                    "last_seen()": 20,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 30,
+                    "last_seen()": 40,
+                },
+            ],
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 10,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 10,
+                        "end": 20,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 20,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions same project with another project between",
+        ),
     ],
 )
 def test_process_breakdowns(data, expected):
-    assert process_breakdowns(data) == expected
+    result = process_breakdowns(data)
+    assert result == expected
