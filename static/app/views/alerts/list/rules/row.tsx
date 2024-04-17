@@ -144,7 +144,6 @@ function RuleListRow({
     );
     const resolvedTrigger = rule.resolveThreshold;
 
-    // NOTE: If there is no active incident, will default to a trigger
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
@@ -152,7 +151,6 @@ function RuleListRow({
 
     let iconColor: ColorOrAlias = 'successText';
     let iconDirection: 'up' | 'down' | undefined;
-    // NOTE: This is incorrectly assuming that all rules have a thresholdType of ABOVE
     let thresholdTypeText =
       activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
         ? t('Above')
@@ -318,6 +316,22 @@ function RuleListRow({
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
+        <AlertNameAndStatus>
+          <AlertName>
+            <Link
+              to={
+                isIssueAlert(rule)
+                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
+                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+              }
+            >
+              {rule.name}
+            </Link>
+          </AlertName>
+          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
+        </AlertNameAndStatus>
+      </AlertNameWrapper>
+      <FlexCenter>
         <FlexCenter>
           <Tooltip
             title={
@@ -337,22 +351,8 @@ function RuleListRow({
             />
           </Tooltip>
         </FlexCenter>
-        <AlertNameAndStatus>
-          <AlertName>
-            <Link
-              to={
-                isIssueAlert(rule)
-                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
-              }
-            >
-              {rule.name}
-            </Link>
-          </AlertName>
-          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
-        </AlertNameAndStatus>
-      </AlertNameWrapper>
-      <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
+        <MarginLeft>{renderAlertRuleStatus()}</MarginLeft>
+      </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>
           <ProjectBadge
@@ -519,6 +519,10 @@ const MenuItemWrapper = styled('div')`
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
+`;
+
+const MarginLeft = styled('div')`
+  margin-left: ${space(1)};
 `;
 
 export default RuleListRow;

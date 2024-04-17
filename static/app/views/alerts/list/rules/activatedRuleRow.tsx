@@ -258,6 +258,16 @@ function ActivatedRuleListRow({
   return (
     <ErrorBoundary>
       <AlertNameWrapper>
+        <AlertNameAndStatus>
+          <AlertName>
+            <Link to={`/organizations/${orgId}/alerts/rules/details/${rule.id}/`}>
+              {rule.name}
+            </Link>
+          </AlertName>
+          <AlertActivationDate>{renderLatestActivation()}</AlertActivationDate>
+        </AlertNameAndStatus>
+      </AlertNameWrapper>
+      <FlexCenter>
         <FlexCenter>
           <Tooltip
             title={tct('Metric Alert Status: [status]', {
@@ -272,16 +282,8 @@ function ActivatedRuleListRow({
             />
           </Tooltip>
         </FlexCenter>
-        <AlertNameAndStatus>
-          <AlertName>
-            <Link to={`/organizations/${orgId}/alerts/rules/details/${rule.id}/`}>
-              {rule.name}
-            </Link>
-          </AlertName>
-          <AlertActivationDate>{renderLatestActivation()}</AlertActivationDate>
-        </AlertNameAndStatus>
-      </AlertNameWrapper>
-      <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
+        <MarginLeft>{renderAlertRuleStatus()}</MarginLeft>
+      </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>
           <ProjectBadge
@@ -448,6 +450,10 @@ const MenuItemWrapper = styled('div')`
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
+`;
+
+const MarginLeft = styled('div')`
+  margin-left: ${space(1)};
 `;
 
 export default ActivatedRuleListRow;
