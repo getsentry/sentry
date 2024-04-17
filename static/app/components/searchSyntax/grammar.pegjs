@@ -360,9 +360,9 @@ size_format
       return tc.tokenValueSize(value, unit);
     }
 
-size_unit = bytes / bits
-bytes = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
+size_unit = bits / bytes
 bits = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
+bytes = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
 
 percentage_format
   = value:numeric "%" {
