@@ -147,5 +147,5 @@ const CloseButtonWrapper = styled('div')`
 `;
 
 const DetailWrapper = styled('div')`
-  padding: 0 ${space(4)};
+  padding: 0 ${space(4)} ${space(4)};
 `;
