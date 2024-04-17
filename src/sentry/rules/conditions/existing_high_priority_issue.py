@@ -14,8 +14,8 @@ from sentry.types.condition_activity import ConditionActivity, ConditionActivity
 from sentry.types.group import PriorityLevel
 
 
-class HighPriorityIssueCondition(EventCondition):
-    id = "sentry.rules.conditions.high_priority_issue.ExistingIssueCondition"
+class ExistingHighPriorityIssueCondition(EventCondition):
+    id = "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
     label = "Sentry marks an existing issue as high priority"
 
     def is_new_high_severity(self, state: EventState, group: Group | None) -> bool:
