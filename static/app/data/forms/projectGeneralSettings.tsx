@@ -115,7 +115,7 @@ export const fields: Record<string, Field> = {
     multiline: true,
     autosize: true,
     rows: 1,
-    placeholder: t('browser, runtime, user, my-context'),
+    placeholder: t('{"response": ["method", "status_code"], "browser": ["version"]}'),
     label: t('Highlighted Context'),
     help: tct(
       'Structured context keys to promote for quick debugging. Click [link:here] for documentation',
