@@ -28,7 +28,6 @@ from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
-    SlackAttachment,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -506,7 +505,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")

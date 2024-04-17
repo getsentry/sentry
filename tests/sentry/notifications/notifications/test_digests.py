@@ -15,7 +15,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -156,7 +155,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     @mock.patch.object(sentry, "digests")
     def test_slack_digest_notification_block(self, digests):
         """

@@ -175,7 +175,6 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_request_to_join_slack(self):
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
