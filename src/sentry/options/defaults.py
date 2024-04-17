@@ -2439,3 +2439,10 @@ register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
 #         },
 #     }
 # }
+
+register(
+    "feedback.filter_garbage_messages",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)

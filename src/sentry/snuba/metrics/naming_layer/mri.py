@@ -24,7 +24,6 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
-    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -181,10 +180,6 @@ class SpanMRI(Enum):
 
 class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
-
-
-class BundleAnalysisMRI(Enum):
-    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
 
 
 @dataclass
