@@ -244,7 +244,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
 
         # Check to make sure the message does not exceed the remote offset. If
         # it does, pause the partition and seek back to the message offset.
-        if message.offset >= remote_offset:
+        if message.offset > remote_offset:
             self.__consumer.pause([message.partition])
             self.__consumer.seek({message.partition: message.offset})
             return None

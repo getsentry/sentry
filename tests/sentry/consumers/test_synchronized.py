@@ -5,14 +5,21 @@ from contextlib import closing, contextmanager
 from datetime import datetime
 from threading import Event
 from typing import TypeVar
+from unittest import mock
 
 import pytest
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalConsumer
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
-from arroyo.commit import Commit
-from arroyo.types import BrokerValue, Partition, Topic
+from arroyo.commit import IMMEDIATE
+from arroyo.processing import StreamProcessor
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
+from arroyo.types import BrokerValue, Commit, Partition, Topic
 
 from sentry.consumers.synchronized import SynchronizedConsumer, commit_codec
 
@@ -483,3 +490,46 @@ def test_synchronized_consumer_worker_crash_after_assignment() -> None:
         synchronized_consumer.poll(0.0)
 
     assert type(e.value.__cause__) is not BrokenConsumerException
+
+
+def test_commits_correct_offset() -> None:
+    broker: LocalBroker[KafkaPayload] = LocalBroker(MemoryMessageStorage())
+    topic = Topic("topic")
+    commit_log_topic = Topic("commit-log")
+
+    broker.create_topic(topic, partitions=1)
+    broker.create_topic(commit_log_topic, partitions=1)
+
+    consumer = broker.get_consumer("consumer", enable_end_of_partition=True)
+    producer = broker.get_producer()
+    commit_log_consumer = broker.get_consumer("commit-log-consumer")
+
+    messages = [
+        producer.produce(topic, KafkaPayload(None, f"{i}".encode(), [])).result(1.0)
+        for i in range(2)
+    ]
+
+    synchronized_consumer: Consumer[KafkaPayload] = SynchronizedConsumer(
+        consumer,
+        commit_log_consumer,
+        commit_log_topic=commit_log_topic,
+        commit_log_groups={"leader-a", "leader-b"},
+    )
+
+    commit_mock = mock.Mock()
+
+    class PassthroughFactory(ProcessingStrategyFactory):
+        def create_with_partitions(
+            self, _commit: Commit, _partitions: Mapping[Partition, int]
+        ) -> ProcessingStrategy:
+            return CommitOffsets(commit_mock)
+
+    processor = StreamProcessor(synchronized_consumer, topic, PassthroughFactory(), IMMEDIATE)
+    processor._run_once()
+    processor._run_once()
+
+    last_offset = messages[-1].offset
+
+    processor._shutdown()
+    expected_call = mock.call({Partition(topic=Topic(name="topic"), index=0): last_offset})
+    assert expected_call in commit_mock.call_args_list
