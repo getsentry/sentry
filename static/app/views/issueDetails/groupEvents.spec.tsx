@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Group, Organization} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;

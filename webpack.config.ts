@@ -456,7 +456,8 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
@@ -778,7 +779,7 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   appConfig.plugins?.push(
     codecovWebpackPlugin({
       enableBundleAnalysis: true,
-      bundleName: 'sentry-webpack-bundle',
+      bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
       debug: true,
     })

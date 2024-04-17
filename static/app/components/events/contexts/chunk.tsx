@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import plugins from 'sentry/plugins';
-import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
 import {

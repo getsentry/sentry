@@ -3,8 +3,9 @@ import {isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -80,71 +81,74 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-      <CrumbDetails>
-        <Flex column>
-          <TitleContainer>
-            {<Title>{title}</Title>}
-            {onClick ? (
-              <TimestampButton
-                startTimestampMs={startTimestampMs}
-                timestampMs={frame.timestampMs}
-              />
-            ) : null}
-          </TitleContainer>
 
-          {typeof description === 'string' ||
-          (description !== undefined && isValidElement(description)) ? (
-            <Description title={description} showOnlyOnOverflow isHoverable>
-              {description}
-            </Description>
-          ) : (
-            <InspectorWrapper>
-              <ObjectInspector
-                data={description}
-                expandPaths={expandPaths}
-                onExpand={onInspectorExpanded}
-                theme={{
-                  TREENODE_FONT_SIZE: '0.7rem',
-                  ARROW_FONT_SIZE: '0.5rem',
-                }}
-              />
-            </InspectorWrapper>
-          )}
-        </Flex>
+      <ErrorBoundary mini>
+        <CrumbDetails>
+          <Flex column>
+            <TitleContainer>
+              {<Title>{title}</Title>}
+              {onClick ? (
+                <TimestampButton
+                  startTimestampMs={startTimestampMs}
+                  timestampMs={frame.timestampMs}
+                />
+              ) : null}
+            </TitleContainer>
 
-        {'data' in frame && frame.data && 'mutations' in frame.data ? (
-          <div>
-            <OpenReplayComparisonButton
-              replay={replay}
-              leftTimestamp={frame.offsetMs}
-              rightTimestamp={
-                (frame.data.mutations.next?.timestamp ?? 0) -
-                (replay?.getReplay().started_at.getTime() ?? 0)
-              }
+            {typeof description === 'string' ||
+            (description !== undefined && isValidElement(description)) ? (
+              <Description title={description} showOnlyOnOverflow isHoverable>
+                {description}
+              </Description>
+            ) : (
+              <InspectorWrapper>
+                <ObjectInspector
+                  data={description}
+                  expandPaths={expandPaths}
+                  onExpand={onInspectorExpanded}
+                  theme={{
+                    TREENODE_FONT_SIZE: '0.7rem',
+                    ARROW_FONT_SIZE: '0.5rem',
+                  }}
+                />
+              </InspectorWrapper>
+            )}
+          </Flex>
+
+          {'data' in frame && frame.data && 'mutations' in frame.data ? (
+            <div>
+              <OpenReplayComparisonButton
+                replay={replay}
+                leftTimestamp={frame.offsetMs}
+                rightTimestamp={
+                  (frame.data.mutations.next?.timestamp ?? 0) -
+                  (replay?.getReplay().started_at.getTime() ?? 0)
+                }
+              />
+            </div>
+          ) : null}
+
+          {extraction?.html ? (
+            <CodeContainer>
+              <CodeSnippet language="html" hideCopyButton>
+                {beautify.html(extraction?.html, {indent_size: 2})}
+              </CodeSnippet>
+            </CodeContainer>
+          ) : null}
+
+          {traces?.flattenedTraces.map((flatTrace, i) => (
+            <TraceGrid
+              key={i}
+              flattenedTrace={flatTrace}
+              onDimensionChange={onDimensionChange}
             />
-          </div>
-        ) : null}
+          ))}
 
-        {extraction?.html ? (
-          <CodeContainer>
-            <CodeSnippet language="html" hideCopyButton>
-              {beautify.html(extraction?.html, {indent_size: 2})}
-            </CodeSnippet>
-          </CodeContainer>
-        ) : null}
-
-        {traces?.flattenedTraces.map((flatTrace, i) => (
-          <TraceGrid
-            key={i}
-            flattenedTrace={flatTrace}
-            onDimensionChange={onDimensionChange}
-          />
-        ))}
-
-        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-          <CrumbErrorIssue frame={frame} />
-        ) : null}
-      </CrumbDetails>
+          {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+            <CrumbErrorIssue frame={frame} />
+          ) : null}
+        </CrumbDetails>
+      </ErrorBoundary>
     </CrumbItem>
   );
 }
@@ -154,14 +158,12 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
 
-  const projectBadge = project ? (
-    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
-  ) : null;
+  const projectAvatar = project ? <ProjectAvatar project={project} size={16} /> : null;
 
   if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
-        {projectBadge}
+        {projectAvatar}
         {frame.data.groupShortId}
       </CrumbIssueWrapper>
     );
@@ -169,7 +171,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
 
   return (
     <CrumbIssueWrapper>
-      {projectBadge}
+      {projectAvatar}
       <Link
         to={
           isFeedbackFrame(frame)
@@ -189,6 +191,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
 const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;

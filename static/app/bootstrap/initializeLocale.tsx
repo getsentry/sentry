@@ -3,7 +3,7 @@ import * as moment from 'moment';
 import * as qs from 'query-string';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {

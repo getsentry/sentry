@@ -5,13 +5,20 @@ type Props = {
   value: React.ReactNode;
   className?: string;
   meta?: Record<any, any>;
+  withOnlyFormattedText?: boolean;
 };
 
-export function AnnotatedText({value, meta, className, ...props}: Props) {
+export function AnnotatedText({
+  value,
+  meta,
+  className,
+  withOnlyFormattedText = false,
+  ...props
+}: Props) {
   return (
     <span className={className} {...props}>
       <AnnotatedTextValue value={value} meta={meta} />
-      <AnnotatedTextErrors errors={meta?.err} />
+      {!withOnlyFormattedText && <AnnotatedTextErrors errors={meta?.err} />}
     </span>
   );
 }

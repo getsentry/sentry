@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {
@@ -610,7 +610,6 @@ const PanelWrapper = styled('div')<{
 const SmallerChevronIcon = styled(IconChevron)`
   width: 13px;
   height: 13px;
-
   transition: none;
 `;
 
@@ -631,6 +630,7 @@ const TabsHeightContainer = styled('div')<{
 
 const TabsLayout = styled('div')`
   display: grid;
+  background: ${p => p.theme.backgroundSecondary};
   grid-template-columns: auto 1fr auto;
   padding-left: ${space(0.25)};
   padding-right: ${space(0.5)};

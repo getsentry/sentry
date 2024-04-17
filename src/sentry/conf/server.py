@@ -1108,7 +1108,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12", day_of_week="monday"),
+        "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-daily-organization-reports": {
@@ -1548,8 +1548,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable the org recalibration
@@ -1650,8 +1648,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
-    # Enable updated legacy browser settings
-    "organizations:legacy-browser-update": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
@@ -1879,6 +1875,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trace-table": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
+    # Enable 'Viewed By' state for replay items
+    "organizations:session-replay-viewed-by-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
@@ -1902,6 +1900,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sso-saml2": True,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
+    # A single flag for all the new performance UI that relies on span ingestion
+    "organizations:spans-first-ui": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
@@ -3081,7 +3081,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.3.0"
+SELF_HOSTED_STABLE_VERSION = "24.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

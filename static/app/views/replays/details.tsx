@@ -74,6 +74,9 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
+    if (!organization.features.includes('session-replay-viewed-by-ui')) {
+      return;
+    }
     if (
       !fetchError &&
       replayRecord &&
@@ -83,7 +86,15 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     ) {
       markAsViewed({projectSlug, replayId});
     }
-  }, [fetchError, fetching, markAsViewed, projectSlug, replayId, replayRecord]);
+  }, [
+    fetchError,
+    fetching,
+    markAsViewed,
+    organization,
+    projectSlug,
+    replayId,
+    replayRecord,
+  ]);
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,

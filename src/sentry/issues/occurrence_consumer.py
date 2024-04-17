@@ -22,6 +22,7 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
+from sentry.utils.actor import parse_and_validate_actor
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,17 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
+            assignee_identifier = None
+            payload_assignee = payload.get("assignee")
+            if payload_assignee:
+                project = Project.objects.get_from_cache(id=payload["project_id"])
+                try:
+                    assignee = parse_and_validate_actor(payload_assignee, project.organization_id)
+                    if assignee:
+                        assignee_identifier = assignee.identifier
+                except Exception:
+                    logger.exception("Failed to validate assignee for occurrence")
+
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
@@ -154,6 +166,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
+                "assignee": assignee_identifier,
             }
 
             process_occurrence_data(occurrence_data)

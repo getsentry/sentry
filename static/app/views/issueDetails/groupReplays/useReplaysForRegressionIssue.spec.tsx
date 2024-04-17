@@ -1,13 +1,12 @@
-import {act} from 'react-test-renderer';
 import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventOccurrence} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysForRegressionIssue from 'sentry/views/issueDetails/groupReplays/useReplaysForRegressionIssue';
 

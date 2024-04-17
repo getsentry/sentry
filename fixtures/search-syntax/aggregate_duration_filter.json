@@ -27,7 +27,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": ">",
-        "value": {"type": "valueDuration", "value": 500, "unit": "s"}
+        "value": {"type": "valueDuration", "value": "500", "unit": "s"}
       },
       {"type": "spaces", "value": ""}
     ]
