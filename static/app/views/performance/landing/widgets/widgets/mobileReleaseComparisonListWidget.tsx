@@ -119,10 +119,17 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
-        eventView.fields = [{field: 'transaction'}, {field}, {field: 'count()'}];
+        const sortField = {
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
+            'count_starts(measurements.app_start_cold)',
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
+            'count_starts(measurements.app_start_warm)',
+        }[props.chartSetting];
+        eventView.fields = [{field: 'transaction'}, {field}, {field: sortField}];
         eventView.sorts = [
           {
-            field: 'count()',
+            field: sortField,
             kind: 'desc',
           },
         ];
