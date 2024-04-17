@@ -29,7 +29,7 @@ const hideDropdown = css`
 
   &:hover button[aria-haspopup],
   button[aria-expanded='true'],
-  button[aria-haspopup].focus-visible {
+  button[aria-haspopup]:focus-visible {
     opacity: 1;
   }
 `;

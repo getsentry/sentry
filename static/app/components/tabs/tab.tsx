@@ -194,7 +194,7 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   z-index: 0;
   transition: box-shadow 0.1s ease-out;
 
-  li.focus-visible & {
+  li:focus-visible & {
     box-shadow:
       ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;

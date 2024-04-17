@@ -50,7 +50,7 @@ const InteractionStateLayer = styled(
         `
       : // If isHovered is undefined, then fallback to a default hover selector
         css`
-          *:hover:not(.focus-visible) > & {
+          *:hover:not(:focus-visible) > & {
             opacity: ${p.higherOpacity ? 0.085 : 0.06};
           }
         `}

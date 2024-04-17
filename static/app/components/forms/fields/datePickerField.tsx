@@ -90,7 +90,7 @@ const StyledInput = styled(Input)`
   ${p.theme.iconSizes.sm}
 )`};
 
-  &:focus:not(.focus-visible) {
+  &:focus:not(:focus-visible) {
     border-color: ${p => p.theme.border};
     box-shadow: inset ${p => p.theme.dropShadowMedium};
   }
