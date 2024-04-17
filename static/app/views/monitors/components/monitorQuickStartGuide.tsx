@@ -127,6 +127,16 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   },
 };
 
+/**
+ * The platforms that are well supported for crons
+ */
+export const platformsWithGuides = Array.from(
+  Object.values(onboardingGuides).reduce((combinedPlatforms, guide) => {
+    guide.platforms?.forEach(platform => combinedPlatforms.add(platform));
+    return combinedPlatforms;
+  }, new Set())
+);
+
 const guideToSelectOption = ({key, label}) => ({label, value: key});
 
 export default function MonitorQuickStartGuide({monitor}: Props) {
