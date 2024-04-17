@@ -19,6 +19,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   a {
     color: ${theme.linkColor};
+    &:focus-visible,
     &:hover {
       color: ${theme.linkHoverColor};
     }
