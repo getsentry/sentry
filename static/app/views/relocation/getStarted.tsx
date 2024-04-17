@@ -128,7 +128,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             </div>
           ) : (
             <TogglePromoCode onClick={() => setShowPromoCode(true)}>
-              Got a promo code? <u>Redeem</u>
+              Got a promo code? <u>Click here to redeem it!</u>
             </TogglePromoCode>
           )}
           <ContinueButton
