@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
+import moment from 'moment';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -506,8 +507,8 @@ export class TokenConverter {
     parsed: this.config.parse
       ? {
           value: parseRelativeDate(value, {unit, sign}),
-          unit: unit?.toLowerCase(),
-          sign: sign?.toLowerCase(),
+          unit: unit === null ? unit : unit?.toLowerCase(),
+          sign: sign === null ? sign : sign?.toLowerCase(),
         }
       : undefined,
     sign,
@@ -523,7 +524,10 @@ export class TokenConverter {
     type: Token.VALUE_DURATION as const,
     value: value,
     parsed: this.config.parse
-      ? {value: parseDuration(value, unit), unit: unit?.toLowerCase()}
+      ? {
+          value: parseDuration(value, unit),
+          unit: unit === null ? unit : unit?.toLowerCase(),
+        }
       : undefined,
     unit,
   });
@@ -557,7 +561,7 @@ export class TokenConverter {
     // units are case insensitive, normalize them in their parsed representation
     // so that we dont have to compare all possible permutations.
     parsed: this.config.parse
-      ? {value: parseSize(value, unit), unit: unit.toLowerCase()}
+      ? {value: parseSize(value, unit), unit: unit === null ? unit : unit?.toLowerCase()}
       : undefined,
     unit,
   });
@@ -576,15 +580,20 @@ export class TokenConverter {
     parsed: this.config.parse ? {value: parseBoolean(value)} : undefined,
   });
 
-  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => ({
-    ...this.defaultTokenFields,
-    type: Token.VALUE_NUMBER as const,
-    value,
-    unit,
-    parsed: this.config.parse
-      ? {value: parseNumber(value, unit), unit: unit.toLowerCase()}
-      : undefined,
-  });
+  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.VALUE_NUMBER as const,
+      value,
+      unit,
+      parsed: this.config.parse
+        ? {
+            value: parseNumber(value, unit),
+            unit: unit === null ? unit : unit?.toLowerCase(),
+          }
+        : undefined,
+    };
+  };
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
@@ -891,7 +900,7 @@ export class TokenConverter {
 }
 
 function parseDate(input: string): Date {
-  const date = new Date(input);
+  const date = moment(input).toDate();
 
   if (isNaN(date.getTime())) {
     throw new Error('Invalid date');
@@ -904,7 +913,8 @@ function parseRelativeDate(
   input: string,
   {sign, unit}: {sign: '-' | '+'; unit: string}
 ): Date {
-  let date = new Date(input).getTime();
+  let date = new Date().getTime();
+  const number = numeric(input);
 
   if (isNaN(date)) {
     throw new Error('Invalid date');
@@ -913,16 +923,16 @@ function parseRelativeDate(
   let offset: number | undefined;
   switch (unit) {
     case 'm':
-      offset = 1000 * 60;
+      offset = number * 1000 * 60;
       break;
     case 'h':
-      offset = 1000 * 60 * 60;
+      offset = number * 1000 * 60 * 60;
       break;
     case 'd':
-      offset = 1000 * 60 * 60 * 24;
+      offset = number * 1000 * 60 * 60 * 24;
       break;
     case 'w':
-      offset = 1000 * 60 * 60 * 24 * 7;
+      offset = number * 1000 * 60 * 60 * 24 * 7;
       break;
     default:
       throw new Error('Invalid unit');
@@ -949,6 +959,7 @@ function parseDuration(input: string, _unit: string): number {
 }
 function parseNumber(input: string, unit: 'k' | 'm' | 'b') {
   const number = numeric(input);
+
   switch (unit) {
     case 'k':
       return number * 1e3;
@@ -956,6 +967,9 @@ function parseNumber(input: string, unit: 'k' | 'm' | 'b') {
       return number * 1e6;
     case 'b':
       return number * 1e9;
+    case null:
+    case undefined:
+      return number;
     default:
       throw new Error('Invalid unit');
   }
