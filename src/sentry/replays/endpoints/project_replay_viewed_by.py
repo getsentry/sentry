@@ -1,4 +1,3 @@
-import time
 import uuid
 from datetime import datetime
 from typing import Any, TypedDict
@@ -130,7 +129,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             project.id,
             replay_id,
             request.user.id,
-            finished_at_ts if finished_at_ts else time.time(),
+            finished_at_ts,
         )
         publish_replay_event(message, is_async=False)
         return Response(status=204)
