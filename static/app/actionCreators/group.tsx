@@ -214,7 +214,7 @@ export function updateNote(
 type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
-  project?: number[] | null;
+  project?: number[] | string[] | null;
   query?: string;
 };
 
