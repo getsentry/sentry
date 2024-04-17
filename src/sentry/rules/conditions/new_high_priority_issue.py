@@ -15,36 +15,45 @@ from sentry.types.group import PriorityLevel
 
 
 class HighPriorityIssueCondition(EventCondition):
-    id = "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
-    label = "Sentry marks an issue as high priority"
+    id = "sentry.rules.conditions.high_priority_issue.NewIssueCondition"
+    label = "Sentry marks a New issue as high priority"
 
     def is_new_high_severity(self, state: EventState, group: Group | None) -> bool:
-        if not group or not state.is_new:
-            return False
-
         try:
+            if not group:
+                return False
+
             severity = float(group.get_event_metadata().get("severity", ""))
         except (KeyError, TypeError, ValueError):
             return False
 
         return severity >= HIGH_SEVERITY_THRESHOLD
 
+    def is_new(self, state: EventState) -> bool:
+        if self.rule.environment_id is None:
+            return state.is_new
+
+        return state.is_new_group_environment
+
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         if not has_high_priority_issue_alerts(self.project):
             return False
 
-        is_escalating = state.has_reappeared or state.has_escalated
+        if not self.rule:
+            return state.is_new
+
+        is_new = self.is_new(state, self.rule.environment_id)
+        if not event.project.flags.has_high_priority_alerts:
+            return is_new
+
         if features.has("projects:issue-priority", self.project):
             if not event.group:
                 return False
 
-            if not state.is_new and not is_escalating:
-                return False
-
-            return event.group.priority == PriorityLevel.HIGH
+            return is_new and event.group.priority == PriorityLevel.HIGH
 
         is_new_high_severity = self.is_new_high_severity(state, event.group)
-        return is_new_high_severity or is_escalating
+        return is_new and is_new_high_severity
 
     def get_activity(
         self, start: datetime, end: datetime, limit: int
@@ -55,7 +64,7 @@ class HighPriorityIssueCondition(EventCondition):
                 project=self.project,
                 datetime__gte=start,
                 datetime__lt=end,
-                type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_ESCALATING.value],
+                type__in=[ActivityType.SET_UNRESOLVED.value],
                 user_id=None,
             )
             .order_by("-datetime")[:limit]

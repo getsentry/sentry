@@ -31,7 +31,8 @@ DEFAULT_RULE_ACTIONS_NEW = [
 DEFAULT_RULE_DATA_NEW = {
     "action_match": "all",
     "conditions": [
-        {"id": "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"}
+        {"id": "sentry.rules.conditions.high_priority_issue.NewIssueCondition"},
+        {"id": "sentry.rules.conditions.high_priority_issue.ExistingIssueCondition"},
     ],
     "actions": DEFAULT_RULE_ACTIONS_NEW,
 }
