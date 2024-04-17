@@ -140,8 +140,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logger.info(
             "auth-index.validate_superuser",
             extra={
-                "challenge": validator.challenge,
-                "response": validator.response,
+                "challenge": getattr(validator, "challenge", None),
+                "response": getattr(validator, "response", None),
                 "user": request.user.id,
                 "raise_exception": not DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
                 "verify_authenticator": verify_authenticator,
