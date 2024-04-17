@@ -1,4 +1,7 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+import httpx
+from httpx import Response
 
 from sentry.llm.usecases import LlmUseCase, complete_prompt
 
@@ -13,13 +16,17 @@ def test_complete_prompt(set_sentry_option):
             "llm.usecases.options",
             {"example": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
         ),
-        patch("sentry.llm.providers.openai.get_openai_client") as mock_get_client,
+        patch("httpx.Client.send") as mock_send,
     ):
-        mock_client = Mock()
-        mock_get_client.return_value = mock_client
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content=""))]
-        mock_client.chat.completions.create.return_value = mock_response
+        # Prepare the mock response object
+        mock_response = Response(
+            status_code=200,
+            json={"choices": [{"message": {"content": ""}}]},
+        )
+        # Create a request instance to associate with the response
+        mock_request = httpx.Request(method="POST", url="https://api.openai.com")
+        mock_response._request = mock_request
+        mock_send.return_value = mock_response
 
         res = complete_prompt(
             usecase=LlmUseCase.EXAMPLE,

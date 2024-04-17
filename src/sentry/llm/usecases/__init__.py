@@ -1,14 +1,17 @@
 from enum import Enum
+from typing import Any
 
 from sentry import options
 from sentry.llm.exceptions import InvalidProviderError, InvalidUsecaseError
 from sentry.llm.providers.base import LlmModelBase
-from sentry.utils.services import LazyServiceWrapper
+from sentry.llm.providers.openai import OpenAIProvider
+from sentry.llm.providers.preview import PreviewLLM
+from sentry.llm.providers.vertex import VertexProvider
 
 SENTRY_LLM_SERVICE_ALIASES = {
-    "vertex": "sentry.llm.providers.vertex.VertexProvider",
-    "openai": "sentry.llm.providers.openai.OpenAIProvider",
-    "preview": "sentry.llm.providers.preview.PreviewLLM",
+    "vertex": VertexProvider,
+    "openai": OpenAIProvider,
+    "preview": PreviewLLM,
 }
 
 
@@ -31,11 +34,12 @@ def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
     if usecase_config["provider"] not in SENTRY_LLM_SERVICE_ALIASES:
         raise InvalidProviderError(f"LLM provider {usecase_config['provider']} not found")
 
-    llm_provider_backends[usecase_config["provider"]] = LazyServiceWrapper(
-        LlmModelBase,
-        SENTRY_LLM_SERVICE_ALIASES[usecase_config["provider"]],
+    provider = SENTRY_LLM_SERVICE_ALIASES[usecase_config["provider"]]
+
+    llm_provider_backends[usecase_config["provider"]] = provider(
         provider_config,
     )
+
     return llm_provider_backends[usecase_config["provider"]]
 
 
@@ -70,7 +74,7 @@ def complete_prompt(
     )
 
 
-def get_usecase_config(usecase: str):
+def get_usecase_config(usecase: str) -> dict[str, Any]:
     usecase_options_all = options.get("llm.usecases.options")
     if not usecase_options_all:
         raise InvalidUsecaseError(
@@ -85,7 +89,7 @@ def get_usecase_config(usecase: str):
     return usecase_options_all[usecase]
 
 
-def get_provider_config(provider: str):
+def get_provider_config(provider: str) -> dict[str, Any]:
     llm_provider_options_all = options.get("llm.provider.options")
     if not llm_provider_options_all:
         raise InvalidProviderError("LLM provider option value not found")
@@ -94,6 +98,6 @@ def get_provider_config(provider: str):
     return llm_provider_options_all[provider]
 
 
-def _validate_temperature(temperature: float):
-    if temperature < 0 or temperature > 1:
+def _validate_temperature(temperature: float) -> None:
+    if not (0 <= temperature <= 1):
         raise ValueError("Temperature must be between 0 and 1")

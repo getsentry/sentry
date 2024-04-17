@@ -56,7 +56,8 @@ class VertexProvider(LlmModelBase):
             logger.info("Request successful.")
         else:
             logger.info(
-                "Request failed with status code %s: %s", response.status_code, response.text
+                "Request failed with status code and response text.",
+                extra={"status_code": response.status_code, "response_text": response.text},
             )
 
         return response.json()["predictions"][0]["content"]

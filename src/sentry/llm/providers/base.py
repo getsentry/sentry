@@ -5,8 +5,8 @@ from sentry.utils.services import Service
 
 
 class LlmModelBase(Service):
-    def __init__(self, **options: Any) -> None:
-        self.provider_config = options
+    def __init__(self, provider_config: dict[str, Any]) -> None:
+        self.provider_config = provider_config
 
     def complete_prompt(
         self,
