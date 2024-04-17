@@ -47,6 +47,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:api-id-or-slug-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:crons-broken-monitor-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
