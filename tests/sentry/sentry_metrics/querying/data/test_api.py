@@ -110,7 +110,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         _, _, unit = unit_family_and_unit
         return unit.convert(value)
 
-    # why do we still pipe this through? seems redundant
     def run_query(
         self,
         mql_queries: Sequence[MQLQuery],
