@@ -106,7 +106,6 @@ describe('HTTPSamplesPanel', () => {
         pathname: '',
         search: '',
         query: {
-          domain: '*.sentry.dev',
           statsPeriod: '10d',
           transaction: '/api/0/users',
           transactionMethod: 'GET',
@@ -192,8 +191,7 @@ describe('HTTPSamplesPanel', () => {
             ],
             per_page: 50,
             project: [],
-            query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+            query: 'span.module:http !has:span.domain transaction:/api/0/users',
             referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
             statsPeriod: '10d',
           },
@@ -217,7 +215,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.module:http !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
             statsPeriod: '10d',
             topEvents: '5',
@@ -234,7 +232,7 @@ describe('HTTPSamplesPanel', () => {
           query: expect.objectContaining({
             dataset: 'spansIndexed',
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.module:http transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308] ( !has:span.domain OR span.domain:[""] )',
             project: [],
             field: [
               'project',
@@ -366,7 +364,7 @@ describe('HTTPSamplesPanel', () => {
           method: 'GET',
           query: expect.objectContaining({
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.module:http transaction:/api/0/users span.domain:"\\*.sentry.dev"',
             project: [],
             additionalFields: [
               'trace',
