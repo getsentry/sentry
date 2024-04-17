@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 
@@ -111,7 +112,9 @@ def handle_ignored(
             if ignore_count and not ignore_window:
                 state["times_seen"] = group.times_seen
             if ignore_user_count and not ignore_user_window:
-                state["users_seen"] = group.count_users_seen()
+                state["users_seen"] = group.count_users_seen(
+                    referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED.value
+                )
             GroupSnooze.objects.create_or_update(
                 group=group,
                 values={
