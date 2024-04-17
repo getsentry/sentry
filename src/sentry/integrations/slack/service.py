@@ -11,17 +11,17 @@ from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.rule import Rule
-from sentry.notifications.notifications.activity import (
-    ActivityNotification,
-    AssignedActivityNotification,
-    EscalatingActivityNotification,
-    RegressionActivityNotification,
-    ReleaseActivityNotification,
-    ResolvedActivityNotification,
-    ResolvedInReleaseActivityNotification,
-    UnassignedActivityNotification,
-)
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_release import (
+    ResolvedInReleaseActivityNotification,
+)
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
