@@ -39,7 +39,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
-            node = rule_cls(project)
+            node = rule_cls(project=project)
             # skip over conditions if they are not in the migrated set for a project with alert-filters
             if project_has_filters and node.id in MIGRATED_CONDITIONS:
                 continue

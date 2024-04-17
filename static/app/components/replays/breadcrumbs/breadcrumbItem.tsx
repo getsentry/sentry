@@ -5,6 +5,7 @@ import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -74,63 +75,66 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-      <CrumbDetails>
-        <Flex column>
-          <TitleContainer>
-            {<Title>{title}</Title>}
-            {onClick ? (
-              <TimestampButton
-                startTimestampMs={startTimestampMs}
-                timestampMs={frame.timestampMs}
+
+      <ErrorBoundary mini>
+        <CrumbDetails>
+          <Flex column>
+            <TitleContainer>
+              {<Title>{title}</Title>}
+              {onClick ? (
+                <TimestampButton
+                  startTimestampMs={startTimestampMs}
+                  timestampMs={frame.timestampMs}
+                />
+              ) : null}
+            </TitleContainer>
+
+            {typeof description === 'string' ||
+            (description !== undefined && isValidElement(description)) ? (
+              <Description title={description} showOnlyOnOverflow isHoverable>
+                {description}
+              </Description>
+            ) : (
+              <InspectorWrapper>
+                <ObjectInspector
+                  data={description}
+                  expandPaths={expandPaths}
+                  onExpand={onInspectorExpanded}
+                  theme={{
+                    TREENODE_FONT_SIZE: '0.7rem',
+                    ARROW_FONT_SIZE: '0.5rem',
+                  }}
+                />
+              </InspectorWrapper>
+            )}
+          </Flex>
+
+          {'data' in frame && frame.data && 'mutations' in frame.data ? (
+            <div>
+              <OpenReplayComparisonButton
+                replay={replay}
+                leftTimestamp={frame.offsetMs}
+                rightTimestamp={
+                  (frame.data.mutations.next?.timestamp ?? 0) -
+                  (replay?.getReplay().started_at.getTime() ?? 0)
+                }
               />
-            ) : null}
-          </TitleContainer>
+            </div>
+          ) : null}
 
-          {typeof description === 'string' ||
-          (description !== undefined && isValidElement(description)) ? (
-            <Description title={description} showOnlyOnOverflow isHoverable>
-              {description}
-            </Description>
-          ) : (
-            <InspectorWrapper>
-              <ObjectInspector
-                data={description}
-                expandPaths={expandPaths}
-                onExpand={onInspectorExpanded}
-                theme={{
-                  TREENODE_FONT_SIZE: '0.7rem',
-                  ARROW_FONT_SIZE: '0.5rem',
-                }}
-              />
-            </InspectorWrapper>
-          )}
-        </Flex>
+          {extraction?.html ? (
+            <CodeContainer>
+              <CodeSnippet language="html" hideCopyButton>
+                {beautify.html(extraction?.html, {indent_size: 2})}
+              </CodeSnippet>
+            </CodeContainer>
+          ) : null}
 
-        {'data' in frame && frame.data && 'mutations' in frame.data ? (
-          <div>
-            <OpenReplayComparisonButton
-              replay={replay}
-              leftTimestamp={frame.offsetMs}
-              rightTimestamp={
-                (frame.data.mutations.next?.timestamp ?? 0) -
-                (replay?.getReplay().started_at.getTime() ?? 0)
-              }
-            />
-          </div>
-        ) : null}
-
-        {extraction?.html ? (
-          <CodeContainer>
-            <CodeSnippet language="html" hideCopyButton>
-              {beautify.html(extraction?.html, {indent_size: 2})}
-            </CodeSnippet>
-          </CodeContainer>
-        ) : null}
-
-        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-          <CrumbErrorIssue frame={frame} />
-        ) : null}
-      </CrumbDetails>
+          {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+            <CrumbErrorIssue frame={frame} />
+          ) : null}
+        </CrumbDetails>
+      </ErrorBoundary>
     </CrumbItem>
   );
 }
