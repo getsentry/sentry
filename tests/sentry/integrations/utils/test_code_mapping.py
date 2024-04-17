@@ -48,6 +48,7 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "README",  # no extension
     "ssl.py",
     # XXX: The following will need to be supported
+    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
     "initialization.dart",
     "backburner.js",
 ]
