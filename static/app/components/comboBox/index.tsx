@@ -35,7 +35,10 @@ import type {
 } from './types';
 
 interface ComboBoxProps<Value extends string>
-  extends ComboBoxStateOptions<ComboBoxOptionOrSection<Value>> {
+  extends Omit<
+    ComboBoxStateOptions<ComboBoxOptionOrSection<Value>>,
+    'allowsCustomValue'
+  > {
   'aria-label': string;
   className?: string;
   disabled?: boolean;
