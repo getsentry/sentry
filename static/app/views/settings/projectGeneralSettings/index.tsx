@@ -302,24 +302,23 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       },
     };
 
-    const detailsFields = [fields.name, fields.platform];
-    if (organization.features.includes('event-tags-tree-ui')) {
-      detailsFields.push(fields.highlightTags);
-      detailsFields.push(fields.highlightContext);
-    }
-
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
-
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={detailsFields}
+            fields={[fields.name, fields.platform]}
           />
-
+          {organization.features.includes('event-tags-tree-ui') && (
+            <JsonForm
+              {...jsonFormProps}
+              title={t('Highlights')}
+              fields={[fields.highlightTags, fields.highlightContext]}
+            />
+          )}
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}

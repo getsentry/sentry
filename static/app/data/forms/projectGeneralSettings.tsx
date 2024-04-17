@@ -132,14 +132,12 @@ export const fields: Record<string, Field> = {
       return schema;
     },
     validate: ({id, form}) => {
-      if (!form.schema) {
-        return [];
-      }
-
-      try {
-        JSON.parse(form.schema);
-      } catch (e) {
-        return [[id, 'Invalid JSON']];
+      if (form.highlightContext) {
+        try {
+          JSON.parse(form.highlightContext);
+        } catch (e) {
+          return [[id, 'Invalid JSON']];
+        }
       }
       return [];
     },
