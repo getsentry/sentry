@@ -237,7 +237,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       monitorType: hasActivatedAlerts
         ? rule.monitorType || MonitorType.CONTINUOUS
         : undefined,
-      activationCondition: rule.activationCondition || undefined,
+      activationCondition: rule.activationCondition,
     };
   }
 
