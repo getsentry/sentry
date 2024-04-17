@@ -346,23 +346,17 @@ rel_date_format
 
 duration_format
   = value:numeric
-    unit:(duration_unit)
+    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
     &end_value {
       return tc.tokenValueDuration(value, unit);
     }
 
-duration_unit = "ms" / "s" / "min" / "m" / "hr" / "h" / "day" / "d" / "wk" / "w"
-
 size_format
   = value:numeric
-    unit:(size_unit)
+    unit:("bit"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib"/"bytes"/"nb"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb" / "zb"/"yb")
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
-
-size_unit = bits / bytes
-bits = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
-bytes = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
 
 percentage_format
   = value:numeric "%" {
