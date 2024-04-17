@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -55,9 +56,14 @@ function Gravatar({
       .then(hash => {
         setSha256(hash);
       })
-      .catch(() => {
+      .catch((err: any) => {
         // If there is an error with the hash, we should not render the gravatar
         setSha256(null);
+
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['gravatar-hash-error']);
+          Sentry.captureException(err);
+        });
       });
   }, [gravatarId]);
 
