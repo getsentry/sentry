@@ -17,7 +17,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -25,7 +29,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -33,7 +41,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502,
+                  "unit": null
+                }
               }
             }
           ]
@@ -60,7 +72,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -68,7 +84,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -76,7 +96,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502,
+                  "unit": null
+                }
               }
             }
           ]
@@ -103,7 +127,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -111,7 +139,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -119,7 +151,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502,
+                  "unit": null
+                }
               }
             }
           ]
@@ -146,7 +182,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -154,7 +194,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -162,7 +206,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502,
+                  "unit": null
+                }
               }
             }
           ]
@@ -183,7 +231,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "100",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 100,
+                  "unit": null
+                }
               }
             }
           ]
@@ -211,7 +263,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -219,7 +275,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -227,7 +287,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502,
+                  "unit": null
+                }
               }
             }
           ]
@@ -283,7 +347,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -291,7 +359,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             },
             {
@@ -322,7 +394,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500,
+                  "unit": null
+                }
               }
             },
             {
@@ -330,7 +406,11 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501,
+                  "unit": null
+                }
               }
             }
           ]
