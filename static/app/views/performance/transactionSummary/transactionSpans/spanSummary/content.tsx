@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';

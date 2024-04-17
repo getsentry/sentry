@@ -5,7 +5,11 @@ import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {
+  AVG_COLOR,
+  THROUGHPUT_COLOR,
+  TXN_THROUGHPUT_COLOR,
+} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
@@ -62,6 +66,7 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
             stacked
+            error={avgDurationError}
             chartColors={[AVG_COLOR]}
             // tooltipFormatterOptions={{
             //   valueFormatter: value => formatDuration({duration: value, DurationUnit.MINUTE}),
@@ -81,7 +86,28 @@ function SpanSummaryCharts() {
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             stacked
+            error={throughputError}
             chartColors={[THROUGHPUT_COLOR]}
+            tooltipFormatterOptions={{
+              valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
+            }}
+          />
+        </ChartPanel>
+      </Block>
+
+      <Block>
+        <ChartPanel title={t('Transaction Throughput')}>
+          <Chart
+            height={160}
+            data={[throughputData?.[`spm()`]]}
+            loading={isThroughputDataLoading}
+            type={ChartType.LINE}
+            definedAxisTicks={4}
+            aggregateOutputFormat="rate"
+            rateUnit={RateUnit.PER_MINUTE}
+            stacked
+            error={throughputError}
+            chartColors={[TXN_THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
             }}
