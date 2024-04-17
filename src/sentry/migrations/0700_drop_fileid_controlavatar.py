@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0698_remove_file_id_from_control_avatars"),
+        ("sentry", "0699_update_monitor_owner_team_id_cascsade"),
     ]
 
     operations = [
