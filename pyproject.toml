@@ -216,7 +216,6 @@ module = [
     "sentry.api.serializers.models.environment",
     "sentry.api.serializers.models.event",
     "sentry.api.serializers.models.external_actor",
-    "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
     "sentry.api.serializers.models.incident",
     "sentry.api.serializers.models.integration",

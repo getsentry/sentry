@@ -253,8 +253,8 @@ def get_oldest_or_latest_event_for_environments(
 
 
 def get_recommended_event_for_environments(
-    environments: Sequence[Environment],
     group: Group,
+    environments: Sequence[Environment] | None = None,
     conditions: Sequence[Condition] | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
@@ -263,7 +263,7 @@ def get_recommended_event_for_environments(
         dataset = Dataset.IssuePlatform
 
     all_conditions = []
-    if len(environments) > 0:
+    if environments is not None and len(environments) > 0:
         all_conditions.append(
             Condition(Column("environment"), Op.IN, [e.name for e in environments])
         )
@@ -420,7 +420,7 @@ class GroupManager(BaseManager["Group"]):
         status: int,
         substatus: int | None,
         activity_type: ActivityType,
-        activity_data: Mapping[str, Any] | None = None,
+        activity_data: Mapping[str, object] | None = None,
         send_activity_notification: bool = True,
         from_substatus: int | None = None,
     ) -> None:
@@ -564,7 +564,9 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, object], dict[str, object]] = GzippedDictField(
+        blank=True, null=True
+    )
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)
@@ -793,9 +795,9 @@ class Group(Model):
         conditions: Sequence[Condition] | None = None,
     ) -> GroupEvent | None:
         maybe_event = get_recommended_event_for_environments(
-            environments,
-            self,
-            conditions,
+            group=self,
+            environments=environments,
+            conditions=conditions,
         )
         return (
             maybe_event
@@ -821,7 +823,7 @@ class Group(Model):
             use_cache=use_cache,
         )
 
-    def get_event_type(self):
+    def get_event_type(self) -> str:
         """
         Return the type of this issue.
 
@@ -829,7 +831,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> dict[str, Any]:
         """
         Return the metadata of this issue.
 
