@@ -26,7 +26,7 @@ from sentry.sentry_metrics.querying.units import (
     get_unit_family_and_unit,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import block_metric
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -1130,6 +1130,46 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
         assert data[1][0]["totals"] == self.to_reference_unit(10.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_one_tag_blocked_for_one_project(self):
+        mri = "d:custom/page_size@byte"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        # Blocking a tag should not affect the querying, since we do not want to filter out the tag.
+        block_tags_of_metric(mri, {"transaction"}, [project_1])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {"transaction": "/hello"},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("sum", mri)
+
+        results = self.run_query(
+            mql_queries=[MQLQuery(query_1)],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, self.to_reference_unit(25.0, "byte"), None]
+        assert data[0][0]["totals"] == self.to_reference_unit(25.0, "byte")
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_invalid_syntax(
