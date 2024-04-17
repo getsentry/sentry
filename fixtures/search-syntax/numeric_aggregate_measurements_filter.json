@@ -30,7 +30,6 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
           "unit": null
         }
       },
@@ -68,7 +67,6 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
           "unit": null
         }
       },
@@ -106,7 +104,6 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
           "unit": null
         }
       },
@@ -141,7 +138,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "<",
-        "value": {"type": "valueNumber", "value": "3", "rawValue": 3000, "unit": "k"}
+        "value": {"type": "valueNumber", "value": "3", "unit": "k"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -174,7 +171,7 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueNumber", "value": "2", "rawValue": 2000000, "unit": "m"}
+        "value": {"type": "valueNumber", "value": "2", "unit": "m"}
       },
       {"type": "spaces", "value": ""}
     ]
