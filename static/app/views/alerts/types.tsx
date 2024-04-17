@@ -92,9 +92,8 @@ interface IssueAlert extends IssueAlertRule {
   latestIncident?: Incident | null;
 }
 
-interface MetricAlert extends MetricRule {
+export interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
-  latestIncident?: Incident | null;
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
