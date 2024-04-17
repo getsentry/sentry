@@ -534,6 +534,7 @@ export class TokenConverter {
 
   tokenValueSize = (
     value: string,
+    // warning: size units are case insensitive, this type is incomplete
     unit:
       | 'bit'
       | 'nb'
@@ -580,7 +581,7 @@ export class TokenConverter {
     parsed: this.config.parse ? {value: parseBoolean(value)} : undefined,
   });
 
-  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => {
+  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b' | 'K' | 'M' | 'B') => {
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_NUMBER as const,
@@ -957,14 +958,17 @@ function numeric(input: string) {
 function parseDuration(input: string, _unit: string): number {
   return numeric(input);
 }
-function parseNumber(input: string, unit: 'k' | 'm' | 'b') {
+function parseNumber(input: string, unit: 'k' | 'm' | 'b' | 'K' | 'M' | 'B') {
   const number = numeric(input);
 
   switch (unit) {
+    case 'K':
     case 'k':
       return number * 1e3;
+    case 'M':
     case 'm':
       return number * 1e6;
+    case 'B':
     case 'b':
       return number * 1e9;
     case null:
