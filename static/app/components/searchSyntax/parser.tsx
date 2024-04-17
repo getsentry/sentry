@@ -522,7 +522,9 @@ export class TokenConverter {
 
     type: Token.VALUE_DURATION as const,
     value: value,
-    parsed: {value: parseDuration(value, unit), unit: unit?.toLowerCase()},
+    parsed: this.config.parse
+      ? {value: parseDuration(value, unit), unit: unit?.toLowerCase()}
+      : undefined,
     unit,
   });
 
@@ -554,7 +556,9 @@ export class TokenConverter {
     value: value,
     // units are case insensitive, normalize them in their parsed representation
     // so that we dont have to compare all possible permutations.
-    parsed: {value: parseSize(value, unit), unit: unit.toLowerCase()},
+    parsed: this.config.parse
+      ? {value: parseSize(value, unit), unit: unit.toLowerCase()}
+      : undefined,
     unit,
   });
 
@@ -562,14 +566,14 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
     value: value,
-    parsed: {value: parsePercentage(value)},
+    parsed: this.config.parse ? {value: parsePercentage(value)} : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
     value: value,
-    parsed: {value: parseBoolean(value)},
+    parsed: this.config.parse ? {value: parseBoolean(value)} : undefined,
   });
 
   tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b' | 'K' | 'M' | 'B') => ({
@@ -577,7 +581,9 @@ export class TokenConverter {
     type: Token.VALUE_NUMBER as const,
     value,
     unit,
-    parsed: {value: parseNumber(value, unit), unit: unit.toLowerCase()},
+    parsed: this.config.parse
+      ? {value: parseNumber(value, unit), unit: unit.toLowerCase()}
+      : undefined,
   });
 
   tokenValueNumberList = (
