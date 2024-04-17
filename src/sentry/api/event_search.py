@@ -169,11 +169,12 @@ tz_format   = ~r"[+-]\d{2}:\d{2}"
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
-size_format          = numeric (bits/bytes) &end_value
+size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
 
-bits = ("bit" / "kib" / "mib" / "gib" / "tib" / "pib" / "eib" / "zib" / "yib")i
-bytes = ("bytes" / "nb" / "kb" / "mb" / "gb" / "tb" / "pb" / "eb" / "zb" / "yb")i
+size_unit = bits / bytes
+bits = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
+bytes = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
 
 
 # NOTE: the order in which these operators are listed matters because for
