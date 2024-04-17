@@ -274,7 +274,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
 
 @pytest.mark.parametrize(
-    ["data", "expected"],
+    ["data", "traces_range", "expected"],
     [
         pytest.param(
             [
@@ -286,6 +286,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -316,6 +317,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -365,6 +367,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -407,6 +410,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -449,6 +453,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -479,6 +484,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -509,6 +515,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -558,6 +565,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 60,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -619,6 +627,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -674,6 +683,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -729,6 +739,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 60,
                 },
             ],
+            {"a" * 32: (0, 60)},
             {
                 "a"
                 * 32: [
@@ -784,6 +795,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 40,
                 },
             ],
+            {"a" * 32: (0, 50)},
             {
                 "a"
                 * 32: [
@@ -809,8 +821,62 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="three transactions same project with another project between",
         ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+            ],
+            {"a" * 32: (0, 50)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="clips intervals to be within trace",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+            ],
+            {"a" * 32: (0, 100)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                    {
+                        "project": None,
+                        "start": 50,
+                        "end": 100,
+                        "kind": "unknown",
+                    },
+                ],
+            },
+            id="adds unknown interval at end",
+        ),
     ],
 )
-def test_process_breakdowns(data, expected):
-    result = process_breakdowns(data)
+def test_process_breakdowns(data, traces_range, expected):
+    result = process_breakdowns(data, traces_range)
     assert result == expected

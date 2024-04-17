@@ -21,6 +21,7 @@ from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils.numbers import clip
 from sentry.utils.snuba import bulk_snql_query
 
 
@@ -198,7 +199,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 traces_meta_results = traces_meta_query.process_results(results[1])
 
             try:
-                breakdowns = process_breakdowns(breakdowns_results["data"])
+                traces_range = {
+                    row["trace"]: (row["first_seen()"], row["last_seen()"])
+                    for row in traces_meta_results["data"]
+                }
+                breakdowns = process_breakdowns(
+                    breakdowns_results["data"],
+                    traces_range,
+                )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 breakdowns = defaultdict(list)
@@ -236,11 +244,17 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def process_breakdowns(data):
+def process_breakdowns(data, traces_range):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
     def breakdown_push(trace, interval):
+        trace_range = traces_range.get(trace)
+        if trace_range:
+            left, right = trace_range
+            interval["start"] = clip(interval["start"], left, right)
+            interval["end"] = clip(interval["end"], left, right)
+
         breakdown = breakdowns[trace]
 
         if breakdown:
@@ -373,5 +387,21 @@ def process_breakdowns(data):
 
     for trace in stacks:
         stack_clear(trace, insert=True)
+
+        # Check to see if there is still a gap before the trace ends and fill it
+        # with an unknown interval.
+        breakdown = breakdowns[trace]
+        trace_range = traces_range.get(trace)
+        if breakdown and trace_range:
+            left, right = trace_range
+            if breakdown[-1]["end"] < right:
+                breakdown.append(
+                    {
+                        "project": None,
+                        "start": breakdown[-1]["end"],
+                        "end": right,
+                        "kind": "unknown",
+                    }
+                )
 
     return breakdowns
