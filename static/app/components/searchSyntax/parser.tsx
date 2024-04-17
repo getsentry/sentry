@@ -492,7 +492,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
     value: value,
-    parsedValue: parseDate(value),
+    parsed: this.config.parse ? {value: parseDate(value)} : undefined,
   });
 
   tokenValueRelativeDate = (
@@ -503,7 +503,13 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
     value: value,
-    parsedValue: parseRelativeDate(value, {unit, sign}),
+    parsed: this.config.parse
+      ? {
+          value: parseRelativeDate(value, {unit, sign}),
+          unit: unit?.toLowerCase(),
+          sign: sign?.toLowerCase(),
+        }
+      : undefined,
     sign,
     unit,
   });
@@ -516,7 +522,7 @@ export class TokenConverter {
 
     type: Token.VALUE_DURATION as const,
     value: value,
-    parsedValue: parseDuration(value, unit),
+    parsed: {value: parseDuration(value, unit), unit: unit?.toLowerCase()},
     unit,
   });
 
@@ -546,7 +552,9 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_SIZE as const,
     value: value,
-    parsedValue: parseSize(value, unit),
+    // units are case insensitive, normalize them in their parsed representation
+    // so that we dont have to compare all possible permutations.
+    parsed: {value: parseSize(value, unit), unit: unit.toLowerCase()},
     unit,
   });
 
@@ -554,14 +562,14 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
     value: value,
-    parsedValue: parsePercentage(value),
+    parsed: {value: parsePercentage(value)},
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
     value: value,
-    parsedValue: parseBoolean(value),
+    parsed: {value: parseBoolean(value)},
   });
 
   tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => ({
@@ -569,7 +577,7 @@ export class TokenConverter {
     type: Token.VALUE_NUMBER as const,
     value,
     unit,
-    parsedValue: parseNumber(value, unit),
+    parsed: {value: parseNumber(value, unit), unit: unit.toLowerCase()},
   });
 
   tokenValueNumberList = (
@@ -918,7 +926,7 @@ function parseRelativeDate(
     throw new Error('Unreachable');
   }
 
-  date = sign === '+' ? date + offset : date - offset;
+  date = sign === '-' ? date - offset : date + offset;
   return new Date(date);
 }
 
@@ -1043,9 +1051,14 @@ export type SearchConfig = {
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
+   * Determines if user input values should be parsed
+   */
+  parse?: boolean;
+  /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   supportedTags?: TagCollection;
+
   /**
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
