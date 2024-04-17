@@ -2,13 +2,13 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -123,7 +123,7 @@ export function SpanBreakdownSliceRenderer({
           <div>
             <div>{sliceName}</div>
             <div>
-              <Duration seconds={sliceDuration / 1000} fixedDigits={2} abbreviation />
+              <PerformanceDuration milliseconds={sliceDuration} abbreviation />
             </div>
           </div>
         }
