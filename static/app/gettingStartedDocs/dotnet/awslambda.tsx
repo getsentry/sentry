@@ -46,10 +46,14 @@ public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFu
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;
               // Required in Serverless environments
-              o.FlushOnCompletedRequest = true;
+              o.FlushOnCompletedRequest = true;${
+                params.isPerformanceSelected
+                  ? `
               // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-                // We recommend adjusting this value in production.
-              o.TracesSampleRate = 1.0;
+              // We recommend adjusting this value in production.
+              o.TracesSampleRate = 1.0;`
+                  : ''
+              }
             })
             .UseStartup<Startup>();
     }
@@ -93,11 +97,13 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          description: tct(
+            'You can combine this integration with a logging library like [strong:log4net, NLog, or Serilog] to include both request data as well as your logs as breadcrumbs. The logging ingrations also capture events when an error is logged.',
+            {strong: <strong />}
+          ),
+        },
       ],
-      additionalInfo: tct(
-        'You can combine this integration with a logging library like [strong:log4net, NLog, or Serilog] to include both request data as well as your logs as breadcrumbs. The logging ingrations also capture events when an error is logged.',
-        {strong: <strong />}
-      ),
     },
   ],
   configure: params => [

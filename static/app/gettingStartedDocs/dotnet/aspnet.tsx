@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -57,11 +55,15 @@ public class MvcApplication : HttpApplication
             o.AddAspNet();
             o.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            o.Debug = true;
+            o.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100%
             // of transactions for performance monitoring.
             // We recommend adjusting this value in production
-            o.TracesSampleRate = 1.0;
+            o.TracesSampleRate = 1.0;`
+                : ''
+            }
             // If you are using EF (and installed the NuGet package):
             o.AddEntityFramework();
         });
@@ -109,14 +111,6 @@ const onboarding: OnboardingConfig = {
           code: getInstallSnippetEntityFramework(params),
         },
       ],
-      additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
-          {tct(
-            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-            {strong: <strong />}
-          )}
-        </AlertWithoutMarginBottom>
-      ),
     },
   ],
   configure: params => [
@@ -231,7 +225,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;
