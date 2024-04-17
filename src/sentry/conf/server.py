@@ -1875,8 +1875,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trace-table": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable 'Viewed By' state for replay items
-    "organizations:session-replay-viewed-by-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
