@@ -1240,8 +1240,6 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
-    const hasUpdatedEmptyState =
-      organization.features.includes('issue-stream-empty-state') && groupIds.length === 0;
 
     return (
       <Layout.Page>
@@ -1263,7 +1261,7 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              {!hasUpdatedEmptyState && (
+              {groupIds.length !== 0 && (
                 <IssueListActions
                   selection={selection}
                   query={query}
