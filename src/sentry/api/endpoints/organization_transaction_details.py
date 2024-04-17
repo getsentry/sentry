@@ -209,6 +209,7 @@ def _query_spans_in_range(organization, project, transaction_id, start, end):
             "profile_id",
             "parent_span_id",
             "segment_id",
+            "is_segment",
             "segment_name",
             "precise.start_ts",
             "precise.finish_ts",
@@ -230,7 +231,6 @@ def _query_spans_in_range(organization, project, transaction_id, start, end):
     # These columns are incorrectly translated by the query builder - add
     # them directly as a workaround
     query.columns += [
-        Column("is_segment"),
         Column("tags.key"),
         Column("tags.value"),
         Column("sentry_tags.key"),
