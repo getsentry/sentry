@@ -67,10 +67,6 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-<<<<<<< HEAD
-=======
-
->>>>>>> 2f82625754 (ref(search): remove rawValue and value parsing from grammar)
           "unit": null
         }
       },
