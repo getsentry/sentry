@@ -2,7 +2,7 @@ import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

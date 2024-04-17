@@ -1,6 +1,6 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';

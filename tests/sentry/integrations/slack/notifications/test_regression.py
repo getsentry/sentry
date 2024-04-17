@@ -5,7 +5,6 @@ import responses
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -27,7 +26,6 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_regression_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -48,7 +46,6 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_regression_with_release_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue regresses
@@ -77,7 +74,6 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:slack-block-kit")
     def test_regression_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
@@ -104,7 +100,6 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:slack-block-kit")
     def test_regression_generic_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type regresses
