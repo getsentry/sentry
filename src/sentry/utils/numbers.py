@@ -94,3 +94,9 @@ def format_grouped_length(length: int, steps: list[int] | None = None) -> str:
 
 def validate_bigint(value):
     return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
+
+
+def clip(val: int, left: int, right: int) -> int:
+    val = max(left, val)
+    val = min(val, right)
+    return val

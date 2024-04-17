@@ -24,6 +24,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     parse_mri,
 )
 from sentry.snuba.referrer import Referrer
+from sentry.utils.numbers import clip
 
 
 @dataclass(frozen=True)
@@ -963,7 +964,7 @@ def pick_samples(
     # ensure there is at least 1 element on both sides
     # of the middle element we just picked
     # i.e. should not pick index 0 and len(keys) - 1
-    idx_m = _clip(idx_m, 1, len(keys) - 2)
+    idx_m = clip(idx_m, 1, len(keys) - 2)
 
     # second element is near the average of first
     # split, but must not be the split element
@@ -971,7 +972,7 @@ def pick_samples(
     idx_l = bisect(keys, avg_l, hi=idx_m - 1)
     idx_l += 1  # push it closer to the middle
     # ensure this is not the same as middle element
-    idx_l = _clip(idx_l, 0, idx_m - 1)
+    idx_l = clip(idx_l, 0, idx_m - 1)
 
     # third element is near the average of second
     # split, but must not be the split element
@@ -979,12 +980,6 @@ def pick_samples(
     idx_r = bisect(keys, avg_r, lo=idx_m + 1)
     idx_r -= 1  # push it closer to the middle
     # ensure this is not the same as middle element
-    idx_r = _clip(idx_r, idx_m + 1, len(keys) - 1)
+    idx_r = clip(idx_r, idx_m + 1, len(keys) - 1)
 
     return [samples[idx_m], samples[idx_l], samples[idx_r]]
-
-
-def _clip(val: int, left: int, right: int) -> int:
-    val = max(left, val)
-    val = min(val, right)
-    return val
