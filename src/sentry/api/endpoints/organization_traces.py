@@ -154,6 +154,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     # limit the number of segments we fetch per trace so a single
                     # large trace does not result in the rest being blank
                     limitby=("trace", int(10_000 / len(spans_by_trace))),
+                    limit=10_000,
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "first_seen", "last_seen"],
                         transform_alias_to_input_format=True,
