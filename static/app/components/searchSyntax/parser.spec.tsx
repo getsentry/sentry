@@ -44,6 +44,8 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       delete token.text;
       // @ts-expect-error
       delete token.config;
+      // @ts-expect-error
+      delete token.parsedValue;
 
       // token warnings only exist in the FE atm
       // @ts-expect-error
