@@ -148,6 +148,7 @@ export function OverviewRow({
 
   return (
     <TimelineRow
+      as={singleMonitorView ? 'div' : 'li'}
       key={monitor.id}
       isDisabled={isDisabled}
       singleMonitorView={singleMonitorView}
@@ -274,7 +275,7 @@ interface TimelineRowProps {
   singleMonitorView?: boolean;
 }
 
-const TimelineRow = styled('div')<TimelineRowProps>`
+const TimelineRow = styled('li')<TimelineRowProps>`
   grid-column: 1/-1;
 
   display: grid;
