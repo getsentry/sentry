@@ -283,10 +283,9 @@ search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? numeric) unit:numeric_unit? &(end_value / comma / closed_bracket) {
+  = value:("-"? numeric) unit:[kmb]? &(end_value / comma / closed_bracket) {
       return tc.tokenValueNumber(value.join(''), unit);
     }
-numeric_unit = ("k"i / "m"i / "b"i)
 
 boolean_value
   = value:("true"i / "1" / "false"i / "0") &end_value {
@@ -353,7 +352,7 @@ duration_format
 
 size_format
   = value:numeric
-    unit:("bit"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib"/"bytes"/"nb"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb" / "zb"/"yb")
+    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
