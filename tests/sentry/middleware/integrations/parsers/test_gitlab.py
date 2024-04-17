@@ -14,7 +14,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -137,7 +136,6 @@ class GitlabRequestParserTest(TestCase):
 
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({"hybridcloud.webhookpayload.use_mailbox_buckets": True})
     @responses.activate
     def test_routing_webhook_with_mailbox_buckets(self):
         integration = self.get_integration()
@@ -149,9 +147,9 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         with mock.patch(
-            "sentry.middleware.integrations.parsers.gitlab.ratelimiter.is_limited"
+            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited_with_value"
         ) as mock_is_limited:
-            mock_is_limited.return_value = True
+            mock_is_limited.return_value = (True, 3500, 360)
             parser = GitlabRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
 

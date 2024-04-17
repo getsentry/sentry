@@ -484,8 +484,7 @@ export class VirtualizedViewManager {
 
       // Holding shift key allows for horizontal scrolling
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
-
-      if (Math.abs(distance) !== 0) {
+      if (event.shiftKey || Math.abs(event.deltaX) !== 0) {
         event.preventDefault();
       }
 
@@ -1018,25 +1017,64 @@ export class VirtualizedViewManager {
     return (timestamp - this.to_origin - this.trace_view.x) / this.span_to_px[0];
   }
 
-  computeSpanTextPlacement(span_space: [number, number], text: string): [number, number] {
-    const TEXT_PADDING = 2;
-    const anchor_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
-
+  computeSpanTextPlacement(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    span_space: [number, number],
+    text: string
+  ): [number, number] {
+    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.5;
     const width = this.text_measurer.measure(text);
+
+    const has_profiles = node && node.profiles.length > 0;
+    const has_error_icons =
+      node &&
+      (node.profiles.length > 0 ||
+        node.errors.size > 0 ||
+        node.performance_issues.size > 0);
+    const has_icons = has_profiles || has_error_icons;
+
+    const node_width = span_space[1] / this.span_to_px[0];
+    const TEXT_PADDING = 2;
+    // This is inaccurate in the case of left anchored text. In order to determine a true overlap, we would need to compute
+    // the distance between the min timestamp of an icon and beginning of the span. Once we determine the distance, we can compute
+    // the width and see if there is an actual overlap. Since this is a rare case which only happens in the case where we anchor the text
+    // to the left (20% of the time) and the node may have many errors, this could be computationally expensive to do on every frame.
+    // We'll live with the inaccuracy for now as it is purely visual and just make sure to handle a single error case as it will be easy
+    // to determine if there is an overlap.
+    const TEXT_PADDING_LEFT = text_left && has_icons ? 10 : TEXT_PADDING;
+
+    const TEXT_PADDING_RIGHT =
+      !text_left && has_icons
+        ? node_width < 10
+          ? // If the node is too small, we need to make sure the text is anchored to the right edge of the icon.
+            // We take the distance from the right edge of the node to the right edge of the icon and subtract it from
+            // the base width (10) and the base padding when (expanded) to get the correct padding. If we take only 10px
+            // as our padding, the text can be anchored directly to the right edge of our icon - we want to preserve
+            // a min padding of 2px.
+            12 - node_width
+          : TEXT_PADDING
+        : TEXT_PADDING;
 
     // precompute all anchor points aot, so we make the control flow more readable.
     // this wastes some cycles, but it's not a big deal as computers are fast when
     // it comes to simple arithmetic.
+    /// |---| text
     const right_outside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING;
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
+      TEXT_PADDING_RIGHT;
+    /// text |---|
+    const left_outside =
+      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING_LEFT - width;
+
+    // |   text|
     const right_inside =
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
       width -
       TEXT_PADDING;
-
-    const left_outside =
-      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
+    // |text   |
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+
+    // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.computeTransformXFromTimestamp(
         this.to_origin + this.trace_view.left + this.trace_view.width
@@ -1058,22 +1096,22 @@ export class VirtualizedViewManager {
 
     // Span is completely outside of the view on the left side
     if (span_right < this.trace_view.x) {
-      return anchor_left ? [1, right_inside] : [0, right_outside];
+      return text_left ? [1, right_inside] : [0, right_outside];
     }
 
     // Span is completely outside of the view on the right side
     if (span_left > this.trace_view.right) {
-      return anchor_left ? [0, left_outside] : [1, left_inside];
+      return text_left ? [0, left_outside] : [1, left_inside];
     }
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return anchor_left ? [1, window_left] : [1, window_right];
+      return text_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
 
-    if (anchor_left) {
+    if (text_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
         return [0, left_outside];
@@ -1098,7 +1136,7 @@ export class VirtualizedViewManager {
       if (
         // If the right edge of the span is within 10% to the right edge of the space,
         // try and fit the text inside the span if possible. In case the span is too short
-        // to fit the text, anchor_left case above will take care of anchoring it to the left
+        // to fit the text, text_left case above will take care of anchoring it to the left
         // of the view.
 
         // Note: the accurate way for us to determine if the text fits to the right side
@@ -1182,9 +1220,11 @@ export class VirtualizedViewManager {
           1 / span_transform[0] + ''
         );
       }
+      const node = this.columns.list.column_nodes[i];
       const span_text = this.span_text[i];
       if (span_text) {
         const [inside, text_transform] = this.computeSpanTextPlacement(
+          node!,
           span_text.space,
           span_text.text
         );
@@ -1309,7 +1349,6 @@ export class VirtualizedViewManager {
       }
 
       entry.ref.style.opacity = '1';
-      entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 

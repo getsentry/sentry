@@ -177,6 +177,8 @@ def relocate_reclaim(request, user_id):
 @set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_function
 def recover_confirm(request, user_id, hash, mode="recover"):
+    from sentry import ratelimits as ratelimiter
+
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
         if not password_hash.is_valid():
@@ -186,20 +188,44 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {"user_id": user_id}, request)
 
+    extra = {
+        "ip_address": request.META["REMOTE_ADDR"],
+        "user_agent": request.META.get("HTTP_USER_AGENT"),
+    }
+
+    if request.method == "POST" and ratelimiter.backend.is_limited(
+        "accounts:confirm:{}".format(extra["ip_address"]),
+        limit=5,
+        window=60,  # 5 per minute should be enough for anyone
+    ):
+        logger.warning("confirm.rate-limited", extra=extra)
+
+        return HttpResponse(
+            "You have made too many attempts. Please try again later.",
+            content_type="text/plain",
+            status=429,
+        )
+
     # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
     form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
         form = form_cls(request.POST, user=user)
         if form.is_valid():
             if mode == "relocate":
-                # Relocation form required users to accept TOS and privacy policy
-                # Only need first membership, since all of user's orgs will be in the same region.
+                # Relocation form requires users to accept TOS and privacy policy with an org
+                # associated. We only need the first membership, since all of user's orgs will be in
+                # the same region.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
                 mapping = OrganizationMapping.objects.get(
                     organization_id=membership.organization_id
                 )
-                # These service calls need to be outside of the transaction block
+
+                # These service calls need to be outside of the transaction block. Claiming an
+                # account constitutes an email verifying action. We'll verify the primary email
+                # associated with this account in particular, since that is the only one the user
+                # claiming email could have been sent to.
                 rpc_user = user_service.get_user(user_id=user.id)
+                user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
                     region_name=mapping.region_name, user=rpc_user
                 )

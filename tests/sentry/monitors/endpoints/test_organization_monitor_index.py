@@ -287,6 +287,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
+            "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -296,6 +297,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,

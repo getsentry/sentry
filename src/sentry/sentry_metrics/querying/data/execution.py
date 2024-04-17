@@ -630,9 +630,10 @@ class QueryExecutor:
             self._projects
         ).items():
             for metric_blocking in metrics_blocking_state.metrics.values():
-                blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
-                    project_id
-                )
+                if metric_blocking.is_blocked:
+                    blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
+                        project_id
+                    )
 
         return blocked_metrics_for_projects
 

@@ -66,6 +66,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.incidents.endpoints.organization_alert_rule_activations import (
+    OrganizationAlertRuleActivationsEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -465,6 +468,7 @@ from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_traces import OrganizationTracesEndpoint
 from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
@@ -1084,6 +1088,11 @@ ORGANIZATION_URLS = [
     ),
     # Alert Rules
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
+        OrganizationAlertRuleIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rules",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
         OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-available-actions",
@@ -1094,11 +1103,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-alert-rule-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
-        OrganizationAlertRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rules",
+        r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
+        OrganizationAlertRuleActivationsEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-activations",
     ),
-    re_path(
+    re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
@@ -1353,6 +1362,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/traces/$",
+        OrganizationTracesEndpoint.as_view(),
+        name="sentry-api-0-organization-traces",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",

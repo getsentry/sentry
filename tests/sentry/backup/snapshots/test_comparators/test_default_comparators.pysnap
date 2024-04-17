@@ -1,5 +1,5 @@
 ---
-created: '2024-04-09T21:58:14.348228+00:00'
+created: '2024-04-15T19:02:42.654156+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -24,6 +24,10 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - user_id
   model_name: hybridcloud.apitokenreplica
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: hybridcloud.controlcacheversion
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -454,7 +458,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - control_file_id
     - doc_integration
-    - file_id
   model_name: sentry.docintegrationavatar
 - comparators:
   - class: EmailObfuscatingComparator
@@ -805,6 +808,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - organization_id
+    - owner_user_id
     - project_id
   model_name: sentry.monitor
 - comparators:
@@ -1037,12 +1041,6 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
     - project_id
   model_name: sentry.projectartifactbundle
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - file_id
-    - project
-  model_name: sentry.projectavatar
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1391,7 +1389,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - control_file_id
-    - file_id
     - sentry_app
   model_name: sentry.sentryappavatar
 - comparators:
@@ -1489,12 +1486,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - file_id
-    - team
-  model_name: sentry.teamavatar
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization
     - project_team
   model_name: sentry.teamkeytransaction
@@ -1537,7 +1528,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - control_file_id
-    - file_id
     - user
   model_name: sentry.useravatar
 - comparators:

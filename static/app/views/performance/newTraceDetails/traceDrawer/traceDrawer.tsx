@@ -24,6 +24,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
@@ -70,9 +71,19 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    return pick(location.query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
+    const {timestamp} = getTraceQueryParams(location.query);
+    const params = pick(location.query, [
+      ...Object.values(PERFORMANCE_URL_PARAM),
+      'cursor',
+    ]);
+
+    if (timestamp) {
+      params.traceTimestamp = timestamp;
+    }
+    return params;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const tagsQueryResults = useApiQuery<Tag[]>(
     [
       `/organizations/${organization.slug}/events-facets/`,
@@ -104,6 +115,20 @@ export function TraceDrawer(props: TraceDrawerProps) {
     (size: number, min: number, user?: boolean, minimized?: boolean) => {
       if (!props.traceGridRef) return;
 
+      // When we resize the layout in x axis, we need to update the physical space
+      // of the virtualized view manager to make sure a redrawing is correctly triggered.
+      // If we dont do this, then the virtualized view manager will only trigger a redraw
+      // whenver ResizeObserver detects a change. Since resize observers have "debounced"
+      // callbacks, relying only on them to redraw the screen causes visual jank.
+      if (
+        (traceStateRef.current.preferences.layout === 'drawer left' ||
+          traceStateRef.current.preferences.layout === 'drawer right') &&
+        props.manager.container
+      ) {
+        const {width, height} = props.manager.container.getBoundingClientRect();
+        props.manager.initializePhysicalSpace(width, height);
+        props.manager.draw();
+      }
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
@@ -158,7 +183,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, trace_dispatch]
+    [props.traceGridRef, props.manager, trace_dispatch]
   );
 
   const drawerOptions: Pick<UsePassiveResizableDrawerOptions, 'min' | 'initialSize'> =
@@ -311,6 +336,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       <ResizeableHandle
         layout={props.trace_state.preferences.layout}
         onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClickResetToDefault}
       />
       <TabsHeightContainer
         layout={props.trace_state.preferences.layout}
@@ -584,7 +610,6 @@ const PanelWrapper = styled('div')<{
 const SmallerChevronIcon = styled(IconChevron)`
   width: 13px;
   height: 13px;
-
   transition: none;
 `;
 
@@ -605,6 +630,7 @@ const TabsHeightContainer = styled('div')<{
 
 const TabsLayout = styled('div')`
   display: grid;
+  background: ${p => p.theme.backgroundSecondary};
   grid-template-columns: auto 1fr auto;
   padding-left: ${space(0.25)};
   padding-right: ${space(0.5)};
@@ -688,7 +714,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 66ch;
+  max-width: 28ch;
 
   overflow: hidden;
   text-overflow: ellipsis;

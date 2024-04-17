@@ -329,17 +329,16 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
-                  isNew
                 />
               </Feature>
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  to={`/organizations/${organization.slug}/performance/browser/resources/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
                 />
@@ -348,7 +347,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/traces`}
+                  to={`/organizations/${organization.slug}/performance/traces/`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
                 />
