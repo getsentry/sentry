@@ -1863,6 +1863,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable mobile replay player
     "organizations:session-replay-mobile-player": False,
+    # Enable mobile replay player network tab
+    "organizations:session-replay-mobile-network-tab": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable Rage Click Issue Creation In Recording Consumer
