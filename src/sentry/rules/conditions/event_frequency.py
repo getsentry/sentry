@@ -5,9 +5,9 @@ import contextlib
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, MutableMapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired
+from typing import Any
 
 from django import forms
 from django.core.cache import cache
@@ -21,7 +21,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
-from sentry.rules.conditions.base import EventCondition, GenericCondition
+from sentry.rules.conditions.base import EventCondition
 from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -55,26 +55,6 @@ SNUBA_LIMIT = 10000
 class ComparisonType(TextChoices):
     COUNT = "count"
     PERCENT = "percent"
-
-
-class EventFrequencyConditionData(GenericCondition):
-    """
-    The base typed dict for all condition data representing EventFrequency issue
-    alert rule conditions
-    """
-
-    # Either the count or percentage.
-    value: int
-    # The interval to compare the value against such as 5m, 1h, 3w, etc.
-    # e.g. # of issues is more than {value} in {interval}.
-    interval: str
-    # NOTE: Some of the earliest COUNT conditions were created without the
-    # comparisonType field, although modern rules will always have it.
-    comparisonType: NotRequired[Literal[ComparisonType.COUNT, ComparisonType.PERCENT]]
-    # The previous interval to compare the curr interval against. This is only
-    # present in PERCENT conditions.
-    # e.g. # of issues is 50% higher in {interval} compared to {comparisonInterval}
-    comparisonInterval: NotRequired[str]
 
 
 class EventFrequencyForm(forms.Form):
@@ -124,7 +104,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def __init__(
         self,
-        data: EventFrequencyConditionData | None = None,
+        data: MutableMapping | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
