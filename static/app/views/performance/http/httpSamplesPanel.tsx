@@ -12,7 +12,11 @@ import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  EMPTY_OPTION_VALUE,
+  escapeFilterValue,
+  MutableSearch,
+} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,12 +79,9 @@ export function HTTPSamplesPanel() {
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
-  const detailKey =
-    query.transaction && query.domain
-      ? [query.domain, query.transactionMethod, query.transaction]
-          .filter(Boolean)
-          .join(':')
-      : undefined;
+  const detailKey = query.transaction
+    ? [query.domain, query.transactionMethod, query.transaction].filter(Boolean).join(':')
+    : undefined;
 
   const handlePanelChange = newPanelName => {
     router.replace({
@@ -107,14 +108,16 @@ export function HTTPSamplesPanel() {
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': query.domain,
+    'span.domain':
+      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': query.domain,
+    'span.domain':
+      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
   };
 
@@ -173,6 +176,22 @@ export function HTTPSamplesPanel() {
     referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
   });
 
+  // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
+  const sampleSpansSearch = MutableSearch.fromQueryObject({
+    ...filters,
+    'span.domain': undefined,
+  });
+
+  if (query.domain === '') {
+    sampleSpansSearch.addOp('(');
+    sampleSpansSearch.addFilterValue('!has', 'span.domain');
+    sampleSpansSearch.addOp('OR');
+    // HACK: Use `addOp` to add the condition `'span.domain:[""]'` and avoid escaping the double quotes. Ideally there'd be a way to specify this explicitly, but this whole thing is a hack anyway. Once a plain `!has:span.domain` condition works, this is not necessary
+    sampleSpansSearch.addOp('span.domain:[""]');
+    sampleSpansSearch.addOp(')');
+  } else {
+    sampleSpansSearch.addFilterValue('span.domain', query.domain);
+  }
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
@@ -181,8 +200,9 @@ export function HTTPSamplesPanel() {
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search,
+    search: sampleSpansSearch,
     fields: [
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
@@ -199,13 +219,15 @@ export function HTTPSamplesPanel() {
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
   } = useIndexedSpans({
-    filters,
+    search: sampleSpansSearch,
     fields: [
       SpanIndexedField.PROJECT,
+      SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.ID,
+      SpanIndexedField.TIMESTAMP,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
-      SpanIndexedField.ID,
     ],
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,

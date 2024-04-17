@@ -4,8 +4,8 @@ import beautify from 'js-beautify';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import {Flex} from 'sentry/components/profiling/flex';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
@@ -18,7 +18,7 @@ import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

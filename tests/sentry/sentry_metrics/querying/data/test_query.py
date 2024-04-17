@@ -14,6 +14,11 @@ from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
             {"a": "query_1", "b": "query_2", "aa": "query_3", "ab": "query_4"},
             "query_1 / query_3 + query_4 * query_2",
         ),
+        (
+            "$a * 2",
+            {"a": r'sum(my_metric){endpoint:"\organizations\metrics\api"}'},
+            r'sum(my_metric){endpoint:"\organizations\metrics\api"} * 2',
+        ),
     ],
 )
 def test_compile_mql_query(formula, queries, expected_formula):

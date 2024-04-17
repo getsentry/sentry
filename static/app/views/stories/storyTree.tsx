@@ -7,8 +7,6 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {StoriesQuery} from 'sentry/views/stories/types';
 
-type DirContent = Record<string, unknown>;
-
 interface Props extends ComponentProps<'div'> {
   files: string[];
 }
@@ -23,17 +21,21 @@ export default function StoryTree({files, style}: Props) {
   );
 }
 
-function FolderContent({path, content}: {content: DirContent; path: string}) {
+function FolderContent({path, content}: {content: TreeMapping; path: string}) {
   const location = useLocation<StoriesQuery>();
   const currentFile = location.query.name;
 
+  // sort folders to the top
+  const entries = Object.entries(content).sort(
+    (a, b) => Number(!!Object.keys(b[1]).length) - Number(!!Object.keys(a[1]).length)
+  );
+
   return (
     <UnorderedList>
-      {Object.entries(content).map(([name, children]) => {
-        const childContent = children as DirContent;
+      {entries.map(([name, children]) => {
         const childPath = toPath(path, name);
 
-        if (Object.keys(childContent).length === 0) {
+        if (Object.keys(children).length === 0) {
           const isCurrent = childPath === currentFile ? true : undefined;
           const to = `/stories/?name=${childPath}`;
           return (
@@ -50,7 +52,7 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
           <ListItem key={name}>
             <Folder open>
               <FolderName>{name}</FolderName>
-              <FolderContent path={childPath} content={childContent} />
+              <FolderContent path={childPath} content={children} />
             </Folder>
           </ListItem>
         );
@@ -59,7 +61,9 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
   );
 }
 
-function toTree(files: string[]) {
+interface TreeMapping extends Record<string, TreeMapping> {}
+
+function toTree(files: string[]): TreeMapping {
   const root = {};
   for (const file of files) {
     const parts = file.split('/');

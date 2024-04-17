@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -9,7 +10,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -17,6 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
+from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -34,6 +36,7 @@ class ReplayViewedByResponse(TypedDict):
 class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
+    permission_classes = (ProjectEventPermission,)
 
     @extend_schema(
         operation_id="Get list of user who have viewed a replay",
@@ -102,9 +105,33 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
-        message = viewed_event(project.id, replay_id, request.user.id)
-        publish_replay_event(message, is_async=False)
+        # make a query to avoid overwriting the `finished_at` column
+        filter_params = self.get_filter_params(request, project, date_filter_optional=False)
+        finished_at_response = execute_query(
+            query=make_full_aggregation_query(
+                fields=["finished_at"],
+                replay_ids=[replay_id],
+                project_ids=[project.id],
+                period_start=filter_params["start"],
+                period_end=filter_params["end"],
+                request_user_id=request.user.id,
+            ),
+            tenant_id={"organization_id": project.organization.id} if project.organization else {},
+            referrer="replays.endpoints.viewed_by_post",
+        )["data"]
+        if not finished_at_response:
+            return Response(status=404)
 
+        finished_at = finished_at_response[0]["finished_at"]
+        finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
+
+        message = viewed_event(
+            project.id,
+            replay_id,
+            request.user.id,
+            finished_at_ts,
+        )
+        publish_replay_event(message, is_async=False)
         return Response(status=204)
 
 

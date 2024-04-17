@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
-import moment from 'moment';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -125,12 +124,6 @@ export const interchangeableFilterOperators = {
 };
 
 const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
-
-const numberUnits = {
-  b: 1_000_000_000,
-  m: 1_000_000,
-  k: 1_000,
-};
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -498,7 +491,7 @@ export class TokenConverter {
   tokenValueIso8601Date = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
-    value: moment(value),
+    value: value,
   });
 
   tokenValueRelativeDate = (
@@ -508,7 +501,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: Number(value),
+    value: value,
     sign,
     unit,
   });
@@ -520,7 +513,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: Number(value),
+    value: value,
     unit,
   });
 
@@ -548,29 +541,27 @@ export class TokenConverter {
       | 'yib'
   ) => ({
     ...this.defaultTokenFields,
-
     type: Token.VALUE_SIZE as const,
-    value: Number(value),
+    value: value,
     unit,
   });
 
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: Number(value),
+    value: value,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: ['1', 'true'].includes(value.toLowerCase()),
+    value: value,
   });
 
-  tokenValueNumber = (value: string, unit: string) => ({
+  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER as const,
     value,
-    rawValue: Number(value) * (numberUnits[unit] ?? 1),
     unit,
   });
 
@@ -613,7 +604,6 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
-    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 

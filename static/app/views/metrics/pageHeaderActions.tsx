@@ -37,14 +37,8 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const router = useRouter();
   const organization = useOrganization();
   const formulaDependencies = useFormulaDependencies();
-  const {
-    isDefaultQuery,
-    setDefaultQuery,
-    widgets,
-    showQuerySymbols,
-    selectedWidgetIndex,
-    isMultiChartMode,
-  } = useMetricsContext();
+  const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
+    useMetricsContext();
   const createDashboard = useCreateDashboard(
     widgets,
     formulaDependencies,
@@ -127,7 +121,6 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
                     key="icon"
                     queryId={widget.id}
                     isHidden={widget.isHidden}
-                    isSelected={index === selectedWidgetIndex && isMultiChartMode}
                   />,
                 ]
               : [],
@@ -148,7 +141,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             },
           };
         }),
-    [isMultiChartMode, organization, selectedWidgetIndex, showQuerySymbols, widgets]
+    [organization, showQuerySymbols, widgets]
   );
 
   return (

@@ -1,6 +1,6 @@
 import {isMetricsEquationWidget, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 export function widgetToQuery(

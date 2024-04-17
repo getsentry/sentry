@@ -59,9 +59,7 @@ export default function PageloadModule() {
               />
               <HeaderWrapper>
                 <Layout.Title>{t('Screen Loads')}</Layout.Title>
-                {organization.features.includes(
-                  'performance-screens-platform-selector'
-                ) &&
+                {organization.features.includes('spans-first-ui') &&
                   project &&
                   isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>

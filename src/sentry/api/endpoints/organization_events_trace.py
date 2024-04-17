@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import Any, Deque, Optional, TypedDict, TypeVar
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -44,11 +44,13 @@ SnubaTransaction = TypedDict(
     "SnubaTransaction",
     {
         "id": str,
+        "issue_occurrences": Sequence[IssueOccurrence],
         "transaction.status": int,
         "transaction.op": str,
         "transaction.duration": int,
         "transaction": str,
         "timestamp": str,
+        "occurrence_spans": Sequence[dict[str, object]],
         "precise.start_ts": int,
         "precise.finish_ts": int,
         "trace.span": str,
@@ -187,7 +189,7 @@ class TraceEvent:
                 )
         return self._nodestore_event
 
-    def load_performance_issues(self, light: bool, snuba_params: ParamsType) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: ParamsType | None) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -322,7 +324,7 @@ class TraceEvent:
             return
         else:
             visited.add(self.event["id"])
-        result = cast(FullResponse, self.to_dict())
+        result = self.to_dict()
         if detailed and "transaction.status" in self.event:
             result.update(
                 {
@@ -423,7 +425,7 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
     )
     transaction_query.columns.append(Function("count()", alias="total_groups"))
     count = transaction_query.run_query("api.trace-view.count-performance-issues")
-    return cast(int, count["data"][0].get("total_groups", 0))
+    return count["data"][0].get("total_groups", 0)
 
 
 @sentry_sdk.tracing.trace
@@ -593,9 +595,7 @@ def query_trace_data(
                 for key, value in zip(result["measurements.key"], result["measurements.value"])
             }
 
-    return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
-        Sequence[SnubaError], transformed_results[1]
-    )
+    return transformed_results[0], transformed_results[1]
 
 
 def build_span_query(trace_id, spans_params, query_spans):
@@ -886,16 +886,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         # Detailed is deprecated now that we want to use spans instead
-        detailed: bool = request.GET.get("detailed", "0") == "1"
+        detailed = request.GET.get("detailed", "0") == "1"
         # Temporary url params until we finish migrating the frontend
-        use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        use_spans = request.GET.get("useSpans", "0") == "1"
         update_snuba_params_with_timestamp(request, params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
-        limit: int = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id: str | None = request.GET.get("event_id") or request.GET.get("eventId")
+        limit = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
+        event_id = request.GET.get("event_id") or request.GET.get("eventId")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -1318,9 +1318,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_events[child_event["id"]] = TraceEvent(
                             child_event,
                             current_event["id"],
-                            previous_event.generation + 1
-                            if previous_event.generation is not None
-                            else None,
+                            (
+                                previous_event.generation + 1
+                                if previous_event.generation is not None
+                                else None
+                            ),
                             snuba_params=params,
                         )
                         # Add this event to its parent's children

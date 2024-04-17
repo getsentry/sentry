@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.utils import metrics
+
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
 
@@ -210,26 +212,49 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
+        sample_rate = 0.01
         try:
-            actor = kwargs.pop("actor", None)
-            feature = self.get(name, *args, **kwargs)
+            with metrics.timer("features.has", tags={"feature": name}, sample_rate=sample_rate):
+                actor = kwargs.pop("actor", None)
+                feature = self.get(name, *args, **kwargs)
 
-            # Check registered feature handlers
-            rv = self._get_handler(feature, actor)
-            if rv is not None:
-                return rv
-
-            if self._entity_handler and not skip_entity:
-                rv = self._entity_handler.has(feature, actor)
+                # Check registered feature handlers
+                rv = self._get_handler(feature, actor)
                 if rv is not None:
+                    metrics.incr(
+                        "feature.has.result",
+                        tags={"feature": name, "result": rv},
+                        sample_rate=sample_rate,
+                    )
                     return rv
 
-            rv = settings.SENTRY_FEATURES.get(feature.name, False)
-            if rv is not None:
-                return rv
+                if self._entity_handler and not skip_entity:
+                    rv = self._entity_handler.has(feature, actor)
+                    if rv is not None:
+                        metrics.incr(
+                            "feature.has.result",
+                            tags={"feature": name, "result": rv},
+                            sample_rate=sample_rate,
+                        )
+                        return rv
 
-            # Features are by default disabled if no plugin or default enables them
-            return False
+                rv = settings.SENTRY_FEATURES.get(feature.name, False)
+                if rv is not None:
+                    metrics.incr(
+                        "feature.has.result",
+                        tags={"feature": name, "result": rv},
+                        sample_rate=sample_rate,
+                    )
+                    return rv
+
+                # Features are by default disabled if no plugin or default enables them
+                metrics.incr(
+                    "feature.has.result",
+                    tags={"feature": name, "result": False},
+                    sample_rate=sample_rate,
+                )
+
+                return False
         except Exception:
             logging.exception("Failed to run feature check")
             return False
