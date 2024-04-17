@@ -5,7 +5,7 @@ import contextlib
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -104,7 +104,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def __init__(
         self,
-        data: MutableMapping | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -123,9 +122,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             },
         }
 
-        # MyPy refuses to make TypedDict compatible with MutableMapping
-        # https://github.com/python/mypy/issues/4976
-        super().__init__(data=data, *args, **kwargs)  # type:ignore[misc]
+        super().__init__(*args, **kwargs)  # type:ignore[misc]
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
