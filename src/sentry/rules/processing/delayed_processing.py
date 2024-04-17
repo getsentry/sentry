@@ -1,17 +1,18 @@
 import contextlib
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import DefaultDict, NamedTuple
+from collections.abc import MutableMapping
+from datetime import UTC, datetime, timedelta
+from typing import Any, DefaultDict, NamedTuple
 
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.rules import rules
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
     ComparisonType,
-    EventFrequencyConditionData,
     percent_increase,
 )
 from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
@@ -27,7 +28,7 @@ logger = logging.getLogger("sentry.rules.delayed_processing")
 PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
-def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
+def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, Any] | None]:
     """
     Returns the slow conditions of a rule model instance.
     """
@@ -44,7 +45,6 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
 
         for project in RangeQuerySetWrapper(Project.objects.filter(id__in=project_ids)):
-
             with metrics.timer("delayed_processing.process_project.duration"):
                 apply_delayed.delay(project=project, buffer=buffer)
 
@@ -64,7 +64,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # XXX(schew2381): This is from
     # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
     # Do we need to check this before we start the steps (ask dan, I think the
-    # answer is now b/c we check it before triggering actions))
+    # answer is no b/c we check it before triggering actions))
 
     # frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
     # now = datetime.now()
@@ -72,20 +72,20 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # if status.last_active and status.last_active > freq_offset:
     #     return
 
-    # STEP 1: Fetch the rulegroup_to_event mapping for the project from redis
+    # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
 
-    # The mapping looks like: {rule.id}:{group.id} -> {event.id}
-    # TODO: Updating return type of get_hash
-    rulegroup_to_event = buffer.get_hash(model=Project, field={"id": project.id})
+    # The mapping looks like: '{rule.id}:{group.id}' -> {'event.id'}
+    rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
-    for rule_group in rulegroup_to_event.keys():
-        rule_id, group_id = rule_group.split(":")
-        rules_to_groups[int(rule_id)].add(int(group_id))
+    for rulegroup_to_event in rulegroup_to_events:
+        for rule_group in rulegroup_to_event.keys():
+            rule_id, group_id = rule_group.split(":")
+            rules_to_groups[int(rule_id)].add(int(group_id))
 
     # STEP 3: Fetch the Rule models we need to check
-    rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
+    alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
 
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
@@ -101,13 +101,13 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
         environment_id: int
 
     class DataAndGroups(NamedTuple):
-        data: EventFrequencyConditionData
+        data: MutableMapping[str, Any] | None
         group_ids: set[int]
 
     condition_groups: dict[UniqueCondition, DataAndGroups] = {}
 
-    for rule in rules:
-        # We only want to a rule's fast conditions because rules are only added
+    for rule in alert_rules:
+        # We only want a rule's slow conditions because alert_rules are only added
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
@@ -115,7 +115,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
                 condition_data["id"], condition_data["interval"], rule.environment_id
             )
 
-            # Add to set the set of group_ids if there are already group_ids for
+            # Add to set of group_ids if there are already group_ids
             # that apply to the unique condition
             if data_and_groups := condition_groups.get(unique_condition):
                 data_and_groups.group_ids.update(rules_to_groups[rule.id])
@@ -136,14 +136,14 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
         condition_cls = rules.get(unique_condition.cls_id)
 
         if condition_cls is None:
-            logger.warning("Unregistered condition %r", condition_data["id"])
+            logger.warning("Unregistered condition %r", unique_condition.cls_id)
             return None
 
         condition_inst: BaseEventFrequencyCondition = condition_cls(
             project=project, data=condition_data, rule=rule
         )
         if not isinstance(condition_inst, EventCondition):
-            logger.warning("Unregistered condition %r", condition_data["id"])
+            logger.warning("Unregistered condition %r", condition_cls.id)
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
@@ -155,8 +155,13 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             option_override_cm = options_override({"consistent": False})
 
         with option_override_cm:
+            # print("start: ", end - duration)
+            start = end - duration
             results = condition_inst.batch_query(
-                group_ids, end - duration, end, environment_id=unique_condition.environment_id
+                group_ids=group_ids,
+                start=start.replace(tzinfo=UTC),
+                end=end.replace(tzinfo=UTC),
+                environment_id=unique_condition.environment_id,
             )
 
             # If the condition is a percent comparison, we need to query the
@@ -165,11 +170,11 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             if comparison_type == ComparisonType.PERCENT:
                 comparison_interval = condition_inst.intervals[unique_condition.interval][1]
                 comparison_end = end - comparison_interval
-
+                start = comparison_end - duration
                 comparison_results = condition_inst.batch_query(
-                    group_ids,
-                    comparison_end - duration,
-                    comparison_end,
+                    group_ids=group_ids,
+                    start=start.replace(tzinfo=UTC),
+                    end=comparison_end.replace(tzinfo=UTC),
                     environment_id=unique_condition.environment_id,
                 )
 
@@ -182,7 +187,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
-    for rule in rules:
+    for rule in alert_rules:
         # don't know why mypy is complaining : (expression has type "int", variable has type "str")
         for group_id in rules_to_groups[rule.id]:  # type: ignore[assignment]
             pass
