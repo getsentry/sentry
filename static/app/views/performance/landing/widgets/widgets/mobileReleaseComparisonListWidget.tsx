@@ -55,7 +55,7 @@ import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {OUTPUT_TYPE, YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
+import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -102,7 +102,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   } = useReleaseSelection();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {organization, InteractiveTitle} = props;
+  const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
   const field = props.fields[0];
@@ -119,11 +119,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
-        eventView.fields = [
-          {field: 'transaction'},
-          {field: YAXIS_COLUMNS[YAxis.TTID]},
-          {field: 'count()'},
-        ];
+        eventView.fields = [{field: 'transaction'}, {field}, {field: 'count()'}];
         eventView.sorts = [
           {
             field: 'count()',
@@ -203,10 +199,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             dataset: DiscoverDatasets.METRICS,
           };
 
-          eventView.fields = [
-            {field: 'avg(measurements.time_to_initial_display)'},
-            {field: 'release'},
-          ];
+          eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.addFilterValue('event.type', 'transaction');
           mutableSearch.addFilterValue('transaction.op', 'ui.load');
@@ -318,9 +311,9 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
     PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
   ].includes(props.chartSetting);
-  const targetPathname = isAppStartup
-    ? '/performance/mobile/app-startup/spans/'
-    : '/performance/mobile/screens/spans/';
+  const targetModulePath = isAppStartup
+    ? '/performance/mobile/app-startup/'
+    : '/performance/mobile/screens/';
   const targetQueryParams = isAppStartup
     ? {
         app_start_type:
@@ -339,7 +332,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <GrowLink
                 to={normalizeUrl({
-                  pathname: targetPathname,
+                  pathname: `${targetModulePath}/spans/`,
                   query: {
                     project: listItem['project.id'],
                     transaction,
@@ -354,10 +347,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
               </GrowLink>
               <RightAlignedCell>
                 <StyledDurationWrapper>
-                  <PerformanceDuration
-                    milliseconds={listItem['avg(measurements.time_to_initial_display)']}
-                    abbreviation
-                  />
+                  <PerformanceDuration milliseconds={listItem[field]} abbreviation />
                 </StyledDurationWrapper>
               </RightAlignedCell>
             </Fragment>
@@ -391,10 +381,10 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       HeaderActions={() => (
         <LinkButton
           to={normalizeUrl({
-            // TODO(nar): Needs to switch to app starts route
-            pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
+            pathname: targetModulePath,
             query: {
               ...normalizeDateTimeParams(pageFilter),
+              ...targetQueryParams,
               primaryRelease,
               secondaryRelease,
             },
