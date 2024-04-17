@@ -160,7 +160,7 @@ class TraceEvent:
         parent: str | None,
         generation: int | None,
         light: bool = False,
-        snuba_params: Mapping[str, str] | None = None,
+        snuba_params: ParamsType | None = None,
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event

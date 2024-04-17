@@ -98,6 +98,7 @@ class Referrer(Enum):
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
+    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
