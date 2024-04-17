@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueNumber", "value": "3", "unit": "k"}
+        "value": {
+          "type": "valueNumber",
+          "value": "3",
+          "unit": "k",
+          "parsed": {"value": 3000, "unit": "k"}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueNumber", "value": "3", "unit": "m"}
+        "value": {
+          "type": "valueNumber",
+          "value": "3",
+          "unit": "m",
+          "parsed": {"value": 3000000, "unit": "m"}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -42,7 +52,8 @@
         "value": {
           "type": "valueNumber",
           "value": "3",
-          "unit": "b"
+          "unit": "b",
+          "parsed": {"value": 3000000000, "unit": "b"}
         }
       },
       {"type": "spaces", "value": ""}

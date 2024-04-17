@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
+import moment from 'moment';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -492,6 +493,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
     value: value,
+    parsed: this.config.parse ? {value: parseDate(value)} : undefined,
   });
 
   tokenValueRelativeDate = (
@@ -502,6 +504,13 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
     value: value,
+    parsed: this.config.parse
+      ? {
+          value: parseRelativeDate(value, {unit, sign}),
+          unit: unit === null ? unit : unit?.toLowerCase(),
+          sign: sign === null ? sign : sign?.toLowerCase(),
+        }
+      : undefined,
     sign,
     unit,
   });
@@ -514,6 +523,12 @@ export class TokenConverter {
 
     type: Token.VALUE_DURATION as const,
     value: value,
+    parsed: this.config.parse
+      ? {
+          value: parseDuration(value, unit),
+          unit: unit === null ? unit : unit?.toLowerCase(),
+        }
+      : undefined,
     unit,
   });
 
@@ -543,6 +558,11 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_SIZE as const,
     value: value,
+    // units are case insensitive, normalize them in their parsed representation
+    // so that we dont have to compare all possible permutations.
+    parsed: this.config.parse
+      ? {value: parseSize(value, unit), unit: unit === null ? unit : unit?.toLowerCase()}
+      : undefined,
     unit,
   });
 
@@ -550,20 +570,30 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
     value: value,
+    parsed: this.config.parse ? {value: parsePercentage(value)} : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
     value: value,
+    parsed: this.config.parse ? {value: parseBoolean(value)} : undefined,
   });
 
-  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => ({
-    ...this.defaultTokenFields,
-    type: Token.VALUE_NUMBER as const,
-    value,
-    unit,
-  });
+  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b') => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.VALUE_NUMBER as const,
+      value,
+      unit,
+      parsed: this.config.parse
+        ? {
+            value: parseNumber(value, unit),
+            unit: unit === null ? unit : unit?.toLowerCase(),
+          }
+        : undefined,
+    };
+  };
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
@@ -869,6 +899,97 @@ export class TokenConverter {
   };
 }
 
+function parseDate(input: string): Date {
+  const date = moment(input).toDate();
+
+  if (isNaN(date.getTime())) {
+    throw new Error('Invalid date');
+  }
+
+  return date;
+}
+
+function parseRelativeDate(
+  input: string,
+  {sign, unit}: {sign: '-' | '+'; unit: string}
+): Date {
+  let date = new Date().getTime();
+  const number = numeric(input);
+
+  if (isNaN(date)) {
+    throw new Error('Invalid date');
+  }
+
+  let offset: number | undefined;
+  switch (unit) {
+    case 'm':
+      offset = number * 1000 * 60;
+      break;
+    case 'h':
+      offset = number * 1000 * 60 * 60;
+      break;
+    case 'd':
+      offset = number * 1000 * 60 * 60 * 24;
+      break;
+    case 'w':
+      offset = number * 1000 * 60 * 60 * 24 * 7;
+      break;
+    default:
+      throw new Error('Invalid unit');
+  }
+
+  if (offset === undefined) {
+    throw new Error('Unreachable');
+  }
+
+  date = sign === '-' ? date - offset : date + offset;
+  return new Date(date);
+}
+
+// The parser supports floats and ints, parseFloat handles both.
+function numeric(input: string) {
+  const number = parseFloat(input);
+  if (isNaN(number)) {
+    throw new Error('Invalid number');
+  }
+  return number;
+}
+function parseDuration(input: string, _unit: string): number {
+  return numeric(input);
+}
+function parseNumber(input: string, unit: 'k' | 'm' | 'b') {
+  const number = numeric(input);
+
+  switch (unit) {
+    case 'k':
+      return number * 1e3;
+    case 'm':
+      return number * 1e6;
+    case 'b':
+      return number * 1e9;
+    case null:
+    case undefined:
+      return number;
+    default:
+      throw new Error('Invalid unit');
+  }
+}
+function parseSize(input: string, _unit: string) {
+  return numeric(input);
+}
+function parsePercentage(input: string): number {
+  return numeric(input);
+}
+function parseBoolean(input: string): boolean {
+  if (/^true$/i.test(input) || input === '1') {
+    return true;
+  }
+  if (/^false$/i.test(input) || input === '0') {
+    return false;
+  }
+  throw new Error('Invalid boolean');
+}
+
 /**
  * Maps token conversion methods to their result types
  */
@@ -959,6 +1080,10 @@ export type SearchConfig = {
    * A function that returns a warning message for a given filter token key
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
+   * Determines if user input values should be parsed
+   */
+  parse?: boolean;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
