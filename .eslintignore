@@ -3,3 +3,5 @@
 **/tests/**/fixtures/**/*
 !.github
 *.d.ts
+config/chartcuterie/config.js
+fixtures/profiles/embedded.js

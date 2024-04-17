@@ -6,20 +6,20 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
 export interface QuickStartProps {
+  cronsUrl?: string;
   dsnKey?: string;
   orgId?: string;
   orgSlug?: string;
   projectId?: string;
-  publicKey?: string;
   slug?: string;
 }
 
 const VALUE_DEFAULTS = {
+  cronsUrl: '<cron-api-url>',
   dsnKey: '<my-dsn-key>',
   orgId: '<my-organziation-id>',
   orgSlug: '<my-organization-slug>',
   projectId: '<my-project-id>',
-  publicKey: '<my-dsn-public-key>',
   slug: '<my-monitor-slug>',
 };
 
@@ -121,10 +121,12 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
 }
 
 export function CurlCronQuickStart(props: QuickStartProps) {
-  const {projectId, orgId, slug, publicKey} = withDefaultProps(props);
+  const {cronsUrl, slug} = withDefaultProps(props);
 
-  const checkInSuccessCode = `SENTRY_INGEST="https://o${orgId}.ingest.sentry.io"
-SENTRY_CRONS="\${SENTRY_INGEST}/api/${projectId}/cron/${slug}/${publicKey}/"
+  const url = new URL(cronsUrl.replace('___MONITOR_SLUG___', slug));
+
+  const checkInSuccessCode = `SENTRY_INGEST="${url.origin}"
+SENTRY_CRONS="\${SENTRY_INGEST}${url.pathname}"
 
 # 🟡 Notify Sentry your job is running:
 curl "\${SENTRY_CRONS}?status=in_progress"

@@ -1,54 +1,47 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Role} from 'sentry/components/acl/role';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import type {EventAttachment, Organization, Project} from 'sentry/types';
 
 type Props = {
-  onClick: () => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
+  className?: string;
+  onClick?: () => void;
 };
 
 export default function FeedbackScreenshot({
+  className,
   organization,
-  screenshot,
   projectSlug,
+  screenshot,
   onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
+  const img = (
+    <StyledImageVisualization
+      attachment={screenshot}
+      orgId={organization.slug}
+      projectSlug={projectSlug}
+      eventId={screenshot.event_id}
+      onLoad={() => setIsLoading(false)}
+      onError={() => setIsLoading(false)}
+    />
+  );
 
   return (
-    <Role organization={organization} role={organization.attachmentsRole}>
-      {({hasRole}) => {
-        if (!hasRole) {
-          return null;
-        }
-        return (
-          <StyledPanel>
-            {isLoading && (
-              <StyledLoadingIndicator>
-                <LoadingIndicator mini />
-              </StyledLoadingIndicator>
-            )}
-            <StyledImageButton onClick={onClick}>
-              <StyledImageVisualization
-                attachment={screenshot}
-                orgId={organization.slug}
-                projectSlug={projectSlug}
-                eventId={screenshot.event_id}
-                onLoad={() => setIsLoading(false)}
-                onError={() => setIsLoading(false)}
-              />
-            </StyledImageButton>
-          </StyledPanel>
-        );
-      }}
-    </Role>
+    <StyledPanel className={className}>
+      {isLoading && (
+        <StyledLoadingIndicator>
+          <LoadingIndicator mini />
+        </StyledLoadingIndicator>
+      )}
+      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
+    </StyledPanel>
   );
 }
 
@@ -58,8 +51,6 @@ const StyledPanel = styled(Panel)`
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
-  max-width: 360px;
-  max-height: 360px;
   border: 0;
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -76,14 +67,15 @@ const StyledImageButton = styled('button')`
   cursor: zoom-in;
   background: none;
   padding: 0;
-  border-radius: ${p => p.theme.borderRadius};
   border: 0;
-  overflow: hidden;
+  overflow: auto;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
   img {
     width: auto;
     height: auto;

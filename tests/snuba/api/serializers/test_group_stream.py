@@ -2,6 +2,7 @@ import time
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -9,13 +10,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import snuba_tsdb
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.models.environment import Environment
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
 
-class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
+class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
     def test_environment(self):
         group = self.group
         organization_id = group.project.organization_id
@@ -54,6 +55,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] is None
 
+    @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
     def test_session_count(self):
         group = self.group
         organization_id = group.project.organization_id

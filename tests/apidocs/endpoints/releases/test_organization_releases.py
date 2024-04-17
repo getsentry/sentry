@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 
+import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.release import Release
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationReleasesDocsTest(APIDocsTestCase):

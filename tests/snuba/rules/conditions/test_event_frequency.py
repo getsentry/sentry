@@ -15,12 +15,87 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    BaseMetricsTestCase,
+    PerformanceIssueTestCase,
+    RuleTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+class EventFrequencyQueryTest(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def test_batch_query(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=30)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": self.environment.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        environment2 = self.create_environment(name="staging")
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": environment2.name,
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        )
+
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-something_random"
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(seconds=12),
+            start_timestamp=before_now(seconds=12),
+            fingerprint=[fingerprint],
+        )
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = self.environment.name
+
+        # Store a performance event
+        perf_event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=self.project.id,
+            fingerprint=fingerprint,
+        )
+        start = before_now(minutes=1)
+        end = timezone.now()
+
+        condition_inst = self.rule_cls(event.group.project)
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event.group_id, event2.group_id, perf_event.group_id],
+            start=start,
+            end=end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query == {event.group_id: 1, event2.group_id: 1, perf_event.group_id: 1}
+
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[event3.group_id],
+            start=start,
+            end=end,
+            environment_id=environment2.id,
+        )
+        assert batch_query == {event3.group_id: 1}
 
 
 class ErrorEventMixin(SnubaTestCase):
@@ -67,7 +142,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 
 @pytest.mark.snuba_ci
-class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
+class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):
@@ -281,7 +356,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
+class EventFrequencyPercentConditionTestCase(BaseMetricsTestCase, RuleTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
@@ -306,7 +381,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
                 duration=None,
                 errors=0,
                 # The line below is crucial to spread sessions throughout the time period.
-                started=received - i,
+                started=received - i - 1,
                 received=received,
             )
 
@@ -422,7 +497,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 
         # Test data is 2 events in the current period and 1 events in the comparison period.
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
-        # is 10%. Overall a 100% increase comparitively.
+        # is 10%. Overall a 100% increase comparatively.
         event = self.add_event(
             data={"fingerprint": ["something_random"]},
             project_id=self.project.id,
