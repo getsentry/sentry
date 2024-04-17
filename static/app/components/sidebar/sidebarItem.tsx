@@ -340,7 +340,7 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: 30px;
+  height: ${p => (p.isInFloatingAccordion ? '35px' : '30px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
