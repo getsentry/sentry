@@ -401,14 +401,14 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]: {
     title: t('Average Cold Start'),
     titleTooltip: '',
-    subTitle: t('Top screens by count'),
+    subTitle: t('Top screens by start count'),
     fields: ['avg(measurements.app_start_cold)'],
     dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START,
   },
   [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]: {
     title: t('Average Warm Start'),
     titleTooltip: '',
-    subTitle: t('Top screens by count'),
+    subTitle: t('Top screens by start count'),
     fields: ['avg(measurements.app_start_warm)'],
     dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START,
   },

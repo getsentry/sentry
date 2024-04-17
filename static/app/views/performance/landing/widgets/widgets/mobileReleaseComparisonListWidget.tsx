@@ -55,7 +55,6 @@ import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -302,10 +301,10 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             bottom: '0',
           }}
           type={ChartType.LINE}
-          aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
+          aggregateOutputFormat="duration"
           tooltipFormatterOptions={{
             valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, OUTPUT_TYPE[YAxis.TTID]),
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
           }}
           error={provided.widgetData.chart.error}
           disableXAxis
