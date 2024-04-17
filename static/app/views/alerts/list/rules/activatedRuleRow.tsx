@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 import type {CombinedMetricIssueAlerts, MetricAlert} from '../../types';
-import {CombinedAlertType, IncidentStatus} from '../../types';
+import {ActivationStatus, CombinedAlertType, IncidentStatus} from '../../types';
 
 type Props = {
   hasEditAccess: boolean;
@@ -59,6 +59,12 @@ function ActivatedRuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
+  const isWaiting = useMemo(
+    () =>
+      !rule.activations?.length ||
+      (rule.activations?.length && rule.activations[0].isComplete),
+    [rule]
+  );
 
   function renderLatestActivation(): React.ReactNode {
     if (!rule.activations?.length) {
@@ -83,8 +89,6 @@ function ActivatedRuleListRow({
   }
 
   function renderAlertRuleStatus(): React.ReactNode {
-    // const isActive = !(rule.activations?.length && rule.activations[0].isComplete);
-
     if (rule.snooze) {
       return renderSnoozeStatus();
     }
@@ -159,13 +163,6 @@ function ActivatedRuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
-
-  const IssueStatusText: Record<IncidentStatus, string> = {
-    [IncidentStatus.CRITICAL]: t('Critical'),
-    [IncidentStatus.WARNING]: t('Warning'),
-    [IncidentStatus.CLOSED]: t('Resolved'),
-    [IncidentStatus.OPENED]: t('Resolved'),
-  };
 
   const actions: MenuItemProps[] = [
     {
@@ -264,11 +261,15 @@ function ActivatedRuleListRow({
         <FlexCenter>
           <Tooltip
             title={tct('Metric Alert Status: [status]', {
-              status:
-                IssueStatusText[rule?.latestIncident?.status ?? IncidentStatus.CLOSED],
+              status: isWaiting ? 'Ready to monitor' : 'Monitoring',
             })}
           >
-            <AlertBadge status={rule?.latestIncident?.status} />
+            <AlertBadge
+              status={rule?.latestIncident?.status}
+              activationStatus={
+                isWaiting ? ActivationStatus.WAITING : ActivationStatus.MONITORING
+              }
+            />
           </Tooltip>
         </FlexCenter>
         <AlertNameAndStatus>
