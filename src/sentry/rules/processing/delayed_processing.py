@@ -190,10 +190,20 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
+    rules_to_fire = defaultdict(set)
+    # TODO this quad nested for loop sucks
     for rule in alert_rules:
-        # don't know why mypy is complaining : (expression has type "int", variable has type "str")
-        for group_id in rules_to_groups[rule.id]:  # type: ignore[assignment]
-            pass
+        for group_id in rules_to_groups[rule.id]:
+            for rule_condition in rule.data.get(
+                "conditions", []
+            ):  # can this be in it's own mapping? {rule: slow_conditions}
+                for condition, result in condition_group_results.items():
+                    if rule_condition["id"] == condition.cls_id:
+                        interval = rule_condition.get("interval")
+                        match = rule.data.get("filter_match")
+                        # TODO handle `match` (any or all)
+                        # TODO figure out if it passes
+                        rules_to_fire[rule].add(group_id)
 
             # get:
             # 1. rule conditions + result of condition check in results dict
@@ -202,10 +212,12 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             #    against (e.g. # issues is > 50, 50 is the value). This is
             #    stored in DataAndGroups.data["value"], see EventFrequencyConditionData
 
-            # Store all rule/group pairs  we need to activate
+            # Store all rule/group pairs we need to activate
 
-    # Step 8: Bulk fetch the events of the rule/group pairs we need to trigger
+    # Step 7: Bulk fetch the events of the rule/group pairs we need to trigger
     # actions for, then trigger those actions
+
+    # rulegroup_to_events.values() has the event ids
 
     # Was thinking we could do something like this where we get futures,
     # then safe execute them

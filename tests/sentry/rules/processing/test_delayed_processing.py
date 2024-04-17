@@ -1,5 +1,7 @@
 from unittest.mock import Mock, patch
 
+import pytest
+
 from sentry.db import models
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -9,6 +11,8 @@ from sentry.rules.processing.delayed_processing import (
 )
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
