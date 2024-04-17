@@ -4,7 +4,7 @@ import type {
   TotpAuthenticator,
   U2fAuthenticator,
   UserEnrolledAuthenticator,
-} from 'sentry/types';
+} from 'sentry/types/auth';
 
 export function AuthenticatorsFixture(): {
   Recovery: (props?: Partial<RecoveryAuthenticator>) => RecoveryAuthenticator;

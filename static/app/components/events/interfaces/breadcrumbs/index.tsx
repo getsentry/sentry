@@ -12,10 +12,10 @@ import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/bread
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
