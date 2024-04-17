@@ -46,8 +46,8 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         response = self.client.get(
             self.url,
             data={
-                "start_timestamp": start_ts.timestamp(),
-                "end_timestamp": datetime.now().timestamp(),
+                "start_timestamp": str(start_ts.timestamp()),
+                "end_timestamp": str(datetime.now().timestamp()),
             },
             format="json",
         )
@@ -73,8 +73,8 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         response = self.client.get(
             self.url,
             data={
-                "start_timestamp": datetime.now().timestamp(),
-                "end_timestamp": datetime.now().timestamp(),
+                "start_timestamp": str(datetime.now().timestamp()),
+                "end_timestamp": str(datetime.now().timestamp()),
             },
             format="json",
         )
@@ -383,8 +383,8 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         response = self.client.get(
             self.url,
             data={
-                "start_timestamp": base_datetime.timestamp(),
-                "end_timestamp": (base_datetime + timedelta(hours=8)).timestamp(),
+                "start_timestamp": str(base_datetime.timestamp()),
+                "end_timestamp": str((base_datetime + timedelta(hours=8)).timestamp()),
             },
             format="json",
         )
