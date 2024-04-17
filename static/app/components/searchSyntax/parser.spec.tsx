@@ -54,11 +54,6 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
         delete token.invalid;
       }
 
-      if (token.type === Token.VALUE_ISO_8601_DATE) {
-        // Date values are represented as ISO strings in the test case json
-        return {...token, value: token.value.toISOString()};
-      }
-
       return token;
     },
   });

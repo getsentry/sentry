@@ -18,7 +18,7 @@
         "operator": "",
         "value": {
           "type": "valueRelativeDate",
-          "value": 7,
+          "value": "7",
           "sign": "+",
           "unit": "d"
         }
@@ -48,7 +48,7 @@
         "operator": "",
         "value": {
           "type": "valueRelativeDate",
-          "value": 2,
+          "value": "2",
           "sign": "-",
           "unit": "w"
         }

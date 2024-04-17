@@ -18,7 +18,12 @@ from sentry.api.event_search import (
 )
 from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
+from sentry.search.utils import (
+    parse_bool,
+    parse_datetime_string,
+    parse_duration,
+    parse_numeric_value,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
@@ -111,7 +116,12 @@ def result_transformer(result):
             return SearchValue(raw_value=[item["value"]["value"] for item in token["items"]])
 
         if token["type"] == "valueNumberList":
-            return SearchValue(raw_value=[item["value"]["rawValue"] for item in token["items"]])
+            return SearchValue(
+                raw_value=[
+                    parse_numeric_value(item["value"]["value"], item["value"]["unit"])
+                    for item in token["items"]
+                ]
+            )
 
         if token["type"] == "valueIso8601Date":
             return SearchValue(raw_value=parse_datetime_string(token["value"]))
@@ -123,7 +133,7 @@ def result_transformer(result):
             return SearchValue(raw_value=parse_duration(token["value"], token["unit"]))
 
         if token["type"] == "valueBoolean":
-            return SearchValue(raw_value=int(token["value"]))
+            return SearchValue(raw_value=int(parse_bool(token["value"])))
 
         if token["type"] == "freeText":
             if token["quoted"]:

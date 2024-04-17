@@ -72,7 +72,6 @@
         "operator": ">",
         "value": {
           "type": "valueNumber",
-          "rawValue": 0,
           "value": "0",
           "unit": null
         }

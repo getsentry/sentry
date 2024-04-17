@@ -18,7 +18,7 @@
         "operator": "",
         "value": {
           "type": "valueIso8601Date",
-          "value": "2018-01-01T00:00:00.000Z"
+          "value": "2018-01-01"
         }
       },
       {
@@ -46,7 +46,7 @@
         "operator": "",
         "value": {
           "type": "valueIso8601Date",
-          "value": "2018-01-01T05:06:07.000Z"
+          "value": "2018-01-01T05:06:07Z"
         }
       },
       {
@@ -74,7 +74,7 @@
         "operator": "",
         "value": {
           "type": "valueIso8601Date",
-          "value": "2018-01-01T05:06:07.000Z"
+          "value": "2018-01-01T05:06:07+00:00"
         }
       },
       {

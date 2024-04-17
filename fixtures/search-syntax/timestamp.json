@@ -10,7 +10,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T00:00:00.000Z"}
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -26,7 +26,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.000Z"}
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01"}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -42,7 +42,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103Z"}
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103"}
       },
       {"type": "spaces", "value": ""}
     ]
