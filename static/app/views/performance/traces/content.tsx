@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -29,7 +30,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {
   ProjectRenderer,
+  SpanBreakdownSliceRenderer,
   SpanIdRenderer,
+  TraceBreakdownContainer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
 } from './fieldRenderers';
@@ -46,6 +49,8 @@ const FIELDS = [
   'span.op',
   'span.description',
   'span.duration',
+  'precise.start_ts',
+  'precise.finish_ts',
 ];
 type Field = (typeof FIELDS)[number];
 
@@ -202,7 +207,7 @@ function SpanTable({
           </StyledPanelHeader>
 
           {spans.map(span => (
-            <SpanRow key={span.id} span={span} traceId={trace.trace} />
+            <SpanRow key={span.id} span={span} trace={trace} />
           ))}
         </SpanPanelContent>
       </StyledPanel>
@@ -210,7 +215,8 @@ function SpanTable({
   );
 }
 
-function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
+function SpanRow({span, trace}: {span: SpanResult<Field>; trace: TraceResult<Field>}) {
+  const theme = useTheme();
   return (
     <Fragment>
       <StyledSpanPanelItem align="right">
@@ -218,7 +224,7 @@ function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
           projectSlug={span.project}
           transactionId={span['transaction.id']}
           spanId={span.id}
-          traceId={traceId}
+          traceId={trace.trace}
           timestamp={span.timestamp}
         />
       </StyledSpanPanelItem>
@@ -231,7 +237,15 @@ function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
         </Description>
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
-        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+        <TraceBreakdownContainer>
+          <SpanBreakdownSliceRenderer
+            sliceName={span.project}
+            sliceStart={Math.ceil(span['precise.start_ts'] * 1000)}
+            sliceEnd={Math.floor(span['precise.finish_ts'] * 1000)}
+            trace={trace}
+            theme={theme}
+          />
+        </TraceBreakdownContainer>
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
@@ -246,12 +260,32 @@ function SpanRow({span, traceId}: {span: SpanResult<Field>; traceId: string}) {
 type SpanResult<F extends string> = Record<F, any>;
 
 export interface TraceResult<F extends string> {
+  breakdowns: TraceBreakdownResult[];
   duration: number;
+  end: number;
   name: string | null;
   numSpans: number;
   spans: SpanResult<F>[];
+  start: number;
   trace: string;
 }
+
+interface TraceBreakdownBase {
+  end: number;
+  start: number;
+}
+
+type TraceBreakdownProject = TraceBreakdownBase & {
+  kind: 'project';
+  project: string;
+};
+
+type TraceBreakdownMissing = TraceBreakdownBase & {
+  kind: 'missing';
+  project: null;
+};
+
+export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
 
 interface TraceResults<F extends string> {
   data: TraceResult<F>[];

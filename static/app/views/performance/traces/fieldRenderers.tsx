@@ -1,11 +1,14 @@
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -21,6 +24,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import type {TraceResult} from './content';
+import type {Field} from './data';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -46,44 +52,85 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   );
 }
 
-const RelativeOpsBreakdown = styled('div')`
+export const TraceBreakdownContainer = styled('div')`
   position: relative;
   display: flex;
   min-width: 150px;
+  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  background-color: ${p => p.theme.gray100};
 `;
 
-const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
+const RectangleTraceBreakdown = styled(RowRectangle)`
   position: relative;
   width: 100%;
 `;
 
 export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
-  const widthPercentage = 1.0;
-  const operationName = 'trace';
-  const spanOpDuration = 1000;
+  const theme = useTheme();
+
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
-      <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
-        <Tooltip
-          title={
-            <div>
-              <div>{operationName}</div>
-              <div>
-                <Duration seconds={spanOpDuration / 1000} fixedDigits={2} abbreviation />
-              </div>
-            </div>
-          }
-          containerDisplayMode="block"
-        >
-          <RectangleRelativeOpsBreakdown
-            style={{
-              backgroundColor: pickBarColor(operationName),
-            }}
-            onClick={_ => {}}
+    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
+      {trace.breakdowns.map(breakdown => {
+        return (
+          <SpanBreakdownSliceRenderer
+            key={breakdown.start + (breakdown.project ?? t('missing'))}
+            sliceName={breakdown.project}
+            sliceStart={breakdown.start}
+            sliceEnd={breakdown.end}
+            trace={trace}
+            theme={theme}
           />
-        </Tooltip>
-      </div>
-    </RelativeOpsBreakdown>
+        );
+      })}
+    </TraceBreakdownContainer>
+  );
+}
+
+export function SpanBreakdownSliceRenderer({
+  trace,
+  theme,
+  sliceName,
+  sliceStart,
+  sliceEnd,
+}: {
+  sliceEnd: number;
+  sliceName: string | null;
+  sliceStart: number;
+  theme: Theme;
+  trace: TraceResult<Field>;
+}) {
+  const traceDuration = trace.end - trace.start;
+
+  const sliceDuration = sliceEnd - sliceStart;
+
+  if (sliceDuration <= 0) {
+    return null;
+  }
+  const sliceColor = sliceName ? pickBarColor(sliceName) : theme.gray100;
+  const slicePercent = toPercent(sliceDuration / traceDuration);
+  const relativeSliceStart = sliceStart - trace.start;
+  const sliceOffset = toPercent(relativeSliceStart / traceDuration);
+  return (
+    <div style={{width: slicePercent, left: sliceOffset, position: 'absolute'}}>
+      <Tooltip
+        title={
+          <div>
+            <div>{sliceName}</div>
+            <div>
+              <Duration seconds={sliceDuration / 1000} fixedDigits={2} abbreviation />
+            </div>
+          </div>
+        }
+        containerDisplayMode="block"
+      >
+        <RectangleTraceBreakdown
+          style={{
+            backgroundColor: sliceColor,
+          }}
+          onClick={_ => {}}
+        />
+      </Tooltip>
+    </div>
   );
 }
 
