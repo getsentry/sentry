@@ -35,6 +35,7 @@ import {
   TraceBreakdownContainer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
+  TraceIssuesRenderer,
 } from './fieldRenderers';
 import {TracesSearchBar} from './tracesSearchBar';
 import {normalizeTraces} from './utils';
@@ -173,7 +174,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+        <TraceIssuesRenderer trace={trace} />
       </StyledPanelItem>
       <StyledPanelItem style={{padding: '5px'}} />
       {expanded && <SpanTable spans={trace.spans} trace={trace} />}
@@ -345,13 +346,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 120px 60px 10px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 120px 66px 10px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 120px 60px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 120px 66px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
