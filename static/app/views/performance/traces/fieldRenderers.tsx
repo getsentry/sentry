@@ -79,7 +79,7 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
       {trace.breakdowns.map(breakdown => {
         return (
           <SpanBreakdownSliceRenderer
-            key={breakdown.start + (breakdown.project ?? t('missing'))}
+            key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
