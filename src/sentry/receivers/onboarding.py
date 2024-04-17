@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -83,6 +83,9 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
+        updated_empty_state=features.has(
+            "organizations:issue-stream-empty-state", project.organization
+        ),
     )
 
     success = OrganizationOnboardingTask.objects.record(
