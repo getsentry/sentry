@@ -152,6 +152,7 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.apiapplication
   ordinal: 1
   sanitized_fields:
+  - client_id
   - client_secret
   - date_added
   - name
