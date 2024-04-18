@@ -26,6 +26,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/metrics/chart/types';
 import type {UseFocusAreaResult} from 'sentry/views/metrics/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/metrics/chart/useMetricChartSamples';
+import type {UseMetricReleasesResult} from 'sentry/views/metrics/chart/useMetricReleases';
 
 const MAIN_X_AXIS_ID = 'xAxis';
 
@@ -36,6 +37,7 @@ type ChartProps = {
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
+  releases?: UseMetricReleasesResult;
   samples?: UseMetricSamplesResult;
 };
 
@@ -73,7 +75,7 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = memo(
   forwardRef<ReactEchartsRef, ChartProps>(
     (
-      {series, displayType, height, group, samples, focusArea, enableZoom},
+      {series, displayType, height, group, samples, focusArea, enableZoom, releases},
       forwardedRef
     ) => {
       const chartRef = useRef<ReactEchartsRef>(null);
@@ -298,6 +300,11 @@ export const MetricChart = memo(
         if (samples?.applyChartProps) {
           baseChartProps = samples.applyChartProps(baseChartProps);
         }
+
+        if (releases?.applyChartProps) {
+          baseChartProps = releases.applyChartProps(baseChartProps);
+        }
+
         // Apply focus area props as last so it can disable tooltips
         if (focusArea?.applyChartProps) {
           baseChartProps = focusArea.applyChartProps(baseChartProps);
@@ -315,6 +322,7 @@ export const MetricChart = memo(
         uniqueUnits,
         samples,
         focusArea,
+        releases,
         firstUnit,
       ]);
 
@@ -326,7 +334,6 @@ export const MetricChart = memo(
           </ChartWrapper>
         );
       }
-
       return (
         <ChartWrapper>
           <ChartZoom>
@@ -347,7 +354,7 @@ function CombinedChart({
   const combinedSeries = useMemo(() => {
     if (displayType === MetricDisplayType.LINE) {
       return [
-        ...transformToLineSeries({series}),
+        ...transformToLineSeries({series: [...series]}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
       ];
     }
@@ -368,7 +375,6 @@ function CombinedChart({
 
     return [];
   }, [displayType, scatterSeries, series, chartProps.colors]);
-
   return <BaseChart {...chartProps} series={combinedSeries} />;
 }
 
