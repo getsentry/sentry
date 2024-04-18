@@ -1,19 +1,27 @@
 import {useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {TagContainer} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TagColumn, TagContainer} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TagRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {
   useHasNewTagsUI,
   useIssueDetailsColumnCount,
 } from 'sentry/components/events/eventTags/util';
-import HighlightsColumns from 'sentry/components/events/highlights/highilightsColumns';
+import HighlightsEditModal from 'sentry/components/events/highlights/highlightsEditModal';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event, EventTag, Group, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface HighlightsSectionProps {
   event: Event;
@@ -21,16 +29,57 @@ interface HighlightsSectionProps {
   project: Project;
 }
 
-export default function HighlightsDataSection({
-  event,
-  group,
-  project,
-}: HighlightsSectionProps) {
+export default function HighlightsDataSection({event, project}: HighlightsSectionProps) {
   const hasNewTagsUI = useHasNewTagsUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 
-  if (!hasNewTagsUI) {
+  const organization = useOrganization();
+  const {isLoading, data} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const contextHighlights = data?.highlightContext ?? {};
+  const contextHighlightsTypes = new Set(Object.keys(contextHighlights));
+  const contextHighlightRows = getOrderedContextItems(event)
+    .filter(([alias]) => contextHighlightsTypes.has(alias))
+    .reduce<EventTag[]>((acc, [alias, ctx]) => {
+      const newEntries: EventTag[] = (data?.highlightContext?.[alias] ?? [])
+        .map(hcKey => ({
+          key: `${alias}: ${hcKey}`,
+          value: ctx[hcKey],
+        }))
+        .filter(item => defined(item.value));
+      return acc.concat(newEntries);
+    }, [])
+    .map((item, i) => (
+      <ContextTagRow key={i} projectSlug={project.slug} tag={item} meta={{}} />
+    ));
+
+  const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
+    event.tags.reduce((tm, tag, i) => {
+      tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
+      return tm;
+    }, {});
+  const tagHighlights = (data?.highlightTags ?? []).filter(tKey =>
+    tagMap.hasOwnProperty(tKey)
+  );
+  const tagHighlightRows = tagHighlights.map((tKey, i) => (
+    <TagRow key={i} projectSlug={project.slug} {...tagMap[tKey]} />
+  ));
+
+  const rows = [...contextHighlightRows, ...tagHighlightRows];
+
+  const columns: React.ReactNode[] = [];
+  const columnSize = Math.ceil(rows.length / columnCount);
+  for (let i = 0; i < rows.length; i += columnSize) {
+    columns.push(
+      <HighlightColumn key={i}>{rows.slice(i, i + columnSize)}</HighlightColumn>
+    );
+  }
+
+  if (!hasNewTagsUI || isLoading) {
     return null;
   }
 
@@ -47,19 +96,23 @@ export default function HighlightsDataSection({
           <LinkButton href="#context" size="xs">
             {t('All Context')}
           </LinkButton>
-          <Button size="xs" icon={<IconEdit />}>
+          <Button
+            size="xs"
+            icon={<IconEdit />}
+            onClick={() =>
+              openModal(
+                deps => <HighlightsEditModal detailedProject={project} {...deps} />,
+                {modalCss: highlightModalCss}
+              )
+            }
+          >
             {t('Edit')}
           </Button>
         </ButtonBar>
       }
     >
       <HighlightContainer ref={containerRef} columnCount={columnCount}>
-        <HighlightsColumns
-          event={event}
-          group={group}
-          project={project}
-          columnCount={columnCount}
-        />
+        {columns}
       </HighlightContainer>
     </EventDataSection>
   );
@@ -68,4 +121,21 @@ export default function HighlightsDataSection({
 const HighlightContainer = styled(TagContainer)<{columnCount: number}>`
   margin-top: 0;
   margin-bottom: ${space(2)};
+`;
+
+const HighlightColumn = styled(TagColumn)`
+  grid-column: span 1;
+`;
+
+const ContextTagRow = styled(TagRow)`
+  .row-key {
+    text-transform: capitalize;
+  }
+`;
+
+export const highlightModalCss = css`
+  max-width: 800px;
+  @media (min-width: ${theme.breakpoints.small}) {
+    width: 80%;
+  }
 `;

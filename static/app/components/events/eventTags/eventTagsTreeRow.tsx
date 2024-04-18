@@ -48,7 +48,7 @@ export function TagRow({meta, projectSlug, tag, ...props}: TagRowProps) {
         <TreeKey hasErrors={hasTagErrors}>{tag.key}</TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk className="row-value">
-        <TreeValue>
+        <TreeValue hasErrors={hasTagErrors}>
           {tag.key === 'release' ? (
             <VersionHoverCard
               organization={organization}
@@ -118,7 +118,7 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue>
+        <TreeValue hasErrors={hasTagErrors}>
           {originalTag.key === 'release' ? (
             <VersionHoverCard
               organization={organization}
@@ -316,17 +316,18 @@ const TreeValueTrunk = styled('div')`
   grid-column-gap: ${space(0.5)};
 `;
 
-export const TreeValue = styled('div')`
+export const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
 `;
 
-export const TreeKey = styled(TreeValue)<{hasErrors: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.gray300)};
+export const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
 `;
 
 /**
