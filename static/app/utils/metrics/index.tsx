@@ -20,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsDataIntervalLadder,
@@ -32,7 +32,6 @@ import type {
 } from 'sentry/types/metrics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement} from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
@@ -45,7 +44,6 @@ import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
 } from 'sentry/utils/metrics/useMetricsQuery';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
@@ -408,29 +406,6 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
-}
-
-export function getMetricsCorrelationSpanUrl(
-  organization: Organization,
-  projectSlug: string | undefined,
-  spanId: string | undefined,
-  transactionId: string,
-  transactionSpanId: string
-) {
-  const isTransaction = spanId === transactionSpanId;
-
-  const eventSlug = generateEventSlug({
-    id: transactionId,
-    project: projectSlug,
-  });
-
-  return getTransactionDetailsUrl(
-    organization.slug,
-    eventSlug,
-    isTransaction ? transactionId : undefined,
-    {referrer: 'metrics', openPanel: 'open'},
-    isTransaction ? undefined : spanId
-  );
 }
 
 export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
