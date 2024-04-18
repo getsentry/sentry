@@ -21,12 +21,10 @@ class SentryAppRotateSecretPermission(SentryPermission):
 
     def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
         # organization that owns an integration
-        org_context = organization_service.get_organization_by_id(id=sentry_app.owner_id)
+        org_context = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id if request.user else None
+        )
         if org_context is None:
-            raise Http404
-
-        organization = org_context.organization
-        if organization is None:
             raise Http404
 
         # if user is not a member of an organization owning an integration,
@@ -36,11 +34,11 @@ class SentryAppRotateSecretPermission(SentryPermission):
             if request.user.id is not None
             else ()
         )
-        if not any(organization.id == org.id for org in organizations):
+        if not any(sentry_app.owner_id == org.id for org in organizations):
             raise Http404
 
         # permission check inside an organization
-        self.determine_access(request, organization)
+        self.determine_access(request, org_context)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
