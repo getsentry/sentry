@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -133,9 +132,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
