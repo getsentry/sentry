@@ -3,7 +3,7 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryResult
-from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper
+from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
 from sentry.sentry_metrics.querying.data.postprocessing.base import PostProcessingStep
 
 
@@ -13,11 +13,11 @@ class QueryDemodulationStep(PostProcessingStep):
 
     def run(self, query_results: list[QueryResult]) -> list[QueryResult]:
         for query_result in query_results:
-            if query_result.totals:
+            if query_result.totals is not None and len(query_result.totals) > 0:
                 query_result.totals = self._unmap_data(
                     query_result.totals, query_result.totals_query.mappers
                 )
-            if query_result.series:
+            if query_result.series is not None and len(query_result.series) > 0:
                 query_result.series = self._unmap_data(
                     query_result.series, query_result.series_query.mappers
                 )

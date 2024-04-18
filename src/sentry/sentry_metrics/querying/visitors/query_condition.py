@@ -4,10 +4,10 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper, MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper, MapperConfig
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
-from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor, TVisited
+from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
 
 
 class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
@@ -103,7 +103,7 @@ class MapperConditionVisitor(QueryConditionVisitor):
     def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
         self.mapper_config = mapper_config
-        self.mappers = []
+        self.mappers: list[Mapper] = []
 
     def get_or_create_mapper(
         self, from_key: str | None = None, to_key: int | None = None
@@ -125,7 +125,7 @@ class MapperConditionVisitor(QueryConditionVisitor):
             # if no mapper is configured for the key, return None
             return None
 
-    def _visit_condition(self, condition: Condition) -> TVisited:
+    def _visit_condition(self, condition: Condition) -> Condition:
         lhs = condition.lhs
         rhs = condition.rhs
 
@@ -142,7 +142,7 @@ class MapperConditionVisitor(QueryConditionVisitor):
 
         return condition
 
-    def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
+    def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> BooleanCondition:
         conditions = []
         for condition in boolean_condition.conditions:
             conditions.append(self.visit(condition))

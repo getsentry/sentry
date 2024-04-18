@@ -6,7 +6,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
-from sentry.sentry_metrics.querying.data.modulation.mapper import Mapper, MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper, MapperConfig
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -462,7 +462,7 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
         return isinstance(value, int) or isinstance(value, float)
 
 
-class ModulatorVisitor(QueryExpressionVisitor):
+class MapperVisitor(QueryExpressionVisitor):
     """
     Visitor that recursively transforms the QueryExpression components to modulate certain attributes to be queried
     by API that need to be translated for Snuba to be able to query the data.
@@ -474,7 +474,7 @@ class ModulatorVisitor(QueryExpressionVisitor):
         self.mappers: list[Mapper] = []
 
     def get_or_create_mapper(
-        self, from_key: str | None = None, to_key: int | None = None
+        self, from_key: str | None = None, to_key: str | None = None
     ) -> Mapper | None:
         # retrieve the mapper type that is applicable for the given key
         mapper_class = self.mapper_config.get(from_key=from_key, to_key=to_key)
@@ -521,7 +521,7 @@ class ModulatorVisitor(QueryExpressionVisitor):
         return timeseries
 
     def _map_groupby(
-        self, groupby: list[Column | AliasedExpression] | None = None
+        self, groupby: list[Column | AliasedExpression]
     ) -> list[Column | AliasedExpression]:
         new_group_bys = []
         for group in groupby:

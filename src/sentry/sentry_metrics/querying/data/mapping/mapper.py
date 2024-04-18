@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Sequence
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from sentry.models.project import Project
 
@@ -29,9 +29,9 @@ TMapper = TypeVar("TMapper", bound=Mapper)
 
 class MapperConfig:
     def __init__(self):
-        self.mappers: set[Generic[TMapper]] = set()
+        self.mappers: set[type[Mapper]] = set()
 
-    def add(self, mapper: Generic[TMapper]) -> "MapperConfig":
+    def add(self, mapper: type[Mapper]) -> "MapperConfig":
         self.mappers.add(mapper)
         return self
 

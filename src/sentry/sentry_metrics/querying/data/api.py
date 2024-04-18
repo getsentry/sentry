@@ -8,19 +8,16 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
-from sentry.sentry_metrics.querying.data.modulation.mapper import (
-    MapperConfig,
-    Project2ProjectIDMapper,
-)
+from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig, Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
-from sentry.sentry_metrics.querying.data.postprocessing.demodulation import QueryDemodulationStep
+from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryDemodulationStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
     PreparationStep,
     run_preparation_steps,
 )
-from sentry.sentry_metrics.querying.data.preparation.modulation import QueryModulationStep
+from sentry.sentry_metrics.querying.data.preparation.mapping import QueryMappingStep
 from sentry.sentry_metrics.querying.data.preparation.units_normalization import (
     UnitsNormalizationStep,
 )
@@ -78,7 +75,7 @@ def run_queries(
     ):
         preparation_steps.append(UnitsNormalizationStep())
 
-    preparation_steps.append(QueryModulationStep(projects, mapper_config))
+    preparation_steps.append(QueryMappingStep(projects, mapper_config))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
