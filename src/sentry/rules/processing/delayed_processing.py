@@ -113,17 +113,17 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             return f"data: {self.data}\ngroup_ids: {self.group_ids}"
 
     condition_groups: dict[UniqueCondition, DataAndGroups] = {}
-
+    rule_to_slow_conditions = defaultdict(list)
     for rule in alert_rules:
         # We only want a rule's slow conditions because alert_rules are only added
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
+            rule_to_slow_conditions[rule].append(condition_data)
             if condition_data:
                 unique_condition = UniqueCondition(
                     condition_data["id"], condition_data["interval"], rule.environment_id
                 )
-
                 # Add to set of group_ids if there are already group_ids
                 # that apply to the unique condition
                 if data_and_groups := condition_groups.get(unique_condition):
@@ -203,20 +203,20 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rules_to_fire = defaultdict(set)
-    for rule in alert_rules:
-        for rule_condition in rule.data.get("conditions", []):  # the rule's conditions
+    for alert_rule, slow_conditions in rule_to_slow_conditions.items():
+        for slow_condition in slow_conditions:
             for (
                 condition,
-                result,
-            ) in condition_group_results.items():  # condition to results per group
-                if (
-                    rule_condition["id"] == condition.cls_id
-                ):  # match the rule's condition to the condition to results
-                    for group_id in rules_to_groups[rule.id]:  # the rule's groups
-                        for c, _ in condition_groups.items():  # conditions (with values) to groups
-                            if c.cls_id == condition.cls_id:
-                                if results["group_id"] > int(rule_condition.get("value")):
-                                    rules_to_fire[rule].add(group_id)
+                data,
+            ) in condition_groups.items():  # unique conditions to conditions and groups
+                if slow_condition == data.data:
+                    for (
+                        c,
+                        results,
+                    ) in condition_group_results.items():  # unique condition to results per group
+                        if c.cls_id == slow_condition["id"]:
+                            if results[int(group_id)] > int(slow_condition.get("value")):
+                                rules_to_fire[alert_rule].add(group_id)
 
             # get:
             # 1. rule conditions + result of condition check in results dict
