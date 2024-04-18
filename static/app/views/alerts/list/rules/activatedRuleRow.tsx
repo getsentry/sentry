@@ -67,7 +67,7 @@ function ActivatedRuleListRow({
 
   function renderLatestActivation(): React.ReactNode {
     if (!rule.activations?.length) {
-      return t('Alert not been activated yet');
+      return t('Alert has not been activated yet');
     }
 
     return (

@@ -333,8 +333,55 @@ describe('AlertRulesList', () => {
     expect(rules[0]).toBeInTheDocument();
 
     expect(screen.getByText('Triggered')).toBeInTheDocument();
-    expect(screen.getByText('Above 70')).toBeInTheDocument();
-    expect(screen.getByText('Below 36')).toBeInTheDocument();
+    expect(screen.getByText('Above 70')).toBeInTheDocument(); // the fixture trigger threshold
+    expect(screen.getByText('Below 36')).toBeInTheDocument(); // the fixture resolved threshold
+    expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
+  });
+
+  it('displays activated metric alert status', async () => {
+    rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        MetricRuleFixture({
+          id: '1',
+          projects: ['earth'],
+          name: 'Active Activated Alert',
+          monitorType: 1,
+          activationCondition: 0,
+          activations: [
+            {
+              alertRuleId: '1',
+              dateCreated: '2021-08-01T00:00:00Z',
+              finishedAt: '',
+              id: '1',
+              isComplete: false,
+              querySubscriptionId: '1',
+            },
+          ],
+          latestIncident: IncidentFixture({
+            status: IncidentStatus.CRITICAL,
+          }),
+        }),
+        MetricRuleFixture({
+          id: '2',
+          projects: ['earth'],
+          name: 'Ready Activated Alert',
+          monitorType: 1,
+          activationCondition: 0,
+        }),
+      ],
+    });
+    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {context: routerContext, organization});
+
+    expect(await screen.findByText('Active Activated Alert')).toBeInTheDocument();
+    expect(await screen.findByText('Ready Activated Alert')).toBeInTheDocument();
+
+    expect(screen.getByText('Last activated')).toBeInTheDocument();
+    expect(screen.getByText('Alert has not been activated yet')).toBeInTheDocument();
+    expect(screen.getByText('Above 70')).toBeInTheDocument(); // the fixture trigger threshold
+    expect(screen.getByText('Below 70')).toBeInTheDocument(); // Alert has never fired, so no resolved threshold
     expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
   });
 
