@@ -206,7 +206,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
                 )
 
-                result = search.query(**query_kwargs)  # type: ignore[attr-defined]
+                result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
     @track_slo_response("workflow")
