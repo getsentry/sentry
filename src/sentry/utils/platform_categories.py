@@ -55,6 +55,7 @@ BACKEND = [
     "go",
     "go-echo",
     "go-fasthttp",
+    "go-fiber",
     "go-gin",
     "go-http",
     "go-iris",

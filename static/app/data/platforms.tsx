@@ -173,6 +173,13 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
+    link: 'https://docs.sentry.io/platforms/go/guides/fiber/',
+    type: 'framework',
+    id: 'go-fiber',
+    name: 'Fiber',
+    language: 'go',
+  },
+  {
     link: 'https://docs.sentry.io/platforms/go/guides/gin/',
     type: 'framework',
     id: 'go-gin',

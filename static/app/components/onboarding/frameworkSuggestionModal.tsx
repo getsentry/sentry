@@ -38,6 +38,7 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  "go-fiber",
   'go-gin',
   'go-http',
   'go-iris',

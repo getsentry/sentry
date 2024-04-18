@@ -84,6 +84,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go",
     "go-echo",
     "go-fasthttp",
+    "go-fiber",
     "go-gin",
     "go-http",
     "go-iris",
