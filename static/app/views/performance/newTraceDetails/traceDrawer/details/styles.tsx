@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';
+import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -247,6 +248,47 @@ function Duration(props: DurationProps) {
   );
 }
 
+function TableRow({
+  title,
+  keep,
+  children,
+  prefix,
+  extra = null,
+}: {
+  children: React.ReactNode;
+  title: JSX.Element | string | null;
+  extra?: React.ReactNode;
+  keep?: boolean;
+  prefix?: JSX.Element;
+}) {
+  if (!keep && !children) {
+    return null;
+  }
+
+  return (
+    <tr>
+      <td className="key">
+        <Flex>
+          {prefix}
+          {title}
+        </Flex>
+      </td>
+      <ValueTd className="value">
+        <ValueRow>
+          <StyledPre>
+            <span className="val-string">{children}</span>
+          </StyledPre>
+          <ButtonContainer>{extra}</ButtonContainer>
+        </ValueRow>
+      </ValueTd>
+    </tr>
+  );
+}
+
+const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
+  observerOptions: {rootMargin: '50px'},
+};
+
 const DurationContainer = styled('span')`
   font-weight: bold;
   margin-right: ${space(1)};
@@ -254,6 +296,34 @@ const DurationContainer = styled('span')`
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+`;
+
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ValueRow = styled('div')`
+  display: grid;
+  grid-template-columns: auto min-content;
+  gap: ${space(1)};
+
+  border-radius: 4px;
+  background-color: ${p => p.theme.surface200};
+  margin: 2px;
+`;
+
+const StyledPre = styled('pre')`
+  margin: 0 !important;
+  background-color: transparent !important;
+`;
+
+const ButtonContainer = styled('div')`
+  padding: 8px 10px;
+`;
+
+const ValueTd = styled('td')`
+  position: relative;
 `;
 
 const TraceDrawerComponents = {
@@ -271,6 +341,8 @@ const TraceDrawerComponents = {
   Button,
   TitleText,
   Duration,
+  TableRow,
+  LAZY_RENDER_PROPS,
 };
 
 export {TraceDrawerComponents};
