@@ -61,7 +61,7 @@ export function SearchQueryBuilder({
                     token={token}
                   />
                 );
-              // TODO(malwilley):
+              // TODO(malwilley): Add other token types
               default:
                 return null;
             }
