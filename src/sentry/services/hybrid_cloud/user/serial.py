@@ -8,7 +8,13 @@ from django.utils.functional import LazyObject
 from sentry.db.models import BaseQuerySet
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcAuthenticator, RpcAvatar, RpcUser, RpcUserEmail
+from sentry.services.hybrid_cloud.user import (
+    RpcAuthenticator,
+    RpcAvatar,
+    RpcUser,
+    RpcUserEmail,
+    RpcUserProfile,
+)
 
 
 def serialize_generic_user(user: Any) -> RpcUser | None:
@@ -27,10 +33,10 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
     raise TypeError(f"Can't serialize {type(user)} to RpcUser")
 
 
-def serialize_rpc_user(user: User) -> RpcUser:
+def _serialize_from_user_fields(user: User) -> dict[str, Any]:
     args = {
         field_name: getattr(user, field_name)
-        for field_name in RpcUser.__fields__
+        for field_name in RpcUserProfile.__fields__
         if hasattr(user, field_name)
     }
     args["pk"] = user.pk
@@ -39,21 +45,31 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["is_superuser"] = user.is_superuser
     args["is_sentry_app"] = bool(user.is_sentry_app)
     args["password_usable"] = user.has_usable_password()
+    args["session_nonce"] = user.session_nonce
+
+    if args["name"] is None:
+        # This field is non-nullable according to the Django schema, but may be null
+        # on some servers due to migration history
+        args["name"] = ""
+
+    return args
+
+
+def serialize_rpc_user_profile(user: User) -> RpcUserProfile:
+    return RpcUserProfile(**_serialize_from_user_fields(user))
+
+
+def serialize_rpc_user(user: User) -> RpcUser:
+    args = _serialize_from_user_fields(user)
 
     # Prefer eagerloaded attributes from _base_query
     if hasattr(user, "useremails") and user.useremails is not None:
         args["emails"] = frozenset([e["email"] for e in user.useremails if e["is_verified"]])
     else:
         args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
-    args["session_nonce"] = user.session_nonce
 
     # And process the _base_query special data additions
     args["permissions"] = frozenset(getattr(user, "permissions", None) or ())
-
-    if args["name"] is None:
-        # This field is non-nullable according to the Django schema, but may be null
-        # on some servers due to migration history
-        args["name"] = ""
 
     roles: frozenset[str] = frozenset()
     if hasattr(user, "roles") and user.roles is not None:
@@ -73,7 +89,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type_map = dict(UserAvatar.AVATAR_TYPES)
             avatar = RpcAvatar(
                 id=avatar_dict["id"],
-                file_id=avatar_dict["file_id"],
+                file_id=avatar_dict["control_file_id"],
                 ident=avatar_dict["ident"],
                 avatar_type=avatar_type_map.get(avatar_dict["avatar_type"], "letter_avatar"),
             )
@@ -101,7 +117,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
 def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
     return RpcAvatar(
         id=avatar.id,
-        file_id=avatar.file_id,
+        file_id=avatar.control_file_id,
         ident=avatar.ident,
         avatar_type=avatar.get_avatar_type_display(),
     )

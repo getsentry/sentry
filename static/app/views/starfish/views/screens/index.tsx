@@ -122,9 +122,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
   const platform =

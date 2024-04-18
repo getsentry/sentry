@@ -94,7 +94,6 @@ def schedule_webhook_delivery(**kwargs) -> None:
     metrics.distribution(
         "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
     )
-    use_parallel = options.get("hybridcloud.webhookpayload.use_parallel")
     for record in scheduled_mailboxes[:BATCH_SIZE]:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
@@ -106,8 +105,8 @@ def schedule_webhook_delivery(**kwargs) -> None:
         updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
             schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
         )
-        # If we have a full batch we should process in parallel as we're likely behind.
-        if use_parallel and updated_count >= MAX_MAILBOX_DRAIN:
+        # If we have 1/3 or more in a mailbox we should process in parallel as we're likely behind.
+        if updated_count >= int(MAX_MAILBOX_DRAIN / 3):
             drain_mailbox_parallel.delay(record["id"])
         else:
             drain_mailbox.delay(record["id"])
@@ -216,20 +215,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             },
         )
         return
-    logger.info(
-        "drain_mailbox_parallel.start",
-        extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
-    )
 
     # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
     # Once payloads are this old they are low value, and we're better off prioritizing new work.
     max_age = timezone.now() - MAX_DELIVERY_AGE
     if payload.date_added < max_age:
-        logger.info(
-            "drain_mailbox_parallel.max_age_start",
-            extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
-        )
-
         # We delete chunks of stale messages using a subquery
         # because postgres cannot do delete with limit
         stale_query = WebhookPayload.objects.filter(
@@ -283,14 +273,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 threadpool.submit(deliver_message_parallel, record)
                 for record in query[:worker_threads]
             }
-            logger.info(
-                "drain_mailbox_parallel.send_batch",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "count": len(futures),
-                    "threads": worker_threads,
-                },
-            )
             for future in as_completed(futures):
                 payload_record, err = future.result()
 

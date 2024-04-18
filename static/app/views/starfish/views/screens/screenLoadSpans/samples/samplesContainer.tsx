@@ -62,9 +62,7 @@ export function ScreenLoadSampleContainer({
 
   const organization = useOrganization();
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -192,8 +190,8 @@ export function ScreenLoadSampleContainer({
         release={release}
         columnOrder={[
           {
-            key: 'transaction_id',
-            name: t('Event ID'),
+            key: 'span_id',
+            name: t('Span ID'),
             width: COL_WIDTH_UNDEFINED,
           },
           {

@@ -3,3 +3,7 @@
 **/tests/**/fixtures/**/*
 !.github
 *.d.ts
+config/chartcuterie/config.js
+fixtures/profiles/embedded.js
+fixtures/artifact_bundle_debug_ids/**/*
+fixtures/artifact_bundle_duplicated_debug_ids/**/*

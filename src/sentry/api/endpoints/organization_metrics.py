@@ -28,8 +28,8 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
-    MetricsQueriesPlan,
-    run_metrics_queries_plan,
+    MQLQuery,
+    run_queries,
 )
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
@@ -282,7 +282,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     """
 
     # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    default_rate_limit = RateLimit(limit=200, window=5)
 
     rate_limits = {
         "GET": {
@@ -361,7 +361,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     """
 
     # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    default_rate_limit = RateLimit(limit=200, window=5)
 
     rate_limits = {
         "POST": {
@@ -437,26 +437,26 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         interval = parse_stats_period(request.GET.get("interval", "1h"))
         return int(3600 if interval is None else interval.total_seconds())
 
-    def _metrics_queries_plan_from_request(self, request: Request) -> MetricsQueriesPlan:
+    def _mql_queries_from_request(self, request: Request) -> Sequence[MQLQuery]:
         """
         Extracts the metrics queries plan from the request payload.
         """
-        # TODO: maybe we could use a serializer to read the body of the request.
-        metrics_queries_plan = MetricsQueriesPlan()
+        mql_sub_queries = {}
+        for query in request.data.get("queries") or []:
+            mql_sub_queries[query["name"]] = MQLQuery(query["mql"])
 
-        queries = request.data.get("queries") or []
-        for query in queries:
-            metrics_queries_plan.declare_query(name=query["name"], mql=query["mql"])
-
-        formulas = request.data.get("formulas") or []
-        for formula in formulas:
-            metrics_queries_plan.apply_formula(
-                mql=formula["mql"],
-                order=self._validate_order(formula.get("order")),
-                limit=self._validate_limit(formula.get("limit")),
+        mql_queries = []
+        for formula in request.data.get("formulas") or []:
+            mql_queries.append(
+                MQLQuery(
+                    mql=formula["mql"],
+                    order=self._validate_order(formula.get("order")),
+                    limit=self._validate_limit(formula.get("limit")),
+                    **mql_sub_queries,
+                )
             )
 
-        return metrics_queries_plan
+        return mql_queries
 
     def _get_query_type_from_request(self, request: Request) -> QueryType:
         include_series = (request.GET.get("includeSeries") or "true") == "true"
@@ -474,7 +474,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
-            metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+            mql_queries = self._mql_queries_from_request(request)
 
             metrics.incr(
                 key="ddm.metrics_api.query",
@@ -485,8 +485,8 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 },
             )
 
-            results = run_metrics_queries_plan(
-                metrics_queries_plan=metrics_queries_plan,
+            results = run_queries(
+                mql_queries=mql_queries,
                 start=start,
                 end=end,
                 interval=interval,

@@ -134,7 +134,6 @@ DETAILED_PROJECT = {
         "sentry:verify_ssl": True,
         "sentry:csp_ignored_sources_defaults": True,
         "sentry:csp_ignored_sources": "",
-        "sentry:reprocessing_active": False,
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
         "filters:chunk-load-error": True,

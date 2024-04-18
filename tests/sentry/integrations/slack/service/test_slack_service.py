@@ -32,12 +32,12 @@ class TestGetNotificationMessageToSend(TestCase):
         activity = Activity.objects.create(
             group=self.group,
             project=self.project,
-            type=ActivityType.NOTE.value,
+            type=ActivityType.SET_IGNORED.value,
             user_id=self.user.id,
-            data={"text": "Hello world!"},
+            data={"ignoreUntilEscalating": True},
         )
         result = self.service._get_notification_message_to_send(activity=activity)
-        assert result == "Hello world!"
+        assert result == "admin@localhost archived BAR-1"
 
 
 class TestHandleParentNotification(TestCase):

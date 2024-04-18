@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -40,7 +40,7 @@ describe('useProfileEvents', function () {
       match: [MockApiClient.matchQuery({dataset: 'profiles'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEvents, {
+    const {result} = renderHook(useProfileEvents, {
       wrapper: TestContext,
       initialProps: {
         fields,
@@ -63,7 +63,7 @@ describe('useProfileEvents', function () {
       match: [MockApiClient.matchQuery({dataset: 'profiles'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEvents, {
+    const {result} = renderHook(useProfileEvents, {
       wrapper: TestContext,
       initialProps: {
         fields: ['count()'],

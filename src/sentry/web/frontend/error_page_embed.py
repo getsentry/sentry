@@ -194,8 +194,11 @@ class ErrorPageEmbedView(View):
             )
 
             project = Project.objects.get(id=report.project_id)
-            if features.has(
-                "organizations:user-feedback-ingest", project.organization, actor=request.user
+            if (
+                features.has(
+                    "organizations:user-feedback-ingest", project.organization, actor=request.user
+                )
+                and event is not None
             ):
                 shim_to_feedback(
                     {

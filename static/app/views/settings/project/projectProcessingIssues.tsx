@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Form from 'sentry/components/forms/form';
@@ -17,12 +19,11 @@ import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -446,6 +447,25 @@ class ProjectProcessingIssues extends Component<Props, State> {
       <div>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
         <SettingsPageHeader title={title} />
+        <Alert type="warning">
+          <TextBlock noMargin>
+            {t(
+              `Processing Issues, along with Legacy Reprocessing, has been deprecated,
+            and will be removed in the future.`
+            )}
+          </TextBlock>
+          <TextBlock noMargin>
+            {tct(
+              `Please refer to the documentation on [link:Reprocessing] to learn more about the new method to
+            reprocess events.`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/issues/reprocessing/" />
+                ),
+              }
+            )}
+          </TextBlock>
+        </Alert>
         <TextBlock>
           {t(
             `For some platforms the event processing requires configuration or

@@ -15,7 +15,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('ScreenLoadSpansTable', function () {
   const organization = OrganizationFixture({
-    features: ['performance-screens-view', 'mobile-ttid-ttfd-contribution'],
+    features: ['spans-first-ui'],
   });
   jest.mocked(useOrganization).mockReturnValue(organization);
 

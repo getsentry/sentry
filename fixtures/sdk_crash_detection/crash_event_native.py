@@ -3,7 +3,9 @@ from collections.abc import Mapping, MutableMapping, Sequence
 
 
 def get_frames(
-    sdk_frame_function: str, system_frame_package: str
+    sdk_frame_function: str,
+    sdk_frame_package: str,
+    system_frame_package: str,
 ) -> Sequence[MutableMapping[str, str]]:
     frames = [
         {
@@ -24,7 +26,7 @@ def get_frames(
         {
             "function": sdk_frame_function,
             "symbol": sdk_frame_function,
-            "package": "E:\\Sentry\\Sentaurs\\Game\\Sentaurs.exe",
+            "package": sdk_frame_package,
         },
         {
             "function": "boost::serialization::singleton<T>::singleton<T>",
@@ -37,11 +39,12 @@ def get_frames(
 
 def get_crash_event(
     sdk_frame_function="sentry_value_to_msgpack",
+    sdk_frame_package="E:\\Sentry\\Sentaurs\\Game\\Sentaurs.exe",
     system_frame_package="C:\\Windows\\System32\\DriverStore\\FileRepository\\u0398226.inf_amd64_c5d9587384e4b5ff\\B398182\\amdxx64.dll",
     **kwargs,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
-        get_frames(sdk_frame_function, system_frame_package),
+        get_frames(sdk_frame_function, sdk_frame_package, system_frame_package),
         **kwargs,
     )
 

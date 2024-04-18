@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -30,7 +29,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
@@ -54,11 +55,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp_value = fcp_value
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return features.has(
-            "organizations:performance-issues-render-blocking-assets-detector",
-            organization,
-            actor=None,
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

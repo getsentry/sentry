@@ -14,6 +14,13 @@ import type {Organization, SentryServiceStatus} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
+const sidebarAccordionFeatures = [
+  'performance-view',
+  'performance-database-view',
+  'performance-cache-view',
+  'performance-http',
+];
+
 describe('Sidebar', function () {
   const {organization, routerContext} = initializeOrg();
   const broadcast = BroadcastFixture();
@@ -266,5 +273,29 @@ describe('Sidebar', function () {
     // Un-collapse he sidebar and make sure the org name is visible again
     await userEvent.click(screen.getByTestId('sidebar-collapse'));
     expect(await screen.findByText(organization.name)).toBeInTheDocument();
+  });
+
+  describe('when the accordion is used', () => {
+    const renderSidebarWithFeatures = () => {
+      renderSidebar({
+        organization: {
+          ...organization,
+          features: [...organization.features, ...sidebarAccordionFeatures],
+        },
+      });
+    };
+
+    it('should not render floating accordion when expanded', async () => {
+      renderSidebarWithFeatures();
+      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
+    });
+
+    it('should render floating accordion when collapsed', async () => {
+      renderSidebarWithFeatures();
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
+      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
   });
 });

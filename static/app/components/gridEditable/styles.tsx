@@ -5,7 +5,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
-export const GRID_BODY_ROW_HEIGHT = 40;
+export const GRID_BODY_ROW_HEIGHT = 42;
 export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
@@ -236,8 +236,9 @@ const GridStatusWrapper = styled(GridBodyCell)`
 
 const GridStatusFloat = styled('div')`
   position: absolute;
-  top: 45px;
+  top: 0;
   left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -268,7 +269,9 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    const height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
+    // 1px for the border
+    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
 
     return height;
   }}px;

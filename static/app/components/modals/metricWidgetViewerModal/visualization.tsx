@@ -28,6 +28,7 @@ import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/char
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
+import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 import {getChartTimeseries, getWidgetTitle} from 'sentry/views/metrics/widget';
 
 function useFocusedSeries({
@@ -102,15 +103,12 @@ function useFocusedSeries({
   };
 }
 
-const supportedDisplayTypes = Object.keys(displayTypes).map(value => ({
-  label: displayTypes[value],
-  value,
-}));
-
 interface MetricVisualizationProps {
   displayType: DisplayType;
+  interval: string;
   onDisplayTypeChange: (displayType: DisplayType) => void;
   queries: MetricsQueryApiQueryParams[];
+  onIntervalChange?: (interval: string) => void;
   onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
@@ -119,8 +117,20 @@ export function MetricVisualization({
   displayType,
   onDisplayTypeChange,
   onOrderChange,
+  onIntervalChange,
+  interval,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
+  const {
+    interval: validatedInterval,
+    setInterval,
+    currentIntervalOptions,
+  } = useMetricsIntervalOptions({
+    interval,
+    datetime: selection.datetime,
+    onIntervalChange: onIntervalChange ?? (() => {}),
+    isCustomMetricsOnly: false,
+  });
 
   const {
     data: timeseriesData,
@@ -128,14 +138,19 @@ export function MetricVisualization({
     isError,
     error,
   } = useMetricsQuery(queries, selection, {
-    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
+    interval: validatedInterval,
   });
 
   const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
 
+  const isChartDisplay = useMemo(
+    () => [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType),
+    [displayType]
+  );
+
   const visualizationComponent = useMemo(() => {
     if (!timeseriesData) {
-      return null;
+      return <LoadingIndicator />;
     }
     if (displayType === DisplayType.TABLE) {
       return (
@@ -194,11 +209,25 @@ export function MetricVisualization({
             {widgetMQL}
           </StyledTooltip>
         </WidgetTitle>
+        {isChartDisplay && (
+          <CompactSelect
+            size="sm"
+            value={interval}
+            onChange={({value}) => setInterval(value)}
+            triggerProps={{
+              prefix: t('Interval'),
+            }}
+            options={currentIntervalOptions}
+          />
+        )}
         <CompactSelect
           size="sm"
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
-          options={supportedDisplayTypes}
+          options={Object.keys(displayTypes).map(value => ({
+            label: displayTypes[value],
+            value,
+          }))}
           onChange={({value}) => onDisplayTypeChange(value as DisplayType)}
         />
       </ViualizationHeader>
@@ -245,12 +274,11 @@ function MetricTableVisualization({
 
 function MetricBigNumberVisualization({
   timeseriesData,
-  queries,
   isLoading,
 }: MetricTableVisualizationProps) {
   const bigNumberData = useMemo(() => {
-    return timeseriesData ? getBigNumberData(timeseriesData, queries) : undefined;
-  }, [timeseriesData, queries]);
+    return timeseriesData ? getBigNumberData(timeseriesData) : undefined;
+  }, [timeseriesData]);
 
   if (!bigNumberData) {
     return null;

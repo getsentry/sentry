@@ -1042,6 +1042,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "info_ids": None,
                     "count_warnings": None,
                     "count_infos": None,
+                    "has_viewed": None,
                 }
             ]
 
@@ -1150,12 +1151,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
                 "dead.selector:div#myid",
+                "dead.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
                 "rage.selector:div#myid",
+                "rage.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
                 # Assert selectors with special characters in them can be queried.
                 "click.selector:div.class%5C:hover",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
-                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component='SignUpForm']",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")

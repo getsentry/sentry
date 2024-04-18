@@ -19,7 +19,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     }
     rate_limits = {
         "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=60),
         },
     }
     permission_classes = (ProjectAndStaffPermission,)
