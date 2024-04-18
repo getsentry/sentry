@@ -175,9 +175,9 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         with mock.patch(
-            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited_with_value"
+            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited"
         ) as mock_is_limited:
-            mock_is_limited.return_value = (True, 3500, 360)
+            mock_is_limited.return_value = True
             parser = GitlabRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
 

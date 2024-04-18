@@ -84,17 +84,9 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         except ValueError:
             data = {}
 
-        identifier = self.get_mailbox_identifier(integration, data)
-        logger.info(
-            "gitlab.webhookpayload.save",
-            extra={
-                "identifier": identifier,
-                "integration_id": integration.id,
-            },
-        )
         return self.get_response_from_webhookpayload(
             regions=regions,
-            identifier=identifier,
+            identifier=self.get_mailbox_identifier(integration, data),
             integration_id=integration.id,
         )
 
