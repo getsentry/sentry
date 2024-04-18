@@ -181,6 +181,7 @@ user_signup = BetterSignal()  # ["user", "source"]
 relocated = BetterSignal()  # ["relocation_uuid"]
 relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
 relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
+relocation_retry_link_promo_code = BetterSignal()  # ["old_relocation_uuid", "new_relocation_uuid"]
 
 # Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
 post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]
