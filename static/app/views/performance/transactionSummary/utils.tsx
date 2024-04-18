@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';

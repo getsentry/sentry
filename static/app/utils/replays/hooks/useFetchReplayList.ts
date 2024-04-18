@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  type QueryKeyEndpointOptions,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {
   REPLAY_LIST_FIELDS,
@@ -11,8 +15,20 @@ import {
   type ReplayListRecord,
 } from 'sentry/views/replays/types';
 
+interface QueryOptions {
+  cursor?: string;
+  end?: string;
+  environment?: string[];
+  project?: string[];
+  query?: string;
+  sort?: string;
+  start?: string;
+  statsPeriod?: string;
+  utc?: string;
+}
+
 type Options = {
-  options: ApiQueryKey[1];
+  options: QueryKeyEndpointOptions<Record<string, string>, QueryOptions, never>;
   organization: Organization;
   queryReferrer: ReplayListQueryReferrer;
 };
@@ -40,13 +56,17 @@ export default function useFetchReplayList({
       queryReferrer === 'issueReplays' || queryReferrer === 'transactionReplays'
         ? ALL_ACCESS_PROJECTS
         : originalProject;
+
+    const query = Object.fromEntries(
+      Object.entries(options.query).filter(([_key, val]) => val !== '')
+    );
     return [
       url,
       {
         ...options,
         query: {
           per_page: 50,
-          ...options.query,
+          ...query,
           fields,
           project,
           queryReferrer,

@@ -1,4 +1,4 @@
-import {SourceMapsArchive} from 'sentry/types';
+import type {SourceMapsArchive} from 'sentry/types/release';
 
 export function SourceMapArchiveFixture(
   params: Partial<SourceMapsArchive> = {}

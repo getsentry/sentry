@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {Threshold} from 'sentry/views/releases/utils/types';
 

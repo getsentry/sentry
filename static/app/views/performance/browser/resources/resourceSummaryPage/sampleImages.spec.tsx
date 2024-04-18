@@ -20,11 +20,7 @@ jest.mock('sentry/utils/useOrganization');
 
 describe('SampleImages', function () {
   const organization = OrganizationFixture({
-    features: [
-      'starfish-browser-resource-module-ui',
-      'starfish-view',
-      'performance-database-view',
-    ],
+    features: ['starfish-view', 'spans-first-ui'],
   });
 
   beforeEach(() => {

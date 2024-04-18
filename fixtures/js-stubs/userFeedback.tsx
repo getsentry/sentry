@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {UserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types/group';
 
 export function UserFeedbackFixture(params: Partial<UserReport> = {}): UserReport {
   const event = EventFixture();

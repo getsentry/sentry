@@ -1,5 +1,5 @@
-import type {User} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 type Data = [number, {count: number}[]][];

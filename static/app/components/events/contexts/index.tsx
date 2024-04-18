@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
-import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 

@@ -13,7 +13,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';

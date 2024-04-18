@@ -28,7 +28,6 @@ from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
-    SlackAttachment,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -38,7 +37,6 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -60,6 +58,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -506,7 +505,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")

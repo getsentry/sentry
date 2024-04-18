@@ -1,4 +1,4 @@
-import type {DebugIdBundleArtifact} from 'sentry/types';
+import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 
 export function SourceMapsDebugIDBundlesArtifactsFixture(
   debugBundleIdArtifact: Partial<DebugIdBundleArtifact> = {}

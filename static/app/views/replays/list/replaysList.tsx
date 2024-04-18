@@ -24,10 +24,14 @@ function ReplaysList() {
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
+      end: decodeScalar,
+      environment: decodeList,
       project: decodeList,
       query: decodeScalar,
       sort: value => decodeScalar(value, '-started_at'),
+      start: decodeScalar,
       statsPeriod: decodeScalar,
+      utc: decodeScalar,
     },
   });
 

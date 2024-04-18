@@ -3,7 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import type {CodeOwner, OrganizationIntegration, Project, Repository} from 'sentry/types';
+import type {
+  CodeOwner,
+  OrganizationIntegration,
+  Repository,
+} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 
 interface CodeOwnerParams extends Partial<CodeOwner> {
   integration?: OrganizationIntegration;
