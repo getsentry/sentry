@@ -1,8 +1,8 @@
-from typing import Any
-
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
+
+# from sentry.utils.samples import load_data
 
 
 class RelatedIssuesTest(APITestCase):
@@ -20,7 +20,7 @@ class RelatedIssuesTest(APITestCase):
     def reverse_url(self) -> str:
         return reverse(self.endpoint, kwargs={"issue_id": self.group_id})
 
-    def _data(self, type: str, value: str) -> dict[str, Any]:
+    def _data(self, type: str, value: str) -> dict[str, object]:
         return {"type": "error", "metadata": {"type": type, "value": value}}
 
     def test_same_root_related_issues(self) -> None:
@@ -46,6 +46,19 @@ class RelatedIssuesTest(APITestCase):
         assert response.json() == {
             "data": [
                 {"type": "same_root_cause", "data": [1, 5]},
+                {"type": "trace_connected", "data": []},
+            ],
+        }
+
+    def test_trace_connected_errors(self) -> None:
+        # This is the group we're going to query about
+        group = self.create_group(data=self._data(self.error_type, self.error_value))
+        self.group_id = group.id
+
+        response = self.get_success_response()
+        assert response.json() == {
+            "data": [
+                {"type": "same_root_cause", "data": []},
                 {"type": "trace_connected", "data": []},
             ],
         }
