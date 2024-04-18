@@ -76,7 +76,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
 
-    # The mapping looks like: '{rule.id}:{group.id}' -> {'event.id'}
+    # The mapping looks like: [f'{rule.id}:{group.id}':'event.id']
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
@@ -102,9 +102,15 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
         interval: str
         environment_id: int
 
+        def __repr__(self):
+            return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id}"
+
     class DataAndGroups(NamedTuple):
         data: MutableMapping[str, Any] | None
         group_ids: set[int]
+
+        def __repr__(self):
+            return f"data: {self.data}\ngroup_ids: {self.group_ids}"
 
     condition_groups: dict[UniqueCondition, DataAndGroups] = {}
 
@@ -129,6 +135,11 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
                         condition_data, rules_to_groups[rule.id]
                     )
 
+    # XXX: CEO the only difference between UniqueCondition and DataAndGroup's data is the condition value
+    # does this still work when we have 2 of the same condition ids with different values?
+    # I made 2 EventFrequencyCondition with the same interval but different values and only see 1 shown
+    # it does properly handle same condition ids with different intervals
+
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
 
@@ -142,6 +153,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
             logger.warning("Unregistered condition %r", unique_condition.cls_id)
             return None
 
+        # I think this is a bug? we don't know which rule it is here
         condition_inst: BaseEventFrequencyCondition = condition_cls(
             project=project, data=condition_data, rule=rule
         )
@@ -191,19 +203,20 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rules_to_fire = defaultdict(set)
-    # TODO this quad nested for loop sucks
     for rule in alert_rules:
-        for group_id in rules_to_groups[rule.id]:
-            for rule_condition in rule.data.get(
-                "conditions", []
-            ):  # can this be in it's own mapping? {rule: slow_conditions}
-                for condition, result in condition_group_results.items():
-                    if rule_condition["id"] == condition.cls_id:
-                        interval = rule_condition.get("interval")
-                        match = rule.data.get("filter_match")
-                        # TODO handle `match` (any or all)
-                        # TODO figure out if it passes
-                        rules_to_fire[rule].add(group_id)
+        for rule_condition in rule.data.get("conditions", []):  # the rule's conditions
+            for (
+                condition,
+                result,
+            ) in condition_group_results.items():  # condition to results per group
+                if (
+                    rule_condition["id"] == condition.cls_id
+                ):  # match the rule's condition to the condition to results
+                    for group_id in rules_to_groups[rule.id]:  # the rule's groups
+                        for c, _ in condition_groups.items():  # conditions (with values) to groups
+                            if c.cls_id == condition.cls_id:
+                                if results["group_id"] > int(rule_condition.get("value")):
+                                    rules_to_fire[rule].add(group_id)
 
             # get:
             # 1. rule conditions + result of condition check in results dict

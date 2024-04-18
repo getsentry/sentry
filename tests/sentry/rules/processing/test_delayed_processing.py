@@ -30,24 +30,32 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
 
     def setUp(self):
         event_frequency_condition = {
+            "interval": "1d",
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "value": 1,
+            "name": "The issue is seen more than 1 times in 1d",
+        }
+        event_frequency_condition2 = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "value": 666,
-            "name": "The issue is seen more than 30 times in 1m",
+            "value": 1,
+            "name": "The issue is seen more than 1 times in 1h",
         }
         user_frequency_condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-            "value": 2,
+            "value": 1,
             "interval": "5m",
         }
         event_frequency_percent_condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
             "interval": "1h",
-            "value": "100",
+            "value": "1",
             "comparisonType": "count",
         }
         self.rule1 = self.create_project_rule(
-            project=self.project, condition_match=[event_frequency_condition]
+            project=self.project,
+            condition_match=[event_frequency_condition],
+            environment_id=self.environment.id,
         )
         self.rule2 = self.create_project_rule(
             project=self.project, condition_match=[user_frequency_condition]
@@ -62,8 +70,11 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         }
 
         self.project_two = self.create_project(organization=self.organization)
+        self.environment2 = self.create_environment(project=self.project_two)
         self.rule3 = self.create_project_rule(
-            project=self.project_two, condition_match=[event_frequency_condition]
+            project=self.project_two,
+            condition_match=[event_frequency_condition2],
+            environment_id=self.environment2.id,
         )
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
