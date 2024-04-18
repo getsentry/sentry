@@ -127,6 +127,18 @@ def rate_limit_events(
             }
         }
 
+    def _validated_limits(limits: dict[str, Any], fallback: dict[str, Any]) -> RateLimit:
+        """
+        Validate the rate limit configuration has required values of correct type.
+        """
+        try:
+            # dataclass doesn't check types, so forcing int which will raise if not int or numeric string
+            limits = {k: int(v) for k, v in limits.items()}
+            return RateLimit(**limits)
+        except Exception:
+            logger.exception("invalid rate limit config", extra={"limits": limits})
+            return RateLimit(**fallback)
+
     rate_limit = RateLimit(**LEGACY_RATE_LIMIT)
 
     try:
@@ -136,19 +148,19 @@ def rate_limit_events(
         return _config_for_limit(rate_limit)
 
     if organization.id in options.get("api.organization_events.rate-limit-increased.orgs", []):
-        rate_limit = RateLimit(
-            **options.get(
-                "api.organization_events.rate-limit-increased.limits", DEFAULT_INCREASED_RATE_LIMIT
-            )
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-increased.limits"),
+            DEFAULT_INCREASED_RATE_LIMIT,
         )
+
     elif features.has(
         "organizations:api-organization_events-rate-limit-reduced-rollout",
         organization=organization,
     ):
-        rate_limit = RateLimit(
-            **options.get(
-                "api.organization_events.rate-limit-reduced.limits", DEFAULT_REDUCED_RATE_LIMIT
-            )
+
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-reduced.limits"),
+            DEFAULT_REDUCED_RATE_LIMIT,
         )
 
     return _config_for_limit(rate_limit)

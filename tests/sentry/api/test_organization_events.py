@@ -251,3 +251,50 @@ class OrganizationEventsEndpointTest(APITestCase):
                 limit=123,
                 window=456,
             )
+
+    def test_rate_limit_events_invalid_options(self):
+        slug = self.organization.slug
+        request = Request(HttpRequest())
+
+        with override_options(
+            {
+                "api.organization_events.rate-limit-increased.orgs": [self.organization.id],
+                "api.organization_events.rate-limit-increased.limits": {
+                    "limit": "invalid",
+                    "window": 123,
+                },
+            },
+        ):
+            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
+                **DEFAULT_INCREASED_RATE_LIMIT
+            )
+
+        with override_options(
+            {
+                "api.organization_events.rate-limit-increased.orgs": [self.organization.id],
+                "api.organization_events.rate-limit-increased.limits": {
+                    "leemeet": 123,
+                    "window": 123,
+                },
+            },
+        ):
+            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
+                **DEFAULT_INCREASED_RATE_LIMIT
+            )
+
+        with (
+            Feature("organizations:api-organization_events-rate-limit-reduced-rollout"),
+            override_options(
+                {
+                    "api.organization_events.rate-limit-reduced.limits": {
+                        "limit": 123,
+                        "window": 456,
+                        "concurrent_limit": 789,
+                        "unexpected_key": 0xBAD,
+                    },
+                }
+            ),
+        ):
+            assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
+                **DEFAULT_REDUCED_RATE_LIMIT
+            )
