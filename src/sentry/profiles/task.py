@@ -162,6 +162,8 @@ def process_profile_task(
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
         and organization.id
         in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+        and project.id
+        not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
     ):
         try:
             with metrics.timer("process_profile.get_metrics_dsn"):
