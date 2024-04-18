@@ -26,6 +26,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.features.rollout import in_rollout_group
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
@@ -35,6 +36,18 @@ logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 
 BATCH_SIZE = 100
+
+
+def in_process_spans_rollout_group(project_id: int | None) -> bool:
+    if project_id and project_id in options.get(
+        "standalone-spans.process-spans-consumer.project-allowlist"
+    ):
+        return True
+    if project_id and in_rollout_group(
+        project_id, "standalone-spans.process-spans-consumer.project-rollout"
+    ):
+        return True
+    return False
 
 
 @dataclasses.dataclass
@@ -71,9 +84,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         logger.exception("Failed to parse span message header")
         return FILTERED_PAYLOAD
 
-    if project_id is None or project_id not in options.get(
-        "standalone-spans.process-spans-consumer.project-allowlist"
-    ):
+    if not in_process_spans_rollout_group(project_id=project_id):
         return FILTERED_PAYLOAD
 
     assert isinstance(message.value, BrokerValue)

@@ -2390,6 +2390,12 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.process-spans-consumer.project-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
