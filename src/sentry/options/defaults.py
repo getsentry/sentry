@@ -1283,6 +1283,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to drop any in-flight work in the multiprocesing strategy
+# of the indexer during consumer shutdowns, rebalances, etc.
+register(
+    "sentry-metrics.indexer.drop-work-in-multiprocessing",
+    default=False,  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
