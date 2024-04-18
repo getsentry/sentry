@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import cast
 
 from django.utils import timezone
 
@@ -62,15 +63,15 @@ def _process_suspect_commits(
                 )
             owner_scores: dict[str, int] = {}
             for committer in committers:
-                if type(committer["author"]) is UserSerializerResponse:
-                    if committer["author"] and "id" in committer["author"]:
-                        author_id = committer["author"]["id"]
-                        for _, score in committer["commits"]:
-                            if score >= MIN_COMMIT_SCORE:
-                                owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
+                author = cast(UserSerializerResponse, committer["author"])
+                if author and "id" in author:
+                    author_id = author["id"]
+                    for _, score in committer["commits"]:
+                        if score >= MIN_COMMIT_SCORE:
+                            owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
 
             if owner_scores:
-                for owner_id in sorted(
+                for owner_id, _ in sorted(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
