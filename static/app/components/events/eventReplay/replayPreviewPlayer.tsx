@@ -82,7 +82,7 @@ function ReplayPreviewPlayer({
     if (replayRecord && !replayRecord.has_viewed && !isFetching && isPlaying) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
-  }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
+  }, [isFetching, isPlaying, markAsViewed, replayRecord]);
 
   return (
     <PlayerPanel>

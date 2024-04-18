@@ -83,15 +83,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     ) {
       markAsViewed({projectSlug, replayId});
     }
-  }, [
-    fetchError,
-    fetching,
-    markAsViewed,
-    organization,
-    projectSlug,
-    replayId,
-    replayRecord,
-  ]);
+  }, [fetchError, fetching, markAsViewed, projectSlug, replayId, replayRecord]);
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
