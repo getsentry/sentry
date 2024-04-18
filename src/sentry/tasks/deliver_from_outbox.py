@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
+from typing import Any
 
 import sentry_sdk
 from celery import Task
@@ -22,8 +23,8 @@ from sentry.utils.env import in_test_environment
     silo_mode=SiloMode.CONTROL,
 )
 def enqueue_outbox_jobs_control(
-    concurrency: int | None = None, process_outbox_backfills=True, **kwargs
-):
+    concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
+) -> None:
     schedule_batch(
         silo_mode=SiloMode.CONTROL,
         drain_task=drain_outbox_shards_control,
@@ -35,7 +36,9 @@ def enqueue_outbox_jobs_control(
 @instrumented_task(
     name="sentry.tasks.enqueue_outbox_jobs", queue="outbox", silo_mode=SiloMode.REGION
 )
-def enqueue_outbox_jobs(concurrency: int | None = None, process_outbox_backfills=True, **kwargs):
+def enqueue_outbox_jobs(
+    concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
+) -> None:
     schedule_batch(
         silo_mode=SiloMode.REGION,
         drain_task=drain_outbox_shards,
@@ -58,7 +61,7 @@ def schedule_batch(
     drain_task: Task | Callable,
     concurrency: int | None = None,
     process_outbox_backfills=True,
-):
+) -> None:
     scheduled_count = 0
 
     if not concurrency:
@@ -88,11 +91,12 @@ def schedule_batch(
             # Notably, when l and h are close, this will result in creating tasks that are processing future ids --
             # that's totally fine.
             for i in range(concurrency):
-                drain_task.delay(
-                    outbox_name=outbox_name,
-                    outbox_identifier_low=lo + i * batch_size,
-                    outbox_identifier_hi=lo + (i + 1) * batch_size,
-                )
+                if hasattr(drain_task, "delay"):
+                    drain_task.delay(
+                        outbox_name=outbox_name,
+                        outbox_identifier_low=lo + i * batch_size,
+                        outbox_identifier_hi=lo + (i + 1) * batch_size,
+                    )
 
             deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
             max_shard_depth = (
@@ -100,7 +104,7 @@ def schedule_batch(
             )
             metrics.gauge(
                 "deliver_from_outbox.maximum_shard_depth",
-                value=max_shard_depth,
+                value=float(max_shard_depth),
                 tags=metrics_tags,
                 sample_rate=1.0,
             )
@@ -127,7 +131,7 @@ def drain_outbox_shards(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
     outbox_name: str | None = None,
-):
+) -> None:
     try:
         if outbox_name is None:
             outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
@@ -150,7 +154,7 @@ def drain_outbox_shards_control(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
     outbox_name: str | None = None,
-):
+) -> None:
     try:
         if outbox_name is None:
             outbox_name = settings.SENTRY_OUTBOX_MODELS["CONTROL"][0]

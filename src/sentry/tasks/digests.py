@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -18,8 +19,8 @@ logger = logging.getLogger(__name__)
     queue="digests.scheduling",
     silo_mode=SiloMode.REGION,
 )
-def schedule_digests():
-    from sentry import digests
+def schedule_digests() -> None:
+    from sentry.digests import backend as digests
 
     deadline = time.time()
 
@@ -43,8 +44,12 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None = None):
-    from sentry import digests
+def deliver_digest(
+    key: str,
+    schedule_timestamp: datetime | None = None,
+    notification_uuid: str | None = None,
+) -> None:
+    from sentry.digests import backend as digests
     from sentry.mail import mail_adapter
 
     try:

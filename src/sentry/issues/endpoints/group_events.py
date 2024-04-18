@@ -22,6 +22,7 @@ from sentry.api.serializers import EventSerializer, SimpleEventSerializer, seria
 from sentry.api.utils import get_date_range_from_params
 from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import InvalidQuery, parse_query
 
 if TYPE_CHECKING:
@@ -91,12 +92,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
-        params = {
-            "project_id": [group.project_id],
-            "organization_id": group.project.organization_id,
-            "start": start if start else default_start,
-            "end": end if end else default_end,
-        }
+        params = ParamsType(
+            project_id=[group.project_id],
+            organization_id=group.project.organization_id,
+            start=start if start else default_start,
+            end=end if end else default_end,
+        )
         referrer = f"api.group-events.{group.issue_category.name.lower()}"
 
         direct_hit_resp = get_direct_hit_response(
