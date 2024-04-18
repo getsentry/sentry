@@ -1,4 +1,4 @@
-import {type Reducer, useCallback, useMemo, useReducer} from 'react';
+import {type Reducer, useCallback, useReducer} from 'react';
 
 import type {
   ParseResultToken,
@@ -46,11 +46,8 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  return useMemo(
-    () => ({
-      state,
-      dispatch,
-    }),
-    [state, dispatch]
-  );
+  return {
+    state,
+    dispatch,
+  };
 }
