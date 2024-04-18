@@ -154,7 +154,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+  metaResults: Pick<UseApiQueryResult<TraceMeta | null, any>, 'data' | 'isLoading'>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;

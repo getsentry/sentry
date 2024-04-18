@@ -43,7 +43,7 @@ function getMetaQueryParams(
 
 export function useTraceMeta(
   traceSlug?: string
-): UseApiQueryResult<TraceMeta | null, any> {
+): Pick<UseApiQueryResult<TraceMeta | null, any>, 'data' | 'isLoading'> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -82,7 +82,7 @@ export function useTraceMeta(
         transactions: 1,
       },
       isLoading: false,
-    } as UseApiQueryResult<TraceMeta | null, any>;
+    };
   }
 
   return traceMetaQueryResults;
