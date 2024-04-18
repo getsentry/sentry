@@ -3170,7 +3170,91 @@ class IntegratedApiTestCase(BaseTestCase):
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
 
 
-class TraceTestCase(BaseTestCase):
+class SpanTestCase(BaseTestCase):
+    # Some base data for create_span
+    base_span: dict[str, Any] = {
+        "is_segment": False,
+        "retention_days": 90,
+        "tags": {},
+        "sentry_tags": {},
+        "measurements": {},
+    }
+
+    def load_data(
+        self,
+        platform: str = "transaction",
+        timestamp: datetime = None,
+        duration: timedelta = None,
+        **kwargs: dict[str, Any],
+    ) -> dict[str | int, Any]:
+        if timestamp is None:
+            timestamp = self.ten_mins_ago
+
+        min_age = before_now(minutes=10)
+        if timestamp > min_age:
+            # Sentry does some rounding of timestamps to improve cache hits in snuba.
+            # This can result in events not being returns if the timestamps
+            # are too recent.
+            raise Exception(
+                f"Please define a timestamp older than 10 minutes to avoid flakey tests. Want a timestamp before {min_age}, got: {timestamp} "
+            )
+
+        start_timestamp = None
+        if duration is not None:
+            start_timestamp = timestamp - duration
+            start_timestamp = start_timestamp - timedelta(
+                microseconds=start_timestamp.microsecond % 1000
+            )
+
+        return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
+
+    def create_span(
+        self,
+        extra_data: dict[str, Any] | None = None,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        start_ts: datetime | None = None,
+        duration: int = 1000,
+    ) -> dict[str, Any]:
+        """Create span json, not required for store_span, but with no params passed should just work out of the box"""
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if start_ts is None:
+            start_ts = datetime.now() - timedelta(minutes=1)
+        if extra_data is None:
+            extra_data = {}
+        span = self.base_span.copy()
+        # Load some defaults
+        span.update(
+            {
+                "event_id": uuid4().hex,
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "trace_id": uuid4().hex,
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": uuid4().hex[:16],
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "timestamp": int(start_ts.timestamp() * 1000),
+                "received": start_ts.timestamp(),
+                "duration_ms": duration,
+                "exclusive_time_ms": duration,
+            }
+        )
+        # Load any specific custom data
+        span.update(extra_data)
+        # coerce to string
+        for tag, value in dict(span["tags"]).items():
+            span["tags"][tag] = str(value)
+        return span
+
+
+class TraceTestCase(SpanTestCase):
     def get_start_end_from_day_ago(self, milliseconds: int) -> tuple[datetime, datetime]:
         return self.day_ago, self.day_ago + timedelta(milliseconds=milliseconds)
 
@@ -3247,7 +3331,7 @@ class TraceTestCase(BaseTestCase):
                 self.store_span(self.convert_event_data_to_span(event))
                 return event
 
-    def convert_event_data_to_span(self, event):
+    def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
         trace_context = event.data["contexts"]["trace"]
         start_ts = event.data["start_timestamp"]
         end_ts = event.data["timestamp"]
