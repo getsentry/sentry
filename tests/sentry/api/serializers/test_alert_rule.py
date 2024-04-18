@@ -8,6 +8,7 @@ from sentry.api.serializers.models.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -128,6 +129,31 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, other_alert_rule])
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
+
+    def test_activations(self):
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        other_alert_rule = self.create_alert_rule()
+        activations = self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        )
+        result = serialize([alert_rule, other_alert_rule])
+        assert result[0]["activations"] == serialize(activations)
+        assert result[1]["activations"] == []
+
+    def test_truncated_activations(self):
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        for i in range(11):
+            self.create_alert_rule_activation(
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+            )
+            if i % 2 == 0:
+                self.create_alert_rule_activation(
+                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                )
+        result = serialize([alert_rule, alert_rule2])
+        assert len(result[0]["activations"]) == 10
+        assert len(result[1]["activations"]) == 6
 
     def test_environment(self):
         alert_rule = self.create_alert_rule(environment=self.environment)

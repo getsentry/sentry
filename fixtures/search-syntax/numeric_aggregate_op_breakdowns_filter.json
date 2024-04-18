@@ -43,8 +43,11 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "unit": null,
+            "value": 3.1415
+          }
         }
       },
       {
@@ -97,8 +100,11 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "unit": null,
+            "value": 3.1415
+          }
         }
       },
       {
@@ -151,8 +157,11 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "unit": null,
+            "value": 3.1415
+          }
         }
       },
       {
@@ -205,8 +214,11 @@
         "value": {
           "type": "valueNumber",
           "value": "3",
-          "rawValue": 3000,
-          "unit": "k"
+          "unit": "k",
+          "parsed": {
+            "unit": "k",
+            "value": 3000
+          }
         }
       },
       {
@@ -259,8 +271,12 @@
         "operator": "",
         "value": {
           "type": "valueDuration",
-          "value": 2,
-          "unit": "m"
+          "value": "2",
+          "unit": "m",
+          "parsed": {
+            "unit": "m",
+            "value": 2
+          }
         }
       },
       {

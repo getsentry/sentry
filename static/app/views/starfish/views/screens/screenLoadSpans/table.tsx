@@ -16,12 +16,12 @@ import {t, tct} from 'sentry/locale';
 import type {NewQuery, Project} from 'sentry/types';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -76,9 +76,7 @@ export function ScreenLoadSpansTable({
     `transaction:"${transaction}"`,
   ]);
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -109,9 +107,7 @@ export function ScreenLoadSpansTable({
     transaction,
   ]);
 
-  const sort = fromSorts(
-    decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
-  )[0] ?? {
+  const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
     field: 'time_spent_percentage()',
   };
@@ -386,9 +382,7 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          ...(organization.features.includes('mobile-ttid-ttfd-contribution')
-            ? ['affects']
-            : []),
+          ...(organization.features.includes('spans-first-ui') ? ['affects'] : []),
           ...['count()', 'time_spent_percentage()'],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};

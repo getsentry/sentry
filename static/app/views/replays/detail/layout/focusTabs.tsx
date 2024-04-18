@@ -3,35 +3,35 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
-  organization,
   isVideoReplay,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
-  // The new trace table inside Breadcrumb items:
-  const hasTraceTable = organization.features.includes('session-replay-trace-table');
+  // For video replays, we hide the console, a11y, trace, and memory tabs
+  // The console tab isn't useful for video replays; most of the useful logging
+  // context will come from breadcrumbs
+  // A11y, trace, and memory aren't applicable for mobile
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),
-    [TabKey.PERF]: null,
+    [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip

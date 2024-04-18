@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Mutable
 from dataclasses import dataclass
 from typing import Any, cast
 
+import orjson
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
@@ -29,7 +30,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayl
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,9 @@ class IndexerBatch:
     ) -> ParsedMessage:
         assert isinstance(msg.value, BrokerValue)
         try:
-            parsed_payload: ParsedMessage = json.loads(
-                msg.payload.value.decode("utf-8"), use_rapid_json=True
-            )
-        except rapidjson.JSONDecodeError:
+            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+                parsed_payload: ParsedMessage = orjson.loads(msg.payload.value.decode())
+        except orjson.JSONDecodeError:
             logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},

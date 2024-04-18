@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -23,7 +23,7 @@ describe('useReplayReader', () => {
   });
 
   it('should accept a replaySlug with project and id parts', () => {
-    const {result} = reactHooks.renderHook(useReplayReader, {
+    const {result} = renderHook(useReplayReader, {
       wrapper,
       initialProps: {
         orgSlug: organization.slug,
@@ -39,7 +39,7 @@ describe('useReplayReader', () => {
   });
 
   it('should accept a replaySlug with only the replay-id', () => {
-    const {result} = reactHooks.renderHook(useReplayReader, {
+    const {result} = renderHook(useReplayReader, {
       wrapper,
       initialProps: {
         orgSlug: organization.slug,

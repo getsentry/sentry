@@ -4,8 +4,8 @@ from django.core.mail.message import EmailMultiAlternatives
 
 from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import get_attachment, get_channel
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers import get_channel
+from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -24,10 +24,12 @@ class AssignedNotificationAPITest(APITestCase):
         assert html_msg in msg.alternatives[0][0]
 
     def validate_slack_message(self, msg, group, project, user_id, index=0):
-        attachment, text = get_attachment(index)
-        assert text == msg
-        assert attachment["title"] == group.title
-        assert project.slug in attachment["footer"]
+        blocks, fallback_text = get_blocks_and_fallback_text(index)
+        assert fallback_text == msg
+        blocks, fallback_text = get_blocks_and_fallback_text()
+
+        assert group.title in blocks[1]["text"]["text"]
+        assert project.slug in blocks[-2]["elements"][0]["text"]
         channel = get_channel(index)
         assert channel == user_id
 
@@ -59,9 +61,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.login_as(self.user)
 
     @responses.activate
-    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_assignment_notification(self):
-        # TODO: make this a block kit test
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is assigned.
@@ -83,16 +83,13 @@ class AssignedNotificationAPITest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.group.qualified_short_id}</a> to themselves</p>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
-
-        assert text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert attachment["title"] == self.group.title
-        assert self.project.slug in attachment["footer"]
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == f"Issue assigned to {user.get_display_name()} by themselves"
+        assert self.group.title in blocks[1]["text"]["text"]
+        assert self.project.slug in blocks[-2]["elements"][0]["text"]
 
     @responses.activate
-    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_reassignment_notification_user(self):
-        # TODO: make this a block kit test
         """Test that if a user is assigned to an issue and then the issue is reassigned to a different user
         that the original assignee receives an unassignment notification as well as the new assignee
         receiving an assignment notification"""
@@ -152,9 +149,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, self.group, self.project, user1.id, index=2)
 
     @responses.activate
-    @with_feature({"organizations:slack-block-kit": False})
     def test_sends_reassignment_notification_team(self):
-        # TODO: make this a block kit test
         """Test that if a team is assigned to an issue and then the issue is reassigned to a different team
         that the originally assigned team receives an unassignment notification as well as the new assigned
         team receiving an assignment notification"""

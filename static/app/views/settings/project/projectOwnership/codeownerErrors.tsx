@@ -172,7 +172,9 @@ export function CodeOwnerErrors({
               </AlertContentContainer>
             }
           >
-            {`There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+            {errorCount === 1
+              ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
+              : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
           </Alert>
         );
       })}

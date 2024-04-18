@@ -403,6 +403,6 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
             """Retry gateway timeout exceptions up to the limit."""
             return attempt <= GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
 
-        # Retry cadence: 0.25, 0.5, 1, 2, 4, 8
-        policy = ConditionalRetryPolicy(should_retry, exponential_delay(0.5))
+        # Retry cadence: 0.025, 0.05, 0.1, 0.2, 0.4, 0.8 => ~1.7 seconds
+        policy = ConditionalRetryPolicy(should_retry, exponential_delay(0.05))
         policy(callable)

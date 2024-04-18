@@ -31,7 +31,7 @@ import {
   filterQueriesByDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {FormulaInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
@@ -117,7 +117,6 @@ export function Queries({
               isHidden={query.isHidden}
               onChange={isHidden => onQueryChange({isHidden}, index)}
               disabled={!query.isHidden && visibleExpressions.length === 1}
-              isSelected={false}
               queryId={query.id}
               type={MetricExpressionType.QUERY}
             />
@@ -144,7 +143,6 @@ export function Queries({
               isHidden={equation.isHidden}
               onChange={isHidden => onEquationChange({isHidden}, index)}
               disabled={!equation.isHidden && visibleExpressions.length === 1}
-              isSelected={false}
               queryId={equation.id}
               type={MetricExpressionType.EQUATION}
             />
@@ -164,7 +162,7 @@ export function Queries({
       {displayType !== DisplayType.BIG_NUMBER && (
         <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
           <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
-            {t('Add query')}
+            {t('Add metric')}
           </Button>
           <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
             {t('Add equation')}
@@ -223,7 +221,7 @@ function QueryContextMenu({
     const removeQueryItem = {
       leadingItems: [<IconClose key="icon" />],
       key: 'delete',
-      label: t('Remove Query'),
+      label: t('Remove Metric'),
       disabled: !canRemoveQuery,
       onAction: () => {
         removeQuery(queryIndex);
@@ -327,37 +325,35 @@ function EquationContextMenu({
 interface QueryToggleProps {
   disabled: boolean;
   isHidden: boolean;
-  isSelected: boolean;
   onChange: (isHidden: boolean) => void;
   queryId: number;
   type: MetricExpressionType;
 }
 
-function QueryToggle({
-  isHidden,
-  queryId,
-  disabled,
-  onChange,
-  isSelected,
-  type,
-}: QueryToggleProps) {
-  let tooltipTitle = isHidden ? t('Show query') : t('Hide query');
-  if (disabled) {
-    tooltipTitle = t('At least one query must be visible');
-  }
+function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleProps) {
+  const tooltipTitle =
+    type === MetricExpressionType.QUERY
+      ? isHidden
+        ? t('Show metric')
+        : t('Hide metric')
+      : isHidden
+        ? t('Show equation')
+        : t('Hide equation');
 
   return (
-    <Tooltip title={tooltipTitle} delay={500}>
+    <Tooltip
+      title={!disabled ? tooltipTitle : t('At least one query must be visible')}
+      delay={500}
+    >
       {type === MetricExpressionType.QUERY ? (
         <StyledQuerySymbol
           isHidden={isHidden}
           queryId={queryId}
           isClickable={!disabled}
           aria-disabled={disabled}
-          isSelected={isSelected}
           onClick={disabled ? undefined : () => onChange(!isHidden)}
           role="button"
-          aria-label={isHidden ? t('Show query') : t('Hide query')}
+          aria-label={tooltipTitle}
         />
       ) : (
         <StyledEquationSymbol
@@ -365,10 +361,9 @@ function QueryToggle({
           equationId={queryId}
           isClickable={!disabled}
           aria-disabled={disabled}
-          isSelected={isSelected}
           onClick={disabled ? undefined : () => onChange(!isHidden)}
           role="button"
-          aria-label={isHidden ? t('Show query') : t('Hide query')}
+          aria-label={tooltipTitle}
         />
       )}
     </Tooltip>
@@ -393,24 +388,21 @@ const QueryWrapper = styled('div')<{hasQuerySymbol: boolean}>`
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
-  margin-top: 10px;
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
-  margin-top: 10px;
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  padding-top: ${space(0.5)};
   gap: ${space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
     padding-left: ${space(1)};
-    margin-left: ${space(2)};
+    margin-left: 38px;
   `}
 `;
