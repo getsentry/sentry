@@ -770,12 +770,12 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
         re_path(
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAutofixEndpoint.as_view(),
-            name=f"{name_prefix}-group-ai-autofix",
+            name=f"{name_prefix}-group-autofix",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/ai-autofix/update/$",
+            r"^(?P<issue_id>[^\/]+)/autofix/update/$",
             GroupAutofixUpdateEndpoint.as_view(),
-            name=f"{name_prefix}-group-ai-autofix-update",
+            name=f"{name_prefix}-group-autofix-update",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
@@ -2734,7 +2734,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/create$",
         ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
-        name="sentry-api-0-project-autofix-create-codebase-index",
+        name="sentry-api-0-project-autofix-codebase-index-create",
     ),
 ]
 
