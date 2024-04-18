@@ -46,7 +46,6 @@ class ExistingHighPriorityIssueCondition(EventCondition):
     def get_activity(
         self, start: datetime, end: datetime, limit: int
     ) -> Sequence[ConditionActivity]:
-        # reappearances are recorded as SET_UNRESOLVED with no user
         activities = (
             Activity.objects.filter(
                 project=self.project,
