@@ -10,7 +10,7 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig, Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
-from sentry.sentry_metrics.querying.data.postprocessing.base import run_postprocessing_steps
+from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_processing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
@@ -24,7 +24,7 @@ from sentry.sentry_metrics.querying.data.preparation.units_normalization import 
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
 
-mapper_config: MapperConfig = MapperConfig().add(Project2ProjectIDMapper)
+DEFAULT_MAPPINGS: MapperConfig = MapperConfig().add(Project2ProjectIDMapper)
 
 
 def run_queries(
@@ -75,7 +75,7 @@ def run_queries(
     ):
         preparation_steps.append(UnitsNormalizationStep())
 
-    preparation_steps.append(QueryMappingStep(projects, mapper_config))
+    preparation_steps.append(QueryMappingStep(projects, DEFAULT_MAPPINGS))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
@@ -86,7 +86,7 @@ def run_queries(
         executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
-    results = run_postprocessing_steps(results, QueryRemappingStep(projects))
+    results = run_post_processing_steps(results, QueryRemappingStep(projects))
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
     return MQLQueriesResult(results)

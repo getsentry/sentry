@@ -22,7 +22,7 @@ class PostProcessingStep(ABC):
         raise NotImplementedError
 
 
-def run_postprocessing_steps(query_results: list[QueryResult], *steps) -> list[QueryResult]:
+def run_post_processing_steps(query_results: list[QueryResult], *steps) -> list[QueryResult]:
     """
     Takes a series of query results and steps and runs the post-processing steps one after each other in order they are
     supplied in.

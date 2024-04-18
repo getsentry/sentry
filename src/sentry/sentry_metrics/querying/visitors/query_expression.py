@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
@@ -6,7 +7,11 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
-from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper, MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.mapper import (
+    Mapper,
+    MapperConfig,
+    get_or_create_mapper,
+)
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -278,21 +283,13 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         string_group_bys = set()
         for group_by in group_bys:
             selected_mapper = None
-
             if isinstance(group_by, AliasedExpression):
-                for mapper in self.mappers:
-                    if mapper.to_key == group_by.exp.name:
-                        selected_mapper = mapper
-                        break
+                selected_mapper = self._get_matching_mapper(group_by.exp.name)
             elif isinstance(group_by, Column):
-                for mapper in self.mappers:
-                    if mapper.to_key == group_by.name:
-                        selected_mapper = mapper
-                        break
+                selected_mapper = self._get_matching_mapper(group_by.name)
 
             if selected_mapper:
                 string_group_bys.add(selected_mapper.from_key)
-
             else:
                 if isinstance(group_by, AliasedExpression):
                     string_group_bys.add(group_by.exp.name)
@@ -300,6 +297,12 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
                     string_group_bys.add(group_by.name)
 
         return string_group_bys
+
+    def _get_matching_mapper(self, to_key: Any) -> Mapper | None:
+        for mapper in self.mappers:
+            if mapper.to_key == to_key:
+                return mapper
+        return None
 
 
 class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
@@ -473,26 +476,6 @@ class MapperVisitor(QueryExpressionVisitor):
         self.mapper_config = mapper_config
         self.mappers: list[Mapper] = []
 
-    def get_or_create_mapper(
-        self, from_key: str | None = None, to_key: str | None = None
-    ) -> Mapper | None:
-        # retrieve the mapper type that is applicable for the given key
-        mapper_class = self.mapper_config.get(from_key=from_key, to_key=to_key)
-        # check if a mapper of the type already exists
-        if mapper_class:
-            for mapper in self.mappers:
-                if mapper_class == type(mapper):
-                    # if a mapper already exists, return the existing mapper
-                    return mapper
-            else:
-                # if no mapper exists yet, instantiate the object and append it to the mappers list
-                mapper_instance = mapper_class()
-                self.mappers.append(mapper_instance)
-                return mapper_instance
-        else:
-            # if no mapper is configured for the key, return None
-            return None
-
     def _visit_formula(self, formula: Formula) -> Formula:
         formula = super()._visit_formula(formula)
         visitor = MapperConditionVisitor(self.projects, self.mapper_config)
@@ -527,12 +510,17 @@ class MapperVisitor(QueryExpressionVisitor):
         for group in groupby:
             new_group = group
             if isinstance(group, Column):
-                mapper = self.get_or_create_mapper(from_key=group.name)
+                mapper = get_or_create_mapper(self.mapper_config, self.mappers, from_key=group.name)
                 if mapper:
                     new_group = Column(name=mapper.to_key)
+                    mapper.applied_on_groupby = True
+
             elif isinstance(group, AliasedExpression):
-                mapper = self.get_or_create_mapper(from_key=group.exp.name)
+                mapper = get_or_create_mapper(
+                    self.mapper_config, self.mappers, from_key=group.exp.name
+                )
                 if mapper:
                     new_group = AliasedExpression(exp=Column(name=mapper.to_key), alias=group.alias)
+                    mapper.applied_on_groupby = True
             new_group_bys.append(new_group)
         return new_group_bys

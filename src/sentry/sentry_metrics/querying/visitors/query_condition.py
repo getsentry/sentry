@@ -4,7 +4,11 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper, MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.mapper import (
+    Mapper,
+    MapperConfig,
+    get_or_create_mapper,
+)
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
 from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
@@ -105,32 +109,12 @@ class MapperConditionVisitor(QueryConditionVisitor):
         self.mapper_config = mapper_config
         self.mappers: list[Mapper] = []
 
-    def get_or_create_mapper(
-        self, from_key: str | None = None, to_key: int | None = None
-    ) -> Mapper | None:
-        # retrieve the mapper type that is applicable for the given key
-        mapper_class = self.mapper_config.get(from_key=from_key, to_key=to_key)
-        # check if a mapper of the type already exists
-        if mapper_class:
-            for mapper in self.mappers:
-                if mapper_class == type(mapper):
-                    # if a mapper already exists, return the existing mapper
-                    return mapper
-            else:
-                # if no mapper exists yet, instantiate the object and append it to the mappers list
-                mapper_instance = mapper_class()
-                self.mappers.append(mapper_instance)
-                return mapper_instance
-        else:
-            # if no mapper is configured for the key, return None
-            return None
-
     def _visit_condition(self, condition: Condition) -> Condition:
         lhs = condition.lhs
         rhs = condition.rhs
 
         if isinstance(lhs, Column):
-            mapper = self.get_or_create_mapper(from_key=lhs.name)
+            mapper = get_or_create_mapper(self.mapper_config, self.mappers, from_key=lhs.name)
             if mapper:
                 new_lhs = Column(mapper.to_key)
                 if isinstance(rhs, list):

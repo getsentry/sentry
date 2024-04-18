@@ -1859,3 +1859,38 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data_1[1]["by"] == {"project_id": self.new_project_1.id}
         assert data_2[0]["by"] == {"project": self.project.slug}
         assert data_2[1]["by"] == {"project": self.new_project_1.slug}
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_id_and_filter_by_project(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project_id",
+            filters="project:[bar,bar-again]",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project_id"])
+        assert data[0]["by"] == {"project_id": self.project.id}
+        assert data[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)

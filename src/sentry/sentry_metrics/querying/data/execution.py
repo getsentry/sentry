@@ -479,7 +479,7 @@ class QueryResult:
         #
         # Sorting of the groups is done to maintain consistency across function calls.
         scheduled_query = self._any_query()
-        mappers = scheduled_query.mappers
+        mappers = [mapper for mapper in scheduled_query.mappers if mapper.applied_on_groupby]
         return sorted(
             UsedGroupBysVisitor(mappers=mappers).visit(scheduled_query.metrics_query.query)
         )

@@ -32,7 +32,7 @@ class QueryRemappingStep(PostProcessingStep):
             keys_to_delete = []
             for result_key in element.keys():
                 for mapper in mappers:
-                    if mapper.to_key == result_key:
+                    if mapper.to_key == result_key and mapper.applied_on_groupby:
                         original_value = mapper.backward(self.projects, element[result_key])
                         updated_element[mapper.from_key] = original_value
                         keys_to_delete.append(result_key)
