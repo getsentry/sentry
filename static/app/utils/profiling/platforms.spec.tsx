@@ -56,13 +56,13 @@ describe('getProfilingDocsForPlatform', function () {
     ['python-awslambda', 'https://docs.sentry.io/platforms/python/profiling/'],
     ['python-azurefunctions', 'https://docs.sentry.io/platforms/python/profiling/'],
     ['python-gcpfunctions', 'https://docs.sentry.io/platforms/python/profiling/'],
-    ['node', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-express', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-koa', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-connect', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-awslambda', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-azurefunctions', 'https://docs.sentry.io/platforms/javascript/profiling/'],
-    ['node-gcpfunctions', 'https://docs.sentry.io/platforms/javascript/profiling/'],
+    ['node', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-express', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-koa', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-connect', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-awslambda', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-azurefunctions', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
+    ['node-gcpfunctions', 'https://docs.sentry.io/platforms/javascript/guides/node/profiling/'],
   ])('gets profiling docs for %s', function (platform, docs) {
     expect(getProfilingDocsForPlatform(platform)).toEqual(docs);
   });
