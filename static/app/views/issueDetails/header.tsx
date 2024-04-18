@@ -173,12 +173,6 @@ function GroupHeader({
   const location = useLocation();
 
   const disabledTabs = useMemo(() => {
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
-
-    if (!hasReprocessingV2Feature) {
-      return [];
-    }
-
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
       return [
         Tab.ACTIVITY,
@@ -204,7 +198,7 @@ function GroupHeader({
     }
 
     return [];
-  }, [organization, groupReprocessingStatus]);
+  }, [groupReprocessingStatus]);
 
   const eventRoute = useMemo(() => {
     const searchTermWithoutQuery = omit(location.query, 'query');
