@@ -27,7 +27,7 @@ describe('Autofix', () => {
 
   it('renders the Banner component when autofixData is null', () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/ai-autofix/`,
+      url: `/issues/${group.id}/autofix/`,
       body: null,
     });
 
@@ -51,7 +51,7 @@ describe('Autofix', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/ai-autofix/`,
+      url: `/issues/${group.id}/autofix/`,
       body: {autofix: autofixData},
     });
 
@@ -74,12 +74,12 @@ describe('Autofix', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/ai-autofix/`,
+      url: `/issues/${group.id}/autofix/`,
       body: {autofix: autofixData},
     });
 
     const triggerAutofixMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/ai-autofix/`,
+      url: `/issues/${group.id}/autofix/`,
       method: 'POST',
     });
 
@@ -97,7 +97,7 @@ describe('Autofix', () => {
 
   it('renders the diff component when changes step is present', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/ai-autofix/`,
+      url: `/issues/${group.id}/autofix/`,
       body: {
         autofix: AutofixDataFixture({
           steps: [

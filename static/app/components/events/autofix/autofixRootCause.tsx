@@ -57,7 +57,7 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
             customRootCause: string;
           }
     ) => {
-      return api.requestPromise(`/issues/${groupId}/ai-autofix/update/`, {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
         method: 'POST',
         data:
           'customRootCause' in params

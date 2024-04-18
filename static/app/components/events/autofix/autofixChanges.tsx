@@ -38,7 +38,7 @@ function AutofixRepoChange({
 
   const {mutate: createPr, isLoading} = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/issues/${groupId}/ai-autofix/update/`, {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
         method: 'POST',
         data: {
           run_id: autofixData?.run_id,

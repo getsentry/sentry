@@ -21,7 +21,7 @@ export type AutofixResponse = {
 const POLL_INTERVAL = 2500;
 
 export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
-  `/issues/${groupId}/ai-autofix/`,
+  `/issues/${groupId}/autofix/`,
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -105,7 +105,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       );
 
       try {
-        await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
+        await api.requestPromise(`/issues/${group.id}/autofix/`, {
           method: 'POST',
           data: {
             event_id: event.id,
