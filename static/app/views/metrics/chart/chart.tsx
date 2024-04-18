@@ -354,7 +354,7 @@ function CombinedChart({
   const combinedSeries = useMemo(() => {
     if (displayType === MetricDisplayType.LINE) {
       return [
-        ...transformToLineSeries({series: [...series]}),
+        ...transformToLineSeries({series}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
       ];
     }
