@@ -4,7 +4,7 @@ import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/use
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {Tag, TagCollection} from 'sentry/types';
 
-interface SearchQueryBuilerContext {
+interface ContextData {
   dispatch: Dispatch<QueryBuilderActions>;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   keys: TagCollection;
@@ -16,7 +16,7 @@ export function useSearchQueryBuilder() {
   return useContext(SearchQueryBuilerContext);
 }
 
-export const SearchQueryBuilerContext = createContext<SearchQueryBuilerContext>({
+export const SearchQueryBuilerContext = createContext<ContextData>({
   query: '',
   keys: {},
   getTagValues: () => Promise.resolve([]),
