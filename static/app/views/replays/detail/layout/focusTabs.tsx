@@ -74,6 +74,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const isTabDisabled = (tab: string) => {
     return (
       tab === TabKey.NETWORK &&
+      isVideoReplay &&
       !organization.features.includes('session-replay-mobile-network-tab')
     );
   };
