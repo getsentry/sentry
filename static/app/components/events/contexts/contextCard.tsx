@@ -127,8 +127,6 @@ const ContextSubject = styled('div')`
 const ContextValue = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: span ${p => (p.hasErrors ? 1 : 2)};
-  /* justify-content: space-between;
-  display: inline-flex; */
 `;
 
 const ContextErrors = styled('div')``;

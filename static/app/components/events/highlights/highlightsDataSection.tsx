@@ -1,19 +1,19 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import ContextCard from 'sentry/components/events/contexts/contextCard';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {TagContainer} from 'sentry/components/events/eventTags/eventTagsTree';
 import {
-  TreeKey,
-  TreeRow,
-  TreeValue,
-} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
+  useHasNewTagsUI,
+  useIssueDetailsColumnCount,
+} from 'sentry/components/events/eventTags/util';
+import HighlightsColumns from 'sentry/components/events/highlights/highilightsColumns';
+import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface HighlightsSectionProps {
   event: Event;
@@ -27,78 +27,45 @@ export default function HighlightsDataSection({
   project,
 }: HighlightsSectionProps) {
   const hasNewTagsUI = useHasNewTagsUI();
-  const organization = useOrganization();
-  const {isLoading, data} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
 
-  if (!hasNewTagsUI || isLoading) {
+  if (!hasNewTagsUI) {
     return null;
   }
 
-  const contextMap = getOrderedContextItems(event).reduce((acc, [alias, ctx]) => {
-    acc[ctx.type] = {value: ctx, alias};
-    return acc;
-  }, {});
-  const contextHighlights = data?.highlightContext ?? [];
-
-  const tagMap = event.tags.reduce((tm, {key, value}) => {
-    tm[key] = value;
-    return tm;
-  }, {});
-  const tagHighlights = data?.highlightTags ?? [];
-
   return (
     <EventDataSection
-      title={t('Highlighted Event Data')}
-      data-test-id="highlighted-event-data"
-      type="highlighted-event-data"
+      title={t('Event Highlights')}
+      data-test-id="event-highlights"
+      type="event-highlights"
+      actions={
+        <ButtonBar gap={1}>
+          <LinkButton href="#tags" size="xs">
+            {t('All Tags')}
+          </LinkButton>
+          <LinkButton href="#context" size="xs">
+            {t('All Context')}
+          </LinkButton>
+          <Button size="xs" icon={<IconEdit />}>
+            {t('Edit')}
+          </Button>
+        </ButtonBar>
+      }
     >
-      <HighlightWrapper>
-        <ContextHighlightSection>
-          {contextHighlights.map((contextType, i) => (
-            <ContextCard
-              key={i}
-              type={contextType}
-              alias={contextMap[contextType]?.alias ?? contextType}
-              value={contextMap[contextType]?.value}
-              group={group}
-              event={event}
-              project={project}
-            />
-          ))}
-        </ContextHighlightSection>
-        <TagHighlightSection>
-          {tagHighlights.map((tag, i) => (
-            <TreeRow hasErrors={false} key={i}>
-              <TreeKey hasErrors={false}>{tag}</TreeKey>
-              <TreeValue>{tagMap[tag]}</TreeValue>
-            </TreeRow>
-          ))}
-        </TagHighlightSection>
-      </HighlightWrapper>
+      <HighlightContainer ref={containerRef} columnCount={columnCount}>
+        <HighlightsColumns
+          event={event}
+          group={group}
+          project={project}
+          columnCount={columnCount}
+        />
+      </HighlightContainer>
     </EventDataSection>
   );
 }
 
-const HighlightWrapper = styled('div')`
+const HighlightContainer = styled(TagContainer)<{columnCount: number}>`
+  margin-top: 0;
   margin-bottom: ${space(2)};
-  display: flex;
-  gap: ${space(1)};
-  align-items: start;
-  /* TODO(Leander): Account for screen width */
-`;
-
-const ContextHighlightSection = styled('div')`
-  flex: 1;
-`;
-
-const TagHighlightSection = styled('div')`
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(auto, 175px) 1fr;
-  :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
 `;

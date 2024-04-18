@@ -13,7 +13,7 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -25,6 +25,52 @@ export interface EventTagsTreeRowProps {
   tagKey: string;
   isLast?: boolean;
   spacerCount?: number;
+}
+
+export interface TagRowProps {
+  meta: Record<string, any>;
+  projectSlug: string;
+  tag: EventTag;
+}
+
+/**
+ * Renders a styled row similar to those appearing in the tree, but without dropdowns or spacers
+ * Used primarily for styling to appear similar to EventTagsTreeRow items
+ */
+export function TagRow({meta, projectSlug, tag, ...props}: TagRowProps) {
+  const organization = useOrganization();
+  const tagMeta = meta?.value?.[''];
+  const tagErrors = tagMeta?.err ?? [];
+  const hasTagErrors = tagErrors.length > 0;
+  return (
+    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
+      <TreeKeyTrunk spacerCount={0} className="row-key">
+        <TreeKey hasErrors={hasTagErrors}>{tag.key}</TreeKey>
+      </TreeKeyTrunk>
+      <TreeValueTrunk className="row-value">
+        <TreeValue>
+          {tag.key === 'release' ? (
+            <VersionHoverCard
+              organization={organization}
+              projectSlug={projectSlug}
+              releaseVersion={tag.value}
+              showUnderline
+              underlineColor="linkUnderline"
+            >
+              <Version version={tag.value} truncate />
+            </VersionHoverCard>
+          ) : (
+            <EventTagsValue tag={tag} meta={tagMeta} withOnlyFormattedText />
+          )}
+        </TreeValue>
+        {hasTagErrors && (
+          <TreeValueErrors data-test-id="tag-tree-row-errors">
+            <AnnotatedTextErrors errors={tagErrors} />
+          </TreeValueErrors>
+        )}
+      </TreeValueTrunk>
+    </TreeRow>
+  );
 }
 
 export default function EventTagsTreeRow({
