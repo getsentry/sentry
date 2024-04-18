@@ -148,13 +148,14 @@ class DiscordClient(ApiClient):
         }
 
         if not is_ok or error:
-            self._handle_failure(code=int(code), log_params=log_params, resp=resp)
+            code_to_use = code if isinstance(code, int) else None
+            self._handle_failure(code=code_to_use, log_params=log_params, resp=resp)
         else:
             self._handle_success(log_params=log_params)
 
     def _handle_failure(
         self,
-        code: int,
+        code: int | None,
         log_params: dict[str, Any],
         resp: Response | None = None,
     ) -> None:
@@ -194,7 +195,7 @@ class DiscordClient(ApiClient):
         else:
             metrics_key = (
                 self._METRICS_RATE_LIMIT_KEY
-                if code == status.HTTP_429_TOO_MANY_REQUESTS
+                if code is not None and code == status.HTTP_429_TOO_MANY_REQUESTS
                 else self._METRICS_FAILURE_KEY
             )
 
