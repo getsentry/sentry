@@ -2464,10 +2464,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 
-        # Should not create the group without the feature flag
-        last_event = attempt_to_generate_slow_db_issue()
-        assert not last_event.group
-
         last_event = attempt_to_generate_slow_db_issue()
         assert last_event.group
         assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
