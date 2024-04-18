@@ -23,7 +23,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,6 @@ class BaseRequestParser(abc.ABC):
         self,
         regions: Sequence[Region],
         identifier: int | str | None = None,
-        shard_identifier_override: int | None = None,  # deprecated used in getsentry
         integration_id: int | None = None,
     ):
         """
@@ -159,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
                 region=region.name,
@@ -170,9 +169,6 @@ class BaseRequestParser(abc.ABC):
             )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-    # Alias to prop up getsentry
-    get_response_from_outbox_creation = get_response_from_webhookpayload
 
     def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
@@ -191,29 +187,49 @@ class BaseRequestParser(abc.ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
+        # One integration is misbehaving in saas, and only need logs from that instance
+        extra_logging = integration.id == 122177
+
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
 
+        is_limited = False
+        ratelimit_val = None
+        reset = None
         use_buckets = cache.get(use_buckets_key)
-        if not use_buckets and ratelimiter.is_limited(
-            key=ratelimit_key, window=60 * 60, limit=3000
-        ):
+        if not use_buckets:
+            is_limited, ratelimit_val, reset = ratelimiter.is_limited_with_value(
+                key=ratelimit_key, window=60 * 60, limit=3000
+            )
+        if not use_buckets and is_limited:
             # Once we have gone over the rate limit in a day, we use smaller
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
-            logging.info(
+            logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
 
+        if extra_logging:
+            logger.info(
+                "integrations.parser.use_buckets",
+                extra={
+                    "provider": self.provider,
+                    "result": use_buckets or False,
+                    "ratelimit_key": ratelimit_key,
+                    "is_limited": is_limited,
+                    "ratelimit_val": ratelimit_val,
+                    "reset": reset,
+                },
+            )
         if not use_buckets:
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            logging.info(
+            logger.info(
                 "integrations.parser.no_bucket_id",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
@@ -304,8 +320,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

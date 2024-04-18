@@ -12,8 +12,11 @@
         "value": {
           "type": "valueNumber",
           "value": "3.1415",
-          "rawValue": 3.1415,
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "value": 3.1415,
+            "unit": null
+          }
         }
       },
       {"type": "spaces", "value": ""}

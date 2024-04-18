@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 
 import type {CommonStoreDefinition} from './types';
 

@@ -3,28 +3,24 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
 bootstrap \
 develop \
-install-js-dev \
-install-py-dev \
-apply-migrations: devenv-sync ;
-
-# This is to ensure devenv sync's only called once if the above
-# aliases are combined e.g. `make install-js-dev install-py-dev`
-.PHONY: devenv-sync
-devenv-sync:
-	devenv sync
-
 clean \
+init-config \
+run-dependent-services \
 drop-db \
 create-db \
+apply-migrations \
 reset-db \
 setup-git \
-node-version-check :
+node-version-check \
+install-js-dev \
+install-py-dev :
 	@./scripts/do.sh $@
 
 build-platform-assets \
@@ -95,7 +91,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifact/pytest.acceptance.json" --json-report-omit=log
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log
 	@echo ""
 
 test-cli: create-db

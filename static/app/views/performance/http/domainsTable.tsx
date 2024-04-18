@@ -6,7 +6,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -15,6 +15,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DomainCell} from 'sentry/views/performance/http/domainCell';
+import {ProjectIdCell} from 'sentry/views/performance/http/projectIdCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -35,6 +36,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.domain'
+  | 'project.id'
   | 'spm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
@@ -47,6 +49,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: 'span.domain',
     name: t('Domain'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'project.id',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -128,6 +135,7 @@ export function DomainsTable({response, sort}: Props) {
       isLoading={isLoading}
     >
       <GridEditable
+        aria-label={t('Domains')}
         isLoading={isLoading}
         error={response.error}
         data={data}
@@ -167,6 +175,11 @@ function renderBodyCell(
     return (
       <DomainCell projectId={row['project.id']?.toString()} domain={row['span.domain']} />
     );
+  }
+
+  // TODO: Integrate this into `fieldRenderers`
+  if (column.key === 'project.id') {
+    return <ProjectIdCell projectId={row['project.id']?.toString()} />;
   }
 
   if (!meta?.fields) {

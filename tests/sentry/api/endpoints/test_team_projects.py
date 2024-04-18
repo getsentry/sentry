@@ -1,10 +1,12 @@
+from unittest.mock import Mock
+
 from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class TeamProjectsListTest(APITestCase):
@@ -104,6 +106,9 @@ class TeamProjectsCreateTest(APITestCase):
         assert response.data["detail"] == "A project with this slug already exists."
 
     def test_default_rules(self):
+        signal_handler = Mock()
+        alert_rule_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -114,9 +119,15 @@ class TeamProjectsCreateTest(APITestCase):
 
         project = Project.objects.get(id=response.data["id"])
         rule = Rule.objects.filter(project=project).first()
+
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
+
+        # Ensure that creating the default alert rule does not trigger the
+        # alert_rule_created signal to avoid fake recording fake analytics.
+        assert signal_handler.call_count == 0
+        alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules(self):
         response = self.get_success_response(
@@ -167,32 +178,6 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert javascript_filter_states["browser-extensions"]
         assert set(javascript_filter_states["legacy-browsers"]) == {
-            "ie_pre_9",
-            "ie9",
-            "ie10",
-            "ie11",
-            "safari_pre_6",
-            "opera_pre_15",
-            "opera_mini_pre_8",
-            "android_pre_4",
-            "edge_pre_79",
-        }
-        assert javascript_filter_states["web-crawlers"]
-        assert javascript_filter_states["filtered-transaction"]
-
-    @with_feature("organizations:legacy-browser-update")
-    def test_updated_legacy_browser_default(self):
-        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
-        javascript_response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **project_data,
-            status_code=201,
-        )
-
-        javascript_project = Project.objects.get(id=javascript_response.data["id"])
-
-        assert set(inbound_filters.get_filter_state("legacy-browsers", javascript_project)) == {
             "ie",
             "firefox",
             "chrome",
@@ -202,3 +187,5 @@ class TeamProjectsCreateTest(APITestCase):
             "android",
             "edge",
         }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]

@@ -1,6 +1,6 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 
 export function ConfigFixture(params: Partial<Config> = {}): Config {
   return {

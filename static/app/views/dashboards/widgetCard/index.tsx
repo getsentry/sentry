@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import LazyLoad from 'react-lazyload';
 import type {WithRouterProps} from 'react-router';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -10,6 +9,7 @@ import {Alert} from 'sentry/components/alert';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {LazyRender} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -365,7 +365,7 @@ class WidgetCard extends Component<Props, State> {
                     chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
-                  <LazyLoad once resize height={200}>
+                  <LazyRender containerHeight={200} withoutContainer>
                     <WidgetCardChartContainer
                       location={location}
                       api={api}
@@ -380,7 +380,7 @@ class WidgetCard extends Component<Props, State> {
                       dashboardFilters={dashboardFilters}
                       chartGroup={DASHBOARD_CHART_GROUP}
                     />
-                  </LazyLoad>
+                  </LazyRender>
                 )}
                 {this.renderToolbar()}
               </WidgetCardPanel>

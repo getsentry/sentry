@@ -15,7 +15,7 @@ export function ProjectFiltersFixture(params = []) {
         'This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.',
     },
     {
-      active: ['ie_pre_9', 'ie9'],
+      active: ['ie', 'safari'],
       id: 'legacy-browsers',
       name: 'Filter out known errors from legacy browsers',
       description:

@@ -63,6 +63,10 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
+// Enable react 18 concurrent mode
+const USE_REACT_CONCURRENT_MODE =
+  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
+
 // Environment variables that are used by other tooling and should
 // not be user configurable.
 //
@@ -103,6 +107,8 @@ const SENTRY_EXPERIMENTAL_SPA =
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -350,6 +356,7 @@ const appConfig: Configuration = {
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
         USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+        USE_REACT_CONCURRENT_MODE: JSON.stringify(USE_REACT_CONCURRENT_MODE),
       },
     }),
 
@@ -449,7 +456,8 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
@@ -765,14 +773,15 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
 }
 
-if (CODECOV_TOKEN) {
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
 
   appConfig.plugins?.push(
     codecovWebpackPlugin({
       enableBundleAnalysis: true,
-      bundleName: 'sentry-webpack-bundle',
+      bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
+      debug: true,
     })
   );
 }

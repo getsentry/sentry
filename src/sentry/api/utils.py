@@ -510,8 +510,8 @@ def update_snuba_params_with_timestamp(
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
     send the timestamp of something in that event or trace and we'll query data near that event only which should be
     faster than the default 7d or 14d queries"""
-    # during the transition this is optional but it will become required
-    sentry_sdk.set_tag("trace_view.used_timestamp", "timestamp" in request.GET)
+    # during the transition this is optional but it will become required for the trace view
+    sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
     if timestamp_key in request.GET and "start" in params and "end" in params:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
         # While possible, the majority of traces shouldn't take more than a week
