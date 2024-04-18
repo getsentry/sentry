@@ -2854,10 +2854,10 @@
     "@sentry/types" "7.109.0"
     "@sentry/utils" "7.109.0"
 
-"@sentry-internal/global-search@^0.5.7":
-  version "0.5.7"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.5.7.tgz#2749d24b01123b5d92f6326a33c5d4c81ec8c239"
-  integrity sha512-+fN8bsdXqo0nqppNR2JvZ5acEDKhVA/uCsE0jvLNcGqQgbr6JREbTje/nCCZNgoDwJ+BoTROALKIx/YBlhdp7g==
+"@sentry-internal/global-search@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-1.0.0.tgz#06ca26cc37f6cafda913a358be63a5e2e0a221f6"
+  integrity sha512-u4UUwxinDhUJ0kA4xGGQTr3QGJAWh7GRdFls9ys8coV7WjPNYt91MHfOWVdFzgeU6f4aO7RKE8uxSb/fkZiagQ==
   dependencies:
     "@types/react" ">=16"
     "@types/react-dom" ">=16"
