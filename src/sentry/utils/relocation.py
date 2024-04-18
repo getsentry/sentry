@@ -618,7 +618,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
             uuid=relocation.uuid,
-            wait_for=["export-baseline-config"],
+            wait_for=["export-colliding-users"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",
