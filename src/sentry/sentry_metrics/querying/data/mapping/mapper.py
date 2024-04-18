@@ -66,17 +66,3 @@ class Project2ProjectIDMapper(Mapper):
                     self.map[value] = project.slug
 
         return self.map[value]
-
-
-def find_modulator(
-    modulators: Sequence[Mapper], from_key: str | None = None, to_key: str | None = None
-) -> Mapper | None:
-    for modulator in modulators:
-        if from_key:
-            if modulator.from_key == from_key:
-                return modulator
-        if to_key:
-            if modulator.to_key == to_key:
-                return modulator
-
-    return None
