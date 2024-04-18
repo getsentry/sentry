@@ -61,8 +61,8 @@ def proxy_request_if_needed(
         url_name = request.resolver_match.url_name or url_name
 
     if "organization_slug" in view_kwargs or "organization_id_or_slug" in view_kwargs:
-        org_id_or_slug = view_kwargs.get("organization_slug") or view_kwargs.get(
-            "organization_id_or_slug"
+        org_id_or_slug: str = view_kwargs.get("organization_slug") or view_kwargs.get(
+            "organization_id_or_slug", ""
         )
 
         metrics.incr(
