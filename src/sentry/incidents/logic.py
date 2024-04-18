@@ -14,7 +14,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, quotas
+from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -459,7 +459,16 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
-DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
+DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
+DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS = {
+    30: 2,
+    60: 3,
+    90: 3,
+    120: 3,
+    240: 5,
+    720: 5,
+    1440: 15,
+}
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -469,6 +478,17 @@ query_datasets_to_type = {
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
 }
+
+
+def get_alert_resolution(time_window: int, organization) -> int:
+    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+
+    if features.has("organizations:metric-alert-load-shedding", organization=organization):
+        resolution = DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.get(
+            time_window, DEFAULT_ALERT_RULE_RESOLUTION
+        )
+
+    return resolution
 
 
 def create_alert_rule(
@@ -527,10 +547,11 @@ def create_alert_rule(
     if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
-    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    resolution = get_alert_resolution(time_window, organization)
+
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
-        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
     actor = None
@@ -741,10 +762,11 @@ def update_alert_rule(
         updated_fields["team_id"] = owner.team_id if owner else None
         updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
-        resolution = DEFAULT_ALERT_RULE_RESOLUTION
+        resolution = get_alert_resolution(time_window, organization=alert_rule.organization)
+
         if comparison_delta is not None:
             # Since comparison alerts make twice as many queries, run the queries less frequently.
-            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+            resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
