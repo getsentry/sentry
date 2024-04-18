@@ -60,3 +60,12 @@ class SentryAppRotateSecretTest(APITestCase):
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+
+    def test_superuser_has_access(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+        old_secret = self.sentry_app.application.client_secret
+        response = self.client.post(self.url)
+        new_secret = response.data["clientSecret"]
+        assert len(new_secret) == len(old_secret)
+        assert new_secret != old_secret

@@ -8,6 +8,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import superuser_has_permission
 from sentry.models.apiapplication import generate_token
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -27,6 +28,11 @@ class SentryAppRotateSecretPermission(SentryPermission):
         if org_context is None:
             raise Http404
 
+        self.determine_access(request, org_context)
+
+        if superuser_has_permission(request):
+            return True
+
         # if user is not a member of an organization owning an integration,
         # return 404 to avoid leaking integration slug
         organizations = (
@@ -38,7 +44,6 @@ class SentryAppRotateSecretPermission(SentryPermission):
             raise Http404
 
         # permission check inside an organization
-        self.determine_access(request, org_context)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
