@@ -9,6 +9,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type FormModel from 'sentry/components/forms/model';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -225,6 +226,45 @@ describe('Incident Rules Form', () => {
     it('creates a rule with generic_metrics dataset', async () => {
       organization.features = [...organization.features, 'mep-rollout-flag'];
       const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
+    });
+
+    it('creates a rule with an activation condition', async () => {
+      organization.features = [
+        ...organization.features,
+        'mep-rollout-flag',
+        'activated-alert-rules',
+      ];
+      const rule = MetricRuleFixture({
+        monitorType: MonitorType.ACTIVATED,
+        activationCondition: ActivationConditionType.RELEASE_CREATION,
+      });
       createWrapper({
         rule: {
           ...rule,

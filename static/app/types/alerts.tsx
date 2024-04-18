@@ -291,3 +291,8 @@ export enum MonitorType {
   CONTINUOUS = 0,
   ACTIVATED = 1,
 }
+
+export enum ActivationConditionType {
+  RELEASE_CREATION = 0,
+  DEPLOY_CREATION = 1,
+}
