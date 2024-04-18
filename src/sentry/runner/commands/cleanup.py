@@ -14,7 +14,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 
 
 def get_project(value: str) -> int | None:
@@ -76,14 +76,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     while True:
         j = task_queue.get()
         if j == _STOP_WORKER:
-            debug_output("Received STOP_WORKER task")
             task_queue.task_done()
 
             return
 
         model_name, chunk = j
-        debug_output(f"Starting deletion work for {model_name}:{chunk}")
-
         model = import_string(model_name)
         try:
             task = deletions.get(
@@ -94,13 +91,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             )
 
             while True:
-                debug_output(f"Running chunk for {model_name}")
                 if not task.chunk():
                     break
         except Exception as e:
             logger.exception(e)
         finally:
-            debug_output(f"Completed deletion work for {model_name}:{chunk}")
             task_queue.task_done()
 
 
@@ -195,6 +190,9 @@ def cleanup(
         model_list = {m.lower() for m in model}
 
         def is_filtered(model: type[Model]) -> bool:
+            silo_limit = getattr(model._meta, "silo_limit", None)
+            if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                return True
             if router is not None and db_router.db_for_write(model) != router:
                 return True
             if not model_list:
@@ -236,7 +234,6 @@ def cleanup(
         ]
 
         debug_output("Removing expired values for LostPasswordHash")
-
         if is_filtered(models.LostPasswordHash):
             debug_output(">> Skipping LostPasswordHash")
         else:
@@ -245,7 +242,6 @@ def cleanup(
             ).delete()
 
         debug_output("Removing expired values for OrganizationMember")
-
         if is_filtered(models.OrganizationMember):
             debug_output(">> Skipping OrganizationMember")
         else:
@@ -376,7 +372,6 @@ def cleanup(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
 
-        debug_output("Waiting for task_queue to drain")
         task_queue.join()
 
         # Clean up FileBlob instances which are no longer used and aren't super
@@ -386,7 +381,6 @@ def cleanup(
             debug_output(">> Skipping FileBlob")
         else:
             cleanup_unused_files(silent)
-
     finally:
         # Shut down our pool
         for _ in pool:
