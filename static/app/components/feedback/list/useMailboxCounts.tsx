@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';

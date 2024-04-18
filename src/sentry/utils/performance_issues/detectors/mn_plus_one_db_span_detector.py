@@ -6,7 +6,6 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Any
 
-from sentry import features
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
@@ -260,16 +259,14 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(self.settings, self.event())
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return features.has(
-            "organizations:performance-issues-m-n-plus-one-db-detector",
-            organization,
-            actor=None,
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -86,7 +86,7 @@ function ResourceView() {
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
   const {features} = useOrganization();
-  const hasImageView = features.includes('starfish-browser-resource-module-image-view');
+  const hasImageView = features.includes('spans-first-ui');
 
   const options: Option[] = [
     {value: '', label: 'All'},

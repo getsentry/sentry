@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -11,10 +11,13 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {
+  EMPTY_OPTION_VALUE,
+  escapeFilterValue,
+  MutableSearch,
+} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +31,11 @@ import {
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_TITLE,
+  NULL_DOMAIN_DESCRIPTION,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -55,7 +62,7 @@ export function HTTPDomainSummaryPage() {
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const {domain, project: projectId} = useLocationQuery({
     fields: {
@@ -68,7 +75,7 @@ export function HTTPDomainSummaryPage() {
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
-    'span.domain': domain,
+    'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
@@ -84,7 +91,6 @@ export function HTTPDomainSummaryPage() {
       'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
   });
 
@@ -95,7 +101,6 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
   });
 
@@ -106,7 +111,6 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
 
@@ -171,7 +175,7 @@ export function HTTPDomainSummaryPage() {
           />
           <Layout.Title>
             {project && <ProjectAvatar project={project} size={36} />}
-            {domain}
+            {domain || NULL_DOMAIN_DESCRIPTION}
             <DomainStatusLink domain={domain} />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
@@ -234,7 +238,7 @@ export function HTTPDomainSummaryPage() {
                     unit={DurationUnit.MILLISECOND}
                     tooltip={getTimeSpentExplanation(
                       domainMetrics?.[0]?.['time_spent_percentage()'],
-                      'db'
+                      'http'
                     )}
                     isLoading={areDomainMetricsLoading}
                   />

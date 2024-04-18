@@ -1,5 +1,13 @@
 import type React from 'react';
-import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -14,7 +22,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -41,6 +50,7 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
@@ -77,6 +87,12 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
+
+  useEffect(() => {
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization,
+    });
+  }, [organization]);
 
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
@@ -709,6 +725,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
           />
           <TraceResetZoomButton viewManager={viewManager} />
+          <TraceShortcuts />
         </TraceToolbar>
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
           <Trace
@@ -775,12 +792,22 @@ const TraceInnerLayout = styled('div')`
   flex: 1 1 100%;
   padding: 0 ${space(2)} 0 ${space(2)};
   background-color: ${p => p.theme.background};
+
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
 `;
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 1fr min-content min-content;
   gap: ${space(1)};
 `;
 

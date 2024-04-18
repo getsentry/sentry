@@ -5,9 +5,9 @@ from sentry.incidents.models.incident import (
     IncidentActivityType,
     IncidentStatus,
 )
-from sentry.models.actor import ActorTuple
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.utils.actor import ActorTuple
 
 
 @freeze_time()

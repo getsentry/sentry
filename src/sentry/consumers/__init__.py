@@ -376,7 +376,7 @@ def get_stream_processor(
     synchronize_commit_log_topic: str | None = None,
     synchronize_commit_group: str | None = None,
     healthcheck_file_path: str | None = None,
-    enable_dlq: bool = False,
+    enable_dlq: bool = True,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
@@ -402,10 +402,13 @@ def get_stream_processor(
 
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
-    cluster = topic_defn["cluster"]
+    cluster_from_config = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
+
+    if cluster is None:
+        cluster = cluster_from_config
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -488,7 +491,7 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
-    if enable_dlq:
+    if enable_dlq and consumer_definition.get("dlq_topic"):
         try:
             dlq_topic = consumer_definition["dlq_topic"]
         except KeyError as e:

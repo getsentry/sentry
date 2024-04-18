@@ -13,8 +13,8 @@ import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupC
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';

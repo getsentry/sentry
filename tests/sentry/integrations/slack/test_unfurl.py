@@ -413,7 +413,7 @@ class UnfurlTest(TestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
             resolve_threshold=10,
             threshold_period=1,

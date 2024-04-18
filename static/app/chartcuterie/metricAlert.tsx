@@ -3,7 +3,7 @@ import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
-import type {SessionApiResponse} from 'sentry/types';
+import type {SessionApiResponse} from 'sentry/types/organization';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricChartData} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 import {

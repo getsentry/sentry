@@ -13,7 +13,7 @@ jest.mock('sentry/utils/useOrganization');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-browser-webvitals', 'performance-database-view'],
+    features: ['spans-first-ui'],
   });
 
   beforeEach(function () {

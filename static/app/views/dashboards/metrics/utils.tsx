@@ -18,7 +18,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 

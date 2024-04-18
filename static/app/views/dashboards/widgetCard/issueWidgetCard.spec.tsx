@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -44,6 +45,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
+  const user = UserFixture();
   const api = new MockApiClient();
 
   beforeEach(function () {
@@ -56,9 +58,9 @@ describe('Dashboards > IssueWidgetCard', function () {
           shortId: 'ISSUE',
           assignedTo: {
             type: 'user',
-            id: '2222222',
-            name: 'dashboard user',
-            email: 'dashboarduser@sentry.io',
+            id: user.id,
+            name: user.name,
+            email: user.email,
           },
           lifetime: {count: 10, userCount: 5},
           count: 6,
@@ -70,7 +72,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [],
+      body: [user],
     });
   });
 
@@ -79,7 +81,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('renders with title and issues chart', async function () {
-    MemberListStore.loadInitialData([]);
+    MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard
         api={api}
@@ -100,13 +102,13 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(await screen.findByText('assignee')).toBeInTheDocument();
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
-    expect(screen.getByText('DU')).toBeInTheDocument();
+    expect(screen.getByText('FB')).toBeInTheDocument();
     expect(screen.getByText('ISSUE')).toBeInTheDocument();
     expect(
       screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
-    await userEvent.hover(screen.getByTitle('dashboard user'));
-    expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
+    await userEvent.hover(screen.getByTitle(user.name));
+    expect(await screen.findByText(`Assigned to ${user.name}`)).toBeInTheDocument();
   });
 
   it('opens in issues page', async function () {
@@ -186,7 +188,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
-    MemberListStore.loadInitialData([]);
+    MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard
         api={api}
