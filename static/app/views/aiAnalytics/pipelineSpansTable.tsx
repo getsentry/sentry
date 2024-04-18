@@ -7,15 +7,15 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -97,6 +97,7 @@ export function PipelineSpansTable({groupId}: Props) {
       SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.USER,
       SpanIndexedField.TIMESTAMP,
+      SpanIndexedField.PROJECT,
     ],
     referrer: 'api.ai-pipelines.view',
     search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
@@ -154,15 +155,18 @@ function renderBodyCell(
     }
     return (
       <Link
-        to={getTraceDetailsUrl(
+        to={generateLinkToEventInTraceView({
           organization,
-          row[SpanIndexedField.TRACE],
-          {},
-          {},
-          '',
-          row[SpanIndexedField.TRANSACTION_ID],
-          row[SpanIndexedField.ID]
-        )}
+          eventSlug: `${row[SpanIndexedField.PROJECT]}:${row[SpanIndexedField.TRANSACTION_ID]}`,
+          dataRow: {
+            id: row[SpanIndexedField.TRANSACTION_ID],
+            trace: row[SpanIndexedField.TRACE],
+            timestamp: row[SpanIndexedField.TIMESTAMP],
+          },
+          location,
+          eventView: EventView.fromLocation(location),
+          spanId: row[SpanIndexedField.ID],
+        })}
       >
         {row[SpanIndexedField.ID]}
       </Link>

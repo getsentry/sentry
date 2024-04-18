@@ -60,7 +60,7 @@ export default function AiAnalyticsPage({params}: Props) {
       SpanMetricsField.SPAN_DESCRIPTION,
       'count()',
       `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsField.SPAN_DURATION})`,
     ],
     enabled: Boolean(groupId),
     referrer: 'api.ai-pipelines.view',
@@ -120,7 +120,7 @@ export default function AiAnalyticsPage({params}: Props) {
                           <MetricReadout
                             title={DataTitles.avg}
                             value={
-                              spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
+                              spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]
                             }
                             unit={DurationUnit.MILLISECOND}
                             isLoading={areSpanMetricsLoading}
