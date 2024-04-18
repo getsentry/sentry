@@ -1,10 +1,14 @@
-class InvalidUsecaseError(Exception):
+class InvalidUsecaseError(ValueError):
     pass
 
 
-class InvalidProviderError(Exception):
+class InvalidProviderError(ValueError):
     pass
 
 
-class InvalidModelError(Exception):
+class InvalidModelError(ValueError):
+    pass
+
+
+class InvalidTemperature(ValueError):
     pass

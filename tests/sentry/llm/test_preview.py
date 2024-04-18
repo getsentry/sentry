@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.llm.exceptions import InvalidModelError, InvalidProviderError, InvalidUsecaseError
-from sentry.llm.usecases import LlmUseCase, complete_prompt
+from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
 def test_complete_prompt(set_sentry_option):
@@ -13,7 +13,7 @@ def test_complete_prompt(set_sentry_option):
         ),
     ):
         res = complete_prompt(
-            usecase=LlmUseCase.EXAMPLE,
+            usecase=LLMUseCase.EXAMPLE,
             prompt="prompt here",
             message="message here",
             temperature=0.0,
@@ -33,7 +33,7 @@ def test_invalid_usecase_config(set_sentry_option):
     ):
         with pytest.raises(InvalidUsecaseError):
             complete_prompt(
-                usecase=LlmUseCase.EXAMPLE,
+                usecase=LLMUseCase.EXAMPLE,
                 prompt="prompt here",
                 message="message here",
                 temperature=0.0,
@@ -51,7 +51,7 @@ def test_invalid_provider_config(set_sentry_option):
     ):
         with pytest.raises(InvalidProviderError):
             complete_prompt(
-                usecase=LlmUseCase.EXAMPLE,
+                usecase=LLMUseCase.EXAMPLE,
                 prompt="prompt here",
                 message="message here",
                 temperature=0.0,
@@ -69,7 +69,7 @@ def test_invalid_model(set_sentry_option):
     ):
         with pytest.raises(InvalidModelError):
             complete_prompt(
-                usecase=LlmUseCase.EXAMPLE,
+                usecase=LLMUseCase.EXAMPLE,
                 prompt="prompt here",
                 message="message here",
                 temperature=0.0,
@@ -87,7 +87,7 @@ def test_invalid_temperature(set_sentry_option):
     ):
         with pytest.raises(ValueError):
             complete_prompt(
-                usecase=LlmUseCase.EXAMPLE,
+                usecase=LLMUseCase.EXAMPLE,
                 prompt="prompt here",
                 message="message here",
                 temperature=-1,
@@ -95,7 +95,7 @@ def test_invalid_temperature(set_sentry_option):
             )
         with pytest.raises(ValueError):
             complete_prompt(
-                usecase=LlmUseCase.EXAMPLE,
+                usecase=LLMUseCase.EXAMPLE,
                 prompt="prompt here",
                 message="message here",
                 temperature=2,

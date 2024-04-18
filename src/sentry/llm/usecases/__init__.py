@@ -1,7 +1,7 @@
 from enum import Enum
 
 from sentry import options
-from sentry.llm.exceptions import InvalidProviderError, InvalidUsecaseError
+from sentry.llm.exceptions import InvalidProviderError, InvalidTemperature, InvalidUsecaseError
 from sentry.llm.providers.base import LlmModelBase
 from sentry.llm.providers.openai import OpenAIProvider
 from sentry.llm.providers.preview import PreviewLLM
@@ -15,7 +15,7 @@ SENTRY_LLM_SERVICE_ALIASES = {
 }
 
 
-class LlmUseCase(Enum):
+class LLMUseCase(Enum):
     EXAMPLE = "example"  # used in tests / examples
     SUGGESTED_FIX = "suggestedfix"  # OG version of suggested fix
 
@@ -23,9 +23,8 @@ class LlmUseCase(Enum):
 llm_provider_backends: dict[str, LlmModelBase] = {}
 
 
-def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
+def get_llm_provider_backend(usecase: LLMUseCase) -> LlmModelBase:
     usecase_config = get_usecase_config(usecase.value)
-    provider_config = get_provider_config(usecase_config["provider"])
     global llm_provider_backends
 
     if usecase_config["provider"] in llm_provider_backends:
@@ -36,6 +35,8 @@ def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
 
     provider = SENTRY_LLM_SERVICE_ALIASES[usecase_config["provider"]]
 
+    provider_config = get_provider_config(usecase_config["provider"])
+
     llm_provider_backends[usecase_config["provider"]] = provider(
         provider_config,
     )
@@ -45,7 +46,7 @@ def get_llm_provider_backend(usecase: LlmUseCase) -> LlmModelBase:
 
 def complete_prompt(
     *,
-    usecase: LlmUseCase,
+    usecase: LLMUseCase,
     prompt: str,
     message: str,
     temperature: float = 0.5,
@@ -100,4 +101,4 @@ def get_provider_config(provider: str) -> ProviderConfig:
 
 def _validate_temperature(temperature: float) -> None:
     if not (0 <= temperature <= 1):
-        raise ValueError("Temperature must be between 0 and 1")
+        raise InvalidTemperature("Temperature must be between 0 and 1")

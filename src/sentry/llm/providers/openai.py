@@ -41,9 +41,20 @@ class OpenAIProvider(LlmModelBase):
 openai_client: OpenAI | None = None
 
 
-from functools import lru_cache
+class OpenAIClientSingleton:
+    _instance = None
+    client: OpenAI
+
+    def __init__(self) -> None:
+        raise RuntimeError("Call instance() instead")
+
+    @classmethod
+    def instance(cls, api_key: str) -> "OpenAIClientSingleton":
+        if cls._instance is None:
+            cls._instance = cls.__new__(cls)
+            cls._instance.client = OpenAI(api_key=api_key)
+        return cls._instance
 
 
-@lru_cache(maxsize=1)
 def get_openai_client(api_key: str) -> OpenAI:
-    return OpenAI(api_key=api_key)
+    return OpenAIClientSingleton.instance(api_key).client

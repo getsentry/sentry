@@ -3,7 +3,7 @@ from unittest.mock import patch
 import httpx
 from httpx import Response
 
-from sentry.llm.usecases import LlmUseCase, complete_prompt
+from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
 def test_complete_prompt(set_sentry_option):
@@ -29,7 +29,7 @@ def test_complete_prompt(set_sentry_option):
         mock_send.return_value = mock_response
 
         res = complete_prompt(
-            usecase=LlmUseCase.EXAMPLE,
+            usecase=LLMUseCase.EXAMPLE,
             prompt="prompt here",
             message="message here",
             temperature=0.0,

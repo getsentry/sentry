@@ -10,10 +10,10 @@ def llm(usecase: str) -> None:
     from sentry.runner import configure
 
     configure()
-    from sentry.llm.usecases import LlmUseCase, complete_prompt
+    from sentry.llm.usecases import LLMUseCase, complete_prompt
 
     llm_response = complete_prompt(
-        usecase=LlmUseCase(usecase),
+        usecase=LLMUseCase(usecase),
         prompt="prompt here",
         message="message here",
     )
