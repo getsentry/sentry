@@ -4,16 +4,16 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
+
+import ExternalLink from './links/externalLink';
+import Link from './links/link';
+import InteractionStateLayer from './interactionStateLayer';
+import {Tooltip, type TooltipProps} from './tooltip';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -606,5 +606,12 @@ const Icon = styled('span')<IconProps>`
 
 const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
-export type {ButtonProps, BaseButtonProps, LinkButtonProps};
-export {Button, LinkButton, StyledButton, ButtonLabel};
+export {
+  Button,
+  LinkButton,
+  StyledButton,
+  ButtonLabel,
+  type ButtonProps,
+  type BaseButtonProps,
+  type LinkButtonProps,
+};
