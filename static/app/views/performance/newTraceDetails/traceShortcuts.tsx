@@ -34,27 +34,23 @@ const TIMELINE_SHORTCUTS: [string, string][] = [
 function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
-      <Header>
+      <Header closeButton>
         <h2>{t('Keyboard controls to help you use the new Trace View!')}</h2>
       </Header>
       <Body>
         <ShortcutsLayout>
           <div>
-            <ShortcutDomain>{t('Keyboard navigation')}</ShortcutDomain>
             <Shortcuts>
               {KEYBOARD_SHORTCUTS.map(([key, description]) => (
                 <Shortcut key={key}>
                   <strong>{key}</strong>
-                  {description}
+                  <div>{description}</div>
                 </Shortcut>
               ))}
-            </Shortcuts>
-            <ShortcutDomain>{t('Timeline')}</ShortcutDomain>
-            <Shortcuts>
               {TIMELINE_SHORTCUTS.map(([key, description]) => (
                 <Shortcut key={key}>
                   <strong>{key}</strong>
-                  {description}
+                  <div>{description}</div>
                 </Shortcut>
               ))}
             </Shortcuts>
@@ -70,7 +66,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
 
 const ShortcutsLayout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 40%;
+  grid-template-columns: 1fr 38%;
   gap: ${space(2)};
 
   img {
@@ -80,13 +76,9 @@ const ShortcutsLayout = styled('div')`
   }
 `;
 
-const ShortcutDomain = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(2)};
-`;
-
 const Shortcuts = styled('ul')`
   list-style-type: none;
+  margin-bottom: 0;
   padding: 0;
 
   &:not(:last-child) {
@@ -96,10 +88,12 @@ const Shortcuts = styled('ul')`
 
 const Shortcut = styled('li')`
   height: 32px;
+  display: grid;
+  grid-template-columns: min-content 1fr;
 
   strong {
     display: inline-block;
-    min-width: 150px;
+    min-width: 140px;
     color: ${p => p.theme.purple300};
   }
 `;
