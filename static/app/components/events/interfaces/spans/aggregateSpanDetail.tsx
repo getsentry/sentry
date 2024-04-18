@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {AggregateEventTransaction} from 'sentry/types/event';
-import EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import type {
@@ -45,10 +44,11 @@ function renderSpanSamples(
       key={`${transaction}-${span}`}
       to={generateLinkToEventInTraceView({
         organization,
-        eventSlug: `${project.slug}:${transaction}`,
-        dataRow: {id: transaction, trace, timestamp},
+        traceSlug: trace,
+        projectSlug: project.slug,
+        eventId: transaction,
+        timestamp,
         location,
-        eventView: EventView.fromLocation(location),
         spanId: span,
       })}
     >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>

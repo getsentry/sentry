@@ -12,11 +12,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -206,10 +202,11 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (key === 'id') {
       const eventTarget = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug({id: row.id, project: projectSlug}),
-        dataRow: row,
+        eventId: row.id,
+        traceSlug: row.trace,
+        timestamp: row.timestamp,
+        projectSlug,
         organization,
-        eventView: EventView.fromLocation(location),
         location,
       });
       return (

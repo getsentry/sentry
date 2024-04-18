@@ -16,14 +16,12 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,11 +73,12 @@ export function EventSamplesTable({
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({...row, id: row[eventIdKey]}),
+            eventId: row[eventIdKey],
+            projectSlug: row['project.name'],
+            traceSlug: row.trace,
+            timestamp: row.timestamp,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: row,
           })}
         >
           {row[eventIdKey].slice(0, 8)}
