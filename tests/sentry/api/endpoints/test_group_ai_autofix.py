@@ -1,6 +1,6 @@
 from unittest.mock import ANY, patch
 
-from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAiAutofixEndpoint
+from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAutofixEndpoint
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -46,7 +46,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is None
 
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_post_endpoint(self, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -106,7 +106,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "autofix" in group.data["metadata"]
         assert group.data["metadata"]["autofix"]["status"] == "PROCESSING"
 
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_post_without_event_id(self, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -165,7 +165,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group.data["metadata"]["autofix"]["status"] == "PROCESSING"
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_post_without_event_id_no_recommended_event(self, mock_call, mock_event):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -257,7 +257,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.post(url, data={"instruction": "Yes"}, format="json")
         assert response.status_code == 400
 
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_without_code_mapping(self, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -299,7 +299,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group.data["metadata"]["autofix"]["error_message"] == error_msg
         assert group.data["metadata"]["autofix"]["steps"] == []
 
-    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_without_stacktrace(self, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
@@ -349,7 +349,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     def test_get_repos_from_code_mapping_no_repos(self):
         group = self.create_group(project=self.project)
-        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        repos = GroupAutofixEndpoint._get_repos_from_code_mapping(group)
         assert len(repos) == 0, "Expected no repositories to be returned when none are linked"
 
     def test_get_repos_from_code_mapping_with_repos(self):
@@ -366,7 +366,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         self.create_code_mapping(repo=repo2, stack_root="src")
 
-        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        repos = GroupAutofixEndpoint._get_repos_from_code_mapping(group)
         assert len(repos) == 2, "Expected two repositories to be returned"
         assert {
             "provider": "integrations:github",
@@ -393,7 +393,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         self.create_code_mapping(repo=repo2, stack_root="src")
 
-        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        repos = GroupAutofixEndpoint._get_repos_from_code_mapping(group)
         assert len(repos) == 1, "Expected one repository to be returned"
         assert {
             "provider": "integrations:github",
@@ -408,5 +408,5 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         repo1 = self.create_repo(project=self.project, name="getsentry/sentry", provider=None)
         self.create_code_mapping(repo=repo1, stack_root="app")
 
-        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        repos = GroupAutofixEndpoint._get_repos_from_code_mapping(group)
         assert len(repos) == 0

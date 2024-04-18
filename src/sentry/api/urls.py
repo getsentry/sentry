@@ -229,9 +229,9 @@ from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
-from .endpoints.group_ai_autofix import GroupAiAutofixEndpoint
-from .endpoints.group_ai_autofix_update import GroupAiAutofixUpdateEndpoint
+from .endpoints.group_ai_autofix import GroupAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
+from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
@@ -487,6 +487,9 @@ from .endpoints.project_app_store_connect_credentials import (
 )
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
+from .endpoints.project_autofix_create_codebase_index import (
+    ProjectAutofixCreateCodebaseIndexEndpoint,
+)
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
@@ -766,12 +769,12 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
-            GroupAiAutofixEndpoint.as_view(),
+            GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/ai-autofix/update/$",
-            GroupAiAutofixUpdateEndpoint.as_view(),
+            GroupAutofixUpdateEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix-update",
         ),
         re_path(
@@ -2727,6 +2730,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
         ProjectMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/create$",
+        ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
+        name="sentry-api-0-project-autofix-create-codebase-index",
     ),
 ]
 

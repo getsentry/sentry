@@ -11,7 +11,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.models.group import Group
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +18,12 @@ from rest_framework.request import Request
 
 
 @region_silo_endpoint
-class GroupAiAutofixUpdateEndpoint(GroupEndpoint):
+class GroupAutofixUpdateEndpoint(GroupEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
     private = True
-    enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
-        }
-    }
 
     def post(self, request: Request, group: Group) -> Response:
         """

@@ -31,7 +31,7 @@ TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
 @region_silo_endpoint
-class GroupAiAutofixEndpoint(GroupEndpoint):
+class GroupAutofixEndpoint(GroupEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
