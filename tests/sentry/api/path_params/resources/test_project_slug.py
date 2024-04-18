@@ -34,6 +34,8 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
 
         _, converted_slugs = endpoint_class().convert_args(request=request, **slug_kwargs)
 
+        self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
+
         self.project.slug = old_slug
 
     def project_alert_rule_endpoint_test(self, endpoint_class, slug_params, *args):
