@@ -139,13 +139,14 @@ class ProjectEndpoint(Endpoint):
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
+                # This will only happen if the passed in project_slug is a slug and not an id
                 redirect = ProjectRedirect.objects.select_related("project")
                 if id_or_slug_path_params_enabled(
                     self.convert_args.__qualname__, str(organization_slug)
                 ):
                     redirect = redirect.get(
                         organization__slug__id_or_slug=organization_slug,
-                        redirect_slug__id_or_slug=project_slug,
+                        redirect_slug=project_slug,
                     )
                 else:
                     redirect = redirect.get(
