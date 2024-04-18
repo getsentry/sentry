@@ -251,7 +251,7 @@ Sentry.captureCheckIn({
           '[installLink:Install and configure] the Sentry Node SDK (min v7.52), then instrument your monitor:',
           {
             installLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/" />
             ),
           }
         )}
