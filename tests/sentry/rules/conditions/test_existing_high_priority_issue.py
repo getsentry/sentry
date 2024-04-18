@@ -1,3 +1,4 @@
+from sentry.models.rule import Rule
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
@@ -10,22 +11,25 @@ pytestmark = [requires_snuba]
 class ExistingHighPriorityIssueConditionTest(RuleTestCase):
     rule_cls = ExistingHighPriorityIssueCondition
 
+    def setUp(self):
+        self.rule = Rule(environment_id=1, project=self.project, label="label")
+
     @with_feature("projects:high-priority-alerts")
     @with_feature("projects:issue-priority")
     def test_applies_correctly(self):
-        rule = self.get_rule()
-        event = self.get_event()
+        rule = self.get_rule(rule=self.rule)
 
         # This will never pass for non-new or non-escalating issuesalways pass
-        event.group.update(priority=PriorityLevel.HIGH)
-        self.assertPasses(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.event.group.update(priority=PriorityLevel.HIGH)
+        self.assertPasses(rule, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertPasses(rule, is_new=False, has_reappeared=False, has_escalated=True)
 
         # This will never pass
-        self.assertDoesNotPass(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
-        self.assertDoesNotPass(rule, event, is_new=True, has_reappeared=True, has_escalated=False)
+        self.assertDoesNotPass(rule, is_new=True, has_reappeared=False, has_escalated=True)
+        self.assertDoesNotPass(rule, is_new=True, has_reappeared=True, has_escalated=False)
 
-        event.group.update(priority=PriorityLevel.LOW)
-        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.event.group.update(priority=PriorityLevel.LOW)
+        self.assertDoesNotPass(rule, is_new=False, has_reappeared=True, has_escalated=False)
 
-        event.group.update(priority=PriorityLevel.MEDIUM)
-        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.event.group.update(priority=PriorityLevel.MEDIUM)
+        self.assertDoesNotPass(rule, is_new=False, has_reappeared=True, has_escalated=True)

@@ -30,7 +30,7 @@ class NewHighPriorityIssueCondition(EventCondition):
         return severity >= HIGH_SEVERITY_THRESHOLD
 
     def is_new(self, state: EventState) -> bool:
-        if self.rule.environment_id is None:
+        if not self.rule or self.rule.environment_id is None:
             return state.is_new
 
         return state.is_new_group_environment
@@ -39,13 +39,7 @@ class NewHighPriorityIssueCondition(EventCondition):
         if not has_high_priority_issue_alerts(self.project):
             return False
 
-        if not self.rule:
-            return state.is_new
-
-        is_new = self.is_new(state, self.rule.environment_id)
-        # if not event.project.flags.has_high_priority_alerts:
-        #     return is_new
-
+        is_new = self.is_new(state)
         if features.has("projects:issue-priority", self.project):
             if not event.group:
                 return False
