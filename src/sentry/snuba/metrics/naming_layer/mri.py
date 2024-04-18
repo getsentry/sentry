@@ -167,6 +167,7 @@ class SpanMRI(Enum):
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
     RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
 
     # Derived
