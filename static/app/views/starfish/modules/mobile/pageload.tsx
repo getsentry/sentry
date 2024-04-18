@@ -20,6 +20,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
@@ -69,7 +70,6 @@ export default function PageloadModule() {
           <Layout.Body>
             <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
-              <PageAlert />
               <PageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
@@ -79,22 +79,33 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
+                <PageAlert />
                 <ErrorBoundary mini>
-                  {onboardingProject && (
-                    <OnboardingContainer>
-                      <Onboarding
-                        organization={organization}
-                        project={onboardingProject}
+                  <PlatformCompatibilityChecker
+                    compatibleSDKNames={[
+                      'sentry.java.android',
+                      'sentry.cocoa',
+                      'sentry.javascript.react-native',
+                      'sentry.dart.flutter',
+                    ]}
+                    docsUrl="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#minimum-sdk-requirements"
+                  >
+                    {onboardingProject && (
+                      <OnboardingContainer>
+                        <Onboarding
+                          organization={organization}
+                          project={onboardingProject}
+                        />
+                      </OnboardingContainer>
+                    )}
+                    {!onboardingProject && (
+                      <ScreensView
+                        yAxes={[YAxis.TTID, YAxis.TTFD]}
+                        chartHeight={240}
+                        project={project}
                       />
-                    </OnboardingContainer>
-                  )}
-                  {!onboardingProject && (
-                    <ScreensView
-                      yAxes={[YAxis.TTID, YAxis.TTFD]}
-                      chartHeight={240}
-                      project={project}
-                    />
-                  )}
+                    )}
+                  </PlatformCompatibilityChecker>
                 </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
