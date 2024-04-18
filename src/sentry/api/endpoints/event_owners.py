@@ -8,9 +8,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models.actor import ActorTuple
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.team import Team
+from sentry.utils.actor import ActorTuple
 
 
 @region_silo_endpoint

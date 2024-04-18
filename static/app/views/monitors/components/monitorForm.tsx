@@ -35,6 +35,8 @@ import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
 import {ScheduleType} from '../types';
 
+import {platformsWithGuides} from './monitorQuickStartGuide';
+
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
   {value: ScheduleType.INTERVAL, label: t('Interval')},
@@ -215,6 +217,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -239,7 +243,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
-              owner: monitor.owner,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -284,6 +288,13 @@ function MonitorForm({
           <StyledSentryProjectSelectorField
             name="project"
             aria-label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groups={[
+              {key: 'suggested', label: t('Suggested Projects')},
+              {key: 'other', label: t('Other Projects')},
+            ]}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -493,13 +504,18 @@ function MonitorForm({
                   {t('Customize this monitors notification configuration in Alerts')}
                 </AlertLink>
               )}
-              <SentryMemberTeamSelectorField
-                label={t('Notify')}
-                help={t('Send notifications to a member or team.')}
-                name="alertRule.targets"
-                multiple
-                menuPlacement="auto"
-              />
+              <Observer>
+                {() => (
+                  <SentryMemberTeamSelectorField
+                    label={t('Notify')}
+                    help={t('Send notifications to a member or team.')}
+                    name="alertRule.targets"
+                    memberOfProjectSlug={form.current.getValue('project')?.toString()}
+                    multiple
+                    menuPlacement="auto"
+                  />
+                )}
+              </Observer>
               <Observer>
                 {() => {
                   const selectedAssignee = form.current.getValue('alertRule.targets');

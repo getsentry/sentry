@@ -76,9 +76,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??

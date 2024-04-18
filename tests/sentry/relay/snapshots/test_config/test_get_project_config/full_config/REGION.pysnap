@@ -1,6 +1,4 @@
 ---
-created: '2024-04-15T14:23:08.500844+00:00'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -21,6 +19,7 @@ config:
     scrubDefaults: true
     sensitiveFields: []
   features:
+  - organizations:session-replay-video
   - organizations:transaction-name-mark-scrubbed-as-sanitized
   - organizations:transaction-name-normalize
   filterSettings:
@@ -84,7 +83,7 @@ config:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
       - 'ChunkLoadError: Loading chunk *'
-      - 'Uncaught *: ChunkLoadError: Loading chunk *'
+      - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:
@@ -93,6 +92,8 @@ config:
       - '*/health'
       - '*/healthy'
       - '*/healthz'
+      - '*/_health'
+      - '*/\[_health\]'
       - '*/live'
       - '*/livez'
       - '*/ready'
