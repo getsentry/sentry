@@ -23,6 +23,9 @@ class GroupSeenSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        data = attrs["user"]
+        data = attrs.get("user", None)
+        if data is None:
+            return None
+
         data["lastSeen"] = obj.last_seen
         return data
