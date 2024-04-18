@@ -84,7 +84,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         logger.exception("Failed to parse span message header")
         return FILTERED_PAYLOAD
 
-    if not in_process_spans_rollout_group(project_id=project_id):
+    if not project_id or not in_process_spans_rollout_group(project_id=project_id):
         return FILTERED_PAYLOAD
 
     assert isinstance(message.value, BrokerValue)

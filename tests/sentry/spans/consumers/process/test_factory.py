@@ -223,7 +223,7 @@ def test_option_project_rollout_rate_discard(mock_buffer):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [],
+        "standalone-spans.process-spans-consumer.project-allowlist": [2],
     }
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
