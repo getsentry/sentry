@@ -88,6 +88,7 @@ def generate_monitor_email_context(
     return [
         (
             monitor_entry["slug"],
+            monitor_entry["project_slug"],
             generate_monitor_detail_url(
                 organization,
                 monitor_entry["project_slug"],
