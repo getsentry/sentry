@@ -16,7 +16,7 @@ from sentry.types.group import PriorityLevel
 
 class NewHighPriorityIssueCondition(EventCondition):
     id = "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
-    label = "Sentry marks a New issue as high priority"
+    label = "Sentry marks a new issue as high priority"
 
     def is_new_high_severity(self, state: EventState, group: Group | None) -> bool:
         try:

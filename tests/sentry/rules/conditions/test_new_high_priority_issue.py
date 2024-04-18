@@ -16,7 +16,9 @@ class NewHighPriorityIssueConditionTest(RuleTestCase):
 
     @with_feature("projects:high-priority-alerts")
     @with_feature("projects:issue-priority")
-    def test_applies_correctly(self):
+    def test_applies_correctly_with_high_priority_alerts(self):
+        self.project.flags.has_high_priority_alerts = True
+        self.project.save()
         rule = self.get_rule(rule=self.rule)
 
         # This will only pass for new issues
@@ -32,3 +34,22 @@ class NewHighPriorityIssueConditionTest(RuleTestCase):
 
         self.event.group.update(priority=PriorityLevel.LOW)
         self.assertDoesNotPass(rule, is_new_group_environment=True)
+
+    @with_feature("projects:high-priority-alerts")
+    @with_feature("projects:issue-priority")
+    def test_applies_correctly_without_high_priority_alerts(self):
+        self.project.flags.has_high_priority_alerts = False
+        self.project.save()
+        rule = self.get_rule(rule=self.rule)
+
+        self.event.group.update(priority=PriorityLevel.HIGH)
+        self.assertPasses(rule, self.event, is_new_group_environment=True)
+        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)
+
+        self.event.group.update(priority=PriorityLevel.MEDIUM)
+        self.assertPasses(rule, self.event, is_new_group_environment=True)
+        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)
+
+        self.event.group.update(priority=PriorityLevel.LOW)
+        self.assertPasses(rule, self.event, is_new_group_environment=True)
+        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)
