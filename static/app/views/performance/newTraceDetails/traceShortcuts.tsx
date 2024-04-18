@@ -35,7 +35,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
       <Header closeButton>
-        <h2>{t('Keyboard controls to help you use the new Trace View!')}</h2>
+        <h2>{t('Keyboard controls')}</h2>
       </Header>
       <Body>
         <ShortcutsLayout>
