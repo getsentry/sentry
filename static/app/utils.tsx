@@ -1,8 +1,8 @@
 import type {Query} from 'history';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Project} from 'sentry/types';
 import type {EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 

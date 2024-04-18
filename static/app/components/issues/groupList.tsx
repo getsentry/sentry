@@ -22,7 +22,7 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

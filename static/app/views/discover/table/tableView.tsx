@@ -15,7 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -190,7 +190,13 @@ function TableView(props: TableViewProps) {
       }
 
       let target;
-      if (dataRow.trace !== null) {
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
         target = generateLinkToEventInTraceView({
           eventSlug: generateEventSlug(dataRow),
           dataRow,
@@ -201,12 +207,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
         });
       } else {
-        if (dataRow['event.type'] === 'transaction') {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
@@ -316,7 +316,13 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow.trace !== null) {
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
         target = generateLinkToEventInTraceView({
           eventSlug: generateEventSlug(dataRow),
           dataRow,
@@ -327,12 +333,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
         });
       } else {
-        if (dataRow['event.type'] === 'transaction') {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
         const project = dataRow.project || dataRow['project.name'];
 
         target = {

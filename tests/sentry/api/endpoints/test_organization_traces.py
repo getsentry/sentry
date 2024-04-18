@@ -16,13 +16,25 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, **kwargs):
-        return self.client.get(
-            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
-            query,
-            format="json",
-            **kwargs,
-        )
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
+
+    def test_no_feature(self):
+        query = {
+            "field": ["id"],
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(query, features=[])
+        assert response.status_code == 404, response.data
 
     def test_no_project(self):
         query = {
@@ -131,6 +143,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         }
 
     def test_matching_tag(self):
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
         # Hack: ensure that no span ids with leading 0s are generated for the test
         span_ids = ["1" + uuid4().hex[:15] for _ in range(7)]
         timestamps = []
@@ -138,7 +153,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id_1 = uuid4().hex
         timestamps.append(before_now(days=0, minutes=10).replace(microsecond=0))
         self.store_segment(
-            self.project.id,
+            project_1.id,
             trace_id_1,
             uuid4().hex,
             span_id=span_ids[0],
@@ -150,7 +165,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         for idx, i in enumerate(range(1, 4)):
             timestamps.append(before_now(days=0, minutes=9, seconds=45 - i).replace(microsecond=0))
             self.store_segment(
-                self.project.id,
+                project_2.id,
                 trace_id_1,
                 uuid4().hex,
                 span_id=span_ids[i],
@@ -165,7 +180,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         trace_id_2 = uuid4().hex
         timestamps.append(before_now(days=0, minutes=20).replace(microsecond=0))
         self.store_segment(
-            self.project.id,
+            project_1.id,
             trace_id_2,
             uuid4().hex,
             span_id=span_ids[4],
@@ -177,7 +192,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         for i in range(5, 7):
             timestamps.append(before_now(days=0, minutes=19, seconds=55 - i).replace(microsecond=0))
             self.store_segment(
-                self.project.id,
+                project_2.id,
                 trace_id_2,
                 uuid4().hex,
                 span_id=span_ids[i],
@@ -190,7 +205,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             )
 
         query = {
-            "project": [self.project.id],
+            "project": [project_2.id],
             "field": ["id", "parent_span"],
             "query": "foo:bar",
             "maxSpansPerTrace": 2,
@@ -230,8 +245,20 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                     "breakdowns": [
                         {
-                            "project": self.project.slug,
+                            "project": project_1.slug,
                             "start": int(timestamps[0].timestamp() * 1000),
+                            "end": int(timestamps[1].timestamp() * 1000),
+                            "kind": "project",
+                        },
+                        {
+                            "project": project_2.slug,
+                            "start": int(timestamps[1].timestamp() * 1000),
+                            "end": int(timestamps[3].timestamp() * 1000) + 30_000,
+                            "kind": "project",
+                        },
+                        {
+                            "project": project_1.slug,
+                            "start": int(timestamps[3].timestamp() * 1000) + 30_000,
                             "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                             "kind": "project",
                         },
@@ -254,8 +281,20 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                     "breakdowns": [
                         {
-                            "project": self.project.slug,
+                            "project": project_1.slug,
                             "start": int(timestamps[4].timestamp() * 1000),
+                            "end": int(timestamps[5].timestamp() * 1000),
+                            "kind": "project",
+                        },
+                        {
+                            "project": project_2.slug,
+                            "start": int(timestamps[5].timestamp() * 1000),
+                            "end": int(timestamps[6].timestamp() * 1000) + 20_000,
+                            "kind": "project",
+                        },
+                        {
+                            "project": project_1.slug,
+                            "start": int(timestamps[6].timestamp() * 1000) + 20_000,
                             "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                             "kind": "project",
                         },
@@ -274,7 +313,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
 
 @pytest.mark.parametrize(
-    ["data", "expected"],
+    ["data", "traces_range", "expected"],
     [
         pytest.param(
             [
@@ -286,6 +325,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -316,6 +356,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -365,6 +406,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -407,6 +449,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -449,6 +492,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -479,6 +523,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 100,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -509,6 +554,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -558,6 +604,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 60,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -619,6 +666,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 100)},
             {
                 "a"
                 * 32: [
@@ -674,6 +722,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 75,
                 },
             ],
+            {"a" * 32: (0, 75)},
             {
                 "a"
                 * 32: [
@@ -729,6 +778,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "last_seen()": 60,
                 },
             ],
+            {"a" * 32: (0, 60)},
             {
                 "a"
                 * 32: [
@@ -745,6 +795,12 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "kind": "project",
                     },
                     {
+                        "project": "foo",
+                        "start": 30,
+                        "end": 40,
+                        "kind": "project",
+                    },
+                    {
                         "project": "baz",
                         "start": 40,
                         "end": 60,
@@ -754,7 +810,112 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="three transactions different project 2 overlap and second extend past parent",
         ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "transaction": "bar1",
+                    "first_seen()": 10,
+                    "last_seen()": 20,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 30,
+                    "last_seen()": 40,
+                },
+            ],
+            {"a" * 32: (0, 50)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 10,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "bar",
+                        "start": 10,
+                        "end": 20,
+                        "kind": "project",
+                    },
+                    {
+                        "project": "foo",
+                        "start": 20,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="three transactions same project with another project between",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 100,
+                },
+            ],
+            {"a" * 32: (0, 50)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="clips intervals to be within trace",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "first_seen()": 0,
+                    "last_seen()": 50,
+                },
+            ],
+            {"a" * 32: (0, 100)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "start": 0,
+                        "end": 50,
+                        "kind": "project",
+                    },
+                    {
+                        "project": None,
+                        "start": 50,
+                        "end": 100,
+                        "kind": "unknown",
+                    },
+                ],
+            },
+            id="adds unknown interval at end",
+        ),
     ],
 )
-def test_process_breakdowns(data, expected):
-    assert process_breakdowns(data) == expected
+def test_process_breakdowns(data, traces_range, expected):
+    result = process_breakdowns(data, traces_range)
+    assert result == expected

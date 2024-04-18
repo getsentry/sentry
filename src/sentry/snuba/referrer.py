@@ -164,6 +164,7 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
+    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -689,6 +690,14 @@ class Referrer(Enum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
+        "tagstore.get_groups_user_counts.open_pr_comment"
+    )
+    TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (
+        "tagstore.get_groups_user_counts.slack_issue_notification"
+    )
     TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
     TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"

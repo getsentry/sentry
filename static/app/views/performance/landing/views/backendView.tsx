@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
@@ -69,7 +69,7 @@ export function BackendView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
     }
 
-    if (props.organization.features.includes('performance-database-view')) {
+    if (props.organization.features.includes('spans-first-ui')) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
     }
   } else {

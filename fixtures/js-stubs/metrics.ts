@@ -1,7 +1,7 @@
 // Totals will not be correct for all aggregation functions.
 // Consider adding aggregation specific fixture (e.g. MetricsP75Field) if your test depends on it.
 
-import type {MetricsApiResponse} from 'sentry/types';
+import type {MetricsApiResponse} from 'sentry/types/metrics';
 
 export function MetricsFieldFixture(
   field: string,
