@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
-from typing import Any
+from copy import deepcopy
+from typing import Any, cast
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryResult
@@ -13,11 +14,19 @@ class QueryRemappingStep(PostProcessingStep):
 
     def run(self, query_results: list[QueryResult]) -> list[QueryResult]:
         for query_result in query_results:
-            if query_result.totals is not None and len(query_result.totals) > 0:
+            if (
+                query_result.totals is not None
+                and query_result.totals_query is not None
+                and len(query_result.totals) > 0
+            ):
                 query_result.totals = self._unmap_data(
                     query_result.totals, query_result.totals_query.mappers
                 )
-            if query_result.series is not None and len(query_result.series) > 0:
+            if (
+                query_result.series is not None
+                and query_result.series_query is not None
+                and len(query_result.series) > 0
+            ):
                 query_result.series = self._unmap_data(
                     query_result.series, query_result.series_query.mappers
                 )
@@ -27,7 +36,8 @@ class QueryRemappingStep(PostProcessingStep):
     def _unmap_data(
         self, data: Sequence[Mapping[str, Any]], mappers: list[Mapper]
     ) -> Sequence[Mapping[str, Any]]:
-        for element in data:
+        unmapped_data: list[dict[str, Any]] = cast(list[dict[str, Any]], deepcopy(data))
+        for element in unmapped_data:
             updated_element = dict()
             keys_to_delete = []
             for result_key in element.keys():
@@ -41,4 +51,4 @@ class QueryRemappingStep(PostProcessingStep):
                 del element[key]
             element.update(updated_element)
 
-        return data
+        return cast(Sequence[Mapping[str, Any]], unmapped_data)

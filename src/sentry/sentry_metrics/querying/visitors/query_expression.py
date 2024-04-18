@@ -253,7 +253,7 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     Visitor that recursively computes all the groups of the `QueryExpression`.
     """
 
-    def __init__(self, mappers: list[Mapper] = None):
+    def __init__(self, mappers: list[Mapper] | None = None):
         self.mappers = mappers or []
 
     def _visit_formula(self, formula: Formula) -> set[str]:
