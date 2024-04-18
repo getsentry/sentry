@@ -6,121 +6,20 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
-from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
+from sentry.testutils.cases import TraceTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, TraceTestCase):
     url_name: str
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
     ]
-
-    def get_start_end(self, duration):
-        return self.day_ago, self.day_ago + timedelta(milliseconds=duration)
-
-    def create_event(
-        self,
-        trace,
-        transaction,
-        spans,
-        parent_span_id,
-        project_id,
-        tags=None,
-        duration=4000,
-        span_id=None,
-        measurements=None,
-        file_io_performance_issue=False,
-        start_timestamp=None,
-        **kwargs,
-    ):
-        start, end = self.get_start_end(duration)
-        if start_timestamp is not None:
-            start = start_timestamp
-        data = load_data(
-            "transaction",
-            trace=trace,
-            spans=spans,
-            timestamp=end,
-            start_timestamp=start,
-        )
-        data["transaction"] = transaction
-        data["contexts"]["trace"]["parent_span_id"] = parent_span_id
-        data["contexts"]["profile"] = {"profile_id": uuid4().hex}
-        if span_id:
-            data["contexts"]["trace"]["span_id"] = span_id
-        if measurements:
-            for key, value in measurements.items():
-                data["measurements"][key]["value"] = value
-        if tags is not None:
-            data["tags"] = tags
-        if file_io_performance_issue:
-            new_span = data["spans"][0].copy()
-            if "data" not in new_span:
-                new_span["data"] = {}
-            new_span["op"] = "file.write"
-            new_span["data"].update({"duration": 1, "blocked_main_thread": True})
-            new_span["span_id"] = "0012" * 4
-            data["spans"].append(new_span)
-        with self.feature(self.FEATURES):
-            with mock.patch.object(
-                PerformanceFileIOMainThreadGroupType,
-                "noise_config",
-                new=NoiseConfig(0, timedelta(minutes=1)),
-            ), override_options(
-                {
-                    "performance.issues.all.problem-detection": 1.0,
-                    "performance-file-io-main-thread-creation": 1.0,
-                }
-            ):
-                event = self.store_event(data, project_id=project_id, **kwargs)
-                for span in data["spans"]:
-                    if span:
-                        span.update({"event_id": event.event_id})
-                        self.store_span(
-                            self.create_span(
-                                span,
-                                start_ts=datetime.fromtimestamp(span["start_timestamp"]),
-                                duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
-                            )
-                        )
-                self.store_span(self.convert_event_data_to_span(event))
-                return event
-
-    def convert_event_data_to_span(self, event):
-        trace_context = event.data["contexts"]["trace"]
-        start_ts = event.data["start_timestamp"]
-        end_ts = event.data["timestamp"]
-        span_data = self.create_span(
-            {
-                "event_id": event.event_id,
-                "organization_id": event.organization.id,
-                "project_id": event.project.id,
-                "trace_id": trace_context["trace_id"],
-                "span_id": trace_context["span_id"],
-                "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
-                "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
-                "group_raw": uuid4().hex[:16],
-                "profile_id": uuid4().hex,
-                # Multiply by 1000 cause it needs to be ms
-                "start_timestamp_ms": int(start_ts * 1000),
-                "timestamp": int(start_ts * 1000),
-                "received": start_ts,
-                "duration_ms": int(end_ts - start_ts),
-            }
-        )
-        if "parent_span_id" in trace_context:
-            span_data["parent_span_id"] = trace_context["parent_span_id"]
-        else:
-            del span_data["parent_span_id"]
-
-        return span_data
 
     def setUp(self):
         """
@@ -146,12 +45,15 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": self.trace_id},
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "trace_id": self.trace_id,
+            },
         )
 
     def load_trace(self):
         self.root_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="root",
             spans=[
                 {
@@ -171,7 +73,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
             parent_span_id=None,
             file_io_performance_issue=True,
             project_id=self.project.id,
-            duration=3000,
+            milliseconds=3000,
         )
 
         # First Generation
@@ -183,7 +85,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction=f"/transaction/gen1-{i}",
                 spans=[
                     {
@@ -196,7 +98,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 ],
                 parent_span_id=root_span_id,
                 project_id=self.gen1_project.id,
-                duration=2000,
+                milliseconds=2000,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -212,7 +114,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
 
         self.gen2_events = [
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction=f"/transaction/gen2-{i}",
                 spans=[
                     {
@@ -226,7 +128,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 parent_span_id=gen1_span_id,
                 span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
-                duration=1000,
+                milliseconds=1000,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -236,47 +138,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         # Third generation
         self.gen3_project = self.create_project(organization=self.organization)
         self.gen3_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/transaction/gen3-0",
             spans=[],
             project_id=self.gen3_project.id,
             parent_span_id=self.gen2_span_id,
-            duration=500,
-        )
-
-    def load_errors(self):
-        start, _ = self.get_start_end(1000)
-        error_data = load_data(
-            "javascript",
-            timestamp=start,
-        )
-        error_data["contexts"]["trace"] = {
-            "type": "trace",
-            "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
-        }
-        error_data["level"] = "fatal"
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
-        error_data["level"] = "warning"
-        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
-        return error, error1
-
-    def load_default(self):
-        start, _ = self.get_start_end(1000)
-        return self.store_event(
-            {
-                "timestamp": iso_format(start),
-                "contexts": {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": self.trace_id,
-                        "span_id": self.root_span_ids[0],
-                    },
-                },
-                "level": "debug",
-                "message": "this is a log message",
-            },
-            project_id=self.gen1_project.id,
+            milliseconds=500,
         )
 
 
@@ -353,7 +220,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         no_root_trace = uuid4().hex
         parent_span_id = uuid4().hex[:16]
         no_root_event = self.create_event(
-            trace=no_root_trace,
+            trace_id=no_root_trace,
             transaction="/not_root/but_only_transaction",
             spans=[],
             parent_span_id=parent_span_id,
@@ -384,18 +251,15 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
     def test_multiple_roots(self):
         self.load_trace()
         second_root = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/second_root",
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
         )
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": second_root.event_id, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": second_root.event_id, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data["transactions"]) == 1
@@ -409,11 +273,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         self.load_trace()
         root_event_id = self.root_event.event_id
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": root_event_id, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": root_event_id, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data["transactions"]) == 4
@@ -437,7 +298,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         self.load_trace()
         root_event_id = self.root_event.event_id
         self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/second_root",
             spans=[],
             parent_span_id=None,
@@ -476,11 +337,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         child_event_id = self.gen2_events[0].event_id
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -511,7 +369,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         current_event = self.gen1_events[0].event_id
         child_event_id = self.gen2_events[0].event_id
         self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/second_root",
             spans=[],
             parent_span_id=None,
@@ -519,11 +377,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -554,11 +409,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         child_event_id = self.gen3_event.event_id
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -584,11 +436,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         current_event = self.gen3_event.event_id
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -606,31 +455,28 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         self.load_trace()
         gen3_event_siblings = [
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction="/transaction/gen3-1",
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=500,
+                milliseconds=500,
             ).event_id,
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction="/transaction/gen3-2",
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=1500,
+                milliseconds=1500,
             ).event_id,
         ]
 
         current_event = self.gen2_events[1].event_id
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assert len(response.data["transactions"]) == 3
         events = {item["event_id"]: item for item in response.data["transactions"]}
@@ -647,7 +493,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         root_event_id = self.root_event.event_id
         current_transaction_event = self.gen1_events[0].event_id
 
-        start, _ = self.get_start_end(1000)
+        start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",
             timestamp=start,
@@ -691,11 +537,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assertions(response)
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"event_id": current_transaction_event, "project": -1},
-                format="json",
-            )
+            data: dict[str, str | int] = {"event_id": current_transaction_event, "project": -1}
+            response = self.client.get(self.url, data=data, format="json")
 
         assertions(response)
 
@@ -719,7 +562,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
     def test_with_one_orphan_error(self):
         self.load_trace()
         span_id = uuid4().hex[:16]
-        start, _ = self.get_start_end(1000)
+        start, _ = self.get_start_end_from_day_ago(1000)
 
         error_data = load_data(
             "javascript",
@@ -747,7 +590,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
     def test_with_multiple_orphan_errors(self):
         self.load_trace()
         span_id = uuid4().hex[:16]
-        start, end = self.get_start_end(1000)
+        start, end = self.get_start_end_from_day_ago(1000)
 
         error_data = load_data(
             "javascript",
@@ -939,14 +782,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         """Basically test that we're actually using the event serializer's method for tags"""
         trace = uuid4().hex
         self.create_event(
-            trace=trace,
+            trace_id=trace,
             transaction="bad-tags",
             parent_span_id=None,
             spans=[],
             project_id=self.project.id,
             tags=[["somethinglong" * 250, "somethinglong" * 250]],
-            duration=3000,
-            assert_no_errors=False,
+            milliseconds=3000,
+            store_event_kwargs={"assert_no_errors": False},
         )
 
         url = reverse(
@@ -978,7 +821,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         """
         self.load_trace()
         gen3_loop_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/transaction/gen3-1/loop",
             spans=[
                 {
@@ -1015,7 +858,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         root_span_id = uuid4().hex[:16]
         root_parent_span = uuid4().hex[:16]
         root_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/root/",
             spans=[
                 {
@@ -1028,11 +871,11 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             ],
             parent_span_id=root_parent_span,
             project_id=self.project.id,
-            duration=3000,
+            milliseconds=3000,
             start_timestamp=self.day_ago - timedelta(minutes=1),
         )
         orphan_child = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/child/",
             spans=[
                 {
@@ -1045,7 +888,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             ],
             parent_span_id=root_span_id,
             project_id=self.project.id,
-            duration=300,
+            milliseconds=300,
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1066,20 +909,20 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_multiple_roots(self):
         trace_id = uuid4().hex
         first_root = self.create_event(
-            trace=trace_id,
+            trace_id=trace_id,
             transaction="/first_root",
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
-            duration=500,
+            milliseconds=500,
         )
         second_root = self.create_event(
-            trace=trace_id,
+            trace_id=trace_id,
             transaction="/second_root",
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
-            duration=1000,
+            milliseconds=1000,
         )
         self.url = reverse(
             self.url_name,
@@ -1100,20 +943,20 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace()
         gen3_event_siblings = [
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction="/transaction/gen3-1",
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=1000,
+                milliseconds=1000,
             ).event_id,
             self.create_event(
-                trace=self.trace_id,
+                trace_id=self.trace_id,
                 transaction="/transaction/gen3-2",
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=2000,
+                milliseconds=2000,
             ).event_id,
         ]
 
@@ -1133,22 +976,22 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace()
         parent_span_id = uuid4().hex[:16]
         root_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/root",
             spans=[],
             # Some random id so its separated from the rest of the trace
             parent_span_id=parent_span_id,
             project_id=self.project.id,
             # Shorter duration means that this event happened first, and should be ordered first
-            duration=1000,
+            milliseconds=1000,
         )
         root_sibling_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/root-sibling",
             spans=[],
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            duration=2000,
+            milliseconds=2000,
         )
 
         with self.feature(self.FEATURES):
@@ -1174,7 +1017,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         }
         # Create the orphan transactions
         root_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/root",
             spans=[
                 {
@@ -1189,11 +1032,11 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=uuid4().hex[:16],
             span_id=orphan_span_ids["root"],
             project_id=self.project.id,
-            duration=3000,
+            milliseconds=3000,
             start_timestamp=self.day_ago - timedelta(minutes=1),
         )
         child_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/child1-0",
             spans=[
                 {
@@ -1209,10 +1052,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.gen1_project.id,
             # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
             # results first before child1-0
-            duration=2000,
+            milliseconds=2000,
         )
         grandchild_event = self.create_event(
-            trace=self.trace_id,
+            trace_id=self.trace_id,
             transaction="/orphan/grandchild1-0",
             spans=[
                 {
@@ -1226,7 +1069,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=orphan_span_ids["child_span"],
             span_id=orphan_span_ids["grandchild"],
             project_id=self.gen1_project.id,
-            duration=1000,
+            milliseconds=1000,
         )
 
         with self.feature(self.FEATURES):
@@ -1298,7 +1141,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_only_orphan_errors_with_same_span_ids(self):
         span_id = uuid4().hex[:16]
-        start, end = self.get_start_end(10000)
+        start, end = self.get_start_end_from_day_ago(10000)
 
         # Error 1
         error_data = load_data(
@@ -1361,7 +1204,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
-        start, _ = self.get_start_end(1000)
+        start, _ = self.get_start_end_from_day_ago(1000)
         span_id = uuid4().hex[:16]
         error_data = load_data(
             "javascript",
@@ -1418,7 +1261,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
         self.load_trace()
-        start, _ = self.get_start_end(1000)
+        start, _ = self.get_start_end_from_day_ago(1000)
         span_id = uuid4().hex[:16]
         error_data = load_data(
             "javascript",
@@ -1464,7 +1307,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_default(self):
         self.load_trace()
-        start, _ = self.get_start_end(1000)
+        start, _ = self.get_start_end_from_day_ago(1000)
         default_event = self.load_default()
         with self.feature(self.FEATURES):
             response = self.client_get(

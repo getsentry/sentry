@@ -66,7 +66,11 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    NoiseConfig,
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.mediators.project_rules.creator import Creator
@@ -3164,3 +3168,146 @@ class MonitorIngestTestCase(MonitorTestCase):
 class IntegratedApiTestCase(BaseTestCase):
     def should_call_api_without_proxying(self) -> bool:
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
+
+
+class TraceTestCase(BaseTestCase):
+    def get_start_end_from_day_ago(self, milliseconds: int) -> tuple[datetime, datetime]:
+        return self.day_ago, self.day_ago + timedelta(milliseconds=milliseconds)
+
+    def create_event(
+        self,
+        trace_id: str,
+        transaction: str,
+        spans: Sequence[dict[str, Any]],
+        parent_span_id: str | None,
+        project_id: int,
+        tags: Sequence[list[str]] | None = None,
+        milliseconds: int = 4000,
+        span_id: str | None = None,
+        measurements: dict[str, int | float] | None = None,
+        file_io_performance_issue: bool = False,
+        start_timestamp: datetime | None = None,
+        store_event_kwargs: dict[str, Any] | None = None,
+    ) -> Event:
+        if not store_event_kwargs:
+            store_event_kwargs = {}
+        start, end = self.get_start_end_from_day_ago(milliseconds)
+        if start_timestamp is not None:
+            start = start_timestamp
+        data = load_data(
+            "transaction",
+            trace=trace_id,
+            spans=spans,
+            timestamp=end,
+            start_timestamp=start,
+        )
+        data["transaction"] = transaction
+        data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        data["contexts"]["profile"] = {"profile_id": uuid4().hex}
+        if span_id:
+            data["contexts"]["trace"]["span_id"] = span_id
+        if measurements:
+            for key, value in measurements.items():
+                data["measurements"][key]["value"] = value
+        if tags is not None:
+            data["tags"] = tags
+        if file_io_performance_issue:
+            new_span = data["spans"][0].copy()
+            if "data" not in new_span:
+                new_span["data"] = {}
+            new_span["op"] = "file.write"
+            new_span["data"].update({"duration": 1, "blocked_main_thread": True})
+            new_span["span_id"] = "0012" * 4
+            data["spans"].append(new_span)
+        with self.feature(self.FEATURES):
+            with (
+                mock.patch.object(
+                    PerformanceFileIOMainThreadGroupType,
+                    "noise_config",
+                    new=NoiseConfig(0, timedelta(minutes=1)),
+                ),
+                override_options(
+                    {
+                        "performance.issues.all.problem-detection": 1.0,
+                        "performance-file-io-main-thread-creation": 1.0,
+                    }
+                ),
+            ):
+                event = self.store_event(data, project_id=project_id, **store_event_kwargs)
+                for span in data["spans"]:
+                    if span:
+                        span.update({"event_id": event.event_id})
+                        self.store_span(
+                            self.create_span(
+                                span,
+                                start_ts=datetime.fromtimestamp(span["start_timestamp"]),
+                                duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
+                            )
+                        )
+                self.store_span(self.convert_event_data_to_span(event))
+                return event
+
+    def convert_event_data_to_span(self, event):
+        trace_context = event.data["contexts"]["trace"]
+        start_ts = event.data["start_timestamp"]
+        end_ts = event.data["timestamp"]
+        span_data = self.create_span(
+            {
+                "event_id": event.event_id,
+                "organization_id": event.organization.id,
+                "project_id": event.project.id,
+                "trace_id": trace_context["trace_id"],
+                "span_id": trace_context["span_id"],
+                "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
+                "description": event.data["transaction"],
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts * 1000),
+                "timestamp": int(start_ts * 1000),
+                "received": start_ts,
+                "duration_ms": int(end_ts - start_ts),
+            }
+        )
+        if "parent_span_id" in trace_context:
+            span_data["parent_span_id"] = trace_context["parent_span_id"]
+        else:
+            del span_data["parent_span_id"]
+
+        return span_data
+
+    def load_errors(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error_data["level"] = "warning"
+        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        return error, error1
+
+    def load_default(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        return self.store_event(
+            {
+                "timestamp": iso_format(start),
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": self.trace_id,
+                        "span_id": self.root_span_ids[0],
+                    },
+                },
+                "level": "debug",
+                "message": "this is a log message",
+            },
+            project_id=self.gen1_project.id,
+        )
