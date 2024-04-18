@@ -1002,36 +1002,14 @@ function parseNumber(
 
   return {value: number};
 }
-function parseSize(
-  input: string,
-  // warning: size units are case insensitive, this type is incomplete
-  unit:
-    | 'bit'
-    | 'nb'
-    | 'bytes'
-    | 'kb'
-    | 'mb'
-    | 'gb'
-    | 'tb'
-    | 'pb'
-    | 'eb'
-    | 'zb'
-    | 'yb'
-    | 'kib'
-    | 'mib'
-    | 'gib'
-    | 'tib'
-    | 'pib'
-    | 'eib'
-    | 'zib'
-    | 'yib'
-): {value: number} {
+function parseSize(input: string, unit: string): {value: number} {
   if (!unit) {
     unit = 'bytes';
   }
 
   let number = numeric(input);
 
+  // parser is case insensitive to units
   switch (unit.toLowerCase()) {
     case 'bit':
       number /= 8;
