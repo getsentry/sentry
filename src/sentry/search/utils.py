@@ -105,6 +105,9 @@ def parse_size(value: str, size: str) -> float:
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid size value")
 
+    # size units are case insensitive
+    size = size.lower()
+
     if size == "bit":
         byte = size_value / 8
     elif size == "nb":
@@ -169,6 +172,8 @@ def parse_numeric_value(value: str, suffix: str | None = None) -> float:
     if not suffix:
         return parsed_value
 
+    # numeric "nuts" are case insensitive
+    suffix = suffix.lower()
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")

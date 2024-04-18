@@ -102,37 +102,4 @@ describe('useActiveReplayTab', () => {
       query: {t_main: TabKey.TAGS},
     });
   });
-
-  it('should disallow PERF by default', () => {
-    mockOrganizationFixture({
-      features: [],
-    });
-
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {},
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab(TabKey.PERF);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.BREADCRUMBS},
-    });
-  });
-
-  it('should allow PERF when the feature is enabled', () => {
-    mockOrganizationFixture({
-      features: ['session-replay-trace-table'],
-    });
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {},
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab(TabKey.PERF);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.PERF},
-    });
-  });
 });

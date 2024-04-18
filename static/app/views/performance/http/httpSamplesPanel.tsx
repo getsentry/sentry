@@ -349,7 +349,7 @@ export function HTTPSamplesPanel() {
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
                   domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
-                  'db'
+                  'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />

@@ -188,9 +188,15 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  return renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  return renderer(
+    {
+      'span.op': 'http.client',
+      ...row,
+    },
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    }
+  );
 }

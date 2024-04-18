@@ -73,7 +73,10 @@
         "value": {
           "type": "valueNumber",
           "value": "0",
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "value": 0
+          }
         }
       },
       {"type": "spaces", "value": ""}
