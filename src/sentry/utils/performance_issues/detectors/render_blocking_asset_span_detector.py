@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -56,11 +55,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp_value = fcp_value
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return features.has(
-            "organizations:performance-issues-render-blocking-assets-detector",
-            organization,
-            actor=None,
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

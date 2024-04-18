@@ -13,7 +13,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';

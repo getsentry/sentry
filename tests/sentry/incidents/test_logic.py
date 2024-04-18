@@ -75,7 +75,7 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.actor import ActorTuple, get_actor_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
@@ -90,6 +90,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 pytestmark = [pytest.mark.sentry_metrics]
 

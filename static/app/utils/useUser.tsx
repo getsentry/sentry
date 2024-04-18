@@ -1,6 +1,6 @@
 import configStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 /**
  * Returns the currently logged in user.

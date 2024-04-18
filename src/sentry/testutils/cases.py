@@ -2030,6 +2030,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "span.self_time": "metrics_distributions",
         "http.response_content_length": "metrics_distributions",
         "http.decoded_response_content_length": "metrics_distributions",
+        "cache.item_size": "metrics_distributions",
         "http.response_transfer_size": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
