@@ -135,10 +135,10 @@ class ApiGatewayTest(ApiGatewayTestCase):
         )
 
         region_url_slug = reverse(
-            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.slug}
         )
         control_url_slug = reverse(
-            "control-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+            "control-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.slug}
         )
 
         region_url_id = reverse(
