@@ -386,16 +386,15 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
-        with self.feature("organizations:user-feedback-ingest"):
-            response = self.client.post(
-                url,
-                data={
-                    "event_id": event_with_replay.event_id,
-                    "email": "foo@example.com",
-                    "name": "Foo Bar",
-                    "comments": "It broke!",
-                },
-            )
+        response = self.client.post(
+            url,
+            data={
+                "event_id": event_with_replay.event_id,
+                "email": "foo@example.com",
+                "name": "Foo Bar",
+                "comments": "It broke!",
+            },
+        )
 
         assert response.status_code == 200, response.content
 
@@ -435,16 +434,15 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
         event_id = uuid4().hex
-        with self.feature("organizations:user-feedback-ingest"):
-            response = self.client.post(
-                url,
-                data={
-                    "event_id": event_id,
-                    "email": "foo@example.com",
-                    "name": "Foo Bar",
-                    "comments": "It broke!",
-                },
-            )
+        response = self.client.post(
+            url,
+            data={
+                "event_id": event_id,
+                "email": "foo@example.com",
+                "name": "Foo Bar",
+                "comments": "It broke!",
+            },
+        )
 
         assert response.status_code == 200, response.content
 

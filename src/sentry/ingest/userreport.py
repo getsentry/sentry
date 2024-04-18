@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import eventstore, features, options
+from sentry import eventstore, options
 from sentry.eventstore.models import Event
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
@@ -94,10 +94,7 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        if (
-            features.has("organizations:user-feedback-ingest", project.organization, actor=None)
-            and event
-        ):
+        if event:
             shim_to_feedback(report, event, project, source)
 
         return report_instance

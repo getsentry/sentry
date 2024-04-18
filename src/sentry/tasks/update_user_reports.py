@@ -4,7 +4,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
@@ -67,21 +67,18 @@ def update_user_reports(**kwargs: Any) -> None:
         for event in events:
             report = report_by_event.get(event.event_id)
             if report:
-                if features.has(
-                    "organizations:user-feedback-ingest", project.organization, actor=None
-                ):
-                    shim_to_feedback(
-                        {
-                            "name": report.name,
-                            "email": report.email,
-                            "comments": report.comments,
-                            "event_id": report.event_id,
-                            "level": "error",
-                        },
-                        event,
-                        project,
-                        FeedbackCreationSource.USER_REPORT_ENVELOPE,
-                    )
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",
+                    },
+                    event,
+                    project,
+                    FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                )
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
 
