@@ -1,9 +1,10 @@
 import {useContext, useEffect, useMemo} from 'react';
-import partition from 'lodash/partition';
+import groupBy from 'lodash/groupBy';
 
 import Avatar from 'sentry/components/avatar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Team} from 'sentry/types';
+import type {DetailedTeam, Team} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -18,6 +19,10 @@ import SelectField from './selectField';
 export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   /**
+   * Ensures the only selectable teams and members are members of the given project
+   */
+  memberOfProjectSlug?: string;
+  /**
    * Use the slug as the select field value. Without setting this the numeric id
    * of the project will be used.
    */
@@ -27,6 +32,7 @@ export interface RenderFieldProps extends SelectFieldProps<any> {
 function SentryMemberTeamSelectorField({
   avatarSize = 20,
   placeholder = t('Choose Teams and Members'),
+  memberOfProjectSlug,
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
@@ -85,10 +91,33 @@ function SentryMemberTeamSelectorField({
     leadingItems: <Avatar team={team} size={avatarSize} />,
   });
 
-  const [myTeams, otherTeams] = partition(teams, team => team.isMember);
+  const makeDisabledTeamOption = (team: Team) => ({
+    ...makeTeamOption(team),
+    disabled: true,
+    label: (
+      <Tooltip
+        position="left"
+        title={t('%s is not a member of the selected project', `#${team.slug}`)}
+      >
+        #{team.slug}
+      </Tooltip>
+    ),
+  });
 
-  const myTeamOptions = myTeams.map(makeTeamOption);
-  const otherTeamOptions = otherTeams.map(makeTeamOption);
+  // TODO(davidenwang): Fix the team type here to avoid this type cast: `as DetailedTeam[]`
+  const {disabledTeams, memberTeams, otherTeams} = groupBy(
+    teams as DetailedTeam[],
+    team =>
+      memberOfProjectSlug && !team.projects.some(({slug}) => memberOfProjectSlug === slug)
+        ? 'disabledTeams'
+        : team.isMember
+          ? 'memberTeams'
+          : 'otherTeams'
+  );
+
+  const myTeamOptions = memberTeams?.map(makeTeamOption) ?? [];
+  const otherTeamOptions = otherTeams?.map(makeTeamOption) ?? [];
+  const disabledTeamOptions = disabledTeams?.map(makeDisabledTeamOption) ?? [];
 
   // TODO(epurkhiser): This is an unfortunate hack right now since we don't
   // actually load members anywhere and the useMembers and useTeams hook don't
@@ -127,6 +156,10 @@ function SentryMemberTeamSelectorField({
         {
           label: t('Other Teams'),
           options: otherTeamOptions,
+        },
+        {
+          label: t('Disabled Teams'),
+          options: disabledTeamOptions,
         },
       ]}
       {...props}
