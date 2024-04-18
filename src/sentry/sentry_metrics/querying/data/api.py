@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from datetime import datetime
-from typing import cast
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
@@ -8,17 +7,24 @@ from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
+from sentry.sentry_metrics.querying.data.execution import QueryExecutor
+from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig, Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
+from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_processing_steps
+from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
+    PreparationStep,
     run_preparation_steps,
 )
+from sentry.sentry_metrics.querying.data.preparation.mapping import QueryMappingStep
 from sentry.sentry_metrics.querying.data.preparation.units_normalization import (
     UnitsNormalizationStep,
 )
 from sentry.sentry_metrics.querying.data.query import MQLQueriesResult, MQLQuery
 from sentry.sentry_metrics.querying.types import QueryType
+
+DEFAULT_MAPPINGS: MapperConfig = MapperConfig().add(Project2ProjectIDMapper)
 
 
 def run_queries(
@@ -62,11 +68,14 @@ def run_queries(
             )
         )
 
-    preparation_steps = []
+    preparation_steps: list[PreparationStep] = []
+
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
         preparation_steps.append(UnitsNormalizationStep())
+
+    preparation_steps.append(QueryMappingStep(projects, DEFAULT_MAPPINGS))
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
@@ -77,6 +86,7 @@ def run_queries(
         executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
+    results = run_post_processing_steps(results, QueryRemappingStep(projects))
 
     # We wrap the result in a class that exposes some utils methods to operate on results.
-    return MQLQueriesResult(cast(list[QueryResult], results))
+    return MQLQueriesResult(results)
