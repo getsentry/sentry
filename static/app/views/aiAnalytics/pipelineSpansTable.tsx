@@ -7,7 +7,7 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -157,14 +157,11 @@ function renderBodyCell(
       <Link
         to={generateLinkToEventInTraceView({
           organization,
-          eventSlug: `${row[SpanIndexedField.PROJECT]}:${row[SpanIndexedField.TRANSACTION_ID]}`,
-          dataRow: {
-            id: row[SpanIndexedField.TRANSACTION_ID],
-            trace: row[SpanIndexedField.TRACE],
-            timestamp: row[SpanIndexedField.TIMESTAMP],
-          },
+          projectSlug: row[SpanIndexedField.PROJECT],
+          traceSlug: row[SpanIndexedField.TRACE],
+          timestamp: row[SpanIndexedField.TIMESTAMP],
+          eventId: row[SpanIndexedField.TRANSACTION_ID],
           location,
-          eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],
         })}
       >

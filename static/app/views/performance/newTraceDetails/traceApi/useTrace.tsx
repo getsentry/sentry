@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {PageFilters} from 'sentry/types';
+import type {EventTransaction, PageFilters} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
@@ -42,12 +42,14 @@ export function getTraceQueryParams(
   useSpans: number;
   pageEnd?: string | undefined;
   pageStart?: string | undefined;
+  sampleSlug?: string | undefined;
   statsPeriod?: string | undefined;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+  const sampleSlug = decodeScalar(normalizedParams.sampleSlug);
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
     options.limit ?? decodeScalar(normalizedParams.limit);
@@ -78,7 +80,14 @@ export function getTraceQueryParams(
     delete otherParams.statsPeriod;
   }
 
-  const queryParams = {...otherParams, limit, timestamp, eventId, useSpans: 1};
+  const queryParams = {
+    ...otherParams,
+    sampleSlug,
+    limit,
+    timestamp,
+    eventId,
+    useSpans: 1,
+  };
   for (const key in queryParams) {
     if (
       queryParams[key] === '' ||
@@ -92,32 +101,98 @@ export function getTraceQueryParams(
   return queryParams;
 }
 
+function parseSampleSlug(
+  sample: string | undefined
+): {event_id: string; project_slug: string} | null {
+  if (!sample) {
+    return null;
+  }
+
+  const [project_slug, event_id] = sample.split(':');
+  return {project_slug, event_id};
+}
+
+function makeTraceFromTransaction(
+  event: EventTransaction | undefined
+): TraceSplitResults<TraceFullDetailed> {
+  if (!event) {
+    return {transactions: [], orphan_errors: []};
+  }
+
+  const traceContext = event.contexts?.trace;
+
+  const transaction = {
+    event_id: event.eventID,
+    generation: 0,
+    parent_event_id: '',
+    parent_span_id: traceContext?.parent_span_id ?? '',
+    performance_issues: [],
+    project_id: Number(event.projectID),
+    project_slug: event.projectSlug ?? '',
+    span_id: traceContext?.span_id ?? '',
+    timestamp: event.endTimestamp,
+    transaction: event.title,
+    'transaction.duration': (event.endTimestamp - event.startTimestamp) * 1000,
+    errors: [],
+    children: [],
+    start_timestamp: event.startTimestamp,
+    'transaction.op': traceContext?.op ?? '',
+    'transaction.status': traceContext?.status ?? '',
+    measurements: event.measurements ?? {},
+    tags: [],
+  };
+
+  return {transactions: [transaction], orphan_errors: []};
+}
+
 type UseTraceParams = {
   limit?: number;
 };
 
 const DEFAULT_OPTIONS = {};
-export function useTrace(
-  options: Partial<UseTraceParams> = DEFAULT_OPTIONS
-): UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any> {
+export function useTrace(options: Partial<UseTraceParams> = DEFAULT_OPTIONS): {
+  data: TraceSplitResults<TraceFullDetailed> | undefined;
+  status: UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>['status'];
+} {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-
   const queryParams = useMemo(() => {
     const query = qs.parse(location.search);
     return getTraceQueryParams(query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
+  const sample = parseSampleSlug(queryParams.sampleSlug);
 
-  return useApiQuery(
+  const sampleQuery = useApiQuery<EventTransaction>(
+    [
+      `/organizations/${organization.slug}/events/${sample?.project_slug}:${sample?.event_id}/`,
+      {
+        query: {
+          referrer: 'trace-view',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!sample,
+    }
+  );
+
+  const traceQuery = useApiQuery<TraceSplitResults<TraceFullDetailed>>(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
       {query: queryParams},
     ],
     {
       staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug,
+      enabled: !!params.traceSlug && !!organization.slug && !sample,
     }
   );
+
+  if (sample) {
+    return {data: makeTraceFromTransaction(sampleQuery.data), status: sampleQuery.status};
+  }
+
+  return {data: traceQuery.data, status: traceQuery.status};
 }

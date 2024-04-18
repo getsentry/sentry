@@ -29,10 +29,10 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -188,10 +188,23 @@ function Onboarding({organization, project}: Props) {
             const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
             try {
               const eventData = await api.requestPromise(url, {method: 'POST'});
+              const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+
               browserHistory.push(
-                normalizeUrl(
-                  `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
-                )
+                generateLinkToEventInTraceView({
+                  eventId: eventData.eventID,
+                  projectSlug: project.slug,
+                  organization,
+                  location: {
+                    ...location,
+                    query: {
+                      ...location.query,
+                      sampleSlug: `${project.slug}:${eventData.eventID}`,
+                    },
+                  },
+                  timestamp: eventData.endTimestamp,
+                  traceSlug,
+                })
               );
               clearIndicators();
             } catch (error) {
