@@ -69,3 +69,14 @@ class SentryAppRotateSecretTest(APITestCase):
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+
+    def test_no_corresponding_application_found(self):
+        self.login_as(self.user)
+        other_sentry_app = SentryApp.objects.create(
+            application=None, owner_id=self.organization.id, name="c", slug="c"
+        )
+        response = self.client.post(
+            reverse("sentry-api-0-sentry-app-rotate-secret", args=[other_sentry_app.slug])
+        )
+        assert response.status_code == 404
+        assert "Corresponding application was not found." in response.data["detail"]

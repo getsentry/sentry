@@ -58,7 +58,7 @@ class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
 
     def post(self, request: Request, sentry_app: SentryApp) -> Response:
         if sentry_app.application is None:
-            return Response(status=404)
+            return Response({"detail": "Corresponding application was not found."}, status=404)
 
         new_token = generate_token()
         sentry_app.application.update(client_secret=new_token)
