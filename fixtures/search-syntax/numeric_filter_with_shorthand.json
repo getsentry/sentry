@@ -33,7 +33,7 @@
           "type": "valueNumber",
           "value": "3",
           "unit": "m",
-          "parsed": {"value": 3000000 }
+          "parsed": {"value": 3000000}
         }
       },
       {"type": "spaces", "value": ""}
