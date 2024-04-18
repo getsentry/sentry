@@ -460,8 +460,14 @@ class Endpoint(APIView):
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
             if request.method.lower() == "get":
-                # Response can either be Response or HttpResponse, check if it's value is an array
-                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                status = getattr(self.response, "status_code", 0)
+                # Response can either be Response or HttpResponse, check if
+                # it's value is an array and that it was an OK response
+                if (
+                    200 <= status < 300
+                    and hasattr(self.response, "data")
+                    and isinstance(self.response.data, list)
+                ):
                     # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
                     if (
                         handler.__self__.__class__.__name__
