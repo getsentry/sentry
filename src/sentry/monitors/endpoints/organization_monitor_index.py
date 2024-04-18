@@ -203,9 +203,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if owners:
             owners = set(owners)
 
-            # Remove special 'myteams' from owners, this can't be parsed as an ActorTuple
-            myteams = ["myteams"] if "myteams" in owners else []
+            # Remove special values from owners, this can't be parsed as an ActorTuple
+            include_myteams = "myteams" in owners
             owners.discard("myteams")
+            include_unassigned = "unassigned" in owners
+            owners.discard("unassigned")
 
             actors = [ActorTuple.from_actor_identifier(identifier) for identifier in owners]
 
@@ -215,13 +217,17 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             teams = get_teams(
                 request,
                 organization,
-                teams=[*team_ids, *myteams],
+                teams=[*team_ids, *(["myteams"] if include_myteams else [])],
             )
             team_ids = [team.id for team in teams]
 
-            queryset = queryset.filter(
-                Q(owner_user_id__in=user_ids) | Q(owner_team_id__in=team_ids)
-            )
+            owner_filter = Q(owner_user_id__in=user_ids) | Q(owner_team_id__in=team_ids)
+
+            if include_unassigned:
+                unassigned_filter = Q(owner_user_id=None) & Q(owner_team_id=None)
+                queryset = queryset.filter(unassigned_filter | owner_filter)
+            else:
+                queryset = queryset.filter(owner_filter)
 
         if query:
             tokens = tokenize_query(query)
