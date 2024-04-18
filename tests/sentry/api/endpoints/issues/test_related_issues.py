@@ -2,8 +2,6 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 
-# from sentry.utils.samples import load_data
-
 
 class RelatedIssuesTest(APITestCase):
     endpoint = "sentry-api-0-issues-related-issues"
@@ -45,7 +43,7 @@ class RelatedIssuesTest(APITestCase):
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
         assert response.json() == {
             "data": [
-                {"type": "same_root_cause", "data": [1, 5]},
+                {"type": "same_root_cause", "data": [5]},
                 {"type": "trace_connected", "data": []},
             ],
         }
