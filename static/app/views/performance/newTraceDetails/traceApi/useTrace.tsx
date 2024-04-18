@@ -114,9 +114,9 @@ function parseSampleSlug(
 
 function makeTraceFromTransaction(
   event: EventTransaction | undefined
-): TraceSplitResults<TraceFullDetailed> {
+): TraceSplitResults<TraceFullDetailed> | undefined {
   if (!event) {
-    return {transactions: [], orphan_errors: []};
+    return undefined;
   }
 
   const traceContext = event.contexts?.trace;
@@ -150,10 +150,9 @@ type UseTraceParams = {
 };
 
 const DEFAULT_OPTIONS = {};
-export function useTrace(options: Partial<UseTraceParams> = DEFAULT_OPTIONS): {
-  data: TraceSplitResults<TraceFullDetailed> | undefined;
-  status: UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>['status'];
-} {
+export function useTrace(
+  options: Partial<UseTraceParams> = DEFAULT_OPTIONS
+): Pick<UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>, 'data' | 'status'> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -164,6 +163,10 @@ export function useTrace(options: Partial<UseTraceParams> = DEFAULT_OPTIONS): {
   }, [options]);
   const sample = parseSampleSlug(queryParams.sampleSlug);
 
+  // When projects don't have performance set up, we allow them to view a sample transaction.
+  // Now that a transaction always shows up as a part of the trace it is associate with, we
+  // we need to display it as a part of the trace view. Therefore, we fetch the sample transaction
+  // make a trace, with it as the only event in it.
   const sampleQuery = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${sample?.project_slug}:${sample?.event_id}/`,
@@ -179,6 +182,10 @@ export function useTrace(options: Partial<UseTraceParams> = DEFAULT_OPTIONS): {
     }
   );
 
+  const sampleTraceQueryResults = useMemo(() => {
+    return {data: makeTraceFromTransaction(sampleQuery.data), status: sampleQuery.status};
+  }, [sampleQuery.data, sampleQuery.status]);
+
   const traceQuery = useApiQuery<TraceSplitResults<TraceFullDetailed>>(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
@@ -191,7 +198,7 @@ export function useTrace(options: Partial<UseTraceParams> = DEFAULT_OPTIONS): {
   );
 
   if (sample) {
-    return {data: makeTraceFromTransaction(sampleQuery.data), status: sampleQuery.status};
+    return sampleTraceQueryResults;
   }
 
   return {data: traceQuery.data, status: traceQuery.status};

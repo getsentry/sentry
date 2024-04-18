@@ -17,9 +17,11 @@ function getMetaQueryParams(
   filters: Partial<PageFilters> = {}
 ):
   | {
+      sampleSlug: string | undefined;
       statsPeriod: string;
     }
   | {
+      sampleSlug: string | undefined;
       timestamp: string;
     } {
   const normalizedParams = normalizeDateTimeParams(query, {
@@ -30,11 +32,12 @@ function getMetaQueryParams(
   const timestamp = decodeScalar(normalizedParams.timestamp);
 
   if (timestamp) {
-    return {timestamp};
+    return {timestamp, sampleSlug: decodeScalar(normalizedParams.sampleSlug)};
   }
 
   return {
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+    sampleSlug: decodeScalar(normalizedParams.sampleSlug),
   };
 }
 
@@ -51,9 +54,10 @@ export function useTraceMeta(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const sampleSlug = queryParams.sampleSlug;
   const trace = traceSlug ?? params.traceSlug;
 
-  return useApiQuery(
+  const traceMetaQueryResults = useApiQuery<TraceMeta>(
     [
       `/organizations/${organization.slug}/events-trace-meta/${trace ?? ''}/`,
       {query: queryParams},
@@ -63,4 +67,23 @@ export function useTraceMeta(
       enabled: !!trace && !!organization.slug,
     }
   );
+
+  // When projects don't have performance set up, we allow them to view a sample transaction.
+  // Now that a transaction always shows up as a part of the trace it is associate with, we
+  // we need to display it as a part of the trace view. Therefore, we fetch the sample transaction
+  // make a trace, with it as the only event in it. The trace meta query has to reflect this by returning
+  // a single transaction and project.
+  if (sampleSlug) {
+    return {
+      data: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 1,
+        transactions: 1,
+      },
+      isLoading: false,
+    } as UseApiQueryResult<TraceMeta | null, any>;
+  }
+
+  return traceMetaQueryResults;
 }
