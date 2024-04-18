@@ -2,8 +2,8 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {inputStyles} from 'sentry/components/input';
-import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/searchQueryBuilderContext';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/searchQueryBuilderFilter';
+import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
+import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {IconSearch} from 'sentry/icons';

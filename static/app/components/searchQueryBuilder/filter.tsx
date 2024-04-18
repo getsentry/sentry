@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/searchQueryBuilderContext';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   TermOperator,
   type Token,

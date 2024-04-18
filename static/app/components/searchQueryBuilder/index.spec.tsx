@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder/searchQueryBuilder';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {TagCollection} from 'sentry/types';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
