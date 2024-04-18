@@ -1287,7 +1287,7 @@ register(
 # of the indexer during consumer shutdowns, rebalances, etc.
 register(
     "sentry-metrics.indexer.drop-work-in-multiprocessing",
-    default=False,  # empty dict means validate schema for all use cases
+    default=False,  # False means we don't drop any work
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
