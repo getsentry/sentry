@@ -429,7 +429,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 })
               }
             >
-              <strong>Continuous</strong>
+              <strong>{t('Continuous')}</strong>
               <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
             </MonitorCard>
             <MonitorCard
@@ -444,7 +444,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               <strong>Conditional</strong>
               {monitorType === MonitorType.ACTIVATED ? (
                 <ActivatedAlertFields>
-                  Monitor{' '}
+                  {`${t('Monitor')} `}
                   <SelectControl
                     name="activationCondition"
                     styles={this.selectControlStyles}
@@ -465,8 +465,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     inline={false}
                     flexibleControlStateSize
-                  />{' '}
-                  for{' '}
+                  />
+                  {` ${t('for')} `}
                   <SelectControl
                     name="timeWindow"
                     styles={this.selectControlStyles}
