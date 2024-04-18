@@ -136,6 +136,13 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
               aria-label={t('Block Metric')}
+              message={
+                isBlockedMetric
+                  ? t('Are you sure you want to unblock this metric?')
+                  : t(
+                      'Are you sure you want to block this metric? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
+                    )
+              }
             />
             <LinkButton
               to={getMetricsUrl(organization.slug, {

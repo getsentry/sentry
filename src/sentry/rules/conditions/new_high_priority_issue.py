@@ -40,6 +40,9 @@ class NewHighPriorityIssueCondition(EventCondition):
             return False
 
         is_new = self.is_new(state)
+        if not event.project.flags.has_high_priority_alerts:
+            return is_new
+
         if features.has("projects:issue-priority", self.project):
             if not event.group:
                 return False
