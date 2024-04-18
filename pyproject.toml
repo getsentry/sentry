@@ -462,7 +462,6 @@ module = [
     "sentry.tasks.process_buffer",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.store",
-    "sentry.tasks.unmerge",
     "sentry.templatetags.sentry_assets",
     "sentry.templatetags.sentry_helpers",
     "sentry.templatetags.sentry_plugins",
