@@ -1687,7 +1687,7 @@
     "@swc/helpers" "^0.5.0"
     intl-messageformat "^10.1.0"
 
-"@internationalized/number@^3.5.0", "@internationalized/number@^3.5.1":
+"@internationalized/number@^3.5.1":
   version "3.5.1"
   resolved "https://registry.yarnpkg.com/@internationalized/number/-/number-3.5.1.tgz#8e3359b498aec6bb865be668ef7e794a424067a7"
   integrity sha512-N0fPU/nz15SwR9IbfJ5xaS9Ss/O5h1sVXMZf43vc9mxEG48ovglvvzBjF53aHlq20uoR6c+88CrIXipU/LSzwg==
@@ -2482,15 +2482,15 @@
     "@react-types/shared" "^3.22.1"
     "@swc/helpers" "^0.5.0"
 
-"@react-stately/numberfield@^3.8.0":
-  version "3.8.0"
-  resolved "https://registry.yarnpkg.com/@react-stately/numberfield/-/numberfield-3.8.0.tgz#0b0104b7460f3617d31ea1282fe15afb69910287"
-  integrity sha512-1XvB8tDOvZKcFnMM6qNLEaTVJcIc0jRFS/9jtS8MzalZvh8DbKi0Ucm1bGU7S5rkCx2QWqZ0rGOIm2h/RlcpkA==
+"@react-stately/numberfield@^3.8.0", "@react-stately/numberfield@^3.9.1":
+  version "3.9.1"
+  resolved "https://registry.yarnpkg.com/@react-stately/numberfield/-/numberfield-3.9.1.tgz#0e14a7581554524d9e94cebbc817886cc0b6d0a8"
+  integrity sha512-btBIcBEfSVCUm6NwJrMrMygoIu/fQGazzD0RhF7PNsfvkFiWn+TSOyQqSXcsUJVOnBfoS/dVWj6r57KA7zl3FA==
   dependencies:
-    "@internationalized/number" "^3.5.0"
-    "@react-stately/form" "^3.0.0"
-    "@react-stately/utils" "^3.9.0"
-    "@react-types/numberfield" "^3.7.0"
+    "@internationalized/number" "^3.5.1"
+    "@react-stately/form" "^3.0.1"
+    "@react-stately/utils" "^3.9.1"
+    "@react-types/numberfield" "^3.8.1"
     "@swc/helpers" "^0.5.0"
 
 "@react-stately/overlays@^3.6.5":
@@ -2634,12 +2634,12 @@
     "@react-types/overlays" "^3.8.5"
     "@react-types/shared" "^3.22.1"
 
-"@react-types/numberfield@^3.7.0":
-  version "3.7.0"
-  resolved "https://registry.yarnpkg.com/@react-types/numberfield/-/numberfield-3.7.0.tgz#a029bf2a8a07049c96ea5ffe1f7533ab2305bcf4"
-  integrity sha512-gaGi+vqm1Y8LCWRsWYUjcGftPIzl+8W2VOfkgKMLM8y76nnwTPtmAqs+Ap1cg7sEJSfsiKMq93e9yvP3udrC2w==
+"@react-types/numberfield@^3.7.0", "@react-types/numberfield@^3.8.1":
+  version "3.8.1"
+  resolved "https://registry.yarnpkg.com/@react-types/numberfield/-/numberfield-3.8.1.tgz#74d604da3815ac09c966b4fcfd11d4d98605f084"
+  integrity sha512-GaCjLQgXUGCt40SLjKk3/COMWFlN2vV/3Xs3VSLAEdFZpk99b+Ik1oR21+7ZP5/iMHuQDc1MJRWdFfIjxCvVDQ==
   dependencies:
-    "@react-types/shared" "^3.22.0"
+    "@react-types/shared" "^3.22.1"
 
 "@react-types/overlays@^3.8.5":
   version "3.8.5"
