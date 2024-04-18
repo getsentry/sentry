@@ -63,7 +63,7 @@ export function OtherPlatformsInfo({
             </ExternalLink>
           </ListItem>
           <ListItem>
-            <ExternalLink href="https://docs.sentry.io/platforms/node/">
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/">
               Node.js
             </ExternalLink>
           </ListItem>
