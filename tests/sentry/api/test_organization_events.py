@@ -298,3 +298,11 @@ class OrganizationEventsEndpointTest(APITestCase):
             assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
                 **DEFAULT_REDUCED_RATE_LIMIT
             )
+
+    def test_rate_limit_events_bad_slug(self):
+        slug = "ucsc-banana-slugs-go-sammy"
+        request = Request(HttpRequest())
+
+        assert rate_limit_events(request, slug)["GET"][RateLimitCategory.IP] == RateLimit(
+            **LEGACY_RATE_LIMIT
+        )
