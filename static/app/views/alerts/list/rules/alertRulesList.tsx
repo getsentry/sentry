@@ -39,6 +39,7 @@ import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
+import ActivatedRuleRow from './activatedRuleRow';
 import RuleListRow from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
@@ -48,7 +49,6 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   const queryParams = {...query};
   queryParams.expand = ['latestIncident', 'lastTriggered'];
   queryParams.team = getTeamParams(queryParams.team!);
-  queryParams.monitor_type = MonitorType.CONTINUOUS.toString();
 
   if (!queryParams.sort) {
     queryParams.sort = defaultSort;
@@ -76,6 +76,7 @@ function AlertRulesList() {
       : location.query.sort,
   });
 
+  // Fetch alert rules
   const {
     data: ruleListResponse = [],
     refetch,
@@ -254,7 +255,19 @@ function AlertRulesList() {
                         !isIssueAlertInstance &&
                         rule.monitorType === MonitorType.ACTIVATED
                       ) {
-                        return null;
+                        return (
+                          <ActivatedRuleRow
+                            // Metric and issue alerts can have the same id
+                            key={`${keyPrefix}-${rule.id}`}
+                            projectsLoaded={initiallyLoaded}
+                            projects={projects as Project[]}
+                            rule={rule}
+                            orgId={organization.slug}
+                            onOwnerChange={handleOwnerChange}
+                            onDelete={handleDeleteRule}
+                            hasEditAccess={hasEditAccess}
+                          />
+                        );
                       }
 
                       return (

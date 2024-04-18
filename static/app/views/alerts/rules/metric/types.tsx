@@ -85,6 +85,21 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
+export type AlertRuleActivation = {
+  alertRuleId: string;
+  dateCreated: string;
+  finishedAt: string;
+  id: string;
+  isComplete: boolean;
+  querySubscriptionId: string;
+  metricValue?: number;
+};
+
+export enum ActivationCondition {
+  RELEASE_CONDITION = 0,
+  DEPLOY_CONDITION = 1,
+}
+
 // Form values for creating a new metric alert rule
 export type UnsavedMetricRule = {
   aggregate: string;
@@ -108,6 +123,7 @@ export type UnsavedMetricRule = {
 
 // Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
+  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;
