@@ -499,9 +499,7 @@ def id_or_slug_path_params_enabled(
 
     # EA option for endpoints where organization is not available
     if convert_args_class:
-        if convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
-            return True
-        return False
+        return convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
 
     return True
 
