@@ -23,7 +23,7 @@ class GroupSeenSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        data = attrs.get("user", None)
+        data = attrs.get("user")
         if data is None:
             return None
 
