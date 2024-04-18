@@ -209,6 +209,43 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, expected)
 
+    def test_filter_owners(self):
+        user_1 = self.create_user()
+        user_2 = self.create_user()
+        team_1 = self.create_team()
+        team_2 = self.create_team()
+        self.create_team_membership(team_2, user=self.user)
+
+        mon_1 = self._create_monitor(name="A monitor", owner_user_id=user_1.id)
+        mon_2 = self._create_monitor(name="B monitor", owner_user_id=user_2.id)
+        mon_3 = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_1.id)
+        mon_4 = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_2.id)
+
+        # Monitor by user
+        response = self.get_success_response(self.organization.slug, owner=[f"user:{user_1.id}"])
+        self.check_valid_response(response, [mon_1])
+
+        # Monitors by users and teams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=[f"user:{user_1.id}", f"user:{user_2.id}", f"team:{team_1.id}"],
+        )
+        self.check_valid_response(response, [mon_1, mon_2, mon_3])
+
+        # myteams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["myteams"],
+        )
+        self.check_valid_response(response, [mon_4])
+
+        # Invalid user ID
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["user:12345"],
+        )
+        self.check_valid_response(response, [])
+
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
