@@ -85,7 +85,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def _get_seen_by(self, request: Request, group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return serialize(seen_by, request.user)
+        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
     def _get_context_plugins(self, request: Request, group):
         project = group.project
