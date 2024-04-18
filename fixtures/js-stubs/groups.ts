@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 
 export function GroupsFixture() {
   const project = ProjectFixture({name: 'Internal', slug: 'project-slug', id: '123'});

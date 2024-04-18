@@ -15,7 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -189,15 +189,32 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const target = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug(dataRow),
-        dataRow,
-        organization,
-        eventView,
-        isHomepage,
-        location,
-        type: 'discover',
-      });
+      let target;
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = generateLinkToEventInTraceView({
+          eventSlug: generateEventSlug(dataRow),
+          dataRow,
+          organization,
+          eventView,
+          isHomepage,
+          location,
+          type: 'discover',
+        });
+      } else {
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
+          query: location.query,
+        };
+      }
 
       const eventIdLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -297,15 +314,33 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const target = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug(dataRow),
-        dataRow,
-        organization,
-        eventView,
-        isHomepage,
-        location,
-        type: 'discover',
-      });
+      let target;
+
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = generateLinkToEventInTraceView({
+          eventSlug: generateEventSlug(dataRow),
+          dataRow,
+          organization,
+          eventView,
+          isHomepage,
+          location,
+          type: 'discover',
+        });
+      } else {
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
+          query: location.query,
+        };
+      }
 
       const idLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -341,7 +376,7 @@ function TableView(props: TableViewProps) {
       );
     } else if (columnKey === 'trace') {
       const timestamp = getTimeStampFromTableDateField(
-        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+        dataRow['max(timestamp)'] ?? dataRow.timestamp
       );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
@@ -350,8 +385,7 @@ function TableView(props: TableViewProps) {
           String(dataRow.trace),
           dateSelection,
           {},
-          timestamp,
-          dataRow.id
+          timestamp
         );
 
         cell = (

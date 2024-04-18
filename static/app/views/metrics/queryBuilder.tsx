@@ -6,7 +6,8 @@ import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {IconLightning, IconReleases} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
@@ -80,7 +81,12 @@ export const QueryBuilder = memo(function QueryBuilder({
   const breakpoints = useBreakpoints();
   const {projects} = useProjects();
 
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(pageFilters.selection);
+  const {
+    data: meta,
+    isLoading: isMetaLoading,
+    isRefetching: isMetaRefetching,
+    refetch: refetchMeta,
+  } = useMetricsMeta(pageFilters.selection);
   const mriMode = useMriMode();
 
   const shouldUseComboBox = hasMetricsExperimentalFeature(organization);
@@ -104,9 +110,15 @@ export const QueryBuilder = memo(function QueryBuilder({
     [projectIds, projects]
   );
 
-  const tags = useMemo(() => {
-    return uniqBy(tagsData, 'key');
-  }, [tagsData]);
+  const groupByOptions = useMemo(() => {
+    return uniqBy(tagsData, 'key').map(tag => ({
+      key: tag.key,
+      // So that we don't have to parse the query to determine if the tag is used
+      trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
+        <TagWarningIcon />
+      ) : undefined,
+    }));
+  }, [tagsData, metricsQuery.query]);
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
@@ -191,9 +203,21 @@ export const QueryBuilder = memo(function QueryBuilder({
     (query: string) => {
       trackAnalytics('ddm.widget.filter', {organization});
       incrementQueryMetric('ddm.widget.filter', {query});
-      onChange({query});
+
+      onChange({
+        query,
+      });
     },
     [incrementQueryMetric, onChange, organization]
+  );
+
+  const handleOpenMetricsMenu = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen && !isMetaLoading && !isMetaRefetching) {
+        refetchMeta();
+      }
+    },
+    [isMetaLoading, isMetaRefetching, refetchMeta]
   );
 
   const mriOptions = useMemo(
@@ -227,13 +251,16 @@ export const QueryBuilder = memo(function QueryBuilder({
           <MetricComboBox
             aria-label={t('Metric')}
             placeholder={t('Select a metric')}
+            loadingMessage={t('Loading metrics...')}
             sizeLimit={100}
             size="md"
             menuSize="sm"
             isLoading={isMetaLoading}
+            onOpenChange={handleOpenMetricsMenu}
             options={mriOptions}
             value={metricsQuery.mri}
             onChange={handleMRIChange}
+            growingInput
             menuWidth="400px"
           />
         ) : (
@@ -270,10 +297,10 @@ export const QueryBuilder = memo(function QueryBuilder({
             multiple
             size="md"
             triggerProps={{prefix: t('Group by')}}
-            options={tags.map(tag => ({
+            options={groupByOptions.map(tag => ({
               label: tag.key,
               value: tag.key,
-              trailingItems: (
+              trailingItems: tag.trailingItems ?? (
                 <Fragment>
                   {tag.key === 'release' && <IconReleases size="xs" />}
                   {tag.key === 'transaction' && <IconLightning size="xs" />}
@@ -299,6 +326,22 @@ export const QueryBuilder = memo(function QueryBuilder({
     </QueryBuilderWrapper>
   );
 });
+
+function TagWarningIcon() {
+  return (
+    <TooltipIconWrapper>
+      <Tooltip
+        title={t('This tag appears in filter conditions, some groups may be omitted.')}
+      >
+        <IconWarning size="xs" color="warning" />
+      </Tooltip>
+    </TooltipIconWrapper>
+  );
+}
+
+const TooltipIconWrapper = styled('span')`
+  margin-top: ${space(0.25)};
+`;
 
 const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};

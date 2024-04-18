@@ -107,7 +107,7 @@ export function GridLineLabels({width, timeWindowConfig, className}: Props) {
   const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
 
   return (
-    <LabelsContainer className={className}>
+    <LabelsContainer aria-hidden className={className}>
       {markers.map(({date, position, dateTimeProps}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
           <TimeLabel date={date} {...dateTimeProps} />
@@ -172,7 +172,7 @@ export function GridLineOverlay({
   markers.shift();
 
   return (
-    <Overlay ref={overlayRef} className={className}>
+    <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
       <GridLineContainer>

@@ -29,6 +29,7 @@ jobs:
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
       backend_all: ${{ steps.changes.outputs.backend_all }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -45,6 +46,9 @@ jobs:
     name: acceptance
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -92,6 +96,8 @@ jobs:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          # should set value either as `true` or `false`
+          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
         run: |
           yarn build-acceptance
 
@@ -109,6 +115,17 @@ jobs:
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
+        with:
+          artifact_path: .artifacts/pytest.acceptance.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality

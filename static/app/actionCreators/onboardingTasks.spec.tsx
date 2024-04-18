@@ -5,7 +5,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {OnboardingTaskKey} from 'sentry/types';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();

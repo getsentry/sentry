@@ -240,8 +240,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -446,7 +445,8 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
@@ -762,7 +762,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -822,7 +821,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [

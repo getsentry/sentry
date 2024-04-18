@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import type {Tag} from 'sentry/actionCreators/events';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';

@@ -148,6 +148,10 @@ def process_profile_task(
     if not _normalize_profile(profile, organization, project):
         return
 
+    # set platform information at frame-level
+    # only for those platforms that didn't go through symbolication
+    _set_frames_platform(profile)
+
     if "version" in profile:
         set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
@@ -158,6 +162,8 @@ def process_profile_task(
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
         and organization.id
         in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+        and project.id
+        not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
     ):
         try:
             with metrics.timer("process_profile.get_metrics_dsn"):
@@ -637,7 +643,9 @@ def _process_symbolicator_results_for_sample(
             # This works since symbolicated_frames are in the same order
             # as raw_frames (except some frames are not sent).
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
-                new_frames.append(symbolicated_frames[frame_idx])
+                f = symbolicated_frames[frame_idx]
+                f["platform"] = platform
+                new_frames.append(f)
 
             # go to the next symbolicated frame result
             symbolicated_frame_idx += 1
@@ -1115,3 +1123,13 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:
     return int(profile["duration_ns"] * 1e-6)
+
+
+def _set_frames_platform(profile: Profile):
+    platform = profile["platform"]
+    frames = (
+        profile["profile"]["methods"] if platform == "android" else profile["profile"]["frames"]
+    )
+    for f in frames:
+        if "platform" not in f:
+            f["platform"] = platform

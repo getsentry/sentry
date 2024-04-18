@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
@@ -20,12 +20,12 @@ import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

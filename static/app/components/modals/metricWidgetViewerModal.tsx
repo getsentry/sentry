@@ -12,7 +12,7 @@ import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries'
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -46,6 +46,7 @@ function MetricWidgetViewerModal({
   Body,
   Header,
   closeModal,
+  CloseButton,
   onMetricWidgetEdit,
   dashboardFilters,
 }: Props) {
@@ -227,13 +228,17 @@ function MetricWidgetViewerModal({
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
-        <Header closeButton>
+        <Header>
           <MetricWidgetTitle
             title={title}
             onTitleChange={handleTitleChange}
             placeholder={widgetMQL}
             description={widget.description}
           />
+          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
+          <div onClick={handleSubmit}>
+            <CloseButton />
+          </div>
         </Header>
         <Body>
           <Queries
@@ -269,7 +274,6 @@ function MetricWidgetViewerModal({
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button onClick={closeModal}>{t('Close')}</Button>
             <Button priority="primary" onClick={handleSubmit}>
               {t('Save changes')}
             </Button>
