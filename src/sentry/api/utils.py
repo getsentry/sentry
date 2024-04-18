@@ -487,7 +487,7 @@ class Timer:
 
 
 def id_or_slug_path_params_enabled(
-    convert_args_class: str, organization_slug: str | None = None
+    convert_args_class: str | None = None, organization_slug: str | None = None
 ) -> bool:
     # GA option
     if options.get("api.id-or-slug-enabled"):
@@ -498,10 +498,12 @@ def id_or_slug_path_params_enabled(
         return False
 
     # EA option for endpoints where organization is not available
-    if convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
-        return True
+    if convert_args_class:
+        if convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
+            return True
+        return False
 
-    return False
+    return True
 
 
 def update_snuba_params_with_timestamp(

@@ -265,9 +265,17 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 @control_silo_function
 def get_region_for_organization(organization_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
+    from sentry.api.utils import id_or_slug_path_params_enabled
     from sentry.models.organizationmapping import OrganizationMapping
 
-    mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
+    if (
+        id_or_slug_path_params_enabled(organization_slug=organization_slug)
+        and organization_slug.isnumeric()
+    ):
+        mapping = OrganizationMapping.objects.filter(organization_id=organization_slug).first()
+    else:
+        mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
+
     if not mapping:
         raise RegionResolutionError(f"Organization {organization_slug} has no associated mapping.")
 
