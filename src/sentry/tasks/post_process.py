@@ -1460,22 +1460,22 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
     Determine if we should fire a task to check if the new issue
     threshold has been met to enable high priority alerts.
     """
+    event = job["event"]
+    if event.project.flags.has_high_priority_alerts:
+        return
+
+    from sentry.tasks.check_new_issue_threshold_met import (
+        check_new_issue_threshold_met,
+        new_issue_threshold_key,
+    )
+
+    # If the new issue volume has already been checked today, don't recalculate regardless of the value
+    project_key = new_issue_threshold_key(event.project_id)
+    threshold_met = cache.get(project_key)
+    if threshold_met is not None:
+        return
+
     try:
-        event = job["event"]
-        if event.project.flags.has_high_priority_alerts:
-            return
-
-        from sentry.tasks.check_new_issue_threshold_met import (
-            check_new_issue_threshold_met,
-            new_issue_threshold_key,
-        )
-
-        # If the new issue volume has already been checked today, don't recalculate regardless of the value
-        project_key = new_issue_threshold_key(event.project_id)
-        threshold_met = cache.get(project_key)
-        if threshold_met is not None:
-            return
-
         lock = locks.get(project_key, duration=10)
         with lock.acquire():
             # If the threshold has already been calculated today, don't recalculate regardless of the value
