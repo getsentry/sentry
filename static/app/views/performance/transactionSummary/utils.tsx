@@ -5,11 +5,7 @@ import type {Location, LocationDescriptor, Query} from 'history';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -153,9 +149,10 @@ export function generateTransactionIdLink(transactionName?: string) {
     spanId?: string
   ): LocationDescriptor => {
     return generateLinkToEventInTraceView({
-      eventSlug: generateEventSlug(tableRow),
-      dataRow: tableRow,
-      eventView: EventView.fromLocation(location),
+      eventId: tableRow.id,
+      timestamp: tableRow.timestamp,
+      traceSlug: tableRow.trace?.toString(),
+      projectSlug: tableRow['project.name']?.toString(),
       location,
       organization,
       spanId,
