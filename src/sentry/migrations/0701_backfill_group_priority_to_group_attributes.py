@@ -95,7 +95,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0697_remove_monitor_owner_actor_id_db"),
+        ("sentry", "0700_drop_fileid_controlavatar"),
     ]
 
     operations = [

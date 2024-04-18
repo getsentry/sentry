@@ -33,8 +33,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0640_index_together"
-    migrate_to = "0641_backfill_group_attributes"
+    migrate_from = "0700_drop_fileid_controlavatar"
+    migrate_to = "0701_backfill_group_priority_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -45,8 +45,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0640_index_together"
-    migrate_to = "0641_backfill_group_attributes"
+    migrate_from = "0700_drop_fileid_controlavatar"
+    migrate_to = "0701_backfill_group_priority_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
