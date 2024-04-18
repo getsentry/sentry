@@ -504,13 +504,18 @@ function MonitorForm({
                   {t('Customize this monitors notification configuration in Alerts')}
                 </AlertLink>
               )}
-              <SentryMemberTeamSelectorField
-                label={t('Notify')}
-                help={t('Send notifications to a member or team.')}
-                name="alertRule.targets"
-                multiple
-                menuPlacement="auto"
-              />
+              <Observer>
+                {() => (
+                  <SentryMemberTeamSelectorField
+                    label={t('Notify')}
+                    help={t('Send notifications to a member or team.')}
+                    name="alertRule.targets"
+                    memberOfProjectSlug={form.current.getValue('project')?.toString()}
+                    multiple
+                    menuPlacement="auto"
+                  />
+                )}
+              </Observer>
               <Observer>
                 {() => {
                   const selectedAssignee = form.current.getValue('alertRule.targets');
