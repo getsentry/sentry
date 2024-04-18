@@ -24,9 +24,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(60, 60, 1),
-            RateLimitCategory.USER: RateLimit(60, 60, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(60, 60, 2),
+            RateLimitCategory.IP: RateLimit(limit=60, window=60, concurrent_limit=1),
+            RateLimitCategory.USER: RateLimit(limit=60, window=60, concurrent_limit=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60, concurrent_limit=2),
         }
     }
 

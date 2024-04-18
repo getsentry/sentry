@@ -374,9 +374,9 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
         group="appconnect-refresh",
         limit_overrides={
             "POST": {
-                RateLimitCategory.IP: RateLimit(1, 20),
-                RateLimitCategory.USER: RateLimit(1, 45),
-                RateLimitCategory.ORGANIZATION: RateLimit(720, 3600),
+                RateLimitCategory.IP: RateLimit(limit=1, window=20),
+                RateLimitCategory.USER: RateLimit(limit=1, window=45),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=720, window=3600),
             }
         },
     )

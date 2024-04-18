@@ -39,9 +39,9 @@ class RateLimitedEndpoint(Endpoint):
         group="foo",
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(0, 1),
-                RateLimitCategory.USER: RateLimit(0, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+                RateLimitCategory.IP: RateLimit(limit=0, window=1),
+                RateLimitCategory.USER: RateLimit(limit=0, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=0, window=1),
             },
         },
     )
@@ -57,9 +57,9 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
         group="foo",
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(20, 1, 1),
-                RateLimitCategory.USER: RateLimit(20, 1, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, 1),
+                RateLimitCategory.IP: RateLimit(limit=20, window=1, concurrent_limit=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1, concurrent_limit=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=1),
             },
         },
     )
