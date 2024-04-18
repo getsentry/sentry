@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
-from sentry.utils.cache import cache
 
 NEW_ISSUE_WEEKLY_THRESHOLD = 10
 new_issue_threshold_key = (
@@ -75,15 +74,6 @@ def check_new_issue_threshold_met(project_id: int) -> None:
     if project.flags.has_high_priority_alerts:
         return
 
-    project_key = new_issue_threshold_key(project.id)
-    threshold_met = cache.get(project_key)
-    # If the threshold has already been calculated today, don't recalculate regardless of the value
-    if threshold_met is not None:
-        return
-
     threshold_met = calculate_threshold_met(project.id)
     if threshold_met:
         project.update(flags=F("flags").bitor(Project.flags.has_high_priority_alerts))
-
-    # Add the key to cache for 24 hours
-    cache.set(project_key, True, 60 * 60 * 24)

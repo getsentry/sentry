@@ -1478,7 +1478,15 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
         lock = locks.get(project_key, duration=10)
         with lock.acquire():
+            # If the threshold has already been calculated today, don't recalculate regardless of the value
+            task_scheduled = cache.get(project_key)
+            if task_scheduled is not None:
+                return
+
             check_new_issue_threshold_met.delay(event.project.id)
+
+            # Add the key to cache for 24 hours
+            cache.set(project_key, True, 60 * 60 * 24)
     except UnableToAcquireLock:
         pass
     except Exception as e:

@@ -4,11 +4,9 @@ from sentry.tasks.check_new_issue_threshold_met import (
     NEW_ISSUE_WEEKLY_THRESHOLD,
     calculate_threshold_met,
     check_new_issue_threshold_met,
-    new_issue_threshold_key,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.cache import cache
 
 
 class CheckNewIssueThresholdMetTest(TestCase):
@@ -32,7 +30,6 @@ class CheckNewIssueThresholdMetTest(TestCase):
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
-        cache.set(new_issue_threshold_key(self.project.id), True, 10)
         check_new_issue_threshold_met(self.project.id)
 
         self.project.refresh_from_db()
