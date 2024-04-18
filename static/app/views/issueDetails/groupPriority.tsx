@@ -44,6 +44,7 @@ function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
         itemIds: [group.id],
         data: {priority},
         failSilently: true,
+        project: [group.project.id],
       },
       {
         success: () => {

@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -16,7 +15,6 @@ describe('SentryMemberTeamSelectorField', () => {
   const org = OrganizationFixture();
   const mockUsers = [UserFixture()];
   const mockTeams = [TeamFixture()];
-  const mockProjects = [ProjectFixture()];
 
   beforeEach(() => {
     MemberListStore.init();
@@ -46,7 +44,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
       />
     );
 
@@ -61,6 +58,27 @@ describe('SentryMemberTeamSelectorField', () => {
     expect(mock).toHaveBeenCalledWith(null, expect.anything());
   });
 
+  it('separates my teams and other teams', async () => {
+    TeamStore.init();
+    TeamStore.loadInitialData([
+      TeamFixture(),
+      TeamFixture({id: '2', slug: 'other-team', isMember: false}),
+    ]);
+
+    const mock = jest.fn();
+    render(
+      <SentryMemberTeamSelectorField
+        label="Select Owner"
+        onChange={mock}
+        name="team-or-member"
+      />
+    );
+
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
+    expect(await screen.findByText('My Teams')).toBeInTheDocument();
+    expect(await screen.findByText('Other Teams')).toBeInTheDocument();
+  });
+
   it('can select a member', async () => {
     const mock = jest.fn();
     render(
@@ -68,7 +86,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
       />
     );
 
@@ -90,7 +107,6 @@ describe('SentryMemberTeamSelectorField', () => {
         label="Select Owner"
         onChange={mock}
         name="team-or-member"
-        projects={mockProjects}
         multiple
       />
     );

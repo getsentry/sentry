@@ -18,6 +18,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
+from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -87,7 +88,13 @@ class GroupSnooze(Model):
             if self.user_window:
                 if not self.test_user_rates():
                     return False
-            elif self.user_count <= group.count_users_seen() - self.state["users_seen"]:
+            elif (
+                self.user_count
+                <= group.count_users_seen(
+                    referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
+                )
+                - self.state["users_seen"]
+            ):
                 return False
         return True
 

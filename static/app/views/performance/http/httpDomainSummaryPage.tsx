@@ -238,7 +238,7 @@ export function HTTPDomainSummaryPage() {
                     unit={DurationUnit.MILLISECOND}
                     tooltip={getTimeSpentExplanation(
                       domainMetrics?.[0]?.['time_spent_percentage()'],
-                      'db'
+                      'http'
                     )}
                     isLoading={areDomainMetricsLoading}
                   />

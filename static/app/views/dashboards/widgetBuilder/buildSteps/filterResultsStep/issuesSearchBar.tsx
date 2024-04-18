@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   MAX_MENU_HEIGHT,

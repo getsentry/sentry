@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
 
 type Props = {

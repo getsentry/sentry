@@ -6,7 +6,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -188,9 +188,15 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  return renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  return renderer(
+    {
+      'span.op': 'http.client',
+      ...row,
+    },
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    }
+  );
 }

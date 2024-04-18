@@ -1221,12 +1221,6 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Option to enable orjson for JSON parsing
-register("sentry-metrics.indexer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "sentry-metrics.ingest-consumer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2374,6 +2368,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# list of project IDs we want to deny ingesting profiles
+# function metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2413,6 +2416,14 @@ register(
 register(
     "traces.sample-list.sample-rate",
     type=Float,
-    default=100_000.0,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "feedback.filter_garbage_messages",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

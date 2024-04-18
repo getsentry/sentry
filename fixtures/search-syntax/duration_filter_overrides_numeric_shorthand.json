@@ -10,7 +10,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueDuration", "value": 2, "unit": "m"}
+        "value": {
+          "type": "valueDuration",
+          "value": "2",
+          "unit": "m",
+          "parsed": {"value": 120000}
+        }
       },
       {"type": "spaces", "value": ""}
     ]

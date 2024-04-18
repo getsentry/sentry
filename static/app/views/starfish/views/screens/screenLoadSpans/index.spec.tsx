@@ -117,11 +117,7 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'react-native'});
       organization = OrganizationFixture({
-        features: [
-          'performance-screens-view',
-          'mobile-ttid-ttfd-contribution',
-          'performance-screens-platform-selector',
-        ],
+        features: ['spans-first-ui'],
         projects: [project],
       });
       mockResponses(organization, project);
@@ -217,11 +213,7 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android'});
       organization = OrganizationFixture({
-        features: [
-          'performance-screens-view',
-          'mobile-ttid-ttfd-contribution',
-          'performance-screens-platform-selector',
-        ],
+        features: ['spans-first-ui'],
         projects: [project],
       });
       mockResponses(organization, project);

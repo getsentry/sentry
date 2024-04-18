@@ -1108,7 +1108,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12", day_of_week="monday"),
+        "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-daily-organization-reports": {
@@ -1548,8 +1548,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable the org recalibration
@@ -1713,8 +1711,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable consecutive db performance issue type
-    "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
     # Enable database view powered by span metrics
@@ -1727,14 +1723,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
-    # Enable compressed assets performance issue type
-    "organizations:performance-issues-compressed-assets-detector": False,
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
-    # Enable MN+1 DB performance issue type
-    "organizations:performance-issues-m-n-plus-one-db-detector": False,
-    # Enable render blocking assets performance issue type
-    "organizations:performance-issues-render-blocking-assets-detector": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enables a longer stats period for the performance landing page
@@ -1749,8 +1739,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable the UI for displaying mobile performance score
     "organizations:performance-mobile-perf-score-ui": False,
-    # Enable N+1 API Calls performance issue type
-    "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
     # Enable updated landing page widget designs
@@ -1767,8 +1755,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
-    # Enable slow DB performance issue type
-    "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
     # Enable trace details page with embedded spans
@@ -1789,6 +1775,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Experimental performance issue for streamed spans - ingestion
+    "organizations:performance-streamed-spans-exp-ingest": False,
+    # Experimental performance issue for streamed spans - UI
+    "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
     # Enable processing slow issue alerts
@@ -1861,6 +1851,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable mobile replay player
     "organizations:session-replay-mobile-player": False,
+    # Enable mobile replay player network tab
+    "organizations:session-replay-mobile-network-tab": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -1873,12 +1865,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
-    # Enable the Replay Details > Performance tab
-    "organizations:session-replay-trace-table": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable 'Viewed By' state for replay items
-    "organizations:session-replay-viewed-by-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
@@ -3083,7 +3071,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.0"
+SELF_HOSTED_STABLE_VERSION = "24.4.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

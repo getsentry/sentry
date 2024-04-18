@@ -5,6 +5,7 @@ import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -21,8 +22,6 @@ import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
-import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
@@ -33,7 +32,6 @@ interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onDimensionChange: () => void;
   onInspectorExpanded: (
     path: string,
     expandedState: Record<string, boolean>,
@@ -42,7 +40,6 @@ interface Props {
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
-  traces: ReplayTraceRow | undefined;
   className?: string;
   expandPaths?: string[];
   style?: CSSProperties;
@@ -54,13 +51,11 @@ function BreadcrumbItem({
   frame,
   expandPaths,
   onClick,
-  onDimensionChange,
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
   style,
-  traces,
 }: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
@@ -80,71 +75,66 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-      <CrumbDetails>
-        <Flex column>
-          <TitleContainer>
-            {<Title>{title}</Title>}
-            {onClick ? (
-              <TimestampButton
-                startTimestampMs={startTimestampMs}
-                timestampMs={frame.timestampMs}
+
+      <ErrorBoundary mini>
+        <CrumbDetails>
+          <Flex column>
+            <TitleContainer>
+              {<Title>{title}</Title>}
+              {onClick ? (
+                <TimestampButton
+                  startTimestampMs={startTimestampMs}
+                  timestampMs={frame.timestampMs}
+                />
+              ) : null}
+            </TitleContainer>
+
+            {typeof description === 'string' ||
+            (description !== undefined && isValidElement(description)) ? (
+              <Description title={description} showOnlyOnOverflow isHoverable>
+                {description}
+              </Description>
+            ) : (
+              <InspectorWrapper>
+                <ObjectInspector
+                  data={description}
+                  expandPaths={expandPaths}
+                  onExpand={onInspectorExpanded}
+                  theme={{
+                    TREENODE_FONT_SIZE: '0.7rem',
+                    ARROW_FONT_SIZE: '0.5rem',
+                  }}
+                />
+              </InspectorWrapper>
+            )}
+          </Flex>
+
+          {'data' in frame && frame.data && 'mutations' in frame.data ? (
+            <div>
+              <OpenReplayComparisonButton
+                replay={replay}
+                leftTimestamp={frame.offsetMs}
+                rightTimestamp={
+                  (frame.data.mutations.next?.timestamp ?? 0) -
+                  (replay?.getReplay().started_at.getTime() ?? 0)
+                }
               />
-            ) : null}
-          </TitleContainer>
+            </div>
+          ) : null}
 
-          {typeof description === 'string' ||
-          (description !== undefined && isValidElement(description)) ? (
-            <Description title={description} showOnlyOnOverflow isHoverable>
-              {description}
-            </Description>
-          ) : (
-            <InspectorWrapper>
-              <ObjectInspector
-                data={description}
-                expandPaths={expandPaths}
-                onExpand={onInspectorExpanded}
-                theme={{
-                  TREENODE_FONT_SIZE: '0.7rem',
-                  ARROW_FONT_SIZE: '0.5rem',
-                }}
-              />
-            </InspectorWrapper>
-          )}
-        </Flex>
+          {extraction?.html ? (
+            <CodeContainer>
+              <CodeSnippet language="html" hideCopyButton>
+                {beautify.html(extraction?.html, {indent_size: 2})}
+              </CodeSnippet>
+            </CodeContainer>
+          ) : null}
 
-        {'data' in frame && frame.data && 'mutations' in frame.data ? (
-          <div>
-            <OpenReplayComparisonButton
-              replay={replay}
-              leftTimestamp={frame.offsetMs}
-              rightTimestamp={
-                (frame.data.mutations.next?.timestamp ?? 0) -
-                (replay?.getReplay().started_at.getTime() ?? 0)
-              }
-            />
-          </div>
-        ) : null}
-
-        {extraction?.html ? (
-          <CodeContainer>
-            <CodeSnippet language="html" hideCopyButton>
-              {beautify.html(extraction?.html, {indent_size: 2})}
-            </CodeSnippet>
-          </CodeContainer>
-        ) : null}
-
-        {traces?.flattenedTraces.map((flatTrace, i) => (
-          <TraceGrid
-            key={i}
-            flattenedTrace={flatTrace}
-            onDimensionChange={onDimensionChange}
-          />
-        ))}
-
-        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-          <CrumbErrorIssue frame={frame} />
-        ) : null}
-      </CrumbDetails>
+          {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+            <CrumbErrorIssue frame={frame} />
+          ) : null}
+        </CrumbDetails>
+      </ErrorBoundary>
     </CrumbItem>
   );
 }
