@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from random import choice, randint
 
 import petname
@@ -182,7 +182,7 @@ class Sanitizer:
         for model in self.json:
             for value in model["fields"].values():
                 try:
-                    datetimes.add(parse_datetime(value))
+                    datetimes.add(parse_datetime(value).replace(tzinfo=UTC))
                 except Exception:
                     continue
 
