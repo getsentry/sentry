@@ -92,12 +92,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
-        params = ParamsType(
-            project_id=[group.project_id],
-            organization_id=group.project.organization_id,
-            start=start if start else default_start,
-            end=end if end else default_end,
-        )
+        params: ParamsType = {
+            "project_id": [group.project_id],
+            "organization_id": group.project.organization_id,
+            "start": start if start else default_start,
+            "end": end if end else default_end,
+        }
         referrer = f"api.group-events.{group.issue_category.name.lower()}"
 
         direct_hit_resp = get_direct_hit_response(

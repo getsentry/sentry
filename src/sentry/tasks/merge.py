@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
+from django.db.models.base import Model
 
 from sentry import eventstream, similarity, tsdb
 from sentry.silo import SiloMode
@@ -14,7 +15,7 @@ logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
 
 
-EXTRA_MERGE_MODELS: list[Any] = []
+EXTRA_MERGE_MODELS: list[type[Model]] = []
 
 
 @instrumented_task(

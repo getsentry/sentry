@@ -8,6 +8,7 @@ from functools import reduce
 from typing import Any
 
 from django.db import router, transaction
+from django.db.models.base import Model
 
 from sentry import analytics, eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
@@ -36,9 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 def cache(function):
-    results: dict[Any, Any] = {}
+    results: dict[tuple[int, ...], tuple[bool, type[Model] | Exception | None]] = {}
 
-    def fetch(*key: Any) -> Any:
+    def fetch(*key):
         value = results.get(key)
         if value is None:
             try:
@@ -50,6 +51,7 @@ def cache(function):
         if ok:
             return result
         else:
+            assert type(result) is Exception
             raise result
 
     return fetch

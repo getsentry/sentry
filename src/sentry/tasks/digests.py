@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
 )
 def schedule_digests() -> None:
-    from sentry.digests import backend as digests
+    from sentry import digests
 
     deadline = time.time()
 
@@ -33,9 +33,9 @@ def schedule_digests() -> None:
     # relatively high to avoid requeueing items before they even had a chance
     # to be processed.
     timeout = 300
-    digests.maintenance(deadline - timeout)
+    digests.backend.maintenance(deadline - timeout)
 
-    for entry in digests.schedule(deadline):
+    for entry in digests.backend.schedule(deadline):
         deliver_digest.delay(entry.key, entry.timestamp)
 
 
@@ -49,14 +49,14 @@ def deliver_digest(
     schedule_timestamp: datetime | None = None,
     notification_uuid: str | None = None,
 ) -> None:
-    from sentry.digests import backend as digests
+    from sentry import digests
     from sentry.mail import mail_adapter
 
     try:
         project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
         logger.info("Cannot deliver digest %s due to error: %s", key, error)
-        digests.delete(key)
+        digests.backend.delete(key)
         return
 
     minimum_delay = ProjectOption.objects.get_value(
@@ -65,7 +65,7 @@ def deliver_digest(
 
     with snuba.options_override({"consistent": True}):
         try:
-            with digests.digest(key, minimum_delay=minimum_delay) as records:
+            with digests.backend.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
 
                 if not notification_uuid:

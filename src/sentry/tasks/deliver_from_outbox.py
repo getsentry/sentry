@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
 from typing import Any
 
 import sentry_sdk
@@ -58,7 +57,7 @@ CONCURRENCY = 5
 
 def schedule_batch(
     silo_mode: SiloMode,
-    drain_task: Task | Callable,
+    drain_task: Task,
     concurrency: int | None = None,
     process_outbox_backfills=True,
 ) -> None:
@@ -91,20 +90,19 @@ def schedule_batch(
             # Notably, when l and h are close, this will result in creating tasks that are processing future ids --
             # that's totally fine.
             for i in range(concurrency):
-                if hasattr(drain_task, "delay"):
-                    drain_task.delay(
-                        outbox_name=outbox_name,
-                        outbox_identifier_low=lo + i * batch_size,
-                        outbox_identifier_hi=lo + (i + 1) * batch_size,
-                    )
+                drain_task.delay(
+                    outbox_name=outbox_name,
+                    outbox_identifier_low=lo + i * batch_size,
+                    outbox_identifier_hi=lo + (i + 1) * batch_size,
+                )
 
             deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
             max_shard_depth = (
-                deepest_shard_information[0]["depth"] if deepest_shard_information else 0
+                float(deepest_shard_information[0]["depth"]) if deepest_shard_information else 0.0
             )
             metrics.gauge(
                 "deliver_from_outbox.maximum_shard_depth",
-                value=float(max_shard_depth),
+                value=max_shard_depth,
                 tags=metrics_tags,
                 sample_rate=1.0,
             )
