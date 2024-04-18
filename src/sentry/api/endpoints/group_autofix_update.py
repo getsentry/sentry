@@ -27,16 +27,14 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
 
     def post(self, request: Request, group: Group) -> Response:
         """
-        Select a root cause for autofix
-
-        :pparam int run_id: the ID of the run to select the root cause for
-        :pparam int | None cause_id: the ID of the root cause to select
-        :pparam int | None fix_id: the ID of the fix to select
-        :pparam string | None custom_root_cause: the custom root cause to select
+        Send an update event to autofix for a given group.
         """
+        if not request.data:
+            return Response(status=400, data={"error": "Need a body with a run_id and payload"})
+
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            data=request.body,
+            data=request.data,
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
