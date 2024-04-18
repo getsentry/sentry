@@ -68,6 +68,7 @@ const topNodeFrameworks: PlatformKey[] = [
   'node-express',
   'node-awslambda',
   'node-connect',
+  'node-nestjs',
   'node-fastify',
   'node-koa',
   'node-gcpfunctions',

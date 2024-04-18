@@ -72,7 +72,7 @@ const server: Set<PlatformKey> = new Set([
   'node-fastify',
   'node-hapi',
   'node-koa',
-  'node-express',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',
