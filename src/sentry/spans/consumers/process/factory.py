@@ -26,7 +26,6 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.features.rollout import in_rollout_group
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
@@ -43,8 +42,9 @@ def in_process_spans_rollout_group(project_id: int | None) -> bool:
         "standalone-spans.process-spans-consumer.project-allowlist"
     ):
         return True
-    if project_id and in_rollout_group(
-        project_id, "standalone-spans.process-spans-consumer.project-rollout"
+
+    if project_id and (project_id % 100000) / 100000 < options.get(
+        "standalone-spans.process-spans-consumer.project-rollout"
     ):
         return True
     return False
