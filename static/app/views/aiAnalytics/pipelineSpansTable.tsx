@@ -21,7 +21,12 @@ import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
-type Column = GridColumnHeader<SpanIndexedField.ID | SpanIndexedField.SPAN_DURATION>;
+type Column = GridColumnHeader<
+  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_DURATION
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.USER
+>;
 
 const COLUMN_ORDER: Column[] = [
   {
@@ -32,14 +37,31 @@ const COLUMN_ORDER: Column[] = [
   {
     key: SpanIndexedField.SPAN_DURATION,
     name: t('Total duration'),
+    width: 150,
+  },
+  {
+    key: SpanIndexedField.USER,
+    name: t('User'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: SpanIndexedField.TIMESTAMP,
+    name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = [SpanIndexedField.ID, SpanIndexedField.SPAN_DURATION];
+const SORTABLE_FIELDS = [
+  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.TIMESTAMP,
+];
 
 type ValidSort = Sort & {
-  field: SpanIndexedField.ID | SpanIndexedField.SPAN_DURATION;
+  field:
+    | SpanIndexedField.ID
+    | SpanIndexedField.SPAN_DURATION
+    | SpanIndexedField.TIMESTAMP;
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -57,7 +79,7 @@ export function PipelineSpansTable({groupId}: Props) {
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
-    sort = {field: SpanIndexedField.ID, kind: 'desc'};
+    sort = {field: SpanIndexedField.TIMESTAMP, kind: 'desc'};
   }
 
   const {
@@ -73,6 +95,8 @@ export function PipelineSpansTable({groupId}: Props) {
       SpanIndexedField.TRACE,
       SpanIndexedField.SPAN_DURATION,
       SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.USER,
+      SpanIndexedField.TIMESTAMP,
     ],
     referrer: 'api.ai-pipelines.view',
     search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
@@ -135,8 +159,8 @@ function renderBodyCell(
           row[SpanIndexedField.TRACE],
           {},
           {},
-          undefined,
-          undefined,
+          '',
+          row[SpanIndexedField.TRANSACTION_ID],
           row[SpanIndexedField.ID]
         )}
       >
