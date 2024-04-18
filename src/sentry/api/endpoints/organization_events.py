@@ -105,16 +105,17 @@ def rate_limit_events(
     request: Request, organization_slug: str | None = None, *args, **kwargs
 ) -> dict[str, dict[RateLimitCategory, RateLimit]]:
     """
+    Decision tree for rate limiting for organization events endpoint.
     ```mermaid
-    flowchart TD
-        A[Get organization] --> B{Organization exists}
-        B -->|No| C[Return legacy rate limit]
-        B -->|Yes| D{Organization in increased rate limit}
-        D -->|Yes| E[Return increased rate limit]
-        D -->|No| F{Organization in reduced rate limit roll-out}
-        F -->|Yes| G[Return reduced rate limit]
-        F -->|No| H[Return legacy rate limit]
-    ```
+     flowchart TD
+         A[Get organization] --> B{Organization\nexists}
+         B -->|No| C[Return legacy rate limit]
+         B -->|Yes| D{Organization\nin increased\nrate limit}
+         D -->|Yes| E[Return increased rate limit]
+         D -->|No| F{Organization in\nreduced limit\nroll-out}
+         F -->|Yes| G[Return reduced rate limit]
+         F -->|No| H[Return legacy rate limit]
+     ```
     """
 
     def _config_for_limit(limit: RateLimit) -> dict[str, dict[RateLimitCategory, RateLimit]]:
