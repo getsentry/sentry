@@ -64,19 +64,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+            RateLimitCategory.IP: RateLimit(limit=5, window=5),
+            RateLimitCategory.USER: RateLimit(limit=5, window=5),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
         },
     }
 

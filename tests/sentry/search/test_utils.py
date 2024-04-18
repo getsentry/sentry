@@ -17,8 +17,11 @@ from sentry.search.utils import (
     get_first_last_release_for_group,
     get_latest_release,
     get_numeric_field_value,
+    parse_bool,
     parse_duration,
+    parse_numeric_value,
     parse_query,
+    parse_size,
     tokenize_query,
 )
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -49,6 +52,45 @@ def test_get_numeric_field_value():
         "foo_upper": -3.5,
         "foo_upper_inclusive": True,
     }
+
+
+class TestParseNumericValue(TestCase):
+    def test_simple(self):
+        assert parse_numeric_value("10", None) == 10
+
+    def test_k(self):
+        assert parse_numeric_value("1", "k") == 1000.0
+        assert parse_numeric_value("1", "K") == 1000.0
+
+    def test_m(self):
+        assert parse_numeric_value("1", "m") == 1000000.0
+        assert parse_numeric_value("1", "M") == 1000000.0
+
+    def test_b(self):
+        assert parse_numeric_value("1", "b") == 1000000000.0
+        assert parse_numeric_value("1", "B") == 1000000000.0
+
+
+class TestParseSizeValue(TestCase):
+    def test_simple(self):
+        assert parse_size("8", "bit") == 1
+
+    def test_uppercase(self):
+        assert parse_size("1", "KB") == 1000
+        assert parse_size("1", "kb") == 1000
+        assert parse_size("1", "Kb") == 1000
+
+
+class TestParseBooleanValue(TestCase):
+    def test_true(self):
+        assert parse_bool("1") is True
+        assert parse_bool("TRUE") is True
+        assert parse_bool("true") is True
+
+    def test_false(self):
+        assert parse_bool("0") is False
+        assert parse_bool("FALSE") is False
+        assert parse_bool("false") is False
 
 
 class TestParseDuration(TestCase):
