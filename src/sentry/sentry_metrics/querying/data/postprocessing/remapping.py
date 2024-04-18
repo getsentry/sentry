@@ -7,7 +7,7 @@ from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
 from sentry.sentry_metrics.querying.data.postprocessing.base import PostProcessingStep
 
 
-class QueryDemodulationStep(PostProcessingStep):
+class QueryRemappingStep(PostProcessingStep):
     def __init__(self, projects: Sequence[Project]):
         self.projects = projects
 
