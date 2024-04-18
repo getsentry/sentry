@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import ContextCard from 'sentry/components/events/contexts/contextCard';
 import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {Group} from 'sentry/types';
@@ -71,19 +70,7 @@ export function EventContexts({event, group}: Props) {
   }, [usingOtel, sdk]);
 
   if (hasNewTagsUI) {
-    const cards = getOrderedContextItems(event).map(([alias, contextValue]) => (
-      <ContextCard
-        key={alias}
-        type={contextValue.type}
-        alias={alias}
-        value={contextValue}
-        event={event}
-        group={group}
-        project={project}
-      />
-    ));
-
-    return <ContextDataSection cards={cards} />;
+    return <ContextDataSection event={event} group={group} project={project} />;
   }
 
   return (

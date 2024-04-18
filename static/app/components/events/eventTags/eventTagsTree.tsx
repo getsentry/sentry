@@ -175,19 +175,14 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer ref={containerRef}>
-      <TreeGarden columnCount={columnCount}>
-        <TagTreeColumns columnCount={columnCount} {...props} />
-      </TreeGarden>
+    <TreeContainer columnCount={columnCount} ref={containerRef}>
+      <TagTreeColumns columnCount={columnCount} {...props} />
     </TreeContainer>
   );
 }
 
-const TreeContainer = styled('div')`
+const TreeContainer = styled('div')<{columnCount: number}>`
   margin-top: ${space(1.5)};
-`;
-
-const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;

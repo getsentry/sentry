@@ -122,8 +122,8 @@ function ContextSummary({event}: Props) {
     return (
       <EventDataSection
         title={t('Highlighted Event Data')}
-        data-test-id="highlighted-event-data"
-        type="highlighted-event-data"
+        data-test-id="event-highlights"
+        type="event-highlights"
       >
         <Wrapper>{contexts}</Wrapper>
       </EventDataSection>
