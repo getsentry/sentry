@@ -51,7 +51,7 @@ def cache(function):
         if ok:
             return result
         else:
-            assert type(result) is Exception
+            assert isinstance(result, Exception)
             raise result
 
     return fetch
