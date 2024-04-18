@@ -17,8 +17,7 @@ class EventReprocessableEndpointTest(APITestCase):
         )
 
         path = f"/api/0/projects/{event1.project.organization.slug}/{event1.project.slug}/events/{event1.event_id}/reprocessable/"
-        with self.feature("organizations:reprocessing-v2"):
-            response = self.client.get(path, format="json")
-            assert response.status_code == 200
-            assert not response.data["reprocessable"]
-            assert response.data["reason"] == "unprocessed_event.not_found"
+        response = self.client.get(path, format="json")
+        assert response.status_code == 200
+        assert not response.data["reprocessable"]
+        assert response.data["reason"] == "unprocessed_event.not_found"

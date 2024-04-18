@@ -2,7 +2,6 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -55,14 +54,6 @@ class EventReprocessableEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-
-        if not features.has(
-            "organizations:reprocessing-v2", project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the reprocessing v2 feature"},
-                status=404,
-            )
 
         try:
             pull_event_data(project.id, event_id)
