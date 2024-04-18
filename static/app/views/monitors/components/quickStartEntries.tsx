@@ -569,7 +569,7 @@ Sentry.captureCheckIn({
           'Use the [additionalDocs:Node SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/crons/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/crons/" />
             ),
           }
         )}
