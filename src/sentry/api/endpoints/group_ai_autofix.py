@@ -14,10 +14,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.helpers.repos import get_repos_from_project_code_mappings
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -47,30 +46,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
-
-    @staticmethod
-    def _get_repos_from_code_mapping(group: Group) -> list[dict]:
-        repo_configs: list[
-            RepositoryProjectPathConfig
-        ] = RepositoryProjectPathConfig.objects.filter(project__in=[group.project])
-
-        repos: dict[tuple, dict] = {}
-        for repo_config in repo_configs:
-            repo: Repository = repo_config.repository
-            repo_name_sections = repo.name.split("/")
-
-            # We expect a repository name to be in the format of "owner/name" for now.
-            if len(repo_name_sections) > 1 and repo.provider:
-                repo_dict = {
-                    "provider": repo.provider,
-                    "owner": repo_name_sections[0],
-                    "name": "/".join(repo_name_sections[1:]),
-                }
-                repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
-
-                repos[repo_key] = repo_dict
-
-        return list(repos.values())
 
     def _get_serialized_event(
         self, event_id: int, group: Group, user: AbstractBaseUser | AnonymousUser
@@ -191,7 +166,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
-        repos = self._get_repos_from_code_mapping(group)
+        repos = get_repos_from_project_code_mappings(group.project)
 
         if not repos:
             return self._respond_with_error(
