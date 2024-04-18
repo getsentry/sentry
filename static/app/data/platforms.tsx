@@ -366,7 +366,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Node.js',
     type: 'language',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/javascript/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node',
   },
   {
     id: 'node-awslambda',
