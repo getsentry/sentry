@@ -13,7 +13,7 @@
           "type": "valueNumber",
           "value": "1",
           "unit": null,
-          "parsed": {"value": 1, "unit": null}
+          "parsed": {"value": 1}
         }
       },
       {"type": "spaces", "value": ""}
