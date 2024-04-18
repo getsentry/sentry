@@ -60,7 +60,7 @@
           "type": "valueNumber",
           "value": "-500",
           "unit": null,
-          "parsed": {"value": -500, "unit": null}
+          "parsed": {"value": -500}
         }
       },
       {"type": "spaces", "value": ""}
@@ -80,7 +80,7 @@
           "type": "valueNumber",
           "value": "500",
           "unit": null,
-          "parsed": {"value": 500, "unit": null}
+          "parsed": {"value": 500}
         }
       },
       {"type": "spaces", "value": ""}
@@ -100,7 +100,7 @@
           "type": "valueNumber",
           "value": "500",
           "unit": null,
-          "parsed": {"value": 500, "unit": null}
+          "parsed": {"value": 500}
         }
       },
       {"type": "spaces", "value": ""}

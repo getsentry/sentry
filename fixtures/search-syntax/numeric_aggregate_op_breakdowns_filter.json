@@ -45,7 +45,6 @@
           "value": "3.1415",
           "unit": null,
           "parsed": {
-            "unit": null,
             "value": 3.1415
           }
         }
@@ -102,7 +101,6 @@
           "value": "3.1415",
           "unit": null,
           "parsed": {
-            "unit": null,
             "value": 3.1415
           }
         }
@@ -159,7 +157,6 @@
           "value": "3.1415",
           "unit": null,
           "parsed": {
-            "unit": null,
             "value": 3.1415
           }
         }
@@ -216,7 +213,6 @@
           "value": "3",
           "unit": "k",
           "parsed": {
-            "unit": "k",
             "value": 3000
           }
         }
@@ -274,8 +270,7 @@
           "value": "2",
           "unit": "m",
           "parsed": {
-            "unit": "m",
-            "value": 2
+            "value": 120000
           }
         }
       },
