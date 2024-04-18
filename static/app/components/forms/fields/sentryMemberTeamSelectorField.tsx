@@ -2,7 +2,6 @@ import {useContext, useEffect, useMemo} from 'react';
 import groupBy from 'lodash/groupBy';
 
 import Avatar from 'sentry/components/avatar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {DetailedTeam, Team} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
@@ -19,7 +18,7 @@ import SelectField from './selectField';
 export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   /**
-   * Ensures the only selectable teams and members are members of the given project
+   * Ensures the only selectable teams are members of the given project.
    */
   memberOfProjectSlug?: string;
   /**
@@ -94,14 +93,8 @@ function SentryMemberTeamSelectorField({
   const makeDisabledTeamOption = (team: Team) => ({
     ...makeTeamOption(team),
     disabled: true,
-    label: (
-      <Tooltip
-        position="left"
-        title={t('%s is not a member of the selected project', `#${team.slug}`)}
-      >
-        #{team.slug}
-      </Tooltip>
-    ),
+    tooltip: t('%s is not a member of the selected project', `#${team.slug}`),
+    tooltipOptions: {position: 'left'},
   });
 
   // TODO(davidenwang): Fix the team type here to avoid this type cast: `as DetailedTeam[]`
