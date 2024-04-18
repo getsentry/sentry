@@ -14,6 +14,8 @@ import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
 import logoDeno from 'sentry-logos/logo-deno.svg';
+import logoDeno2 from 'sentry-logos/logo-deno-copy-2.svg';
+import logoDeno3 from 'sentry-logos/logo-deno-copy-3.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
 import logoEdgeNew from 'sentry-logos/logo-edge-new.svg';
 import logoEdgeOld from 'sentry-logos/logo-edge-old.svg';
@@ -73,7 +75,7 @@ const LOGO_MAPPING = {
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
-  deno: logoDeno,
+  deno: logoDeno2,
   edge: logoEdgeNew,
   electron: logoElectron,
   firefox: logoFirefox,
