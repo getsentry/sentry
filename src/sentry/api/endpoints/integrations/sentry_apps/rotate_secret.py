@@ -1,3 +1,5 @@
+import logging
+
 from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +16,8 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
+logger = logging.getLogger(__name__)
+
 
 class SentryAppRotateSecretPermission(SentryPermission):
     scope_map = {
@@ -21,11 +25,18 @@ class SentryAppRotateSecretPermission(SentryPermission):
     }
 
     def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
+        log_info = {
+            "user_id": request.user.id,
+            "sentry_app_name": sentry_app.name,
+            "organization_id": sentry_app.owner_id,
+        }
+
         # organization that owns an integration
         org_context = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id if request.user else None
         )
         if org_context is None:
+            logger.warning("owner organization for a sentry app was not found", extra=log_info)
             raise Http404
 
         self.determine_access(request, org_context)
@@ -41,6 +52,9 @@ class SentryAppRotateSecretPermission(SentryPermission):
             else ()
         )
         if not any(sentry_app.owner_id == org.id for org in organizations):
+            logger.info(
+                "user does not belong to the integration owner organization", extra=log_info
+            )
             raise Http404
 
         # permission check inside an organization
