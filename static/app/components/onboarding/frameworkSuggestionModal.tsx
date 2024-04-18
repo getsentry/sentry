@@ -67,9 +67,12 @@ const topPythonFrameworks: PlatformKey[] = [
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
   'node-awslambda',
+  'node-connect',
+  'node-fastify',
+  'node-koa',
   'node-gcpfunctions',
   'node-serverlesscloud',
-  'node-koa',
+  'node-hapi',
 ];
 
 const topDotNetFrameworks: PlatformKey[] = [
