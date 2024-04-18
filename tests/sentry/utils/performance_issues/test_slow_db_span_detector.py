@@ -137,19 +137,6 @@ class SlowDBQueryDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        slow_span_event = create_event(
-            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
-        )
-
-        detector = SlowDBQueryDetector(self._settings, slow_span_event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
-
     def test_respects_project_option(self):
         project = self.create_project()
         slow_span_event = create_event(

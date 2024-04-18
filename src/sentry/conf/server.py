@@ -1711,8 +1711,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable consecutive db performance issue type
-    "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
     # Enable database view powered by span metrics
@@ -1725,14 +1723,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
-    # Enable compressed assets performance issue type
-    "organizations:performance-issues-compressed-assets-detector": False,
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
-    # Enable MN+1 DB performance issue type
-    "organizations:performance-issues-m-n-plus-one-db-detector": False,
-    # Enable render blocking assets performance issue type
-    "organizations:performance-issues-render-blocking-assets-detector": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enables a longer stats period for the performance landing page
@@ -1747,8 +1739,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable the UI for displaying mobile performance score
     "organizations:performance-mobile-perf-score-ui": False,
-    # Enable N+1 API Calls performance issue type
-    "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
     # Enable updated landing page widget designs
@@ -1765,8 +1755,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
-    # Enable slow DB performance issue type
-    "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
     # Enable trace details page with embedded spans
