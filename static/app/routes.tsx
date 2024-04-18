@@ -1495,10 +1495,6 @@ function buildRoutes() {
   const aiAnalyticsRoutes = (
     <Route path="/ai-analytics/" withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
-      <Route
-        path="pipeline-type/:groupId/"
-        component={make(() => import('sentry/views/aiAnalytics/aiAnalyticsDetailsPage'))}
-      />
     </Route>
   );
 
