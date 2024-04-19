@@ -6,6 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPDomainSummaryPage} from 'sentry/views/performance/http/httpDomainSummaryPage';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -94,7 +95,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-throughput-chart',
+          referrer: Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -119,7 +120,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-duration-chart',
+          referrer: Referrer.DOMAIN_SUMMARY_DURATION_CHART,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -144,7 +145,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-response-code-chart',
+          referrer: Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -176,7 +177,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          referrer: Referrer.DOMAIN_SUMMARY_METRICS_RIBBON,
           statsPeriod: '10d',
         },
       })
@@ -207,7 +208,7 @@ describe('HTTPSummaryPage', function () {
           cursor: '0:20:0',
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST,
           statsPeriod: '10d',
         },
       })
@@ -223,7 +224,7 @@ describe('HTTPSummaryPage', function () {
 
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST,
         }),
       ],
       body: {

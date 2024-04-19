@@ -11,6 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -64,7 +65,7 @@ describe('HTTPSamplesPanel', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.samples-panel-metrics-ribbon',
+          referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
         }),
       ],
       body: {
@@ -123,7 +124,7 @@ describe('HTTPSamplesPanel', () => {
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.performance.http.samples-panel-response-code-chart',
+            referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
           }),
         ],
         body: {
@@ -147,7 +148,7 @@ describe('HTTPSamplesPanel', () => {
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.performance.http.samples-panel-response-code-samples',
+            referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
           }),
         ],
         body: {
@@ -192,7 +193,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query: 'span.module:http !has:span.domain transaction:/api/0/users',
-            referrer: 'api.performance.http.samples-panel-metrics-ribbon',
+            referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
             statsPeriod: '10d',
           },
         })
@@ -216,7 +217,7 @@ describe('HTTPSamplesPanel', () => {
             project: [],
             query:
               'span.module:http !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
-            referrer: 'api.performance.http.samples-panel-response-code-chart',
+            referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
             statsPeriod: '10d',
             topEvents: '5',
             yAxis: 'count()',
@@ -244,7 +245,7 @@ describe('HTTPSamplesPanel', () => {
               'span.status_code',
             ],
             sort: '-span_id',
-            referrer: 'api.performance.http.samples-panel-response-code-samples',
+            referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
             statsPeriod: '10d',
           }),
         })
@@ -305,7 +306,7 @@ describe('HTTPSamplesPanel', () => {
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.performance.http.samples-panel-duration-chart',
+            referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
           }),
         ],
         body: {data: [[1711393200, [{count: 900}]]]},
@@ -350,7 +351,7 @@ describe('HTTPSamplesPanel', () => {
             project: [],
             query:
               'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
-            referrer: 'api.performance.http.samples-panel-duration-chart',
+            referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
             statsPeriod: '10d',
             yAxis: 'avg(span.self_time)',
           }),
@@ -376,7 +377,7 @@ describe('HTTPSamplesPanel', () => {
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
             upperBound: 1000,
-            referrer: 'api.performance.http.samples-panel-duration-samples',
+            referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
             statsPeriod: '10d',
           }),
         })
