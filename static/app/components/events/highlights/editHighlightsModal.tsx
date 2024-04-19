@@ -12,37 +12,56 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 
-interface HighlightsEditModalProps extends ModalRenderProps {
+interface EditHighlightsModalProps extends ModalRenderProps {
   detailedProject: Project;
   event: Event;
   previewRows: React.ReactNode[];
   tagMap: EventTagMap;
 }
 
-export default function HighlightsEditModal({
-  Header,
-  Body,
-  Footer,
-  event,
-  previewRows = [],
-  tagMap,
-  closeModal,
-}: HighlightsEditModalProps) {
+interface EditPreviewHighlightSectionProps {
+  onRemovePreview: () => void;
+  previewRows: EditHighlightsModalProps['previewRows'];
+}
+
+function EditPreviewHighlightSection({previewRows}: EditPreviewHighlightSectionProps) {
   const previewColumnCount = 2;
   const previewColumnSize = Math.ceil(previewRows.length / previewColumnCount);
   const previewColumns: React.ReactNode[] = [];
   for (let i = 0; i < previewRows.length; i += previewColumnSize) {
     previewColumns.push(
       <EditPreviewColumn key={i}>
-        {previewRows.slice(i, i + previewColumnSize).map((row, j) => (
-          <EditPreviewItem key={j} previewRow={row} />
+        {previewRows.slice(i, i + previewColumnSize).map((previewRow, j) => (
+          <Fragment key={j}>
+            <EditButton
+              aria-label={`Remove from highlights`}
+              icon={<IconSubtract />}
+              size="xs"
+            />
+            {previewRow}
+          </Fragment>
         ))}
       </EditPreviewColumn>
     );
   }
+  return (
+    <EditHighlightPreview columnCount={previewColumnCount}>
+      {previewColumns}
+    </EditHighlightPreview>
+  );
+}
 
-  const columnCount = 3;
+interface EditTagHighlightSectionProps {
+  columnCount: number;
+  onAddTag: (tagKey: string) => void;
+  tagMap: EditHighlightsModalProps['tagMap'];
+}
 
+function EditTagHighlightSection({
+  columnCount,
+  onAddTag,
+  tagMap,
+}: EditTagHighlightSectionProps) {
   const tagData = Object.keys(tagMap);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
@@ -50,12 +69,39 @@ export default function HighlightsEditModal({
     tagColumns.push(
       <EditHighlightColumn key={i}>
         {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => (
-          <EditTagItem key={j} tagKey={tagKey} />
+          <EditTagContainer key={j}>
+            <EditButton
+              aria-label={`Add ${tagKey} tag to highlights`}
+              icon={<IconAdd />}
+              size="xs"
+              onClick={() => onAddTag(tagKey)}
+            />
+            <HighlightKey>{tagKey}</HighlightKey>
+          </EditTagContainer>
         ))}
       </EditHighlightColumn>
     );
   }
+  return (
+    <EditHighlightSection>
+      <Subtitle>{t('Tags')}</Subtitle>
+      <EditHighlightSectionContent columnCount={columnCount}>
+        {tagColumns}
+      </EditHighlightSectionContent>
+    </EditHighlightSection>
+  );
+}
+interface EditContextHighlightSectionProps {
+  columnCount: number;
+  event: EditHighlightsModalProps['event'];
+  onAddContextKey: (contextType: string, contextKey: string) => void;
+}
 
+function EditContextHighlightSection({
+  columnCount,
+  event,
+  onAddContextKey,
+}: EditContextHighlightSectionProps) {
   const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
     (acc, [alias, context]) => {
       acc[alias] = Object.keys(context).filter(k => k !== 'type');
@@ -63,7 +109,6 @@ export default function HighlightsEditModal({
     },
     {}
   );
-
   const ctxItems = Object.entries(ctxData);
   const ctxColumnSize = Math.ceil(ctxItems.length / columnCount);
   const contextColumns: React.ReactNode[] = [];
@@ -71,11 +116,45 @@ export default function HighlightsEditModal({
     contextColumns.push(
       <EditHighlightColumn key={i}>
         {ctxItems.slice(i, i + ctxColumnSize).map(([contextType, contextKeys], j) => (
-          <EditContextItem key={j} contextType={contextType} contextKeys={contextKeys} />
+          <EditContextContainer key={j}>
+            <ContextType>{contextType}</ContextType>
+            {contextKeys.map((contextKey, k) => (
+              <Fragment key={k}>
+                <EditButton
+                  aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
+                  icon={<IconAdd />}
+                  size="xs"
+                  onClick={() => onAddContextKey(contextType, contextKey)}
+                />
+                <HighlightKey>{contextKey}</HighlightKey>
+              </Fragment>
+            ))}
+          </EditContextContainer>
         ))}
       </EditHighlightColumn>
     );
   }
+
+  return (
+    <EditHighlightSection>
+      <Subtitle>{t('Context')}</Subtitle>
+      <EditHighlightSectionContent columnCount={columnCount}>
+        {contextColumns}
+      </EditHighlightSectionContent>
+    </EditHighlightSection>
+  );
+}
+
+export default function EditHighlightsModal({
+  Header,
+  Body,
+  Footer,
+  event,
+  previewRows = [],
+  tagMap,
+  closeModal,
+}: EditHighlightsModalProps) {
+  const columnCount = 3;
 
   return (
     <Fragment>
@@ -83,21 +162,20 @@ export default function HighlightsEditModal({
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
       <Body>
-        <EditHighlightPreview columnCount={previewColumnCount}>
-          {previewColumns}
-        </EditHighlightPreview>
-        <EditHighlightSection>
-          <Subtitle>{t('Tags')}</Subtitle>
-          <EditHighlightSectionContent columnCount={columnCount}>
-            {tagColumns}
-          </EditHighlightSectionContent>
-        </EditHighlightSection>
-        <EditHighlightSection>
-          <Subtitle>{t('Context')}</Subtitle>
-          <EditHighlightSectionContent columnCount={columnCount}>
-            {contextColumns}
-          </EditHighlightSectionContent>
-        </EditHighlightSection>
+        <EditPreviewHighlightSection
+          previewRows={previewRows}
+          onRemovePreview={() => {}}
+        />
+        <EditTagHighlightSection
+          columnCount={columnCount}
+          tagMap={tagMap}
+          onAddTag={_tk => {}}
+        />
+        <EditContextHighlightSection
+          event={event}
+          columnCount={columnCount}
+          onAddContextKey={_ck => {}}
+        />
       </Body>
       <Footer>
         <ButtonBar gap={1}>
@@ -110,62 +188,6 @@ export default function HighlightsEditModal({
         </ButtonBar>
       </Footer>
     </Fragment>
-  );
-}
-
-interface EditPreviewItemProps {
-  previewRow: React.ReactNode;
-}
-function EditPreviewItem({previewRow}: EditPreviewItemProps) {
-  return (
-    <Fragment>
-      <EditButton
-        aria-label={`Remove from highlights`}
-        icon={<IconSubtract />}
-        size="xs"
-      />
-      {previewRow}
-    </Fragment>
-  );
-}
-
-interface EditTagItemProps {
-  tagKey: string;
-}
-
-function EditTagItem({tagKey}: EditTagItemProps) {
-  return (
-    <EditTagContainer>
-      <EditButton
-        aria-label={`Add ${tagKey} tag to highlights`}
-        icon={<IconAdd />}
-        size="xs"
-      />
-      <HighlightKey>{tagKey}</HighlightKey>
-    </EditTagContainer>
-  );
-}
-
-interface EditContextItemProps {
-  contextKeys: string[];
-  contextType: string;
-}
-
-function EditContextItem({contextKeys, contextType}: EditContextItemProps) {
-  return (
-    <EditContextContainer>
-      <ContextType>{contextType}</ContextType>
-      {contextKeys.map((ck, i) => (
-        <Fragment key={i}>
-          <EditButton
-            aria-label={`Add ${ck} from ${contextType} context to highlights`}
-            icon={<IconAdd />}
-            size="xs"
-          />
-          <HighlightKey>{ck}</HighlightKey>
-        </Fragment>
-      ))}
-    </EditContextContainer>
   );
 }
 

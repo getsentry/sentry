@@ -13,7 +13,7 @@ import {
   useHasNewTagsUI,
   useIssueDetailsColumnCount,
 } from 'sentry/components/events/eventTags/util';
-import HighlightsEditModal from 'sentry/components/events/highlights/highlightsEditModal';
+import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -110,7 +110,7 @@ export default function HighlightsDataSection({
             onClick={() =>
               openModal(
                 deps => (
-                  <HighlightsEditModal
+                  <EditHighlightsModal
                     detailedProject={project}
                     previewRows={rows}
                     event={event}
