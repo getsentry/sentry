@@ -16,7 +16,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -38,6 +38,7 @@ function ReleaseThresholdList({}: Props) {
   const PAGE_SIZE = 10;
   const router = useRouter();
   const organization = useOrganization();
+
   useEffect(() => {
     const hasV2ReleaseUIEnabled =
       organization.features.includes('releases-v2-internal') ||
@@ -48,6 +49,7 @@ function ReleaseThresholdList({}: Props) {
       router.replace(redirect);
     }
   }, [router, organization]);
+
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {
@@ -61,18 +63,24 @@ function ReleaseThresholdList({}: Props) {
     selectedEnvs: selection.environments,
   });
 
-  const selectedProjects: Project[] = useMemo(() => {
-    return projects.filter(
-      project =>
-        selection.projects.some(id => String(id) === project.id || id === -1) ||
-        !selection.projects.length
-    );
-  }, [projects, selection.projects]);
+  const selectedProjects: Project[] = useMemo(
+    () =>
+      projects.filter(
+        project =>
+          selection.projects.some(id => {
+            const strId = String(id);
+            return strId === project.id || id === -1;
+          }) || !selection.projects.length
+      ),
+    [projects, selection.projects]
+  );
 
   const projectsById: {[key: string]: Project} = useMemo(() => {
     const byId = {};
     selectedProjects.forEach(proj => {
       byId[proj.id] = proj;
+      // adding slug for migration to MetricAlerts, we only have slug in MetricAlerts
+      byId[proj.slug] = proj;
     });
     return byId;
   }, [selectedProjects]);
@@ -168,19 +176,20 @@ function ReleaseThresholdList({}: Props) {
 
   const thresholdsByProject: {[key: string]: Threshold[]} = useMemo(() => {
     const byProj = {};
+
     filteredThresholds.forEach(threshold => {
-      const projId = threshold.project.id;
-      if (!byProj[projId]) {
-        byProj[projId] = [];
-      }
-      byProj[projId].push(threshold);
+      const selectedProject = selection.projects[0] !== -1 ? selection.projects[0] : null;
+      const projId = threshold.project.id ?? selectedProject;
+      (byProj[projId] ??= []).push(threshold);
     });
     return byProj;
-  }, [filteredThresholds]);
+  }, [filteredThresholds, selection.projects]);
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
     // TODO: limit + paginate list
-    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
+    return selectedProjects.filter(
+      proj => !thresholdsByProject[proj.id] && !thresholdsByProject[proj.slug]
+    );
   }, [thresholdsByProject, selectedProjects]);
 
   const setTempError = msg => {
@@ -188,12 +197,8 @@ function ReleaseThresholdList({}: Props) {
     setTimeout(() => setListError(''), 5000);
   };
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} message={requestError.message} />;
-  }
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  if (isError) return <LoadingError onRetry={refetch} message={requestError.message} />;
+  if (isLoading) return <LoadingIndicator />;
 
   return (
     <PageFiltersContainer>

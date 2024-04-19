@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -43,7 +43,7 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result, waitFor} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+    const {result} = renderHook(useProjectSdkNeedsUpdate, {
       wrapper,
       initialProps: {
         minVersion: '1.0.0',
@@ -67,7 +67,7 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result, waitFor} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+    const {result} = renderHook(useProjectSdkNeedsUpdate, {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',
@@ -94,7 +94,7 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result, waitFor} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+    const {result} = renderHook(useProjectSdkNeedsUpdate, {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',
@@ -122,7 +122,7 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result, waitFor} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+    const {result} = renderHook(useProjectSdkNeedsUpdate, {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',

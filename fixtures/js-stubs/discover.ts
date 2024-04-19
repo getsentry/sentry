@@ -1,4 +1,4 @@
-import type {SavedQuery} from 'sentry/types';
+import type {SavedQuery} from 'sentry/types/organization';
 
 export function DiscoverSavedQueryFixture(params = {}): SavedQuery {
   return {

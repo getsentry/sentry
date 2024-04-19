@@ -1,9 +1,15 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from '../utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import type {TraceKnownData} from './types';
@@ -23,40 +29,53 @@ const traceIgnoredDataValues = [];
 type Props = {
   data: TraceKnownData & Record<string, any>;
   event: Event;
+  meta?: Record<string, any>;
 };
 
-export function TraceEventContext({event, data}: Props) {
+export function getKnownTraceContextData({
+  data,
+  event,
+  meta,
+  organization,
+}: Props & {
+  organization: Organization;
+}) {
+  return getKnownData<TraceKnownData, TraceKnownDataType>({
+    data,
+    meta,
+    knownDataTypes: traceKnownDataValues,
+    onGetKnownDataDetails: v => getTraceKnownDataDetails({...v, organization, event}),
+  }).map(v => ({
+    ...v,
+    subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
+  }));
+}
+
+export function getUnknownTraceContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
+  return getUnknownData({
+    allData: data,
+    knownKeys: [...traceKnownDataValues, ...traceIgnoredDataValues],
+    meta,
+  });
+}
+
+export function TraceEventContext({event, data, meta: propsMeta}: Props) {
   const organization = useOrganization();
-  const meta = event._meta?.contexts?.trace ?? {};
+  const meta = propsMeta ?? getContextMeta(event, 'trace');
+
+  const knownData = getKnownTraceContextData({data, event, meta, organization});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownTraceContextData({data, meta});
 
   return (
     <ErrorBoundary mini>
       <KeyValueList
-        data={getKnownData<TraceKnownData, TraceKnownDataType>({
-          data,
-          meta,
-          knownDataTypes: traceKnownDataValues,
-          onGetKnownDataDetails: v =>
-            getTraceKnownDataDetails({...v, organization, event}),
-        }).map(v => ({
-          ...v,
-          subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
-        }))}
+        data={knownStructuredData}
         shouldSort={false}
         raw={false}
         isContextData
       />
-
-      <KeyValueList
-        data={getUnknownData({
-          allData: data,
-          knownKeys: [...traceKnownDataValues, ...traceIgnoredDataValues],
-          meta,
-        })}
-        shouldSort={false}
-        raw={false}
-        isContextData
-      />
+      <KeyValueList data={unknownData} shouldSort={false} raw={false} isContextData />
     </ErrorBoundary>
   );
 }

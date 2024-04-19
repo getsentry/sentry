@@ -4,7 +4,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';
@@ -60,6 +62,65 @@ describe('SampleTable', function () {
 
       await expectNever(() => container.getByText('No results found for your query'));
       expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    });
+
+    it('should show span IDs by default', async () => {
+      const container = render(
+        <SampleTable
+          groupId="groupId123"
+          transactionMethod="GET"
+          transactionName="/endpoint"
+        />
+      );
+
+      await waitFor(() =>
+        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
+
+      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
+        'Span ID'
+      );
+      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+        'span-id123'
+      );
+    });
+
+    it('should show transaction IDs instead of span IDs when in columnOrder', async () => {
+      const container = render(
+        <SampleTable
+          groupId="groupId123"
+          transactionMethod="GET"
+          transactionName="/endpoint"
+          columnOrder={[
+            {
+              key: 'transaction_id',
+              name: t('Event ID'),
+              width: COL_WIDTH_UNDEFINED,
+            },
+            {
+              key: 'profile_id',
+              name: t('Profile'),
+              width: COL_WIDTH_UNDEFINED,
+            },
+            {
+              key: 'avg_comparison',
+              name: t('Compared to Average'),
+              width: COL_WIDTH_UNDEFINED,
+            },
+          ]}
+        />
+      );
+
+      await waitFor(() =>
+        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
+
+      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
+        'Event ID'
+      );
+      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+        'transaction-id123'.slice(0, 8)
+      );
     });
   });
 

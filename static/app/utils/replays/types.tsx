@@ -75,9 +75,7 @@ export function isBreadcrumbFrame(
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
 }
 
-export function isFeedbackFrame(
-  frame: ReplayFrame | undefined
-): frame is BreadcrumbFrame {
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
@@ -87,10 +85,6 @@ export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame 
 
 export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'issue');
-}
-
-export function isClickFrame(frame: ReplayFrame): frame is ClickFrame {
-  return Boolean(frame && 'category' in frame && frame.category === 'ui.click');
 }
 
 export function getFrameOpOrCategory(frame: ReplayFrame) {
@@ -231,6 +225,7 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
   'ui.focus',
@@ -340,4 +335,9 @@ export interface VideoEvent {
   duration: number;
   id: number;
   timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
 }

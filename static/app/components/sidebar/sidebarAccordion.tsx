@@ -1,11 +1,26 @@
-import {Children, isValidElement, useCallback} from 'react';
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useRef,
+} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {IconChevron} from 'sentry/icons';
+import {Chevron} from 'sentry/components/chevron';
+import {Overlay} from 'sentry/components/overlay';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMedia from 'sentry/utils/useMedia';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import useRouter from 'sentry/utils/useRouter';
 
 import type {SidebarItemProps} from './sidebarItem';
 import SidebarItem, {isItemActive} from './sidebarItem';
@@ -16,13 +31,30 @@ type SidebarAccordionProps = SidebarItemProps & {
 
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
+
+  const accordionRef = useRef<HTMLDivElement>(null);
+  const mainItemRef = useRef<HTMLDivElement>(null);
+  const floatingAccordionRef = useRef<HTMLDivElement>(null);
+  const {expandedItemId, setExpandedItemId, shouldAccordionFloat} =
+    useContext(ExpandedContext);
+  const theme = useTheme();
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const router = useRouter();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
     true
   );
 
+  useOnClickOutside(floatingAccordionRef, e => {
+    if (mainItemRef?.current?.contains(e.target as Node)) {
+      return;
+    }
+    setExpandedItemId(null);
+  });
+
   const mainItemId = `sidebar-accordion-${id}-item`;
   const contentId = `sidebar-accordion-${id}-content`;
+  const isOpenInFloatingSidebar = expandedItemId === mainItemId;
 
   const isActive = isItemActive(itemProps);
 
@@ -36,6 +68,8 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     return false;
   });
 
+  const childrenWithProps = renderChildrenWithProps(children);
+
   const handleExpandAccordionClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -44,43 +78,108 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     [expanded, setExpanded]
   );
 
+  const handleMainItemClick = (
+    _: string,
+    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+  ) => {
+    if ((!horizontal && !sidebarCollapsed) || !children) {
+      setExpandedItemId(null);
+      return;
+    }
+
+    e.preventDefault();
+    if (isOpenInFloatingSidebar) {
+      setExpandedItemId(null);
+    } else {
+      setExpandedItemId(mainItemId);
+    }
+  };
+
+  const handleTitleClick: (
+    id: string,
+    e: React.MouseEvent<HTMLAnchorElement>
+  ) => void = () => {
+    if (itemProps.to) {
+      router.push(itemProps.to);
+      setExpandedItemId(null);
+    }
+  };
+
+  let isMainItemActive = isActive && !hasActiveChildren;
+  if (shouldAccordionFloat) {
+    isMainItemActive = isActive || hasActiveChildren;
+  }
+
   return (
-    <SidebarAccordionWrapper>
+    <SidebarAccordionWrapper ref={accordionRef}>
       <SidebarAccordionHeaderWrap>
-        <SidebarItem
-          {...itemProps}
-          active={isActive && !hasActiveChildren}
-          id={mainItemId}
-          aria-expanded={expanded}
-          aria-owns={contentId}
-          trailingItems={
-            <SidebarAccordionExpandButton
-              size="zero"
-              borderless
-              onClick={handleExpandAccordionClick}
-              aria-controls={mainItemId}
-              aria-label={expanded ? t('Collapse') : t('Expand')}
-              sidebarCollapsed={sidebarCollapsed}
-            >
-              <IconChevron
-                size="xs"
-                direction={expanded ? 'up' : 'down'}
-                role="presentation"
-              />
-            </SidebarAccordionExpandButton>
-          }
-        />
+        <div ref={mainItemRef}>
+          <SidebarItem
+            {...itemProps}
+            active={isMainItemActive}
+            id={mainItemId}
+            data-test-id={mainItemId}
+            aria-expanded={expanded}
+            aria-owns={contentId}
+            onClick={handleMainItemClick}
+            trailingItems={
+              <SidebarAccordionExpandButton
+                size="zero"
+                borderless
+                onClick={handleExpandAccordionClick}
+                aria-controls={mainItemId}
+                aria-label={expanded ? t('Collapse') : t('Expand')}
+                sidebarCollapsed={sidebarCollapsed}
+              >
+                <Chevron direction={expanded ? 'up' : 'down'} role="presentation" />
+              </SidebarAccordionExpandButton>
+            }
+          />
+        </div>
       </SidebarAccordionHeaderWrap>
-      {expanded && (
+      {expanded && !horizontal && !sidebarCollapsed && (
         <SidebarAccordionSubitemsWrap id={contentId}>
-          {children}
+          {childrenWithProps}
         </SidebarAccordionSubitemsWrap>
+      )}
+      {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
+        <StyledOverlay
+          animated
+          accordionRef={accordionRef}
+          ref={floatingAccordionRef}
+          horizontal={horizontal}
+          data-test-id="floating-accordion"
+        >
+          <SidebarItem
+            {...itemProps}
+            active={isActive && !hasActiveChildren}
+            onClick={handleTitleClick}
+            isMainItem
+          />
+          {childrenWithProps}
+        </StyledOverlay>
       )}
     </SidebarAccordionWrapper>
   );
 }
 
 export {SidebarAccordion};
+
+const renderChildrenWithProps = (children: ReactNode): ReactNode => {
+  const propsToAdd: Partial<SidebarItemProps> = {
+    isNested: true,
+  };
+
+  return Children.map(children, child => {
+    if (!isValidElement(child)) {
+      return child;
+    }
+    return cloneElement(child as ReactElement<any>, {
+      ...propsToAdd,
+      children: renderChildrenWithProps((child as ReactElement<any>).props.children),
+    });
+  });
+};
 
 function findChildElementsInTree(
   children: React.ReactNode,
@@ -114,6 +213,21 @@ function findChildElementsInTree(
 
   return found;
 }
+
+const StyledOverlay = styled(Overlay)<{
+  accordionRef: React.RefObject<HTMLDivElement>;
+  horizontal: boolean;
+}>`
+  position: absolute;
+  width: ${p => (p.horizontal ? '100%' : '200px')};
+  padding: ${space(0.5)};
+  top: ${p =>
+    p.horizontal
+      ? p.theme.sidebar.mobileHeight
+      : p.accordionRef.current?.getBoundingClientRect().top};
+  left: ${p =>
+    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
+`;
 
 const SidebarAccordionWrapper = styled('div')`
   display: flex;
@@ -157,8 +271,4 @@ const SidebarAccordionSubitemsWrap = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1px;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    flex-direction: row;
-  }
 `;

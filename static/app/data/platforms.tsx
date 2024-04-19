@@ -240,7 +240,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Spring',
     type: 'framework',
     language: 'java',
-    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+    link: 'https://docs.sentry.io/platforms/java/guides/spring/',
   },
   {
     id: 'java-spring-boot',
@@ -355,11 +355,11 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
-    id: 'nintendo',
-    name: 'Nintendo',
+    id: 'nintendo-switch',
+    name: 'Nintendo Switch',
     type: 'framework',
     language: 'native',
-    link: 'https://docs.sentry.io/platforms/nintendo',
+    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
   },
   {
     id: 'node',

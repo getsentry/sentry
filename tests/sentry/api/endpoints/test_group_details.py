@@ -551,6 +551,28 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
+    def test_seen_by_deleted_user(self):
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+        self.login_as(user=self.user)
+        # Create a stale GroupSeen referencing a user that no longer exists
+        GroupSeen.objects.create(group=group, user_id=424242, project_id=self.project.id)
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert empty set for single invalid GroupSeen
+        assert response.data["seenBy"] == []
+
+        has_seen_response = self.client.put(url, data={"hasSeen": "1"}, format="json")
+        assert has_seen_response.status_code == 200
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert only valid GroupSeens are serialized
+        last_seen_data = response.data["seenBy"]
+        assert len(last_seen_data) == 1
+        assert last_seen_data[0]["id"] == str(self.user.id)
+
     def test_subscription(self):
         self.login_as(user=self.user)
         group = self.create_group()

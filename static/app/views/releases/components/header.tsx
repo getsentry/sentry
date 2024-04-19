@@ -3,14 +3,14 @@ import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {

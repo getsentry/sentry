@@ -10,7 +10,7 @@ import type {
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {CommonStoreDefinition} from './types';

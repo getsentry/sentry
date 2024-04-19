@@ -12,7 +12,7 @@ import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries'
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -46,11 +46,13 @@ function MetricWidgetViewerModal({
   Body,
   Header,
   closeModal,
+  CloseButton,
   onMetricWidgetEdit,
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
   const [displayType, setDisplayType] = useState(widget.displayType);
+  const [interval, setInterval] = useState<string>(widget.interval);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
   );
@@ -202,7 +204,11 @@ function MetricWidgetViewerModal({
     const convertedWidget = expressionsToWidget(
       [...filteredQueries, ...filteredEquations],
       title.edited,
-      toDisplayType(displayType)
+      toDisplayType(displayType),
+      // TODO(metrics): for now we do not persist the interval by default
+      // as we need to find a way to handle per widget interval perferences
+      // with the dashboard interval preferences
+      widget.interval ?? interval
     );
 
     onMetricWidgetEdit?.(convertedWidget);
@@ -215,18 +221,24 @@ function MetricWidgetViewerModal({
     displayType,
     onMetricWidgetEdit,
     closeModal,
+    interval,
+    widget.interval,
   ]);
 
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
-        <Header closeButton>
+        <Header>
           <MetricWidgetTitle
             title={title}
             onTitleChange={handleTitleChange}
             placeholder={widgetMQL}
             description={widget.description}
           />
+          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
+          <div onClick={handleSubmit}>
+            <CloseButton />
+          </div>
         </Header>
         <Body>
           <Queries
@@ -245,6 +257,8 @@ function MetricWidgetViewerModal({
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
             onOrderChange={handleOrderChange}
+            onIntervalChange={setInterval}
+            interval={interval}
           />
           <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>
@@ -260,7 +274,6 @@ function MetricWidgetViewerModal({
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button onClick={closeModal}>{t('Close')}</Button>
             <Button priority="primary" onClick={handleSubmit}>
               {t('Save changes')}
             </Button>

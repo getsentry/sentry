@@ -1,5 +1,5 @@
 ---
-created: '2024-02-22T23:36:40.296487Z'
+created: '2024-04-18T19:31:46.747206+00:00'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -259,39 +259,6 @@ steps:
   - import-colliding-users
   - export-baseline-config
 - args:
-  - compose
-  - -f
-  - /workspace/self-hosted/docker-compose.yml
-  - -f
-  - /workspace/self-hosted/docker-compose.override.yml
-  - run
-  - --rm
-  - -T
-  - -v
-  - /workspace/in:/in
-  - -v
-  - /workspace/out:/out
-  - -v
-  - /workspace/findings:/findings
-  - -e
-  - SENTRY_LOG_LEVEL=CRITICAL
-  - web
-  - export
-  - organizations
-  - /out/raw-relocation-data.tar
-  - --encrypt-with-gcp-kms
-  - /in/kms-config.json
-  - --findings-file
-  - /findings/export-raw-relocation-data.json
-  - --filter-org-slugs
-  - testing
-  id: export-raw-relocation-data
-  name: gcr.io/cloud-builders/docker
-  timeout: 2400s
-  waitFor:
-  - import-raw-relocation-data
-  - export-colliding-users
-- args:
   - cp
   - -r
   - /workspace/out
@@ -300,7 +267,7 @@ steps:
   name: gcr.io/cloud-builders/gsutil
   timeout: 30s
   waitFor:
-  - export-raw-relocation-data
+  - export-colliding-users
 - args:
   - compose
   - -f
@@ -332,7 +299,7 @@ steps:
   timeout: 120s
   waitFor:
   - export-baseline-config
-  - export-raw-relocation-data
+  - copy-out-dir
 - args:
   - compose
   - -f

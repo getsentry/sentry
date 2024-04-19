@@ -126,12 +126,6 @@ export const interchangeableFilterOperators = {
 
 const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
 
-const numberUnits = {
-  b: 1_000_000_000,
-  m: 1_000_000,
-  k: 1_000,
-};
-
 /**
  * This constant-type configuration object declares how each filter type
  * operates. Including what types of keys, operators, and values it may
@@ -498,7 +492,8 @@ export class TokenConverter {
   tokenValueIso8601Date = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
-    value: moment(value),
+    value: value,
+    parsed: this.config.parse ? parseDate(value) : undefined,
   });
 
   tokenValueRelativeDate = (
@@ -508,7 +503,8 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: Number(value),
+    value: value,
+    parsed: this.config.parse ? parseRelativeDate(value, {unit, sign}) : undefined,
     sign,
     unit,
   });
@@ -520,12 +516,14 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: Number(value),
+    value: value,
+    parsed: this.config.parse ? parseDuration(value, unit) : undefined,
     unit,
   });
 
   tokenValueSize = (
     value: string,
+    // warning: size units are case insensitive, this type is incomplete
     unit:
       | 'bit'
       | 'nb'
@@ -548,31 +546,37 @@ export class TokenConverter {
       | 'yib'
   ) => ({
     ...this.defaultTokenFields,
-
     type: Token.VALUE_SIZE as const,
-    value: Number(value),
+    value: value,
+    // units are case insensitive, normalize them in their parsed representation
+    // so that we dont have to compare all possible permutations.
+    parsed: this.config.parse ? parseSize(value, unit) : undefined,
     unit,
   });
 
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: Number(value),
+    value: value,
+    parsed: this.config.parse ? parsePercentage(value) : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: ['1', 'true'].includes(value.toLowerCase()),
+    value: value,
+    parsed: this.config.parse ? parseBoolean(value) : undefined,
   });
 
-  tokenValueNumber = (value: string, unit: string) => ({
-    ...this.defaultTokenFields,
-    type: Token.VALUE_NUMBER as const,
-    value,
-    rawValue: Number(value) * (numberUnits[unit] ?? 1),
-    unit,
-  });
+  tokenValueNumber = (value: string, unit: 'k' | 'm' | 'b' | 'K' | 'M' | 'B') => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.VALUE_NUMBER as const,
+      value,
+      unit,
+      parsed: this.config.parse ? parseNumber(value, unit) : undefined,
+    };
+  };
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
@@ -613,7 +617,6 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
-    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
@@ -879,6 +882,210 @@ export class TokenConverter {
   };
 }
 
+function parseDate(input: string): {value: Date} {
+  const date = moment(input).toDate();
+
+  if (isNaN(date.getTime())) {
+    throw new Error('Invalid date');
+  }
+
+  return {value: date};
+}
+
+function parseRelativeDate(
+  input: string,
+  {sign, unit}: {sign: '-' | '+'; unit: string}
+): {value: Date} {
+  let date = new Date().getTime();
+  const number = numeric(input);
+
+  if (isNaN(date)) {
+    throw new Error('Invalid date');
+  }
+
+  let offset: number | undefined;
+  switch (unit) {
+    case 'm':
+      offset = number * 1000 * 60;
+      break;
+    case 'h':
+      offset = number * 1000 * 60 * 60;
+      break;
+    case 'd':
+      offset = number * 1000 * 60 * 60 * 24;
+      break;
+    case 'w':
+      offset = number * 1000 * 60 * 60 * 24 * 7;
+      break;
+    default:
+      throw new Error('Invalid unit');
+  }
+
+  if (offset === undefined) {
+    throw new Error('Unreachable');
+  }
+
+  date = sign === '-' ? date - offset : date + offset;
+  return {value: new Date(date)};
+}
+
+// The parser supports floats and ints, parseFloat handles both.
+function numeric(input: string) {
+  const number = parseFloat(input);
+  if (isNaN(number)) {
+    throw new Error('Invalid number');
+  }
+  return number;
+}
+
+function parseDuration(
+  input: string,
+  unit: 'ms' | 's' | 'min' | 'm' | 'hr' | 'h' | 'day' | 'd' | 'wk' | 'w'
+): {value: number} {
+  let number = numeric(input);
+
+  switch (unit) {
+    case 'ms':
+      break;
+    case 's':
+      number *= 1e3;
+      break;
+    case 'min':
+    case 'm':
+      number *= 1e3 * 60;
+      break;
+    case 'hr':
+    case 'h':
+      number *= 1e3 * 60 * 60;
+      break;
+    case 'day':
+    case 'd':
+      number *= 1e3 * 60 * 60 * 24;
+      break;
+    case 'wk':
+    case 'w':
+      number *= 1e3 * 60 * 60 * 24 * 7;
+      break;
+    default:
+      throw new Error('Invalid unit');
+  }
+
+  return {
+    value: number,
+  };
+}
+function parseNumber(
+  input: string,
+  unit: 'k' | 'm' | 'b' | 'K' | 'M' | 'B'
+): {value: number} {
+  let number = numeric(input);
+
+  switch (unit) {
+    case 'K':
+    case 'k':
+      number = number * 1e3;
+      break;
+    case 'M':
+    case 'm':
+      number = number * 1e6;
+      break;
+    case 'B':
+    case 'b':
+      number = number * 1e9;
+      break;
+    case null:
+    case undefined:
+      break;
+    default:
+      throw new Error('Invalid unit');
+  }
+
+  return {value: number};
+}
+function parseSize(input: string, unit: string): {value: number} {
+  if (!unit) {
+    unit = 'bytes';
+  }
+
+  let number = numeric(input);
+
+  // parser is case insensitive to units
+  switch (unit.toLowerCase()) {
+    case 'bit':
+      number /= 8;
+      break;
+    case 'nb':
+      number /= 2;
+      break;
+    case 'bytes':
+      break;
+    case 'kb':
+      number *= 1000;
+      break;
+    case 'mb':
+      number *= 1000 ** 2;
+      break;
+    case 'gb':
+      number *= 1000 ** 3;
+      break;
+    case 'tb':
+      number *= 1000 ** 4;
+      break;
+    case 'pb':
+      number *= 1000 ** 5;
+      break;
+    case 'eb':
+      number *= 1000 ** 6;
+      break;
+    case 'zb':
+      number *= 1000 ** 7;
+      break;
+    case 'yb':
+      number *= 1000 ** 8;
+      break;
+    case 'kib':
+      number *= 1024;
+      break;
+    case 'mib':
+      number *= 1024 ** 2;
+      break;
+    case 'gib':
+      number *= 1024 ** 3;
+      break;
+    case 'tib':
+      number *= 1024 ** 4;
+      break;
+    case 'pib':
+      number *= 1024 ** 5;
+      break;
+    case 'eib':
+      number *= 1024 ** 6;
+      break;
+    case 'zib':
+      number *= 1024 ** 7;
+      break;
+    case 'yib':
+      number *= 1024 ** 8;
+      break;
+    default:
+      throw new Error('Invalid unit');
+  }
+
+  return {value: number};
+}
+function parsePercentage(input: string): {value: number} {
+  return {value: numeric(input)};
+}
+function parseBoolean(input: string): {value: boolean} {
+  if (/^true$/i.test(input) || input === '1') {
+    return {value: true};
+  }
+  if (/^false$/i.test(input) || input === '0') {
+    return {value: false};
+  }
+  throw new Error('Invalid boolean');
+}
+
 /**
  * Maps token conversion methods to their result types
  */
@@ -905,16 +1112,17 @@ type KVConverter<T extends Token> = ConverterResultMap[KVTokens] & {type: T};
  */
 export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type: T};
 
-/**
- * Result from parsing a search query.
- */
-export type ParseResult = Array<
+export type ParseResultToken =
   | TokenResult<Token.LOGIC_BOOLEAN>
   | TokenResult<Token.LOGIC_GROUP>
   | TokenResult<Token.FILTER>
   | TokenResult<Token.FREE_TEXT>
-  | TokenResult<Token.SPACES>
->;
+  | TokenResult<Token.SPACES>;
+
+/**
+ * Result from parsing a search query.
+ */
+export type ParseResult = ParseResultToken[];
 
 /**
  * Configures behavior of search parsing
@@ -969,6 +1177,10 @@ export type SearchConfig = {
    * A function that returns a warning message for a given filter token key
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
+   * Determines if user input values should be parsed
+   */
+  parse?: boolean;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */

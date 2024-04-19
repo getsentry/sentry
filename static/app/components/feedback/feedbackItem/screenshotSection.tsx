@@ -12,8 +12,8 @@ import useFeedbackScreenshot from 'sentry/components/feedback/feedbackItem/useFe
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   event: Event;

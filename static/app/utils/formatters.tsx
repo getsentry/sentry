@@ -373,10 +373,23 @@ export function formatFloat(number: number, places: number) {
 /**
  * Format a value between 0 and 1 as a percentage
  */
-export function formatPercentage(value: number, places: number = 2) {
+export function formatPercentage(
+  value: number,
+  places: number = 2,
+  options: {
+    minimumValue?: number;
+  } = {}
+) {
   if (value === 0) {
     return '0%';
   }
+
+  const minimumValue = options.minimumValue ?? 0;
+
+  if (Math.abs(value) <= minimumValue) {
+    return `<${minimumValue * 100}%`;
+  }
+
   return (
     round(value * 100, places).toLocaleString(undefined, {
       maximumFractionDigits: places,
@@ -404,10 +417,13 @@ export function formatAbbreviatedNumber(
 ): string {
   number = Number(number);
 
+  const prefix = number < 0 ? '-' : '';
+  const numAbsValue = Math.abs(number);
+
   for (const step of numberFormatSteps) {
     const [suffixNum, suffix] = step;
-    const shortValue = Math.floor(number / suffixNum);
-    const fitsBound = number % suffixNum === 0;
+    const shortValue = Math.floor(numAbsValue / suffixNum);
+    const fitsBound = numAbsValue % suffixNum === 0;
 
     if (shortValue <= 0) {
       continue;
@@ -417,22 +433,22 @@ export function formatAbbreviatedNumber(
 
     if (useShortValue) {
       if (maximumSignificantDigits === undefined) {
-        return `${shortValue}${suffix}`;
+        return `${prefix}${shortValue}${suffix}`;
       }
       const formattedNumber = parseFloat(
         shortValue.toPrecision(maximumSignificantDigits)
       ).toString();
-      return `${formattedNumber}${suffix}`;
+      return `${prefix}${formattedNumber}${suffix}`;
     }
 
     const formattedNumber = formatFloat(
-      number / suffixNum,
+      numAbsValue / suffixNum,
       maximumSignificantDigits || 1
     ).toLocaleString(undefined, {
       maximumSignificantDigits,
     });
 
-    return `${formattedNumber}${suffix}`;
+    return `${prefix}${formattedNumber}${suffix}`;
   }
 
   return number.toLocaleString(undefined, {maximumSignificantDigits});

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.processing import (
     convert_datascrubbing_config,
@@ -80,6 +81,7 @@ def get_all_pii_configs(project):
     yield convert_datascrubbing_config(get_datascrubbing_settings(project))
 
 
+@sentry_sdk.tracing.trace
 def scrub_data(project, event):
     for config in get_all_pii_configs(project):
         metrics.distribution(

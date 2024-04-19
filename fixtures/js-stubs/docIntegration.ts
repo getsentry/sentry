@@ -1,4 +1,4 @@
-import {type DocIntegration} from 'sentry/types';
+import type {DocIntegration} from 'sentry/types/integrations';
 
 export function DocIntegrationFixture(params = {}): DocIntegration {
   return {

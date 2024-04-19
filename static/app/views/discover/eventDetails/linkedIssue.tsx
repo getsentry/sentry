@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
+import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
-import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {

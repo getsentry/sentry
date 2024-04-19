@@ -17,6 +17,8 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -93,6 +95,14 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             params["status"] = result["status"]
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
+        if "owner" in result:
+            owner = result["owner"]
+            params["owner_user_id"] = None
+            params["owner_team_id"] = None
+            if owner and owner.type == User:
+                params["owner_user_id"] = owner.id
+            elif owner and owner.type == Team:
+                params["owner_team_id"] = owner.id
         if "config" in result:
             params["config"] = result["config"]
 
@@ -112,21 +122,21 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
 
-        # Update monitor slug
-        if "slug" in result:
-            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
-
         # Attempt to assign a monitor seat
-        if params["status"] == ObjectStatus.ACTIVE:
+        if params["status"] == ObjectStatus.ACTIVE and monitor.status != ObjectStatus.ACTIVE:
             outcome = quotas.backend.assign_monitor_seat(monitor)
-            # The MonitorValidator checks if a seat assignment is availble.
+            # The MonitorValidator checks if a seat assignment is available.
             # This protects against a race condition
             if outcome != Outcome.ACCEPTED:
                 raise ParameterValidationError("Failed to enable monitor, please try again")
 
         # Attempt to unassign the monitor seat
-        if params["status"] == ObjectStatus.DISABLED:
+        if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
             quotas.backend.disable_monitor_seat(monitor)
+
+        # Update monitor slug in billing
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
 
         if params:
             monitor.update(**params)
@@ -246,7 +256,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
                 if isinstance(monitor_object, Monitor):
-                    monitor_object.update(slug=get_random_string(length=24))
+                    new_slug = get_random_string(length=24)
+                    quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
+                    monitor_object.update(slug=new_slug)
 
                 schedule = RegionScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user

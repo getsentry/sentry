@@ -112,7 +112,6 @@ SPAN_COLUMN_MAP = {
     "description": "description",
     "domain": "domain",
     "group": "group",
-    "module": "module",
     "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
@@ -123,7 +122,6 @@ SPAN_COLUMN_MAP = {
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
     "span.group": "group",
-    "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
     "span.status": "span_status",
@@ -136,6 +134,7 @@ SPAN_COLUMN_MAP = {
     "user": "user",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
+    "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -153,6 +152,8 @@ SPAN_COLUMN_MAP = {
     "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
+    "sdk.name": "sentry_tags[sdk.name]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -835,7 +836,8 @@ SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
 RequestQueryBody = tuple[Request, Translator, Translator]
 LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
-ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+# TODO: Would be nice to make this a concrete structure
+ResultSet = list[Mapping[str, Any]]
 
 
 def raw_snql_query(
@@ -978,9 +980,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+        scope = sentry_sdk.Scope.get_current_scope()
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -1501,9 +1503,14 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
 
     # Helper lambdas to compose translator functions
-    identity = lambda x: x
-    compose = lambda f, g: lambda x: f(g(x))
-    replace = lambda d, key, val: d.update({key: val}) or d
+    def identity(x):
+        return x
+
+    def compose(f, g):
+        return lambda x: f(g(x))
+
+    def replace(d, key, val):
+        return d.update({key: val}) or d
 
     forward = identity
     reverse = identity

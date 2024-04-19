@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -26,6 +27,7 @@ from sentry.snuba.outcomes import (
     GROUPBY_MAP,
     QueryDefinition,
     massage_outcomes_result,
+    run_metrics_outcomes_query,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
 )
@@ -140,9 +142,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
     permission_classes = (OrganizationAndStaffPermission,)
@@ -164,6 +166,18 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
+
+            if features.has("organizations:metrics-stats", organization):
+                if request.GET.get("category") == "metrics":
+                    # TODO(metrics): align project resolution
+                    result = run_metrics_outcomes_query(
+                        request.GET,
+                        organization,
+                        self.get_projects(request, organization, include_all_accessible=True),
+                        self.get_environments(request, organization),
+                    )
+                    return Response(result, status=200)
+
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(

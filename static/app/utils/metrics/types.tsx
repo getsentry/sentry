@@ -15,6 +15,11 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
+export enum MetricSeriesFilterUpdateType {
+  ADD = 'add',
+  EXCLUDE = 'exclude',
+}
+
 export interface FocusedMetricsSeries {
   id: string;
   groupBy?: Record<string, string>;
@@ -32,12 +37,18 @@ export enum MetricExpressionType {
   EQUATION = 2,
 }
 
+export enum MetricChartOverlayType {
+  RELEASES = 'releases',
+  SAMPLES = 'samples',
+}
+
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
   isHidden: boolean;
   type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
+  overlays?: MetricChartOverlayType[];
   sort?: SortState;
 }
 

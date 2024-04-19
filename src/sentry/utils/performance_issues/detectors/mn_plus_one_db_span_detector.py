@@ -6,8 +6,6 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Any
 
-from sentry import features
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
@@ -63,7 +61,10 @@ class SearchingForMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: dict[str, Any], event: Event, initial_spans: Sequence[Span] | None = None
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        initial_spans: Sequence[Span] | None = None,
     ) -> None:
         self.settings = settings
         self.event = event
@@ -99,7 +100,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         for span in pattern:
             op = span.get("op") or ""
             description = span.get("description") or ""
-            found_db_op = found_db_op or (
+            found_db_op = found_db_op or bool(
                 op.startswith("db")
                 and not op.startswith("db.redis")
                 and description
@@ -125,18 +126,18 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+        self, settings: dict[str, Any], event: dict[str, Any], pattern: list[Span], first_span: Span
     ) -> None:
         self.settings = settings
         self.event = event
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
-        self.spans: Sequence[Span] = pattern.copy()
+        self.spans = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
-    def next(self, span: Span) -> MNPlusOneState:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         # If the MN pattern is continuing, carry on in this state.
         pattern_span = self.pattern[self.pattern_index]
         if self._equivalent(pattern_span, span):
@@ -180,6 +181,8 @@ class ContinuingMNPlusOne(MNPlusOneState):
             return None
 
         db_span = self._first_db_span()
+        if not db_span:
+            return None
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
@@ -260,16 +263,14 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
-        self.state = SearchingForMNPlusOne(self.settings, self.event())
+        self.state: MNPlusOneState = SearchingForMNPlusOne(self.settings, self.event())
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return features.has(
-            "organizations:performance-issues-m-n-plus-one-db-detector",
-            organization,
-            actor=None,
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

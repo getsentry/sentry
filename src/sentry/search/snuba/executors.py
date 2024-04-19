@@ -1118,7 +1118,9 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
-    def get_basic_group_snuba_condition(self, search_filter: SearchFilter) -> Condition:
+    def get_basic_group_snuba_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
         """
         Returns the basic lookup for a search filter.
         """
@@ -1128,18 +1130,23 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             search_filter.value.raw_value,
         )
 
-    def get_basic_event_snuba_condition(self, search_filter: SearchFilter) -> Condition:
+    def get_basic_event_snuba_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
         """
         Returns the basic lookup for a search filter.
         """
+
+        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+
         query_builder = UnresolvedQuery(
-            dataset=Dataset.Events,
-            entity=self.entities["event"],
+            dataset=dataset,
+            entity=joined_entity,
             params={},
         )
         return query_builder.default_filter_converter(search_filter)
 
-    def get_assigned(self, search_filter: SearchFilter) -> Condition:
+    def get_assigned(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         """
         Returns the assigned lookup for a search filter.
         """
@@ -1175,7 +1182,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         return BooleanCondition(op=BooleanOp.OR, conditions=conditions)
 
-    def get_suggested(self, search_filter: SearchFilter) -> Condition:
+    def get_suggested(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         """
         Returns the suggested lookup for a search filter.
         """
@@ -1245,13 +1252,34 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=conditions,
         )
 
-    def get_assigned_or_suggested(self, search_filter: SearchFilter) -> Condition:
+    def get_assigned_or_suggested(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
         return BooleanCondition(
             op=BooleanOp.OR,
             conditions=[
-                self.get_assigned(search_filter),
-                self.get_suggested(search_filter),
+                self.get_assigned(search_filter, joined_entity),
+                self.get_suggested(search_filter, joined_entity),
             ],
+        )
+
+    def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "toUInt64",
+                            [Function("max", [Column("timestamp", joined_entity)])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias="score",
         )
 
     ISSUE_FIELD_NAME = "group_id"
@@ -1259,6 +1287,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     entities = {
         "event": Entity("events", alias="e"),
         "attrs": Entity("group_attributes", alias="g"),
+        "search_issues": Entity("search_issues", alias="si"),
     }
 
     group_conditions_lookup = {
@@ -1268,31 +1297,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "assigned_to": get_assigned,
     }
 
-    last_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-        alias="score",
-    )
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
-    sort_defs = {
-        "date": last_seen_aggregation,
-        "new": first_seen,
-        "freq": times_seen_aggregation,
-        "user": Function("uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"),
-    }
+    def get_sort_defs(self, entity):
+        return {
+            "date": self.get_last_seen_aggregation(entity),
+            "new": self.first_seen,
+            "freq": self.times_seen_aggregation,
+            "user": Function("uniq", [Column("tags[sentry:user]", entity)], "user_count"),
+        }
 
     sort_strategies = {
         "new": "g.group_first_seen",
@@ -1362,80 +1376,103 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         event_entity = self.entities["event"]
         attr_entity = self.entities["attrs"]
+        search_issues_entity = self.entities["search_issues"]
 
-        where_conditions = [
-            Condition(Column("project_id", event_entity), Op.IN, [p.id for p in projects]),
-            Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
-            Condition(Column("timestamp", event_entity), Op.GTE, start),
-            Condition(Column("timestamp", event_entity), Op.LT, end),
-        ]
-        for search_filter in search_filters or ():
-            # use the stored function if it exists in our mapping, otherwise use the basic lookup
-            fn = self.group_conditions_lookup.get(search_filter.key.name)
-            if fn:
-                where_conditions.append(fn(self, search_filter))
-            else:
-                where_conditions.append(self.get_basic_event_snuba_condition(search_filter))
+        queries = []
+        entities_to_check = [event_entity, search_issues_entity]
+        for joined_entity in entities_to_check:
+            where_conditions = [
+                Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
+                Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
+                Condition(Column("timestamp", joined_entity), Op.GTE, start),
+                Condition(Column("timestamp", joined_entity), Op.LT, end),
+            ]
+            for search_filter in search_filters or ():
+                # use the stored function if it exists in our mapping, otherwise use the basic lookup
+                fn = self.group_conditions_lookup.get(search_filter.key.name)
+                if fn:
+                    where_conditions.append(fn(self, search_filter, joined_entity))
+                else:
+                    where_conditions.append(
+                        self.get_basic_event_snuba_condition(search_filter, joined_entity)
+                    )
 
-        if environments:
-            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
-            where_conditions.append(
-                Condition(
-                    Column("environment", event_entity), Op.IN, [e.name for e in environments]
+            if environments:
+                # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
+                where_conditions.append(
+                    Condition(
+                        Column("environment", joined_entity), Op.IN, [e.name for e in environments]
+                    )
                 )
+
+            sort_func = self.get_sort_defs(joined_entity)[sort_by]
+
+            having = []
+            if cursor is not None:
+                op = Op.GTE if cursor.is_prev else Op.LTE
+                having.append(Condition(sort_func, op, cursor.value))
+
+            tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+            groupby = [Column("group_id", attr_entity)]
+            select = [Column("group_id", attr_entity)]
+            if sort_by == "new":
+                groupby.append(Column("group_first_seen", attr_entity))
+                select.append(Column("group_first_seen", attr_entity))
+
+            select.append(sort_func)
+
+            query = Query(
+                match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                select=select,
+                where=where_conditions,
+                groupby=groupby,
+                having=having,
+                orderby=[OrderBy(sort_func, direction=Direction.DESC)],
+                limit=Limit(limit + 1),
             )
-
-        sort_func = self.sort_defs[sort_by]
-
-        having = []
-        if cursor is not None:
-            op = Op.GTE if cursor.is_prev else Op.LTE
-            having.append(Condition(sort_func, op, cursor.value))
-
-        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
-        groupby = [Column("group_id", attr_entity)]
-        select = [Column("group_id", attr_entity)]
-        if sort_by == "new":
-            groupby.append(Column("group_first_seen", attr_entity))
-            select.append(Column("group_first_seen", attr_entity))
-
-        select.append(sort_func)
-
-        query = Query(
-            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=select,
-            where=where_conditions,
-            groupby=groupby,
-            having=having,
-            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
-            limit=Limit(limit + 1),
-        )
-        request = Request(
-            dataset="events",
-            app_id="group_attributes",
-            query=query,
-            tenant_ids=tenant_ids,
-        )
-        data = snuba.raw_snql_query(request, referrer="search.snuba.group_attributes_search.query")[
-            "data"
-        ]
-
-        hits_query = Query(
-            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=[
-                Function("uniq", [Column("group_id", attr_entity)], alias="count"),
-            ],
-            where=where_conditions,
-        )
-        hits = None
-        if count_hits:
+            dataset = (
+                Dataset.Events.value if joined_entity.alias == "e" else Dataset.IssuePlatform.value
+            )
             request = Request(
-                dataset="events", app_id="group_attributes", query=hits_query, tenant_ids=tenant_ids
+                dataset=dataset,
+                app_id="group_attributes",
+                query=query,
+                tenant_ids=tenant_ids,
             )
-            hits = snuba.raw_snql_query(
-                request, referrer="search.snuba.group_attributes_search.hits"
-            )["data"][0]["count"]
+            queries.append(request)
 
+            if count_hits:
+                hits_query = Query(
+                    match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                    select=[
+                        Function("uniq", [Column("group_id", attr_entity)], alias="count"),
+                    ],
+                    where=where_conditions,
+                )
+                request = Request(
+                    dataset=dataset,
+                    app_id="group_attributes",
+                    query=hits_query,
+                    tenant_ids=tenant_ids,
+                )
+                queries.append(request)
+
+        bulk_result = snuba.bulk_snql_query(
+            queries, referrer="search.snuba.group_attributes_search.query"
+        )
+
+        data = []
+        count = 0
+        # get the query data and the query counts
+        k = 0
+        for _ in range(len(entities_to_check)):
+            data.extend(bulk_result[k]["data"])
+            if count_hits:
+                k += 1
+                count += bulk_result[k]["data"][0]["count"]
+            k += 1
+
+        hits = 0
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
