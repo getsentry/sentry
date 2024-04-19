@@ -8,7 +8,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HTTPLandingPage} from 'sentry/views/performance/http/httpLandingPage';
-import {Referrer} from 'sentry/views/performance/http/referrers';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -75,7 +74,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: Referrer.LANDING_DOMAINS_LIST,
+          referrer: 'api.performance.http.landing-domains-list',
         }),
       ],
       body: {
@@ -157,7 +156,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: Referrer.LANDING_THROUGHPUT_CHART,
+          referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -182,7 +181,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: Referrer.LANDING_DURATION_CHART,
+          referrer: 'api.performance.http.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -207,7 +206,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
+          referrer: 'api.performance.http.landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -240,7 +239,7 @@ describe('HTTPLandingPage', function () {
           per_page: 10,
           project: [],
           query: 'span.module:http span.domain:*git*',
-          referrer: Referrer.LANDING_DOMAINS_LIST,
+          referrer: 'api.performance.http.landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',
         },
