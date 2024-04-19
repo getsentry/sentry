@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.utils import json
 
 
 class TestProjectAutofixCodebaseIndexCreate(APITestCase):
@@ -38,15 +39,17 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-            data={
-                "organization_id": self.project.organization.id,
-                "project_id": self.project.id,
-                "repo": {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                },
-            },
+            data=json.dumps(
+                {
+                    "organization_id": self.project.organization.id,
+                    "project_id": self.project.id,
+                    "repo": {
+                        "provider": "integrations:github",
+                        "owner": "getsentry",
+                        "name": "sentry",
+                    },
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -76,28 +79,32 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "repo": {
-                        "provider": "integrations:github",
-                        "owner": "getsentry",
-                        "name": "sentry",
-                    },
-                },
+                data=json.dumps(
+                    {
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "repo": {
+                            "provider": "integrations:github",
+                            "owner": "getsentry",
+                            "name": "sentry",
+                        },
+                    }
+                ),
                 headers={"content-type": "application/json;charset=utf-8"},
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "repo": {
-                        "provider": "integrations:github",
-                        "owner": "getsentry",
-                        "name": "relay",
-                    },
-                },
+                data=json.dumps(
+                    {
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "repo": {
+                            "provider": "integrations:github",
+                            "owner": "getsentry",
+                            "name": "relay",
+                        },
+                    }
+                ),
                 headers={"content-type": "application/json;charset=utf-8"},
             ),
         ]
