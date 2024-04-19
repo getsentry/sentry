@@ -1,4 +1,4 @@
-import {GroupIntegration} from 'sentry/types';
+import type {GroupIntegration} from 'sentry/types/integrations';
 
 export function JiraIntegrationFixture(
   params: Partial<GroupIntegration> = {}

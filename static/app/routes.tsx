@@ -1212,6 +1212,7 @@ function buildRoutes() {
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    // ALERT CHILD ROUTES
     return (
       <Fragment>
         <IndexRoute
@@ -1316,6 +1317,7 @@ function buildRoutes() {
       </Fragment>
     );
   };
+  // ALERT ROUTES
   const alertRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1491,11 +1493,7 @@ function buildRoutes() {
   );
 
   const aiAnalyticsRoutes = (
-    <Route
-      path="/ai-analytics/"
-      component={make(() => import('sentry/views/aiAnalytics'))}
-      withOrgPath
-    >
+    <Route path="/ai-analytics/" withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
     </Route>
   );

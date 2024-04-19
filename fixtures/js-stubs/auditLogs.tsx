@@ -1,6 +1,6 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {AuditLog} from 'sentry/types';
+import type {AuditLog} from 'sentry/types/organization';
 
 export function AuditLogsFixture(params: AuditLog[] = []): AuditLog[] {
   return [

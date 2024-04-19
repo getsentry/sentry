@@ -9,7 +9,7 @@ import GridEditable, {
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
@@ -187,9 +187,12 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  return renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  return renderer(
+    {...row, 'span.op': 'http.client'},
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    }
+  );
 }

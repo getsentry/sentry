@@ -2,8 +2,8 @@ import {useState} from 'react';
 
 import type {ActivityAuthorType} from 'sentry/components/activity/item';
 import {ActivityItem} from 'sentry/components/activity/item';
-import type {User} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import type {User} from 'sentry/types/user';
 import type {ActivityType} from 'sentry/views/alerts/types';
 
 import {NoteBody} from './body';

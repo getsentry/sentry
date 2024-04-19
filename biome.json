@@ -33,6 +33,9 @@
         "noDuplicateJsonKeys": "error",
         "noNodejsModules": "error"
       },
+      "performance": {
+        "noBarrelFile": "error"
+      },
       "security": {
         "noDangerouslySetInnerHtmlWithChildren": "error"
       },
@@ -72,7 +75,8 @@
       "static/app/data/world.json",
       "**/*.sourcemap.js",
       "**/*.min.js",
-      "fixtures"
+      "fixtures",
+      ".devenv"
     ]
   },
   "formatter": {
@@ -143,6 +147,26 @@
         "rules": {
           "style": {
             "noVar": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": [
+        "static/app/utils/replays/types.tsx",
+        "static/app/utils/queryClient.tsx",
+        "static/app/views/performance/traceDetails/styles.tsx",
+        "static/app/icons/index.tsx",
+        "static/app/components/tabs/index.tsx",
+        "static/app/components/sparklines/line.tsx",
+        "static/app/types/index.tsx",
+        "tests/js/sentry-test/reactTestingLibrary.tsx",
+        "tests/js/sentry-test/index.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }

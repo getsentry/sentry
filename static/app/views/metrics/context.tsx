@@ -100,11 +100,12 @@ export function useMetricWidgets() {
   const setWidgets = useCallback(
     (newWidgets: React.SetStateAction<MetricsWidget[]>) => {
       const currentWidgets = currentWidgetsRef.current;
-      updateQuery({
-        widgets: JSON.stringify(
-          typeof newWidgets === 'function' ? newWidgets(currentWidgets) : newWidgets
-        ),
-      });
+      const newData =
+        typeof newWidgets === 'function' ? newWidgets(currentWidgets) : newWidgets;
+
+      updateQuery({widgets: JSON.stringify(newData)});
+      // We need to update the ref so that the next call to setWidgets in the same render cycle will have the updated value
+      currentWidgetsRef.current = newData;
     },
     [updateQuery, currentWidgetsRef]
   );
@@ -230,7 +231,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets();
 
   const [metricsSamples, setMetricsSamples] = useState<
@@ -338,9 +339,15 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
         const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
         setSelectedWidgetIndex(firstVisibleWidgetIndex);
       }
+      if (!isMultiChartMode) {
+        // Reset the focused series when hiding a widget
+        setWidgets(currentWidgets => {
+          return currentWidgets.map(w => ({...w, focusedSeries: undefined}));
+        });
+      }
       updateWidget(index, {isHidden: !widgets[index].isHidden});
     },
-    [selectedWidgetIndex, updateWidget, widgets]
+    [isMultiChartMode, selectedWidgetIndex, setWidgets, updateWidget, widgets]
   );
 
   const selectedWidget = widgets[selectedWidgetIndex];

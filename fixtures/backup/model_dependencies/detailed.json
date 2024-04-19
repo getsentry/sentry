@@ -1748,11 +1748,6 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.docintegration",
         "nullable": false
-      },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
       }
     },
     "model": "sentry.docintegrationavatar",
@@ -1765,9 +1760,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"
@@ -5538,11 +5530,6 @@
         "model": "sentry.controlfile",
         "nullable": true
       },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
       "sentry_app": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.sentryapp",
@@ -5559,9 +5546,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"
@@ -5986,11 +5970,6 @@
         "model": "sentry.controlfile",
         "nullable": true
       },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.user",
@@ -6007,9 +5986,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"

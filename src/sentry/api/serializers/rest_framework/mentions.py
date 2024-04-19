@@ -4,13 +4,13 @@ from collections.abc import Sequence
 
 from rest_framework import serializers
 
-from sentry.models.actor import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.utils.actor import ActorTuple
 
 
 @region_silo_function

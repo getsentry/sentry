@@ -447,7 +447,6 @@ module = [
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
-    "sentry.stacktraces.functions",
     "sentry.tagstore.snuba.backend",
     "sentry.tagstore.types",
     "sentry.tasks.auth",
@@ -589,6 +588,7 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.issues.*",
+    "sentry.api.helpers.source_map_helper",
     "sentry.buffer.base",
     "sentry.buffer.redis",
     "sentry.eventstore.reprocessing.redis",

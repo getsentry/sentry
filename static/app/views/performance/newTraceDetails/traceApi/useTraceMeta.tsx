@@ -38,7 +38,9 @@ function getMetaQueryParams(
   };
 }
 
-export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
+export function useTraceMeta(
+  traceSlug?: string
+): UseApiQueryResult<TraceMeta | null, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -49,14 +51,16 @@ export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const trace = traceSlug ?? params.traceSlug;
+
   return useApiQuery(
     [
-      `/organizations/${organization.slug}/events-trace-meta/${params.traceSlug ?? ''}/`,
+      `/organizations/${organization.slug}/events-trace-meta/${trace ?? ''}/`,
       {query: queryParams},
     ],
     {
       staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug,
+      enabled: !!trace && !!organization.slug,
     }
   );
 }

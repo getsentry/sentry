@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
@@ -282,6 +281,7 @@ from .endpoints.integrations.sentry_apps import (
     SentryAppInteractionEndpoint,
     SentryAppPublishRequestEndpoint,
     SentryAppRequestsEndpoint,
+    SentryAppRotateSecretEndpoint,
     SentryAppsEndpoint,
     SentryAppsStatsEndpoint,
     SentryAppStatsEndpoint,
@@ -2113,11 +2113,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/bundle-stats/",
-        BundleAnalysisEndpoint.as_view(),
-        name="sentry-api-0-organization-bundle-size",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
         ProjectAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-alert-rule-details",
@@ -2837,6 +2832,11 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/rotate-secret/$",
+        SentryAppRotateSecretEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-rotate-secret",
     ),
     re_path(
         r"^(?P<sentry_app_slug>[^\/]+)/stats/$",

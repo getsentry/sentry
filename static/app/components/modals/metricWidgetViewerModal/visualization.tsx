@@ -274,12 +274,11 @@ function MetricTableVisualization({
 
 function MetricBigNumberVisualization({
   timeseriesData,
-  queries,
   isLoading,
 }: MetricTableVisualizationProps) {
   const bigNumberData = useMemo(() => {
-    return timeseriesData ? getBigNumberData(timeseriesData, queries) : undefined;
-  }, [timeseriesData, queries]);
+    return timeseriesData ? getBigNumberData(timeseriesData) : undefined;
+  }, [timeseriesData]);
 
   if (!bigNumberData) {
     return null;

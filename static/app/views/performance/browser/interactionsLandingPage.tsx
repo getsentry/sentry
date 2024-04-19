@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';

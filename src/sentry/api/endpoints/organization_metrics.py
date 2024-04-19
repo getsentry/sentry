@@ -282,7 +282,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     """
 
     # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    default_rate_limit = RateLimit(limit=200, window=5)
 
     rate_limits = {
         "GET": {
@@ -361,7 +361,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     """
 
     # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    default_rate_limit = RateLimit(limit=200, window=5)
 
     rate_limits = {
         "POST": {
