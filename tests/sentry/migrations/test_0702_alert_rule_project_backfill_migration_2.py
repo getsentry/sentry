@@ -8,8 +8,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class AlertRuleProjectBackfillTest(TestMigrations):
-    migrate_from = "0686_remove_config_from_checkin_state_operation"
-    migrate_to = "0687_alert_rule_project_backfill_migration"
+    migrate_from = "0701_backfill_alertrule_user_team"
+    migrate_to = "0702_alert_rule_project_backfill_migration_2"
 
     def setup_before_migration(self, app):
         self.snuba_query = create_snuba_query(
