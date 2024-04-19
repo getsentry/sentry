@@ -7,7 +7,6 @@ import pytest
 
 from sentry.db import models
 from sentry.eventstore.models import Event
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
@@ -21,7 +20,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
     def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
-        print("user: ", uuid4().hex)
         data = {
             "timestamp": iso_format(timestamp),
             "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
@@ -57,7 +55,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
             "value": 2,
             "name": "The issue is seen more than 2 times in 1d",
         }
-        event_frequency_condition3 = {
+        self.event_frequency_condition3 = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 1,

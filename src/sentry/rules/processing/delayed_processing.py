@@ -17,11 +17,7 @@ from sentry.rules.conditions.event_frequency import (
     ComparisonType,
     percent_increase,
 )
-from sentry.rules.processing.processor import (
-    RuleProcessor,
-    is_condition_slow,
-    split_conditions_and_filters,
-)
+from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -129,7 +125,6 @@ def get_condition_group_results(
             logger.warning("Unregistered condition %r", unique_condition.cls_id)
             return None
 
-        # I think this is a bug? we don't know which rule it is here
         condition_inst: BaseEventFrequencyCondition = condition_cls(
             project=project, data=condition_data, rule=rule
         )
@@ -221,8 +216,6 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     """
 
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
-
-    # The mapping looks like: [f'{rule.id}:{group.id}':'event.id']
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
@@ -263,7 +256,6 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
                 "event_id": event_id,
                 "group_id": group_id,
                 "project_id": project.id,
-                # "timestamp": evt["timestamp"],
             },
         )
         for group_id, event_id in group_id_to_event_id.items()
@@ -272,26 +264,10 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     return events
 
     # Step 7.2(?) Fire the rules
-    # for event in events:
     # double check the frequency before firing
     # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
 
     # XXX: Be sure to update the grouprulestatus before triggering actions!
     # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L247-L254
-    # this will require some refactoring to pull out code like bulk_get_rule_status
-
-    # do we actually need the state values? is it ok to just put False for all?
-    # rp = RuleProcessor(
-    #     event=event,
-    #     is_new=False,
-    #     is_regression=False,
-    #     is_new_group_environment=False,
-    #     has_reappeared=False,
-    #     has_escalated=False,
-    # )
-    # we need to pull out parts of apply and apply_rule to sidestep all the logic that checks conditions and filters and just fires the rule
-    # at this point, we know it's good to fire
-    # for callback, futures in rp.apply():
-    #     safe_execute(callback, event, futures, _with_transaction=False)
 
     # Step 8: Clean up redis buffer data
