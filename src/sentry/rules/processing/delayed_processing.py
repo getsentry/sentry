@@ -5,7 +5,9 @@ from collections.abc import MutableMapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, DefaultDict, NamedTuple
 
+from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
+from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import rules
@@ -15,7 +17,11 @@ from sentry.rules.conditions.event_frequency import (
     ComparisonType,
     percent_increase,
 )
-from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
+from sentry.rules.processing.processor import (
+    RuleProcessor,
+    is_condition_slow,
+    split_conditions_and_filters,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -210,18 +216,9 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     silo_mode=SiloMode.REGION,
 )
 def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
-    """ """
-
-    # XXX(schew2381): This is from
-    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
-    # Do we need to check this before we start the steps (ask dan, I think the
-    # answer is no b/c we check it before triggering actions))
-
-    # frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-    # now = datetime.now()
-    # freq_offset = now - timedelta(minutes=frequency)
-    # if status.last_active and status.last_active > freq_offset:
-    #     return
+    """
+    Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
 
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
 
@@ -240,11 +237,6 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
 
-    # XXX: CEO the only difference between UniqueCondition and DataAndGroup's data is the condition value
-    # does this still work when we have 2 of the same condition ids with different values?
-    # I made 2 EventFrequencyCondition with the same interval but different values and only see 1 shown
-    # it does properly handle same condition ids with different intervals
-
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
     condition_group_results = get_condition_group_results(condition_groups, project, alert_rules[0])
@@ -255,16 +247,51 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     rules_to_fire = get_rules_to_fire(
         condition_group_results, rule_to_slow_conditions, rules_to_groups
     )
-    return rules_to_fire
 
     # Step 7: Bulk fetch the events of the rule/group pairs we need to trigger
     # actions for, then trigger those actions
+    group_id_to_event_id = {}
+    for rule_group, event in rulegroup_to_events:
+        _, group_id = rule_group.split(":")
+        group_id_to_event_id[group_id] = event
 
-    # rulegroup_to_events.values() has the event ids
+    events = [
+        Event(
+            event_id=event_id,
+            project_id=project.id,
+            snuba_data={
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project.id,
+                # "timestamp": evt["timestamp"],
+            },
+        )
+        for group_id, event_id in group_id_to_event_id.items()
+    ]
+    eventstore.backend.bind_nodes(events)
+    return events
 
-    # Was thinking we could do something like this where we get futures,
-    # then safe execute them
-    # https://github.com/getsentry/sentry/blob/3075c03e0819dd2c974897cc3014764c43151db5/src/sentry/tasks/post_process.py#L1115-L1128
+    # Step 7.2(?) Fire the rules
+    # for event in events:
+    # double check the frequency before firing
+    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
 
-    # XXX: Be sure to do this before triggering actions!
+    # XXX: Be sure to update the grouprulestatus before triggering actions!
     # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L247-L254
+    # this will require some refactoring to pull out code like bulk_get_rule_status
+
+    # do we actually need the state values? is it ok to just put False for all?
+    # rp = RuleProcessor(
+    #     event=event,
+    #     is_new=False,
+    #     is_regression=False,
+    #     is_new_group_environment=False,
+    #     has_reappeared=False,
+    #     has_escalated=False,
+    # )
+    # we need to pull out parts of apply and apply_rule to sidestep all the logic that checks conditions and filters and just fires the rule
+    # at this point, we know it's good to fire
+    # for callback, futures in rp.apply():
+    #     safe_execute(callback, event, futures, _with_transaction=False)
+
+    # Step 8: Clean up redis buffer data

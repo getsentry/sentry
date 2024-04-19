@@ -7,6 +7,7 @@ import pytest
 
 from sentry.db import models
 from sentry.eventstore.models import Event
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
     def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
+        print("user: ", uuid4().hex)
         data = {
             "timestamp": iso_format(timestamp),
             "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
@@ -50,6 +52,12 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
             "name": "The issue is seen more than 1 times in 1d",
         }
         event_frequency_condition2 = {
+            "interval": "1d",
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "value": 2,
+            "name": "The issue is seen more than 2 times in 1d",
+        }
+        event_frequency_condition3 = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 1,
@@ -58,33 +66,30 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         user_frequency_condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
             "value": 1,
-            "interval": "5m",
+            "interval": "1m",
         }
         event_frequency_percent_condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-            "interval": "1h",
+            "interval": "1m",
             "value": "1",
             "comparisonType": "count",
         }
+        self.now = datetime.now(UTC)
+
         self.rule1 = self.create_project_rule(
             project=self.project,
             condition_match=[event_frequency_condition],
             environment_id=self.environment.id,
         )
-        self.rule2 = self.create_project_rule(
-            project=self.project, condition_match=[user_frequency_condition]
-        )
-        self.now = datetime.now(UTC)
-
-        self.event1 = self.create_event(
-            self.project.id, self.now, "group-1", self.environment.name
-        )  # for rule1 - will fire
+        self.event1 = self.create_event(self.project.id, self.now, "group-1", self.environment.name)
         self.create_event(self.project.id, self.now, "group-1", self.environment.name)
 
         self.group1 = self.event1.group
-        self.event2 = self.create_event(
-            self.project, self.now, "group-2", self.environment.name
-        )  # for rule 1 -  will fire
+
+        self.rule2 = self.create_project_rule(
+            project=self.project, condition_match=[user_frequency_condition]
+        )
+        self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.group2 = self.event2.group
 
@@ -95,24 +100,27 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
 
         self.project_two = self.create_project(organization=self.organization)
         self.environment2 = self.create_environment(project=self.project_two)
+
         self.rule3 = self.create_project_rule(
             project=self.project_two,
             condition_match=[event_frequency_condition2],
             environment_id=self.environment2.id,
         )
+        self.event3 = self.create_event(
+            self.project_two, self.now, "group-3", self.environment2.name
+        )
+        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
+        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
+        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
+        self.group3 = self.event3.group
+
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
         )
-        self.event3 = self.create_event(
-            self.project_two, self.now, "group-3", self.environment2.name
-        )  # for rule3 - (should) will fire
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
-        self.group3 = self.event3.group
-        self.event4 = self.create_event(
-            self.project_two, self.now, "group-4"
-        )  # for rule4 - will not fire
+        self.event4 = self.create_event(self.project_two, self.now, "group-4")
         self.create_event(self.project_two, self.now, "group-4")
         self.group4 = self.event4.group
+
         self.rulegroup_event_mapping_two = {
             f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
             f"{self.rule4.id}:{self.group4.id}": {self.event4.event_id},
@@ -153,4 +161,21 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
             self.rulegroup_event_mapping_two,
         ]
         for proj in [self.project, self.project_two]:
-            apply_delayed(proj, mock_buffer)
+            events = apply_delayed(proj, mock_buffer)
+            for event in events:
+                assert event in [self.event1, self.event2]
+
+        # TODO check RuleFireHistory after adding firing code in
+
+    def test_apply_delayed_same_condition_diff_value(self):
+        # XXX: CEO the only difference between UniqueCondition and DataAndGroup's data is the condition value
+        # does this still work when we have 2 of the same condition ids with different values?
+        # I made 2 EventFrequencyCondition with the same interval but different values and only see 1 shown
+        # it does properly handle same condition ids with different intervals
+        pass
+
+    def test_apply_delayed_same_condition_diff_interval(self):
+        pass
+
+    def test_apply_delayed_two_rules_one_fires(self):
+        pass
