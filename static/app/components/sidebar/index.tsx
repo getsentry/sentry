@@ -325,7 +325,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-screens-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Screen Loads')}
