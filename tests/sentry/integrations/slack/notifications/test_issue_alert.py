@@ -512,7 +512,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         even when the users' issue alert notification settings are off and digests are triggered."""
 
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         # turn off the user's issue alert notification settings
@@ -900,7 +900,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         payload when block kit is enabled.
         """
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")

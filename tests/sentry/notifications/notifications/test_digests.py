@@ -62,7 +62,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     ):
         with patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
-            digests.digest = backend.digest
+            digests.backend.digest = backend.digest
 
             for i in range(event_count):
                 self.add_event(f"group-{i}", backend, "error")
@@ -163,7 +163,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         """
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
