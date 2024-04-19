@@ -4,7 +4,6 @@ import re
 
 import progressbar
 from django.db import connections, router
-from django.db.models import QuerySet
 
 from sentry import eventstore
 
@@ -84,7 +83,7 @@ class RangeQuerySetWrapper:
 
     def __init__(
         self,
-        queryset: QuerySet,
+        queryset,
         step=1000,
         limit=None,
         min_id=None,
