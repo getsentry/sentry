@@ -17,11 +17,13 @@ function getMetaQueryParams(
   filters: Partial<PageFilters> = {}
 ):
   | {
-      sampleSlug: string | undefined;
+      // demo has the format ${projectSlug}:${eventId}
+      // used to query a demo transaction event from the backend.
+      demo: string | undefined;
       statsPeriod: string;
     }
   | {
-      sampleSlug: string | undefined;
+      demo: string | undefined;
       timestamp: string;
     } {
   const normalizedParams = normalizeDateTimeParams(query, {
@@ -32,12 +34,12 @@ function getMetaQueryParams(
   const timestamp = decodeScalar(normalizedParams.timestamp);
 
   if (timestamp) {
-    return {timestamp, sampleSlug: decodeScalar(normalizedParams.sampleSlug)};
+    return {timestamp, demo: decodeScalar(normalizedParams.demo)};
   }
 
   return {
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
-    sampleSlug: decodeScalar(normalizedParams.sampleSlug),
+    demo: decodeScalar(normalizedParams.demo),
   };
 }
 
@@ -54,7 +56,7 @@ export function useTraceMeta(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sampleSlug = queryParams.sampleSlug;
+  const mode = queryParams.demo ? 'demo' : undefined;
   const trace = traceSlug ?? params.traceSlug;
 
   const traceMetaQueryResults = useApiQuery<TraceMeta>(
@@ -64,16 +66,17 @@ export function useTraceMeta(
     ],
     {
       staleTime: Infinity,
-      enabled: !!trace && !!organization.slug,
+      enabled: !!trace && !!organization.slug && mode !== 'demo',
     }
   );
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
-  // Now that a transaction always shows up as a part of the trace it is associate with, we
-  // we need to display it as a part of the trace view. Therefore, we fetch the sample transaction
-  // make a trace, with it as the only event in it. The trace meta query has to reflect this by returning
-  // a single transaction and project.
-  if (sampleSlug) {
+  // The backend creates the sample transaction, however the trace is created async, so when the
+  // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
+  // When this happens, we assemble a fake trace response to only include the transaction that had already been
+  // created and stored already so that the users can visualize in the context of a trace.
+  // The trace meta query has to reflect this by returning a single transaction and project.
+  if (mode === 'demo') {
     return {
       data: {
         errors: 0,

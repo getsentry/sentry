@@ -199,7 +199,7 @@ function Onboarding({organization, project}: Props) {
                     ...location,
                     query: {
                       ...location.query,
-                      sampleSlug: `${project.slug}:${eventData.eventID}`,
+                      demo: `${project.slug}:${eventData.eventID}`,
                     },
                   },
                   timestamp: eventData.endTimestamp,

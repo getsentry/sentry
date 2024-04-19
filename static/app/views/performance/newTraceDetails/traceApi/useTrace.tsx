@@ -40,16 +40,16 @@ export function getTraceQueryParams(
   limit: number;
   timestamp: string | undefined;
   useSpans: number;
+  demo?: string | undefined;
   pageEnd?: string | undefined;
   pageStart?: string | undefined;
-  sampleSlug?: string | undefined;
   statsPeriod?: string | undefined;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const sampleSlug = decodeScalar(normalizedParams.sampleSlug);
+  const demo = decodeScalar(normalizedParams.demo);
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
     options.limit ?? decodeScalar(normalizedParams.limit);
@@ -82,7 +82,7 @@ export function getTraceQueryParams(
 
   const queryParams = {
     ...otherParams,
-    sampleSlug,
+    demo,
     limit,
     timestamp,
     eventId,
@@ -101,14 +101,14 @@ export function getTraceQueryParams(
   return queryParams;
 }
 
-function parseSampleSlug(
-  sample: string | undefined
+function parseDemoEventSlug(
+  demoEventSlug: string | undefined
 ): {event_id: string; project_slug: string} | null {
-  if (!sample) {
+  if (!demoEventSlug) {
     return null;
   }
 
-  const [project_slug, event_id] = sample.split(':');
+  const [project_slug, event_id] = demoEventSlug.split(':');
   return {project_slug, event_id};
 }
 
@@ -145,6 +145,44 @@ function makeTraceFromTransaction(
   return {transactions: [transaction], orphan_errors: []};
 }
 
+function useDemoTrace(
+  demo: string | undefined,
+  organization: {slug: string}
+): Pick<UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>, 'data' | 'status'> {
+  const demoEventSlug = parseDemoEventSlug(demo);
+
+  // When projects don't have performance set up, we allow them to view a demo transaction.
+  // The backend creates the demo transaction, however the trace is created async, so when the
+  // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
+  // When this happens, we assemble a fake trace response to only include the transaction that had already been
+  // created and stored already so that the users can visualize in the context of a trace.
+  const demoEventQuery = useApiQuery<EventTransaction>(
+    [
+      `/organizations/${organization.slug}/events/${demoEventSlug?.project_slug}:${demoEventSlug?.event_id}/`,
+      {
+        query: {
+          referrer: 'trace-view',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!demoEventSlug,
+    }
+  );
+
+  // Without the useMemo, the demoTraceQueryResults will be re-created on every render,
+  // causing the trace view to re-render as we interact with it.
+  const demoTraceQueryResults = useMemo(() => {
+    return {
+      data: makeTraceFromTransaction(demoEventQuery.data),
+      status: demoEventQuery.status,
+    };
+  }, [demoEventQuery.data, demoEventQuery.status]);
+
+  return demoTraceQueryResults;
+}
+
 type UseTraceParams = {
   limit?: number;
 };
@@ -161,31 +199,8 @@ export function useTrace(
     return getTraceQueryParams(query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
-  const sample = parseSampleSlug(queryParams.sampleSlug);
-
-  // When projects don't have performance set up, we allow them to view a sample transaction.
-  // Now that a transaction always shows up as a part of the trace it is associate with, we
-  // we need to display it as a part of the trace view. Therefore, we fetch the sample transaction
-  // make a trace, with it as the only event in it.
-  const sampleQuery = useApiQuery<EventTransaction>(
-    [
-      `/organizations/${organization.slug}/events/${sample?.project_slug}:${sample?.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-view',
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!sample,
-    }
-  );
-
-  const sampleTraceQueryResults = useMemo(() => {
-    return {data: makeTraceFromTransaction(sampleQuery.data), status: sampleQuery.status};
-  }, [sampleQuery.data, sampleQuery.status]);
-
+  const mode = queryParams.demo ? 'demo' : undefined;
+  const demoTrace = useDemoTrace(queryParams.demo, organization);
   const traceQuery = useApiQuery<TraceSplitResults<TraceFullDetailed>>(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
@@ -193,13 +208,9 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug && !sample,
+      enabled: !!params.traceSlug && !!organization.slug && mode !== 'demo',
     }
   );
 
-  if (sample) {
-    return sampleTraceQueryResults;
-  }
-
-  return {data: traceQuery.data, status: traceQuery.status};
+  return mode === 'demo' ? demoTrace : {data: traceQuery.data, status: traceQuery.status};
 }
