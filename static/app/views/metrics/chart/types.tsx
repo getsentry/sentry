@@ -33,7 +33,6 @@ export interface ScatterSeries extends Series {
 export interface CombinedMetricChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
-  enableZoom?: boolean;
   scatterSeries?: ScatterSeries[];
 }
 

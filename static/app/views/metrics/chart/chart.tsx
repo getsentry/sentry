@@ -9,7 +9,7 @@ import omitBy from 'lodash/omitBy';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
+import {useChartZoom} from 'sentry/components/charts/chartZoom';
 import {
   defaultFormatAxisLabel,
   getFormatter,
@@ -33,7 +33,6 @@ const MAIN_X_AXIS_ID = 'xAxis';
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
-  enableZoom?: boolean;
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
@@ -75,7 +74,7 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = memo(
   forwardRef<ReactEchartsRef, ChartProps>(
     (
-      {series, displayType, height, group, samples, focusArea, enableZoom, releases},
+      {series, displayType, height, group, samples, focusArea, releases},
       forwardedRef
     ) => {
       const chartRef = useRef<ReactEchartsRef>(null);
@@ -326,7 +325,7 @@ export const MetricChart = memo(
         firstUnit,
       ]);
 
-      if (!enableZoom) {
+      if (focusArea) {
         return (
           <ChartWrapper>
             {focusArea?.overlay}
@@ -334,16 +333,21 @@ export const MetricChart = memo(
           </ChartWrapper>
         );
       }
+
       return (
         <ChartWrapper>
-          <ChartZoom>
-            {zoomRenderProps => <CombinedChart {...chartProps} {...zoomRenderProps} />}
-          </ChartZoom>
+          <ZoomWrapper {...chartProps} />
         </ChartWrapper>
       );
     }
   )
 );
+
+function ZoomWrapper(chartProps) {
+  const zoomRenderProps = useChartZoom();
+
+  return <CombinedChart {...chartProps} {...zoomRenderProps} />;
+}
 
 function CombinedChart({
   displayType,
