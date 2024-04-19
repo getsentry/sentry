@@ -12,7 +12,7 @@ from sentry.replays.lib.new_query.conditions import (
     UUIDArray,
 )
 from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
-from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import parse_ipv4, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     ClickSelectorComposite,
@@ -61,7 +61,7 @@ varying_search_config: dict[str, FieldProtocol] = {
     "urls": StringColumnField("urls", parse_str, StringArray),
     "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
     "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
+    "user.ip_address": StringColumnField("ip_address_v4", parse_ipv4, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
 }
 

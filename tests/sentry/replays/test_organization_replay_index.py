@@ -1720,6 +1720,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
+    def test_query_invalid_ipv4_addresses(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "user.ip:127.256.0.1",
+                "!user.ip_address:192.168.z34.1",
+                "user.ip_address:bacontest",
+                "user.ip_address:[127.0.0.,192.168.0.1]",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
+
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])
 
