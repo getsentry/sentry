@@ -88,7 +88,7 @@ class _body_with_length:
 
 
 def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> HttpResponseBase:
-    """Take a django request object and proxy it to a remote location given an org_slug"""
+    """Take a django request object and proxy it to a remote location given an org_id_or_slug"""
 
     try:
         region = get_region_for_organization(org_id_or_slug)

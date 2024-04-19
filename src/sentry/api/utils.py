@@ -493,6 +493,11 @@ def id_or_slug_path_params_enabled(
     if options.get("api.id-or-slug-enabled"):
         return True
 
+    # Apigateway
+    if not convert_args_class and organization_slug:
+        # Return True if the organization is in the list of enabled organizations and the apigateway option is enabled
+        return organization_slug in options.get("api.id-or-slug-enabled-ea-org")
+
     # EA option for endpoints where organization is available
     if organization_slug and organization_slug not in options.get("api.id-or-slug-enabled-ea-org"):
         return False
@@ -501,7 +506,7 @@ def id_or_slug_path_params_enabled(
     if convert_args_class:
         return convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints")
 
-    return True
+    return False
 
 
 def update_snuba_params_with_timestamp(
