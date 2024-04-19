@@ -160,7 +160,7 @@ class FeatureManager(RegisteredFeatureManager):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
         if entity_feature_strategy == FeatureHandlerStrategy.OPTIONS:
-            if name.startswith("users:") or name.startswith("projects:"):
+            if name.startswith("users:"):
                 raise NotImplementedError(
                     "OPTIONS feature handler strategy only supports organizations (for now)"
                 )
