@@ -5315,6 +5315,16 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.project",
         "nullable": false
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.rule",

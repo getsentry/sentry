@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -57,6 +58,8 @@ class Rule(Model):
         choices=RuleSource.as_choices(),
     )
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
