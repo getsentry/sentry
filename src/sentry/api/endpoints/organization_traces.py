@@ -356,13 +356,13 @@ def process_breakdowns(data, traces_range):
 
     for trace, (trace_start, trace_end) in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
-        # with an unknown interval.
+        # with an other interval.
 
-        unknown_interval = {
+        other = {
             "project": None,
             "start": trace_start,
             "end": trace_end,
-            "kind": "unknown",
+            "kind": "other",
         }
 
         # Clear the remaining intervals on the stack to find the latest end time
@@ -370,9 +370,9 @@ def process_breakdowns(data, traces_range):
         # of the trace that was not covered by one of the intervals.
         while stacks[trace]:
             interval = stack_pop(trace)
-            unknown_interval["start"] = max(unknown_interval["start"], interval["end"])
+            other["start"] = max(other["start"], interval["end"])
 
-        if unknown_interval["start"] < unknown_interval["end"]:
-            breakdown_push(trace, unknown_interval)
+        if other["start"] < other["end"]:
+            breakdown_push(trace, other)
 
     return breakdowns
