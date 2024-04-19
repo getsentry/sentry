@@ -15,7 +15,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TransactionCell} from 'sentry/views/performance/http/transactionCell';
+import {TransactionCell} from 'sentry/views/performance/http/tables/transactionCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
