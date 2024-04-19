@@ -91,7 +91,7 @@ export function HTTPDomainSummaryPage() {
       'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
-    referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+    referrer: 'api.performance.http.domain-summary-metrics-ribbon',
   });
 
   const {
@@ -101,7 +101,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
+    referrer: 'api.performance.http.domain-summary-throughput-chart',
   });
 
   const {
@@ -111,7 +111,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+    referrer: 'api.performance.http.domain-summary-duration-chart',
   });
 
   const {
@@ -121,7 +121,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+    referrer: 'api.performance.http.domain-summary-response-code-chart',
   });
 
   const {
@@ -147,7 +147,7 @@ export function HTTPDomainSummaryPage() {
     sorts: [sort],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+    referrer: 'api.performance.http.domain-summary-transactions-list',
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);

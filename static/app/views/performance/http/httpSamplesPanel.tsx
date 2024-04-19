@@ -149,7 +149,7 @@ export function HTTPSamplesPanel() {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
     enabled: isPanelOpen,
-    referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+    referrer: 'api.performance.http.samples-panel-metrics-ribbon',
   });
 
   const {
@@ -160,7 +160,7 @@ export function HTTPSamplesPanel() {
     search,
     yAxis: [`avg(span.self_time)`],
     enabled: isPanelOpen && query.panel === 'duration',
-    referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+    referrer: 'api.performance.http.samples-panel-duration-chart',
   });
 
   const {
@@ -173,7 +173,7 @@ export function HTTPSamplesPanel() {
     yAxis: ['count()'],
     topEvents: 5,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
+    referrer: 'api.performance.http.samples-panel-response-code-chart',
   });
 
   // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
@@ -210,7 +210,7 @@ export function HTTPSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
-    referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+    referrer: 'api.performance.http.samples-panel-duration-samples',
   });
 
   const {
@@ -232,7 +232,7 @@ export function HTTPSamplesPanel() {
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+    referrer: 'api.performance.http.samples-panel-response-code-samples',
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(

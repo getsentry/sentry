@@ -80,7 +80,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-landing-throughput-chart',
+    referrer: 'api.performance.http.landing-throughput-chart',
   });
 
   const {
@@ -90,7 +90,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
-    referrer: 'api.starfish.http-module-landing-duration-chart',
+    referrer: 'api.performance.http.landing-duration-chart',
   });
 
   const {
@@ -100,7 +100,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-landing-response-code-chart',
+    referrer: 'api.performance.http.landing-response-code-chart',
   });
 
   const domainsListResponse = useSpanMetrics({
@@ -119,7 +119,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-landing-domains-list',
+    referrer: 'api.performance.http.landing-domains-list',
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
