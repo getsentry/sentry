@@ -205,7 +205,9 @@ function SidebarItem({
   return (
     <Tooltip
       disabled={
-        isInFloatingAccordion || (shouldAccordionFloat && isOpenInFloatingSidebar)
+        !isInCollapsedState ||
+        isInFloatingAccordion ||
+        (shouldAccordionFloat && isOpenInFloatingSidebar)
       }
       title={
         <Flex align="center">
