@@ -1,6 +1,6 @@
 import type {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
 import {
   HTTP_RESPONSE_3XX_COLOR,
   HTTP_RESPONSE_4XX_COLOR,

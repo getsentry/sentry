@@ -4,7 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useStatusPageList} from 'sentry/views/performance/http/useStatusPageList';
+import {useStatusPageList} from 'sentry/views/performance/http/data/useStatusPageList';
 
 interface Props {
   domain?: string;

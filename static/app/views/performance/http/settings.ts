@@ -14,4 +14,5 @@ export const releaseLevelAsBadgeProps = {
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
 
+export const CHART_HEIGHT = 160;
 export const SPAN_ID_DISPLAY_LENGTH = 16;
