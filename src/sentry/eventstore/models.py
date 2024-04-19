@@ -746,6 +746,10 @@ class GroupEvent(BaseEvent):
     def data(self, value: NodeData) -> None:
         self._data = value
 
+    @property
+    def trace_id(self) -> str | None:
+        return self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+
     @classmethod
     def from_event(cls, event: Event, group: Group) -> GroupEvent:
         group_event = cls(

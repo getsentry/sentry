@@ -8,15 +8,14 @@ from sentry.utils.snuba import bulk_snql_query
 
 
 def trace_connected_analysis(group: Group) -> list[int]:
-    error_event = group.get_recommended_event_for_environments()
-    if not error_event or error_event.data.get("trace_id"):
+    event = group.get_recommended_event_for_environments()
+    if not event or event.trace_id is None:
         return []
     # project.id is an integer representing the project an issue belongs to
     # issue is the short slug represenging an issue
     # title is the title of the issue
     columns = ["project.id", "issue", "title"]
-    trace_id = int(error_event.data["trace_id"])
-    query = find_errors_for_trace_id(params={}, trace_id=trace_id, selected_columns=columns)
+    query = find_errors_for_trace_id(params={}, trace_id=event.trace_id, selected_columns=columns)
     results = bulk_snql_query(
         [query.get_snql_query()],
         referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,

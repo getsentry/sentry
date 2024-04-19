@@ -1,17 +1,16 @@
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceTestCase
 
 
-class RelatedIssuesTest(APITestCase):
+class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
     endpoint = "sentry-api-0-issues-related-issues"
+    FEATURES: list[str] = []
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
-        self.error_type = "ApiTimeoutError"
-        self.error_value = "Timed out attempting to reach host: api.github.com"
         # You need to set this value in your test before calling the API
         self.group_id = None
 
@@ -23,15 +22,17 @@ class RelatedIssuesTest(APITestCase):
 
     def test_same_root_related_issues(self) -> None:
         # This is the group we're going to query about
-        group = self.create_group(data=self._data(self.error_type, self.error_value))
+        error_type = "ApiTimeoutError"
+        error_value = "Timed out attempting to reach host: api.github.com"
+        group = self.create_group(data=self._data(error_type, error_value))
         self.group_id = group.id
 
         groups_data = [
-            self._data("ApiError", self.error_value),
-            self._data(self.error_type, "Unreacheable host: api.github.com"),
-            self._data(self.error_type, ""),
+            self._data("ApiError", error_value),
+            self._data(error_type, "Unreacheable host: api.github.com"),
+            self._data(error_type, ""),
             # Only this group will be related
-            self._data(self.error_type, self.error_value),
+            self._data(error_type, error_value),
         ]
         # XXX: See if we can get this code to be closer to how save_event generates groups
         for datum in groups_data:
@@ -49,9 +50,8 @@ class RelatedIssuesTest(APITestCase):
         }
 
     def test_trace_connected_errors(self) -> None:
-        # This is the group we're going to query about
-        group = self.create_group(data=self._data(self.error_type, self.error_value))
-        self.group_id = group.id
+        error, _ = self.load_errors()
+        self.group_id = error.group.id
 
         response = self.get_success_response()
         assert response.json() == {

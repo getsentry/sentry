@@ -3470,7 +3470,7 @@ class TraceTestCase(SpanTestCase):
         ]
 
     def load_errors(self) -> tuple[Event, Event]:
-        """Generates 2 events for gen1 projects."""
+        """Generates trace with errors."""
         if not hasattr(self, "gen1_project"):
             self.populate_project1()
         start, _ = self.get_start_end_from_day_ago(1000)
