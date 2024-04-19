@@ -40,7 +40,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
-    getRegionDataFromOrganization(organization).name !== 'de' &&
+    getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     !displayAiAutofix;
 
