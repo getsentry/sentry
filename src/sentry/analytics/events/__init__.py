@@ -9,6 +9,7 @@ from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403
 from .comment_webhooks import *  # noqa: F401,F403
+from .cron_monitor_broken_status_recovery import *  # noqa: F401,F403
 from .cron_monitor_created import *  # noqa: F401,F403
 from .eventuser_endpoint_request import *  # noqa: F401,F403
 from .eventuser_equality_check import *  # noqa: F401,F403
