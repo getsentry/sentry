@@ -340,6 +340,14 @@ describe('formatPercentage()', function () {
     expect(formatPercentage(0.10513494, 3)).toBe('10.513%');
     expect(formatPercentage(0.10513494, 4)).toBe('10.5135%');
   });
+
+  it('obeys a minimum value option', () => {
+    expect(formatPercentage(0.0101, 0, {minimumValue: 0.01})).toBe('1%');
+    expect(formatPercentage(0.01, 0, {minimumValue: 0.001})).toBe('1%');
+    expect(formatPercentage(0.0001, 0, {minimumValue: 0.001})).toBe('<0.1%');
+    expect(formatPercentage(-0.0001, 0, {minimumValue: 0.001})).toBe('<0.1%');
+    expect(formatPercentage(0.00000234, 0, {minimumValue: 0.0001})).toBe('<0.01%');
+  });
 });
 
 describe('userDisplayName', function () {
