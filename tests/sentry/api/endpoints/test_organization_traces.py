@@ -363,19 +363,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 25,
                         "end": 75,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 75,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -413,13 +407,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 25,
-                        "end": 50,
+                        "end": 75,
                         "kind": "project",
                     },
                     {
@@ -611,31 +605,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
-                        "end": 40,
+                        "end": 80,
                         "kind": "project",
                     },
                     {
                         "project": "baz",
                         "start": 40,
                         "end": 60,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "bar",
-                        "start": 60,
-                        "end": 80,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 80,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -673,7 +655,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
@@ -686,12 +668,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": "baz",
                         "start": 50,
                         "end": 75,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 75,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -729,19 +705,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
                         "end": 30,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 30,
-                        "end": 50,
                         "kind": "project",
                     },
                     {
@@ -785,19 +755,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
                         "end": 30,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 30,
-                        "end": 40,
                         "kind": "project",
                     },
                     {
@@ -841,19 +805,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 10,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 10,
                         "end": 20,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 20,
-                        "end": 50,
                         "kind": "project",
                     },
                 ],
