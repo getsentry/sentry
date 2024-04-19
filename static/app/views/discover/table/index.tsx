@@ -119,7 +119,9 @@ class Table extends PureComponent<TableProps, TableState> {
 
     // We are now routing to the trace view on clicking event ids. Therefore, we need the trace slug associated to the event id.
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
-    apiPayload.field.push('trace');
+    if (!eventView.hasAggregateField() || apiPayload.field.includes('id')) {
+      apiPayload.field.push('trace');
+    }
 
     // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
     // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
