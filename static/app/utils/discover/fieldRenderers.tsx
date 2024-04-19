@@ -261,7 +261,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatPercentage(data[field], undefined, {minimumValue: 0.0001})
+          : emptyValue}
       </NumberContainer>
     ),
   },
