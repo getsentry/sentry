@@ -1,4 +1,4 @@
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TData = unknown;
@@ -13,13 +13,19 @@ export default function useMarkReplayViewed() {
   const api = useApi({
     persistInFlight: false,
   });
+  const queryClient = useQueryClient();
 
   return useMutation<TData, TError, TVariables, TContext>({
     mutationFn: ({projectSlug, replayId}) => {
       const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
       return fetchMutation(api)(['POST', url]);
     },
-    cacheTime: 0,
+    onMutate({replayId}: TVariables) {
+      const cache = queryClient.getQueryCache();
+      cache
+        .findAll([`/organizations/${organization.slug}/replays/${replayId}/viewed-by/`])
+        .forEach(response => response.invalidate());
+    },
     retry: false,
   });
 }
