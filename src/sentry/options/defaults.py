@@ -470,6 +470,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
