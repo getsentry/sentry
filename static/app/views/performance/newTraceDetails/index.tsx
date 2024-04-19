@@ -126,7 +126,10 @@ export function TraceView() {
   const meta = useTraceMeta();
 
   return (
-    <SentryDocumentTitle title={t('Trace')} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={`${t('Trace')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
       <NoProjectMessage organization={organization}>
         <TraceViewContent
           status={trace.status}
