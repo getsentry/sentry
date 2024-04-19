@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -7,6 +9,7 @@ from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration already run. Skipping test.")
 class AlertRuleProjectBackfillTest(TestMigrations):
     migrate_from = "0686_remove_config_from_checkin_state_operation"
     migrate_to = "0687_alert_rule_project_backfill_migration"
