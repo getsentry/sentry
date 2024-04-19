@@ -1468,20 +1468,23 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
           props.node_space!
         );
 
-        const max_width = 100 - left;
-        const issue_duration = (issue.end - issue.start) * 1e3;
-        const width = clamp((issue_duration / props.node_space![1]) * 100, 0, max_width);
+        const iconProps = {left: left * 100 + '%'};
 
         return (
-          <div
-            key={issue.event_id}
-            className="TracePerformanceIssue"
-            style={{left: left * 100 + '%', width: width + '%'}}
-          >
-            <div className={`TraceIcon performance_issue`} style={{left: 0}}>
+          <Fragment key={issue.event_id}>
+            <div
+              className="TracePatternContainer"
+              style={{
+                left: left * 100 + '%',
+                width: (1 - left) * 100 + '%',
+              }}
+            >
+              <div className="TracePattern performance_issue" />
+            </div>
+            <div className="TraceIcon performance_issue" style={iconProps}>
               <TraceIcons.Icon event={issue} />
             </div>
-          </div>
+          </Fragment>
         );
       })}
     </Fragment>
@@ -1772,7 +1775,6 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     cursor: col-resize;
     z-index: 10;
-    transform: translateX(calc(var(--translate-x) * 1px));
 
     &:before {
       content: '';
@@ -1797,7 +1799,6 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    transform: translateX(calc(var(--translate-x) * 1px));
     z-index: 10;
     pointer-events: none;
   }
@@ -1983,6 +1984,35 @@ const TraceStylingWrapper = styled('div')`
         svg {
           transform: translateY(-1px);
         }
+      }
+    }
+
+    .TracePatternContainer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .TracePattern {
+      width: 9999999%;
+      height: 100%;
+      position: absolute;
+      transform-origin: left center;
+      transform: scaleX(var(--inverse-span-scale));
+      background-image: linear-gradient(
+        135deg,
+        transparent 25%,
+        ${p => p.theme.blue300} 25%,
+        ${p => p.theme.blue300} 50%,
+        transparent 50%,
+        transparent 75%,
+        ${p => p.theme.blue300} 75%,
+        ${p => p.theme.blue300} 100%
+      );
+      background-size: 16px 16px;
+
+      &.performance_issue {
       }
     }
 

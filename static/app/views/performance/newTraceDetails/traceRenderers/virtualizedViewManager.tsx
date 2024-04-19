@@ -95,6 +95,7 @@ export class VirtualizedViewManager {
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
   invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
     | {
@@ -349,6 +350,16 @@ export class VirtualizedViewManager {
 
   registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_bars[index] = ref ? {ref, space} : undefined;
+    this.span_patterns[index] = [];
+  }
+
+  registerSpanPatternRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    if (!ref) return;
+    this.span_patterns[index].push({ref, space});
   }
 
   registerInvisibleBarRef(
@@ -1182,22 +1193,21 @@ export class VirtualizedViewManager {
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
     if (this.divider) {
-      this.divider.style.setProperty(
-        '--translate-x',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(
-          (list_width * (this.container_physical_space.width - this.scrollbar_width) -
-            DIVIDER_WIDTH / 2 -
-            1) *
-            10
-        ) / 10
-      );
+      this.divider.style.transform = `translate(
+        ${
+          Math.round(
+            (list_width * (this.container_physical_space.width - this.scrollbar_width) -
+              DIVIDER_WIDTH / 2 -
+              1) *
+              10
+          ) / 10
+        }px, 0)`;
     }
+
     if (this.indicator_container) {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
-      // @ts-expect-error we set number value type on purpose
-      this.indicator_container.style.setProperty('--translate-x', -this.scrollbar_width);
+      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
       this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
@@ -1226,6 +1236,14 @@ export class VirtualizedViewManager {
           1 / span_transform[0] + ''
         );
       }
+
+      for (const pattern of this.span_patterns?.[i] ?? []) {
+        if (!pattern) continue;
+        const span_transform = this.computeSpanCSSMatrixTransform(pattern.space);
+        pattern.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        pattern.ref.style.setProperty('--inverse-span-scale', 1 / span_transform[0] + '');
+      }
+
       const node = this.columns.list.column_nodes[i];
       const span_text = this.span_text[i];
       if (span_text) {
