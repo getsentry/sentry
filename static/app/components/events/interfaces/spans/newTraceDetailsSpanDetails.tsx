@@ -42,7 +42,8 @@ import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/new
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {Frame, SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {FrameContainer} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
@@ -455,11 +456,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 extra={renderSpanDetailActions()}
               >
                 {resolvedModule === ModuleName.DB ? (
-                  <SpanDescription
-                    groupId={span.sentry_tags?.group ?? ''}
-                    op={span.op ?? ''}
-                    preliminaryDescription={span.description}
-                  />
+                  <SpanDescriptionWrapper>
+                    <SpanDescription
+                      groupId={span.sentry_tags?.group ?? ''}
+                      op={span.op ?? ''}
+                      preliminaryDescription={span.description}
+                    />
+                  </SpanDescriptionWrapper>
                 ) : (
                   span.description
                 )}
@@ -741,7 +744,7 @@ const ButtonGroup = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const ValueRow = styled('div')`
+export const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -756,12 +759,27 @@ const StyledPre = styled('pre')`
   background-color: transparent !important;
 `;
 
-const ButtonContainer = styled('div')`
+export const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   margin-left: ${space(0.5)};
+`;
+
+const SpanDescriptionWrapper = styled('div')`
+  ${Frame} {
+    border: none;
+  }
+
+  ${FrameContainer} {
+    padding: ${space(2)} 0 0 0;
+    margin-top: ${space(2)};
+  }
+
+  pre {
+    padding: 0 !important;
+  }
 `;
 
 export default NewTraceDetailsSpanDetail;
