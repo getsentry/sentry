@@ -58,7 +58,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
 
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 resp = self.get_response(
-                    self.organization.id,
+                    self.organization.slug,
                     name="hello world",
                     idp_provisioned=True,
                     extra_headers=dict(
