@@ -1,6 +1,6 @@
 from unittest.mock import ANY, patch
 
-from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAutofixEndpoint
+from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -12,7 +12,10 @@ pytestmark = [requires_snuba]
 
 
 @apply_feature_flag_on_cls("projects:ai-autofix")
-class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
+class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
+    def _get_url(self, group_id: int):
+        return f"/api/0/issues/{group_id}/autofix/"
+
     @patch(
         "sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_get_autofix_state",
         return_value={"status": "PROCESSING"},
@@ -21,8 +24,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
-        response = self.client.get(url, format="json")
+        response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
         assert response.data["autofix"] is not None
@@ -39,8 +41,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
-        response = self.client.get(url, format="json")
+        response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
         assert response.data["autofix"] is None
@@ -74,10 +75,11 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group is not None
         group.save()
 
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
         self.login_as(user=self.user)
         response = self.client.post(
-            url, data={"instruction": "Yes", "event_id": event.event_id}, format="json"
+            self._get_url(group.id),
+            data={"instruction": "Yes", "event_id": event.event_id},
+            format="json",
         )
         mock_call.assert_called_with(
             ANY,
@@ -129,9 +131,10 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group is not None
         group.save()
 
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
         self.login_as(user=self.user)
-        response = self.client.post(url, data={"instruction": "Yes"}, format="json")
+        response = self.client.post(
+            self._get_url(group.id), data={"instruction": "Yes"}, format="json"
+        )
         mock_call.assert_called_with(
             ANY,
             group,
@@ -183,16 +186,69 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group is not None
         group.save()
 
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
         self.login_as(user=self.user)
-        response = self.client.post(url, data={"instruction": "Yes"}, format="json")
-
-        assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == "Could not find recommended event for issue, please try providing an event_id"
+        response = self.client.post(
+            self._get_url(group.id), data={"instruction": "Yes"}, format="json"
         )
-        mock_call.assert_not_called()
+        mock_call.assert_called_with(
+            ANY,
+            group,
+            [
+                {
+                    "provider": "integrations:github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                }
+            ],
+            ANY,
+            "Yes",
+            TIMEOUT_SECONDS,
+        )
+
+        actual_group_arg = mock_call.call_args[0][1]
+        assert actual_group_arg.id == group.id
+
+        serialized_event_arg = mock_call.call_args[0][3]
+        assert any(
+            [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
+        )
+
+        assert response.status_code == 202
+
+    @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
+    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    def test_ai_autofix_post_without_event_id_error(
+        self, mock_latest_event, mock_recommended_event
+    ):
+        release = self.create_release(project=self.project, version="1.0.0")
+
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        assert group is not None
+        group.save()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id), data={"instruction": "Yes"}, format="json"
+        )
+        assert response.status_code == 400
 
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     def test_ai_autofix_without_code_mapping(self, mock_call):
@@ -217,10 +273,11 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group is not None
         group.save()
 
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
         self.login_as(user=self.user)
         response = self.client.post(
-            url, data={"instruction": "Yes", "event_id": event.event_id}, format="json"
+            self._get_url(group.id),
+            data={"instruction": "Yes", "event_id": event.event_id},
+            format="json",
         )
         mock_call.assert_not_called()
 
@@ -260,10 +317,11 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group is not None
         group.save()
 
-        url = f"/api/0/issues/{group.id}/ai-autofix/"
         self.login_as(user=self.user)
         response = self.client.post(
-            url, data={"instruction": "Yes", "event_id": event.event_id}, format="json"
+            self._get_url(group.id),
+            data={"instruction": "Yes", "event_id": event.event_id},
+            format="json",
         )
         mock_call.assert_not_called()
 
@@ -273,8 +331,3 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
-
-    def test_get_repos_from_code_mapping_no_repos(self):
-        group = self.create_group(project=self.project)
-        repos = GroupAutofixEndpoint._get_repos_from_code_mapping(group)
-        assert len(repos) == 0, "Expected no repositories to be returned when none are linked"

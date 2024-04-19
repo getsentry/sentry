@@ -144,9 +144,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if event_id is None:
             event = group.get_recommended_event_for_environments()
             if not event:
+                event = group.get_latest_event()
+
+            if not event:
                 return Response(
                     {
-                        "detail": "Could not find recommended event for issue, please try providing an event_id"
+                        "detail": "Could not find an event for the issue, please try providing an event_id"
                     },
                     status=400,
                 )
