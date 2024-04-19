@@ -928,6 +928,10 @@ export class VirtualizedViewManager {
       this.teardown();
     }
 
+    if (this.container === container) {
+      return;
+    }
+
     this.container = container;
     this.container.style.setProperty(
       '--list-column-width',
