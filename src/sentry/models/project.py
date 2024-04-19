@@ -564,8 +564,10 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.rule import Rule
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
-        # TODO owner_id -> team_id
-        AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
+        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(
+            owner=None, team_id=None
+        )
+        # TODO(mark) Replace owner_id -> team_id
         Rule.objects.filter(owner_id=team.actor_id, project=self).update(owner=None)
 
     def get_security_token(self):

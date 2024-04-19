@@ -491,8 +491,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 **kwargs,
             )
             assert alert_rule.name == name
-            # TODO add assertions for team/user
             assert alert_rule.owner is None
+            assert alert_rule.user_id is None
+            assert alert_rule.team_id is None
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             if alert_rule.snuba_query.subscriptions.exists():
                 assert alert_rule.snuba_query.subscriptions.get().project == self.project
@@ -560,8 +561,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        # TODO add assertions for team/user
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -598,8 +600,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        # TODO add assertions for user/team
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -661,7 +664,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
 
     def test_alert_rule_owner(self):
-        # TODO Make sure user/team are working as well
         alert_rule_1 = create_alert_rule(
             self.organization,
             [self.project],
@@ -674,6 +676,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule_1.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule_1.user_id == self.user.id
+        assert alert_rule_1.team_id is None
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -686,6 +690,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule_2.owner.id == self.team.actor.id
+        assert alert_rule_2.user_id is None
+        assert alert_rule_2.team_id == self.team.id
 
     def test_comparison_delta(self):
         comparison_delta = 60
@@ -954,7 +960,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert action_snapshot.target_display == action.target_display
 
     def test_alert_rule_owner(self):
-        # TODO make sure this is setting team/user as well.
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -967,32 +972,48 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule.owner.id == self.team.actor.id
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
             owner=None,
         )
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
 
     def test_comparison_delta(self):
         comparison_delta = 60
