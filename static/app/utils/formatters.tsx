@@ -378,7 +378,6 @@ export function formatPercentage(
   places: number = 2,
   options: {
     minimumValue?: number;
-    significantDigits?: number;
   } = {}
 ) {
   if (value === 0) {
