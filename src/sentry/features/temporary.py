@@ -283,6 +283,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:extract-transaction-from-segment-span", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("projects:span-metrics-double-write-distributions-as-gauges", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
