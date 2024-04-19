@@ -247,19 +247,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         {
                             "project": project_1.slug,
                             "start": int(timestamps[0].timestamp() * 1000),
-                            "end": int(timestamps[1].timestamp() * 1000),
+                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                             "kind": "project",
                         },
                         {
                             "project": project_2.slug,
                             "start": int(timestamps[1].timestamp() * 1000),
                             "end": int(timestamps[3].timestamp() * 1000) + 30_000,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[3].timestamp() * 1000) + 30_000,
-                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                             "kind": "project",
                         },
                     ],
@@ -283,19 +277,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         {
                             "project": project_1.slug,
                             "start": int(timestamps[4].timestamp() * 1000),
-                            "end": int(timestamps[5].timestamp() * 1000),
+                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                             "kind": "project",
                         },
                         {
                             "project": project_2.slug,
                             "start": int(timestamps[5].timestamp() * 1000),
                             "end": int(timestamps[6].timestamp() * 1000) + 20_000,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[6].timestamp() * 1000) + 20_000,
-                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                             "kind": "project",
                         },
                     ],
