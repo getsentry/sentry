@@ -854,11 +854,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": None,
                         "start": 50,
                         "end": 100,
-                        "kind": "unknown",
+                        "kind": "other",
                     },
                 ],
             },
-            id="adds unknown interval at end",
+            id="adds other interval at end",
         ),
     ],
 )

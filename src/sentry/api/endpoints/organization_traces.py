@@ -29,7 +29,7 @@ class TraceInterval(TypedDict):
     project: str | None
     start: int
     end: int
-    kind: Literal["project", "missing", "unknown"]
+    kind: Literal["project", "missing", "other"]
 
 
 class TraceResult(TypedDict):
