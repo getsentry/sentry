@@ -18,7 +18,9 @@ def _backfill_alert_rule_projects(apps: StateApps, schema_editor: BaseDatabaseSc
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
 
     # use RangeQuerySetWrapper to avoid loading all subscriptions into memory
-    for subscription in RangeQuerySetWrapper(QuerySubscriptions.objects.all()):
+    for subscription in RangeQuerySetWrapper(
+        QuerySubscriptions.objects.all().prefetch_related("snuba_query__alertrule")
+    ):
 
         snuba_query = subscription.snuba_query
         if not snuba_query:
