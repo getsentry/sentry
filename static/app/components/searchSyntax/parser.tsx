@@ -1112,16 +1112,17 @@ type KVConverter<T extends Token> = ConverterResultMap[KVTokens] & {type: T};
  */
 export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type: T};
 
-/**
- * Result from parsing a search query.
- */
-export type ParseResult = Array<
+export type ParseResultToken =
   | TokenResult<Token.LOGIC_BOOLEAN>
   | TokenResult<Token.LOGIC_GROUP>
   | TokenResult<Token.FILTER>
   | TokenResult<Token.FREE_TEXT>
-  | TokenResult<Token.SPACES>
->;
+  | TokenResult<Token.SPACES>;
+
+/**
+ * Result from parsing a search query.
+ */
+export type ParseResult = ParseResultToken[];
 
 /**
  * Configures behavior of search parsing
