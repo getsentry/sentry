@@ -1368,7 +1368,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Sentry user id(s) who have seen this Replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
-  }
+  },
 };
 
 export const REPLAY_CLICK_FIELDS = [
