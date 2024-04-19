@@ -12,6 +12,7 @@ import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
 } from 'sentry/utils/issueTypeConfig';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -39,6 +40,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
+    getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     !displayAiAutofix;
 
