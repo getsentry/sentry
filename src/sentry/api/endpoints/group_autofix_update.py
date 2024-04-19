@@ -34,7 +34,7 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
 
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            data=request.data,
+            data=request.body,
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
