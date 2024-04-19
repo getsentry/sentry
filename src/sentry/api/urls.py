@@ -768,7 +768,7 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-participants",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
+            r"^(?P<issue_id>[^\/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
         ),
@@ -2732,7 +2732,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-monitor-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/create$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/create/$",
         ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
         name="sentry-api-0-project-autofix-codebase-index-create",
     ),
