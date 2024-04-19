@@ -47,6 +47,7 @@ class DiscordClient(ApiClient):
     _METRICS_FAILURE_KEY: str = "sentry.integrations.discord.failure"
     _METRICS_SUCCESS_KEY: str = "sentry.integrations.discord.success"
     _METRICS_USER_ERROR_KEY: str = "sentry.integrations.discord.failure.user_error"
+    _METRICS_RATE_LIMIT_KEY: str = "sentry.integrations.discord.failure.rate_limit"
 
     def __init__(self):
         super().__init__()
@@ -147,12 +148,14 @@ class DiscordClient(ApiClient):
         }
 
         if not is_ok or error:
-            self._handle_failure(log_params=log_params, resp=resp)
+            code_to_use = code if isinstance(code, int) else None
+            self._handle_failure(code=code_to_use, log_params=log_params, resp=resp)
         else:
             self._handle_success(log_params=log_params)
 
     def _handle_failure(
         self,
+        code: int | None,
         log_params: dict[str, Any],
         resp: Response | None = None,
     ) -> None:
@@ -187,7 +190,15 @@ class DiscordClient(ApiClient):
         is_user_error = discord_error_code in DISCORD_USER_ERRORS
         log_params["is_user_error"] = is_user_error
 
-        metrics_key = self._METRICS_USER_ERROR_KEY if is_user_error else self._METRICS_FAILURE_KEY
+        if is_user_error:
+            metrics_key = self._METRICS_USER_ERROR_KEY
+        else:
+            metrics_key = (
+                self._METRICS_RATE_LIMIT_KEY
+                if code is not None and code == status.HTTP_429_TOO_MANY_REQUESTS
+                else self._METRICS_FAILURE_KEY
+            )
+
         metrics.incr(
             metrics_key,
             sample_rate=1.0,
