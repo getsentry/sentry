@@ -37,12 +37,18 @@ export enum MetricExpressionType {
   EQUATION = 2,
 }
 
+export enum MetricChartOverlayType {
+  RELEASES = 'releases',
+  SAMPLES = 'samples',
+}
+
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
   isHidden: boolean;
   type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
+  overlays?: MetricChartOverlayType[];
   sort?: SortState;
 }
 

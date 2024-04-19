@@ -1,5 +1,6 @@
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
+  MetricChartOverlayType,
   MetricDisplayType,
   MetricExpressionType,
   type MetricsWidget,
@@ -56,6 +57,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: true,
           sort: {name: undefined, order: 'asc'},
           isHidden: true,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
@@ -115,6 +117,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: true,
           sort: {name: 'avg', order: 'desc'},
           isHidden: true,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
         {
           id: 1,
@@ -128,6 +131,7 @@ describe('parseMetricWidgetQueryParam', () => {
           focusedSeries: [{id: 'default', groupBy: {event_type: 'default'}}],
           sort: {name: 'sum', order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
         // Formulas should always be at the end
         {
@@ -138,6 +142,7 @@ describe('parseMetricWidgetQueryParam', () => {
           sort: {name: 'avg', order: 'desc'},
           focusedSeries: [],
           isHidden: true,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
@@ -172,6 +177,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: false,
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
         {
           id: 0,
@@ -181,6 +187,7 @@ describe('parseMetricWidgetQueryParam', () => {
           focusedSeries: [],
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
@@ -217,6 +224,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: false,
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
@@ -261,6 +269,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: false,
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
@@ -315,6 +324,46 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: true,
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
+        },
+      ]
+    );
+  });
+
+  it('handles overlays array in array params', () => {
+    testParsing(
+      // INPUT
+      [
+        {
+          id: 0,
+          type: MetricExpressionType.QUERY,
+          mri: 'd:transactions/duration@millisecond',
+          op: 'sum',
+          query: 'test:query',
+          groupBy: 'dist',
+          displayType: 'line',
+          focusedSeries: {id: 'default', groupBy: {dist: 'default'}},
+          powerUserMode: true,
+          sort: {order: 'asc'},
+          isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES, MetricChartOverlayType.RELEASES],
+        },
+      ],
+      // RESULT
+      [
+        {
+          id: 0,
+          type: MetricExpressionType.QUERY,
+          mri: 'd:transactions/duration@millisecond',
+          op: 'sum',
+          query: 'test:query',
+          groupBy: ['dist'],
+          displayType: MetricDisplayType.LINE,
+          focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
+          powerUserMode: true,
+          sort: {name: undefined, order: 'asc'},
+          isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES, MetricChartOverlayType.RELEASES],
         },
       ]
     );
@@ -334,6 +383,7 @@ describe('parseMetricWidgetQueryParam', () => {
         powerUserMode: true,
         sort: {name: 'avg' as const, order: 'desc' as const},
         isHidden: false,
+        overlays: [MetricChartOverlayType.SAMPLES],
       };
     }
 
@@ -392,6 +442,7 @@ describe('parseMetricWidgetQueryParam', () => {
           powerUserMode: true,
           sort: {name: 'avg', order: 'desc'},
           isHidden: false,
+          overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
     );
