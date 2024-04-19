@@ -164,7 +164,7 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
                 for i in range(0, len(keys), BATCH_SIZE):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
-                    for segment in segments:
+                    for j, segment in enumerate(segments):
                         if not segment:
                             continue
 
@@ -172,6 +172,7 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
                         if len(payload_data) > MAX_PAYLOAD_SIZE:
                             logger.warning(
                                 "Failed to produce message: max payload size exceeded.",
+                                extra={"segment_key": keys[i + j]},
                             )
                             metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
                             continue
