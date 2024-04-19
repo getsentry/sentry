@@ -23,7 +23,6 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
-from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
@@ -149,11 +148,9 @@ class AlertRuleSerializer(Serializer):
 
         alert_rule_projects = set()
         for alert_rule in alert_rules.values():
-            try:
-                if alert_rule.projects.get().slug:
-                    alert_rule_projects.add((alert_rule.id, alert_rule.projects.get().slug))
-            except Project.DoesNotExist:
-                pass
+            if alert_rule.projects.exists():
+                for project in alert_rule.projects.all():
+                    alert_rule_projects.add((alert_rule.id, project.slug))
 
         # TODO - Cleanup Subscription Project Mapping
         snuba_alert_rule_projects = AlertRule.objects.filter(
