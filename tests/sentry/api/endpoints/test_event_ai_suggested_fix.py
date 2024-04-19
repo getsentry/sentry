@@ -21,6 +21,21 @@ def openai_features():
 
 
 @pytest.fixture(autouse=True)
+def llm_settings(set_sentry_option):
+    with (
+        set_sentry_option(
+            "llm.provider.options",
+            {"openai": {"models": ["gpt-4-turbo-1.0"], "options": {"api_key": "fake_api_key"}}},
+        ),
+        set_sentry_option(
+            "llm.usecases.options",
+            {"suggestedfix": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
+        ),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def openai_mock(monkeypatch):
     def dummy_response(*args, **kwargs):
         return ChatCompletion(
@@ -42,7 +57,7 @@ def openai_mock(monkeypatch):
     mock_openai = Mock()
     mock_openai().chat.completions.create = dummy_response
 
-    monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
+    monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
 
 
 class EventAiSuggestedFixEndpointTest(APITestCase):

@@ -23,7 +23,7 @@ def openai(event: IO[str], model: str, dump_prompt: bool) -> None:
     if dump_prompt:
         click.echo(json.dumps(describe_event_for_ai(event_data, model=model), indent=2))
     else:
-        resp = suggest_fix(event_data, stream=True, model=model)
+        resp = suggest_fix(event_data, model=model)
         for chunk in resp:
             click.echo(chunk, nl=False)
         click.echo()

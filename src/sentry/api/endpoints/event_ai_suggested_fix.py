@@ -7,7 +7,6 @@ from typing import Any
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
-from openai import OpenAI, RateLimitError
 
 from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
@@ -15,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -110,20 +110,6 @@ BLOCKED_TAGS = frozenset(
         "otel",
     ]
 )
-
-openai_client: OpenAI | None = None
-
-
-def get_openai_client() -> OpenAI:
-    global openai_client
-
-    if openai_client:
-        return openai_client
-
-    # this will raise if OPENAI_API_KEY is not set
-    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-    return openai_client
 
 
 def get_openai_policy(organization, user, pii_certified):
@@ -264,28 +250,18 @@ def describe_event_for_ai(event, model):
     return data
 
 
-def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL, stream=False):
+def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    client = get_openai_client()
-
-    response = client.chat.completions.create(
-        model=model,
+    response = complete_prompt(
+        usecase=LLMUseCase.SUGGESTED_FIX,
+        prompt=prompt,
+        message=json.dumps(event_info),
         temperature=0.7,
-        messages=[
-            {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": json.dumps(event_info),
-            },
-        ],
-        stream=stream,
     )
-    if stream:
-        return reduce_stream(response)
-    return response.choices[0].message.content
+    return response
 
 
 def reduce_stream(response):
@@ -306,9 +282,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
         },
     }
 
@@ -361,15 +337,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         cache_key = "ai:" + event.get_primary_hash()
         suggestion = cache.get(cache_key)
         if suggestion is None:
-            try:
-                suggestion = suggest_fix(event.data, stream=stream)
-            except RateLimitError as err:
-                return HttpResponse(
-                    json.dumps({"error": err.response.json()["error"]}),
-                    content_type="text/plain; charset=utf-8",
-                    status=429,
-                )
-
+            suggestion = suggest_fix(event.data)
             if stream:
 
                 def stream_response():
