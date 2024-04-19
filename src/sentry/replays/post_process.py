@@ -104,7 +104,7 @@ def _strip_dashes(field: str | None) -> str:
 def generate_normalized_output(
     response: list[dict[str, Any]]
 ) -> Generator[ReplayDetailsResponse, None, None]:
-    """Skip archives, strip "agg_" prefixes, compute/nest new fields, and"""
+    """Skip archives, strip "agg_" prefixes, coerce correct types, and compute/nest new fields"""
 
     for item in response:
 
