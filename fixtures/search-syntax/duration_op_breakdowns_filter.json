@@ -13,7 +13,7 @@
           "type": "valueDuration",
           "value": "1.5",
           "unit": "s",
-          "parsed": {"value": 1.5, "unit": "s"}
+          "parsed": {"value": 1500}
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +33,7 @@
           "type": "valueDuration",
           "value": "1.5",
           "unit": "s",
-          "parsed": {"value": 1.5, "unit": "s"}
+          "parsed": {"value": 1500}
         }
       },
       {"type": "spaces", "value": ""}
@@ -53,7 +53,7 @@
           "type": "valueDuration",
           "value": "1.5",
           "unit": "s",
-          "parsed": {"value": 1.5, "unit": "s"}
+          "parsed": {"value": 1500}
         }
       },
       {"type": "spaces", "value": ""}

@@ -18,10 +18,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
-FEATURES = {
-    "organizations:performance-n-plus-one-api-calls-detector": True,
-}
-
 
 @no_silo_test
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -72,7 +68,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
-        with self.feature(FEATURES), mock.patch(
+        with mock.patch(
             "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
             side_effect=send_issue_occurrence_to_eventstream,
         ) as mock_eventstream, mock.patch.object(
@@ -108,7 +104,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
         event_data["contexts"]["trace"]["op"] = "navigation"
 
-        with self.feature(FEATURES), mock.patch(
+        with mock.patch(
             "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
             side_effect=send_issue_occurrence_to_eventstream,
         ) as mock_eventstream, mock.patch.object(
