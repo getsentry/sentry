@@ -26,7 +26,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
-import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
+import {DomainStatusLink} from 'sentry/views/performance/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {
   MODULE_TITLE,
