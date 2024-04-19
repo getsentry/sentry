@@ -65,6 +65,7 @@ def query_replays_collection_paginated(
         project_ids=project_ids,
         period_start=start,
         period_stop=end,
+        request_user_id=actor.id if actor else None,
     )
 
 
@@ -74,6 +75,7 @@ def query_replay_instance(
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
+    request_user_id: int | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -88,9 +90,38 @@ def query_replay_instance(
             project_ids=project_ids,
             period_start=start,
             period_end=end,
+            request_user_id=request_user_id,
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
+    )["data"]
+
+
+def query_replay_viewed_by_ids(
+    project_id: int | list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    request_user_id: int | None,
+    organization: Organization | None = None,
+) -> list[dict[str, Any]]:
+    """Query unique user ids who viewed a given replay."""
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
+
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=["viewed_by_ids"],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+            request_user_id=request_user_id,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.viewed_by_query",
     )["data"]
 
 
@@ -551,6 +582,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
+    "viewed_by_ids": ["viewed_by_ids"],
+    "has_viewed": ["viewed_by_ids"],
 }
 
 
@@ -698,6 +731,14 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Column("count_info_events")],
         alias="count_infos",
     ),
+    "viewed_by_ids": Function(
+        "groupUniqArrayIf",
+        parameters=[
+            Column("viewed_by_id"),
+            Function("greater", parameters=[Column("viewed_by_id"), 0]),
+        ],
+        alias="viewed_by_ids",
+    ),
 }
 
 
@@ -749,9 +790,16 @@ def collect_aliases(fields: list[str]) -> list[str]:
     return list(result)
 
 
-def select_from_fields(fields: list[str]) -> list[Column | Function]:
+def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
     """Return a list of columns to select."""
-    return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+    selection = []
+    for alias in collect_aliases(fields):
+        if alias == "has_viewed":
+            selection.append(compute_has_viewed(user_id))
+        else:
+            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+
+    return selection
 
 
 def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
@@ -760,3 +808,23 @@ def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, No
             yield child
         elif isinstance(child, ParenExpression):
             yield from _extract_children(child)
+
+
+def compute_has_viewed(viewed_by_id: int | None) -> Function:
+    if viewed_by_id is None:
+        # Return the literal "false" if no user-id was specified.
+        return Function("equals", parameters=[1, 2])
+
+    return Function(
+        "greater",
+        parameters=[
+            Function(
+                "sum",
+                parameters=[
+                    Function("equals", parameters=[Column("viewed_by_id"), viewed_by_id]),
+                ],
+            ),
+            0,
+        ],
+        alias="has_viewed",
+    )

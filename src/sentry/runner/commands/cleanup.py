@@ -14,7 +14,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 
 
 def get_project(value: str) -> int | None:
@@ -40,6 +40,12 @@ _WorkQueue: TypeAlias = (
 )
 
 API_TOKEN_TTL_IN_DAYS = 30
+
+
+def debug_output(msg: str) -> None:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+        return
+    click.echo(msg)
 
 
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
@@ -71,11 +77,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         j = task_queue.get()
         if j == _STOP_WORKER:
             task_queue.task_done()
+
             return
 
-        model, chunk = j
-        model = import_string(model)
-
+        model_name, chunk = j
+        model = import_string(model_name)
         try:
             task = deletions.get(
                 model=model,
@@ -138,6 +144,8 @@ def cleanup(
         raise click.Abort()
 
     os.environ["_SENTRY_CLEANUP"] = "1"
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
@@ -182,6 +190,9 @@ def cleanup(
         model_list = {m.lower() for m in model}
 
         def is_filtered(model: type[Model]) -> bool:
+            silo_limit = getattr(model._meta, "silo_limit", None)
+            if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                return True
             if router is not None and db_router.db_for_write(model) != router:
                 return True
             if not model_list:
@@ -222,34 +233,26 @@ def cleanup(
             (models.ProjectDebugFile, "date_accessed", "date_accessed"),
         ]
 
-        if not silent:
-            click.echo("Removing expired values for LostPasswordHash")
-
+        debug_output("Removing expired values for LostPasswordHash")
         if is_filtered(models.LostPasswordHash):
-            if not silent:
-                click.echo(">> Skipping LostPasswordHash")
+            debug_output(">> Skipping LostPasswordHash")
         else:
             models.LostPasswordHash.objects.filter(
                 date_added__lte=timezone.now() - timedelta(hours=48)
             ).delete()
 
-        if not silent:
-            click.echo("Removing expired values for OrganizationMember")
-
+        debug_output("Removing expired values for OrganizationMember")
         if is_filtered(models.OrganizationMember):
-            if not silent:
-                click.echo(">> Skipping OrganizationMember")
+            debug_output(">> Skipping OrganizationMember")
         else:
             expired_threshold = timezone.now() - timedelta(days=days)
             models.OrganizationMember.objects.delete_expired(expired_threshold)
 
         for model_tp in [models.ApiGrant, models.ApiToken]:
-            if not silent:
-                click.echo(f"Removing expired values for {model_tp.__name__}")
+            debug_output(f"Removing expired values for {model_tp.__name__}")
 
             if is_filtered(model_tp):
-                if not silent:
-                    click.echo(f">> Skipping {model_tp.__name__}")
+                debug_output(f">> Skipping {model_tp.__name__}")
             else:
                 queryset = model_tp.objects.filter(
                     expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
@@ -268,8 +271,7 @@ def cleanup(
             click.echo("Removing expired files associated with ExportedData")
 
         if is_filtered(ExportedData):
-            if not silent:
-                click.echo(">> Skipping ExportedData files")
+            debug_output(">> Skipping ExportedData files")
         else:
             queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
             for item in queryset:
@@ -286,8 +288,7 @@ def cleanup(
                     click.echo("Error: Project not found", err=True)
                     raise click.Abort()
             else:
-                if not silent:
-                    click.echo("Removing old NodeStore values")
+                debug_output("Removing old NodeStore values")
 
                 cutoff = timezone.now() - timedelta(days=days)
                 try:
@@ -295,14 +296,13 @@ def cleanup(
                 except NotImplementedError:
                     click.echo("NodeStore backend does not support cleanup operation", err=True)
 
+        debug_output("Running bulk query deletes in BULK_QUERY_DELETES")
         for model_tp, dtfield, order_by in BULK_QUERY_DELETES:
             chunk_size = 10000
 
-            if not silent:
-                click.echo(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
+            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             if is_filtered(model_tp):
-                if not silent:
-                    click.echo(">> Skipping %s" % model_tp.__name__)
+                debug_output(">> Skipping %s" % model_tp.__name__)
             else:
                 BulkDeleteQuery(
                     model=model_tp,
@@ -312,13 +312,12 @@ def cleanup(
                     order_by=order_by,
                 ).execute(chunk_size=chunk_size)
 
+        debug_output("Running bulk deletes in DELETES")
         for model_tp, dtfield, order_by in DELETES:
-            if not silent:
-                click.echo(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
+            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
 
             if is_filtered(model_tp):
-                if not silent:
-                    click.echo(">> Skipping %s" % model_tp.__name__)
+                debug_output(">> Skipping %s" % model_tp.__name__)
             else:
                 imp = ".".join((model_tp.__module__, model_tp.__name__))
 
@@ -338,27 +337,27 @@ def cleanup(
         project_deletion_query = None
         to_delete_by_project = []
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            debug_output("Preparing DELETES_BY_PROJECT context")
             project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
             if project:
                 project_deletion_query = models.Project.objects.filter(id=project_id)
 
             for model_tp_tup in DELETES_BY_PROJECT:
                 if is_filtered(model_tp_tup[0]):
-                    if not silent:
-                        click.echo(">> Skipping %s" % model_tp_tup[0].__name__)
+                    debug_output(">> Skipping %s" % model_tp_tup[0].__name__)
                 else:
                     to_delete_by_project.append(model_tp_tup)
 
-        if project_deletion_query and to_delete_by_project:
+        if project_deletion_query is not None and len(to_delete_by_project):
+            debug_output("Running bulk deletes in DELETES_BY_PROJECT")
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
                 result_value_getter=lambda item: item,
             ):
                 for model_tp, dtfield, order_by in to_delete_by_project:
-                    if not silent:
-                        click.echo(
-                            f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
-                        )
+                    debug_output(
+                        f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
+                    )
 
                     imp = ".".join((model_tp.__module__, model_tp.__name__))
 
@@ -377,14 +376,11 @@ def cleanup(
 
         # Clean up FileBlob instances which are no longer used and aren't super
         # recent (as there could be a race between blob creation and reference)
-        if not silent:
-            click.echo("Cleaning up unused FileBlob references")
+        debug_output("Cleaning up unused FileBlob references")
         if is_filtered(models.FileBlob):
-            if not silent:
-                click.echo(">> Skipping FileBlob")
+            debug_output(">> Skipping FileBlob")
         else:
             cleanup_unused_files(silent)
-
     finally:
         # Shut down our pool
         for _ in pool:

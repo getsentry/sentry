@@ -96,7 +96,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["serial", "parallel"]),
-            default="serial",
+            default="parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -108,7 +108,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--max-batch-time", "max_batch_time"],
             type=int,
-            default=10,
+            default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
     ]
@@ -239,14 +239,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "generic_metrics"},
     },
-    "sessions-subscription-results": {
-        "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(),
-        "static_args": {
-            "dataset": "events",
-        },
-    },
     "metrics-subscription-results": {
         "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
@@ -357,6 +349,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -384,7 +377,7 @@ def get_stream_processor(
     synchronize_commit_log_topic: str | None = None,
     synchronize_commit_group: str | None = None,
     healthcheck_file_path: str | None = None,
-    enable_dlq: bool = False,
+    enable_dlq: bool = True,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
@@ -410,10 +403,13 @@ def get_stream_processor(
 
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
-    cluster = topic_defn["cluster"]
+    cluster_from_config = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
+
+    if cluster is None:
+        cluster = cluster_from_config
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -496,7 +492,7 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
-    if enable_dlq:
+    if enable_dlq and consumer_definition.get("dlq_topic"):
         try:
             dlq_topic = consumer_definition["dlq_topic"]
         except KeyError as e:
@@ -517,8 +513,8 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
-                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
-                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
             ),
             None,
         )

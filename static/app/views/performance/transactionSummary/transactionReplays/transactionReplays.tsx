@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -38,7 +38,7 @@ function TransactionReplays() {
         ...location,
         query: {
           ...location.query,
-          statsPeriod: '14d',
+          statsPeriod: '90d',
         },
       }}
       organization={organization}

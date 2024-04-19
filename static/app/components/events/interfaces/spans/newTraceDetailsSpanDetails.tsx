@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -19,8 +19,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -33,11 +33,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -99,18 +99,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
   }, [props.node.errors, props.node.performance_issues]);
+
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
   const resolvedModule: ModuleName = resolveSpanModule(
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
-
-  useLayoutEffect(() => {
-    if (!('op' in props.span)) {
-      return;
-    }
-  }, [props.span]);
 
   function renderTraversalButton(): React.ReactNode {
     if (!props.childTransactions) {
@@ -538,11 +533,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   </Row>
                 ) : null
               )}
-              {unknownKeys.map(key => (
-                <Row title={key} key={key}>
-                  <GeneralSpanDetailsValue value={span[key]} />
-                </Row>
-              ))}
+              {unknownKeys.map(key => {
+                if (key === 'event' || key === 'childTransaction') {
+                  // dont render the entire JSON payload
+                  return null;
+                }
+                return (
+                  <Row title={key} key={key}>
+                    <GeneralSpanDetailsValue value={span[key]} />
+                  </Row>
+                );
+              })}
             </tbody>
           </table>
           {span._metrics_summary ? (

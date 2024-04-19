@@ -22,6 +22,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
+  ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
   MemoryFrame,
@@ -41,11 +42,6 @@ import {
   isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
-
-interface ClipWindow {
-  endTimestampMs: number;
-  startTimestampMs: number;
-}
 
 interface ReplayReaderParams {
   /**
@@ -105,6 +101,36 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   });
 
   return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
+}
+
+// If a `navigation` crumb and `navigation.*` span happen within this timeframe,
+// we'll consider them duplicates.
+const DUPLICATE_NAV_THRESHOLD_MS = 2;
+
+/**
+ * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
+ * there is a matching navigation.* span to replace it.
+ *
+ * SpanFrame is preferred because they render with more specific titles.
+ */
+function removeDuplicateNavCrumbs(
+  crumbFrames: BreadcrumbFrame[],
+  spanFrames: SpanFrame[]
+) {
+  const navCrumbs = crumbFrames.filter(crumb => crumb.category === 'navigation');
+  const otherBreadcrumbFrames = crumbFrames.filter(
+    crumb => crumb.category !== 'navigation'
+  );
+
+  const navSpans = spanFrames.filter(span => span.op.startsWith('navigation.'));
+
+  const uniqueNavCrumbs = navCrumbs.filter(
+    crumb =>
+      !navSpans.some(
+        span => Math.abs(crumb.offsetMs - span.offsetMs) <= DUPLICATE_NAV_THRESHOLD_MS
+      )
+  );
+  return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
 export default class ReplayReader {
@@ -225,6 +251,7 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
+  private _clipWindow: ClipWindow | undefined = undefined;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -238,6 +265,44 @@ export default class ReplayReader {
       this._replayRecord.finished_at.getTime()
     );
 
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+
+    // For video replays, we need to bypass setting the global offset (_startOffsetMs)
+    // because it messes with the playback time by causing it
+    // to become negative sometimes. Instead we pass a clip window directly into
+    // the video player, which runs on an external timer
+    if (this.isVideoReplay()) {
+      this._clipWindow = {
+        startTimestampMs: clipStartTimestampMs,
+        endTimestampMs: clipEndTimestampMs,
+      };
+
+      // Trim error frames and update offsets so they show inside the clip window
+      // Do this in here since we bypass setting the global offset
+      // Eventually when we have video breadcrumbs we'll probably need to trim them here too
+
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
+        frames: Array<T>
+      ) => {
+        const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+
+        return frames.map(frame => ({
+          ...frame,
+          offsetMs: frame.offsetMs - offset,
+        }));
+      };
+
+      this._errors = updateVideoFrameOffsets(
+        this._trimFramesToClipWindow(
+          this._errors,
+          clipStartTimestampMs,
+          clipEndTimestampMs
+        )
+      );
+
+      return;
+    }
+
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
     // the correct time.
@@ -247,7 +312,6 @@ export default class ReplayReader {
     this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
 
     this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -311,6 +375,8 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
+  getClipWindow = () => this._clipWindow;
+
   /**
    * @returns Duration of Replay (milliseonds)
    */
@@ -320,8 +386,17 @@ export default class ReplayReader {
 
   getStartOffsetMs = () => this._startOffsetMs;
 
-  getStartTimestampMs = () =>
-    this._replayRecord.started_at.getTime() + this._startOffsetMs;
+  getStartTimestampMs = () => {
+    // For video replays we bypass setting the global _startOffsetMs
+    // because it messes with the player time by causing it to
+    // be negative in some cases, but we still need that calculated value here
+    const start =
+      this.isVideoReplay() && this._clipWindow
+        ? this._clipWindow?.startTimestampMs - this._replayRecord.started_at.getTime()
+        : this._startOffsetMs;
+
+    return this._replayRecord.started_at.getTime() + start;
+  };
 
   getReplay = () => {
     return this._replayRecord;
@@ -401,20 +476,22 @@ export default class ReplayReader {
     )
   );
 
-  getPerfFrames = memoize(() =>
-    [
-      ...removeDuplicateClicks(
-        this._sortedBreadcrumbFrames.filter(
-          frame =>
-            ['navigation', 'ui.click'].includes(frame.category) ||
-            (frame.category === 'ui.slowClickDetected' &&
-              (isDeadClick(frame as SlowClickFrame) ||
-                isDeadRageClick(frame as SlowClickFrame)))
-        )
-      ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
-    ].sort(sortFrames)
-  );
+  getPerfFrames = memoize(() => {
+    const crumbs = removeDuplicateClicks(
+      this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['navigation', 'ui.click'].includes(frame.category) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+      )
+    );
+    const spans = this._sortedSpanFrames.filter(frame =>
+      frame.op.startsWith('navigation.')
+    );
+    const uniqueCrumbs = removeDuplicateNavCrumbs(crumbs, spans);
+    return [...uniqueCrumbs, ...spans].sort(sortFrames);
+  });
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 

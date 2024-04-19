@@ -223,16 +223,24 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber(11911)).toBe('11k');
   });
 
-  it('should round to set amount of significant digits', () => {
+  it('should round to set amount of significant digits', function () {
     expect(formatAbbreviatedNumber(100.12, 3)).toBe('100');
     expect(formatAbbreviatedNumber(199.99, 3)).toBe('200');
     expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122, 3)).toBe('1.21m');
+    expect(formatAbbreviatedNumber(-1213122, 3)).toBe('-1.21m');
     expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1500b');
 
     expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
     expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
+  });
+
+  it('should format negative numbers', function () {
+    expect(formatAbbreviatedNumber(-100)).toBe('-100');
+    expect(formatAbbreviatedNumber(-1095)).toBe('-1k');
+    expect(formatAbbreviatedNumber(-10000000)).toBe('-10m');
+    expect(formatAbbreviatedNumber(-1000000000000)).toBe('-1000b');
   });
 });
 
@@ -331,6 +339,14 @@ describe('formatPercentage()', function () {
     expect(formatPercentage(0.10513434, 1)).toBe('10.5%');
     expect(formatPercentage(0.10513494, 3)).toBe('10.513%');
     expect(formatPercentage(0.10513494, 4)).toBe('10.5135%');
+  });
+
+  it('obeys a minimum value option', () => {
+    expect(formatPercentage(0.0101, 0, {minimumValue: 0.01})).toBe('1%');
+    expect(formatPercentage(0.01, 0, {minimumValue: 0.001})).toBe('1%');
+    expect(formatPercentage(0.0001, 0, {minimumValue: 0.001})).toBe('<0.1%');
+    expect(formatPercentage(-0.0001, 0, {minimumValue: 0.001})).toBe('<0.1%');
+    expect(formatPercentage(0.00000234, 0, {minimumValue: 0.0001})).toBe('<0.01%');
   });
 });
 

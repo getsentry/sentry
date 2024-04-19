@@ -1021,14 +1021,13 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def format_options(self, attrs: dict[str, Any]) -> dict[str, Any]:
         options = attrs["options"]
 
-        return {
+        formatted_options = {
             "sentry:csp_ignored_sources_defaults": bool(
                 options.get("sentry:csp_ignored_sources_defaults", True)
             ),
             "sentry:csp_ignored_sources": "\n".join(
                 options.get("sentry:csp_ignored_sources", []) or []
             ),
-            "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
             "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
             # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
             # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
@@ -1047,11 +1046,19 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
             ),
             "sentry:feedback_ai_spam_detection": bool(
-                options.get("sentry:feedback_ai_spam_detection")
+                self.get_value_with_default(attrs, "sentry:feedback_ai_spam_detection")
             ),
-            "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
+            "sentry:replay_rage_click_issues": self.get_value_with_default(
+                attrs, "sentry:replay_rage_click_issues"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
+
+        reprocessing_active = options.get("sentry:reprocessing_active")
+        if reprocessing_active is not None:
+            formatted_options["sentry:reprocessing_active"] = reprocessing_active
+
+        return formatted_options
 
     def get_value_with_default(self, attrs, key):
         value = attrs["options"].get(key)

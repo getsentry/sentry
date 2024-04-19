@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupStatusResolution} from 'sentry/types';
 import {GroupStatus, GroupSubstatus} from 'sentry/types';
@@ -154,12 +154,12 @@ function ArchiveActions({
       <DropdownMenu
         minMenuWidth={270}
         size="sm"
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownTrigger
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
-            icon={<IconChevron direction="down" />}
+            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
             disabled={disabled}
           />
         )}

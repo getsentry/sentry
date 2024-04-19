@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization, Project} from 'sentry/types';
@@ -67,7 +67,7 @@ export function ShortIdBreadcrumb({
         <DropdownMenu
           triggerProps={{
             'aria-label': t('Short-ID copy actions'),
-            icon: <IconChevron direction="down" size="xs" />,
+            icon: <Chevron direction="down" />,
             size: 'zero',
             borderless: true,
             showChevron: false,
@@ -122,7 +122,7 @@ const ShortIdCopyable = styled('div')`
 
   &:hover button[aria-haspopup],
   button[aria-expanded='true'],
-  button[aria-haspopup].focus-visible {
+  button[aria-haspopup]:focus-visible {
     opacity: 1;
   }
 `;

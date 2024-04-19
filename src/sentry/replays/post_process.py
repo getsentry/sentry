@@ -73,6 +73,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+    has_viewed: bool
 
 
 def process_raw_response(
@@ -101,7 +102,7 @@ def _strip_dashes(field: str | None) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]],
+    response: list[dict[str, Any]]
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """Skip archives, strip "agg_" prefixes, compute/nest new fields, and"""
 
@@ -119,6 +120,8 @@ def generate_normalized_output(
         ret_item["id"] = _strip_dashes(item.get("replay_id", None))
         ret_item["environment"] = item.get("agg_environment", None)
         ret_item["releases"] = list(filter(bool, item.get("releases", [])))
+        # Returns a UInt8 of either 0 or 1. We coerce to a bool.
+        ret_item["has_viewed"] = bool(item.get("has_viewed", 0))
 
         # computed fields
         ret_item["tags"] = dict_unique_list(
@@ -184,7 +187,6 @@ def generate_normalized_output(
         # excluded fields: agg_urls, clickClass, click_selector
         # Don't need clickClass and click_selector for the click field, as they are only used for searching.
         # (click.classes contains the full list of classes for a click)
-
         yield ret_item
 
 

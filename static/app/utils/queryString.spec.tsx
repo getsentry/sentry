@@ -170,3 +170,40 @@ describe('decodeInteger()', function () {
     expect(utils.decodeInteger('', 2020)).toEqual(2020);
   });
 });
+
+describe('decodeSorts', () => {
+  it('handles simple strings and lists', () => {
+    expect(utils.decodeSorts('startedAt')).toEqual([{kind: 'asc', field: 'startedAt'}]);
+    expect(utils.decodeSorts(['startedAt', 'finishedAt'])).toEqual([
+      {kind: 'asc', field: 'startedAt'},
+      {kind: 'asc', field: 'finishedAt'},
+    ]);
+    expect(utils.decodeSorts('-startedAt')).toEqual([{kind: 'desc', field: 'startedAt'}]);
+    expect(utils.decodeSorts(['-startedAt', '-finishedAt'])).toEqual([
+      {kind: 'desc', field: 'startedAt'},
+      {kind: 'desc', field: 'finishedAt'},
+    ]);
+  });
+
+  it('handles falsey values', () => {
+    expect(utils.decodeSorts(null)).toEqual([]);
+    expect(utils.decodeSorts(undefined)).toEqual([]);
+    expect(utils.decodeSorts('')).toEqual([]);
+    expect(utils.decodeSorts([''])).toEqual([]);
+  });
+
+  it('fallsback to a default value', () => {
+    expect(utils.decodeSorts(null, '-startedAt')).toEqual([
+      {kind: 'desc', field: 'startedAt'},
+    ]);
+    expect(utils.decodeSorts(undefined, '-startedAt')).toEqual([
+      {kind: 'desc', field: 'startedAt'},
+    ]);
+    expect(utils.decodeSorts('', '-startedAt')).toEqual([
+      {kind: 'desc', field: 'startedAt'},
+    ]);
+    expect(utils.decodeSorts([''], '-startedAt')).toEqual([
+      {kind: 'desc', field: 'startedAt'},
+    ]);
+  });
+});

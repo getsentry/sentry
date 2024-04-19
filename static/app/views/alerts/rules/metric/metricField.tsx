@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {Aggregation} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
