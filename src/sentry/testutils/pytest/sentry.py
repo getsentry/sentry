@@ -270,7 +270,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
 
-    settings.SENTRY_USE_GROUP_ATTRIBUTES = True
+    # TODO: enable this during tests
+    settings.SENTRY_OPTIONS["issues.group_attributes.send_kafka"] = False
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
