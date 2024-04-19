@@ -260,6 +260,9 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
         return owner_ids
 
+    def get_member_user_ids(self):
+        return self.member_set.values_list("user_id", flat=True)
+
     # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
     # on teams.
     @classmethod
