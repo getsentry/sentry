@@ -7,10 +7,12 @@ import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import {Alert} from 'sentry/components/alert';
 import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
@@ -315,6 +317,33 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     return tokensToDisplay;
   };
 
+  rotateClientSecret = async () => {
+    try {
+      const rotateResponse = await this.api.requestPromise(
+        `/sentry-apps/${this.props.params.appSlug}/rotate-secret/`,
+        {
+          method: 'POST',
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Rotated Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <p>
+              {t('Your client secret is:')}
+              <code>{rotateResponse.clientSecret}</code>
+            </p>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
+  };
+
   onFieldChange = (name: string, value: FieldValue): void => {
     if (name === 'webhookUrl' && !value && this.isInternal) {
       // if no webhook, then set isAlertable to false
@@ -488,7 +517,12 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     )}
                   </FormField>
                 )}
-                <FormField name="clientSecret" label="Client Secret">
+                <FormField
+                  name="clientSecret"
+                  label="Client Secret"
+                  help={t(`Your secret is only available briefly after integration creation. Make
+                    sure to save this value!`)}
+                >
                   {({value, id}) =>
                     value ? (
                       <Tooltip
@@ -504,7 +538,14 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         </TextCopyInput>
                       </Tooltip>
                     ) : (
-                      <em>hidden</em>
+                      <ClientSecret>
+                        <HiddenSecret>{t('hidden')}</HiddenSecret>
+                        {this.hasTokenAccess ? (
+                          <Button onClick={this.rotateClientSecret} priority="danger">
+                            Rotate client secret
+                          </Button>
+                        ) : undefined}
+                      </ClientSecret>
                     )
                   }
                 </FormField>
@@ -541,4 +582,16 @@ const AvatarPreviewText = styled('span')`
   display: block;
   grid-area: 2 / 2 / 3 / 3;
   padding-left: ${space(2)};
+`;
+
+const HiddenSecret = styled('span')`
+  width: 100px;
+  font-style: italic;
+`;
+
+const ClientSecret = styled('div')`
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  margin-right: 0;
 `;
