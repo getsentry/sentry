@@ -1320,10 +1320,12 @@ class SnubaTestCase(BaseTestCase):
     def store_group(self, group):
         data = [self.__wrap_group(group)]
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/groupedmessage/insert",
-                data=json.dumps(data),
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/groupedmessage/insert",
+                body=json.dumps(data),
+                headers={},
+            ).status
             == 200
         )
 
