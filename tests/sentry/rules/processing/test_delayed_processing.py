@@ -1,31 +1,45 @@
+import copy
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 import pytest
 
 from sentry.db import models
 from sentry.eventstore.models import Event
-from sentry.models.project import Project
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
 )
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
-    def create_event(self, project: Project) -> Event:
-        return self.store_event(
-            data={
-                "event_id": "0" * 32,
-                "environment": self.environment.name,
-                "timestamp": iso_format(before_now(days=1)),
-                "fingerprint": ["part-1"],
-                "stacktrace": {"frames": [{"filename": "flow/spice.js"}]},
+    def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
+        data = {
+            "timestamp": iso_format(timestamp),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "environment": environment,
+            "fingerprint": [fingerprint],
+            "level": "error",
+            "user": {"id": uuid4().hex},
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
             },
-            project_id=project.id,
+        }
+        return self.store_event(
+            data=data,
+            project_id=project_id,
+            assert_no_errors=False,
         )
 
     def setUp(self):
@@ -60,10 +74,20 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         self.rule2 = self.create_project_rule(
             project=self.project, condition_match=[user_frequency_condition]
         )
-        self.event1 = self.create_event(self.project)
+        self.now = datetime.now(UTC)
+
+        self.event1 = self.create_event(
+            self.project.id, self.now, "group-1", self.environment.name
+        )  # for rule1 - will fire
+        self.create_event(self.project.id, self.now, "group-1", self.environment.name)
+
         self.group1 = self.event1.group
-        self.event2 = self.create_event(self.project)
+        self.event2 = self.create_event(
+            self.project, self.now, "group-2", self.environment.name
+        )  # for rule 1 -  will fire
+        self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.group2 = self.event2.group
+
         self.rulegroup_event_mapping_one = {
             f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
             f"{self.rule2.id}:{self.group2.id}": {self.event2.event_id},
@@ -79,9 +103,15 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
         )
-        self.event3 = self.create_event(self.project_two)
+        self.event3 = self.create_event(
+            self.project_two, self.now, "group-3", self.environment2.name
+        )  # for rule3 - (should) will fire
+        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
         self.group3 = self.event3.group
-        self.event4 = self.create_event(self.project_two)
+        self.event4 = self.create_event(
+            self.project_two, self.now, "group-4"
+        )  # for rule4 - will not fire
+        self.create_event(self.project_two, self.now, "group-4")
         self.group4 = self.event4.group
         self.rulegroup_event_mapping_two = {
             f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
