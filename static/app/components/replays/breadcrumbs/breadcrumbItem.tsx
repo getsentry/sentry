@@ -231,8 +231,6 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   border: none;
   position: relative;
 
-  border-radius: ${p => p.theme.borderRadius};
-
   &:hover {
     background-color: ${p => p.theme.surface200};
   }
