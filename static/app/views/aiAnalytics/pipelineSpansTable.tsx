@@ -1,114 +1,113 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types';
+import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-
-type Row = Pick<
-  MetricsResponse,
-  | 'project.id'
-  | 'span.description'
-  | 'span.group'
-  | 'spm()'
-  | 'avg(span.duration)'
-  | 'sum(span.duration)'
-  | 'time_spent_percentage()'
->;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()'
+  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_DURATION
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.USER
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'span.description',
-    name: t('AI Pipeline name'),
+    key: SpanIndexedField.ID,
+    name: t('ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
-    name: `${t('Times')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
+    key: SpanIndexedField.SPAN_DURATION,
+    name: t('Total duration'),
+    width: 150,
+  },
+  {
+    key: SpanIndexedField.USER,
+    name: t('User'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(span.duration)`,
-    name: DataTitles.avg,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'time_spent_percentage()',
-    name: DataTitles.timeSpent,
+    key: SpanIndexedField.TIMESTAMP,
+    name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.duration)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = [
+  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.TIMESTAMP,
+];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()';
+  field:
+    | SpanIndexedField.ID
+    | SpanIndexedField.SPAN_DURATION
+    | SpanIndexedField.TIMESTAMP;
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
-export function PipelinesTable() {
+interface Props {
+  groupId: string;
+}
+export function PipelineSpansTable({groupId}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
-    sort = {field: 'time_spent_percentage()', kind: 'desc'};
+    sort = {field: SpanIndexedField.TIMESTAMP, kind: 'desc'};
   }
-  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
-    search: new MutableSearch('span.category:ai.pipeline'),
-    fields: [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.duration)',
-      'sum(span.duration)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: 25,
-    cursor,
-    referrer: 'api.ai-pipelines.view',
-  });
 
-  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
-    });
-  };
+  const {
+    data: rawData,
+    meta: rawMeta,
+    error,
+    isLoading,
+  } = useIndexedSpans({
+    limit: 30,
+    sorts: [sort],
+    fields: [
+      SpanIndexedField.ID,
+      SpanIndexedField.TRACE,
+      SpanIndexedField.SPAN_DURATION,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.USER,
+      SpanIndexedField.TIMESTAMP,
+      SpanIndexedField.PROJECT,
+    ],
+    referrer: 'api.ai-pipelines.view',
+    search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+  });
+  const data = rawData || [];
+  const meta = rawMeta as EventsMetaType;
 
   return (
     <VisuallyCompleteWithData
-      id="PipelinesTable"
+      id="PipelineSpansTable"
       hasData={data.length > 0}
       isLoading={isLoading}
     >
@@ -136,32 +135,38 @@ export function PipelinesTable() {
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </VisuallyCompleteWithData>
   );
 }
 
 function renderBodyCell(
   column: Column,
-  row: Row,
+  row: any,
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization
 ) {
-  if (column.key === 'span.description') {
-    if (!row['span.description']) {
+  if (column.key === SpanIndexedField.ID) {
+    if (!row[SpanIndexedField.ID]) {
       return <span>(unknown)</span>;
     }
-    if (!row['span.group']) {
-      return <span>{row['span.description']}</span>;
+    if (!row[SpanIndexedField.TRACE]) {
+      return <span>{row[SpanIndexedField.ID]}</span>;
     }
     return (
       <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/ai-analytics/pipeline-type/${row['span.group']}`
-        )}
+        to={generateLinkToEventInTraceView({
+          organization,
+          eventId: row[SpanIndexedField.TRANSACTION_ID],
+          projectSlug: row[SpanIndexedField.PROJECT],
+          traceSlug: row[SpanIndexedField.TRACE],
+          timestamp: row[SpanIndexedField.TIMESTAMP],
+          location,
+          eventView: EventView.fromLocation(location),
+          spanId: row[SpanIndexedField.ID],
+        })}
       >
-        {row['span.description']}
+        {row[SpanIndexedField.ID]}
       </Link>
     );
   }
