@@ -21,7 +21,7 @@ lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified
   - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{html,less,json,yml,md}'
+  - added|modified: '**/*.{less,json,yml,md}'
 
 # Trigger for when we must run full lint (eslint)
 lintable_rules_changed: &lintable_rules_changed
