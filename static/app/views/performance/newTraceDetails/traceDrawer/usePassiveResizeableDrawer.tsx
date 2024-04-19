@@ -5,7 +5,7 @@ export interface UsePassiveResizableDrawerOptions {
   initialSize: number;
   min: number;
   onResize: (size: number, min: number, user: boolean) => void;
-  ref?: React.RefObject<HTMLElement>;
+  ref?: HTMLElement | null;
 }
 
 /**
@@ -17,6 +17,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   size: React.MutableRefObject<number>;
 } {
+  const stateRef = useRef<undefined | 'resizing'>();
   const rafIdRef = useRef<number | null>(null);
   const sizeRef = useRef(options.initialSize);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
@@ -74,6 +75,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   );
 
   const onMouseUp = useCallback(() => {
+    stateRef.current = undefined;
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.body.style.cursor = '';
@@ -84,6 +86,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
+      stateRef.current = 'resizing';
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
       document.body.style.cursor =
@@ -97,12 +100,41 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   );
 
   useLayoutEffect(() => {
+    // Watches for external resize events and ensures the local size value is kept in sync
+    const ref = options.ref;
+    const observer = new ResizeObserver(elements => {
+      const container = elements[0];
+
+      if (!container) {
+        return;
+      }
+      if (stateRef.current === 'resizing') {
+        return;
+      }
+      if (container.contentRect) {
+        const width = container.contentRect.width;
+        const height = container.contentRect.height;
+
+        if (typeof width !== 'number' || typeof height !== 'number') {
+          return;
+        }
+
+        sizeRef.current =
+          options.direction === 'left' || options.direction === 'right' ? width : height;
+      }
+    });
+
+    if (ref) {
+      observer.observe(ref);
+    }
+
     return () => {
+      observer.disconnect();
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
     };
-  });
+  }, [options.direction, options.ref]);
 
   return {onMouseDown, size: sizeRef};
 }
