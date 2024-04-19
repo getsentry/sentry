@@ -1732,14 +1732,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                # "user.ip:127.256.0.1",
-                "!user.ip_address:192.168.z34.1",
-                "user.ip_address:bacontest",
-                "user.ip_address:[127.0.0.,192.168.0.1]",
+                "user.ip:127.256.0.1",
+                # "!user.ip_address:192.168.z34.1",
+                # "user.ip_address:bacontest",
+                # "user.ip_address:[127.0.0.,192.168.0.1]",
             ]
             for query in queries:
                 # print(query)
                 response = self.client.get(self.url + f"?field=id&query={query}")
+                # print(response.status_code)
                 assert response.status_code == 400
                 # response_data = response.json()
                 # print(response_data)

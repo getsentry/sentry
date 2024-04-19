@@ -71,6 +71,11 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
+            for search_filter in search_filters:
+                if search_filter.key == "user.ip" or search_filter.key == "user.ip_address":
+                    # TODO:
+                    pass
+
             # Sort must be optional string.
             sort = filter_params.get("sort")
             if not isinstance(sort, str):
