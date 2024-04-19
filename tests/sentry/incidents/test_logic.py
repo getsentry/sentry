@@ -823,11 +823,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
-        updated_projects = [self.project, new_project]
+        project_updates = [self.project, new_project]
         with self.tasks():
-            update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
+            update_alert_rule(alert_rule, projects=project_updates, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
-        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
+        updated_projects = alert_rule.projects.all()
+        assert {sub.project for sub in updated_subscriptions} == set(project_updates)
+        assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 
