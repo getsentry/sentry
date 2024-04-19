@@ -12,7 +12,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.features.rollout import in_random_rollout
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 
 
 @region_silo_only_model

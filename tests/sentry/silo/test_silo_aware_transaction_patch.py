@@ -4,7 +4,7 @@ from django.test import override_settings
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.patches.silo_aware_transaction_patch import (
     MismatchedSiloTransactionError,
     TransactionMissingDBException,

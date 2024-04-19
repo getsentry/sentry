@@ -14,7 +14,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 from .types import DiscordResponseTypes
 

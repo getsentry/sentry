@@ -13,7 +13,7 @@ from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
 

@@ -23,7 +23,7 @@ from sentry.services.organization import (
     OrganizationProvisioningOptions,
     PostProvisionOptions,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import get_local_region
