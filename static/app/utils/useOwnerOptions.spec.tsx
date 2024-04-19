@@ -20,21 +20,21 @@ describe('useOwnerOptions', () => {
 
     expect(result.current).toEqual([
       {
-        label: 'Members',
-        options: [
-          {
-            label: 'Foo Bar',
-            value: 'user:1',
-            leadingItems: expect.anything(),
-          },
-        ],
-      },
-      {
         label: 'My Teams',
         options: [
           {
             label: '#team-slug',
             value: 'team:1',
+            leadingItems: expect.anything(),
+          },
+        ],
+      },
+      {
+        label: 'Members',
+        options: [
+          {
+            label: 'Foo Bar',
+            value: 'user:1',
             leadingItems: expect.anything(),
           },
         ],
@@ -56,10 +56,6 @@ describe('useOwnerOptions', () => {
 
     expect(result.current).toEqual([
       {
-        label: 'Members',
-        options: [],
-      },
-      {
         label: 'My Teams',
         options: [
           {
@@ -68,6 +64,10 @@ describe('useOwnerOptions', () => {
             leadingItems: expect.anything(),
           },
         ],
+      },
+      {
+        label: 'Members',
+        options: [],
       },
       {
         label: 'Other Teams',
@@ -105,10 +105,6 @@ describe('useOwnerOptions', () => {
 
     expect(result.current).toEqual([
       {
-        label: 'Members',
-        options: [],
-      },
-      {
         label: 'My Teams',
         options: [
           {
@@ -117,6 +113,10 @@ describe('useOwnerOptions', () => {
             leadingItems: expect.anything(),
           },
         ],
+      },
+      {
+        label: 'Members',
+        options: [],
       },
       {
         label: 'Other Teams',
