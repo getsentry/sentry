@@ -37,6 +37,19 @@ SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 BATCH_SIZE = 100
 
 
+def in_process_spans_rollout_group(project_id: int | None) -> bool:
+    if project_id and project_id in options.get(
+        "standalone-spans.process-spans-consumer.project-allowlist"
+    ):
+        return True
+
+    if project_id and (project_id % 100000) / 100000 < options.get(
+        "standalone-spans.process-spans-consumer.project-rollout"
+    ):
+        return True
+    return False
+
+
 @dataclasses.dataclass
 class ProduceSegmentContext:
     should_process_segments: bool
@@ -71,9 +84,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         logger.exception("Failed to parse span message header")
         return FILTERED_PAYLOAD
 
-    if project_id is None or project_id not in options.get(
-        "standalone-spans.process-spans-consumer.project-allowlist"
-    ):
+    if not project_id or not in_process_spans_rollout_group(project_id=project_id):
         return FILTERED_PAYLOAD
 
     assert isinstance(message.value, BrokerValue)
