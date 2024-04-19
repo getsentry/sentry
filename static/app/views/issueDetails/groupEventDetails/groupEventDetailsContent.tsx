@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -84,6 +84,7 @@ function DefaultGroupEventDetailsContent({
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
+  const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
   const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
@@ -129,7 +130,12 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} group={group} project={project} />
+      <HighlightsDataSection
+        event={event}
+        group={group}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {!hasNewTagsUI && (
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}
@@ -164,7 +170,9 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       {hasNewTagsUI && (
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        <div ref={tagsRef}>
+          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        </div>
       )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />

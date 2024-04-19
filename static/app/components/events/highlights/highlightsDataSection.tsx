@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -26,11 +26,16 @@ interface HighlightsSectionProps {
   event: Event;
   group: Group;
   project: Project;
+  viewAllRef?: React.RefObject<HTMLElement>;
 }
 
 export type EventTagMap = Record<string, {meta: Record<string, any>; tag: EventTag}>;
 
-export default function HighlightsDataSection({event, project}: HighlightsSectionProps) {
+export default function HighlightsDataSection({
+  event,
+  project,
+  viewAllRef,
+}: HighlightsSectionProps) {
   const hasNewTagsUI = useHasNewTagsUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
@@ -82,6 +87,15 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
     );
   }
 
+  const viewAllButton = viewAllRef ? (
+    <Button
+      onClick={() => viewAllRef?.current?.scrollIntoView({behavior: 'smooth'})}
+      size="xs"
+    >
+      {t('View All')}
+    </Button>
+  ) : null;
+
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -89,9 +103,7 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
       type="event-highlights"
       actions={
         <ButtonBar gap={1}>
-          <LinkButton href="#tags" size="xs">
-            {t('View All')}
-          </LinkButton>
+          {viewAllButton}
           <Button
             size="xs"
             icon={<IconEdit />}
