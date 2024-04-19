@@ -76,6 +76,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   const onMouseUp = useCallback(() => {
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
+    document.body.style.cursor = '';
     document.documentElement.style.cursor = '';
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
@@ -85,10 +86,14 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
     (evt: React.MouseEvent<HTMLElement>) => {
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
+      document.body.style.cursor =
+        (direction === 'left' || direction === 'right' ? 'ew-resize' : 'ns-resize') +
+        ' !important';
+
       document.addEventListener('mousemove', onMouseMove, {passive: false});
       document.addEventListener('mouseup', onMouseUp);
     },
-    [onMouseMove, onMouseUp]
+    [onMouseMove, onMouseUp, direction]
   );
 
   useLayoutEffect(() => {
