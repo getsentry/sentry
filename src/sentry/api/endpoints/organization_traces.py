@@ -1,3 +1,4 @@
+import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -41,11 +42,14 @@ class TraceResult(TypedDict):
     end: int
     breakdowns: list[TraceInterval]
     spans: list[Mapping[str, Any]]
+    suggestedSpans: list[Mapping[str, Any]]
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.CharField(required=False)
+    suggestedQuery = serializers.CharField(required=False)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -84,53 +88,38 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     cast(ParamsType, params),
                     snuba_params=snuba_params,
                     query=serialized.get("query", ""),
-                    selected_columns=["trace", "timestamp"] + serialized["field"],
+                    selected_columns=["trace", "timestamp"],
                     # The orderby is intentionally `None` here as this query is much faster
                     # if we let Clickhouse decide which order to return the results in.
                     # This also means we cannot order by any columns or paginate.
                     orderby=None,
-                    limit=per_page * serialized["maxSpansPerTrace"],
-                    limitby=("trace", serialized["maxSpansPerTrace"]),
+                    limit=per_page,
+                    limitby=("trace", 1),
                     sample_rate=sample_rate,
                     config=QueryBuilderConfig(
                         transform_alias_to_input_format=True,
                     ),
                 )
-                span_results = builder.run_query(Referrer.API_TRACE_EXPLORER_SPANS_LIST.value)
-                span_results = builder.process_results(span_results)
+                trace_results = builder.run_query(Referrer.API_TRACE_EXPLORER_SPANS_LIST.value)
+                trace_results = builder.process_results(trace_results)
 
-            fields = span_results["meta"].pop("fields", {})
-            meta = {
-                **span_results["meta"],
-                "fields": {field: fields[field] for field in serialized["field"]},
-            }
+            if not trace_results["data"]:
+                return {"data": [], "meta": {"fields": {}}}
 
-            if not span_results["data"]:
-                return {"data": [], "meta": meta}
-
-            spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
-            for row in span_results["data"]:
-                spans_by_trace[row["trace"]].append(row)
-
-            trace_spans_count = sorted(
-                [(trace, len(spans)) for trace, spans in spans_by_trace.items()],
-                key=lambda item: item[0],
-                reverse=True,
-            )[:per_page]
-
-            spans_by_trace = {trace: spans_by_trace[trace] for trace, _ in trace_spans_count}
+            trace_ids: list[str] = []
 
             min_timestamp = snuba_params.end
             max_timestamp = snuba_params.start
             assert min_timestamp is not None
             assert max_timestamp is not None
-            for spans in spans_by_trace.values():
-                for span in spans:
-                    timestamp = datetime.fromisoformat(span["timestamp"])
-                    if timestamp < min_timestamp:
-                        min_timestamp = timestamp
-                    if timestamp > max_timestamp:
-                        max_timestamp = timestamp
+
+            for row in trace_results["data"]:
+                trace_ids.append(row["trace"])
+                timestamp = datetime.fromisoformat(row["timestamp"])
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp > max_timestamp:
+                    max_timestamp = timestamp
 
             # TODO: move to use `update_snuba_params_with_timestamp`
             time_buffer = options.get("performance.traces.trace-explorer-buffer-hours")
@@ -147,19 +136,18 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             )
-            snuba_params.projects = all_projects
-            params["projects"] = snuba_params.projects
-            params["projects_objects"] = snuba_params.projects
-            params["projects_id"] = snuba_params.project_ids
-
-            trace_condition = f"trace:[{', '.join(spans_by_trace.keys())}]"
+            all_projects_snuba_params = dataclasses.replace(snuba_params, projects=all_projects)
+            all_projects_params = dict(params)
+            all_projects_params["projects"] = all_projects_snuba_params.projects
+            all_projects_params["projects_objects"] = all_projects_snuba_params.projects
+            all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
 
             with handle_query_errors():
                 breakdowns_query = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
-                    cast(ParamsType, params),
-                    snuba_params=snuba_params,
-                    query=f"{trace_condition}",
+                    cast(ParamsType, all_projects_params),
+                    snuba_params=all_projects_snuba_params,
+                    query=None,
                     selected_columns=[
                         "trace",
                         "project",
@@ -170,7 +158,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=["first_seen()", "last_seen()"],
                     # limit the number of segments we fetch per trace so a single
                     # large trace does not result in the rest being blank
-                    limitby=("trace", int(10_000 / len(spans_by_trace))),
+                    limitby=("trace", int(10_000 / len(trace_ids))),
                     limit=10_000,
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "first_seen", "last_seen"],
@@ -179,18 +167,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 )
                 # TODO: this should be `is_transaction:1` but there's some
                 # boolean mapping that's not working for this field
-                breakdowns_query.add_conditions(
-                    [
-                        Condition(Column("is_segment"), Op.EQ, 1),
-                    ]
-                )
+                breakdowns_query.add_conditions([Condition(Column("is_segment"), Op.EQ, 1)])
 
             with handle_query_errors():
                 traces_meta_query = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
-                    cast(ParamsType, params),
-                    snuba_params=snuba_params,
-                    query=trace_condition,
+                    cast(ParamsType, all_projects_params),
+                    snuba_params=all_projects_snuba_params,
+                    query=None,
                     selected_columns=[
                         "trace",
                         "count()",
@@ -198,23 +182,76 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         "first_seen()",
                         "last_seen()",
                     ],
-                    limit=len(spans_by_trace),
+                    limit=len(trace_ids),
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "first_seen", "last_seen"],
                         transform_alias_to_input_format=True,
                     ),
                 )
 
+            sort = serialized.get("sort")
+            suggested_query = serialized.get("suggestedQuery", "")
+            user_query = serialized.get("query", "")
+            add_suggestions = user_query != suggested_query
+            with handle_query_errors():
+                query_strs = [user_query, suggested_query] if add_suggestions else [user_query]
+
+                spans_queries = [
+                    SpansIndexedQueryBuilder(
+                        Dataset.SpansIndexed,
+                        cast(ParamsType, params),
+                        snuba_params=snuba_params,
+                        query=query_str,
+                        selected_columns=["trace"] + serialized["field"],
+                        orderby=sort,
+                        limit=per_page * serialized["maxSpansPerTrace"],
+                        limitby=("trace", serialized["maxSpansPerTrace"]),
+                        sample_rate=sample_rate,
+                        config=QueryBuilderConfig(
+                            transform_alias_to_input_format=True,
+                        ),
+                    )
+                    for query_str in query_strs
+                ]
+
+            queries = [
+                breakdowns_query,
+                traces_meta_query,
+                *spans_queries,
+            ]
+
+            trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
+            for query in queries:
+                query.add_conditions([trace_id_condition])
+
             with handle_query_errors():
                 results = bulk_snql_query(
-                    [
-                        breakdowns_query.get_snql_query(),
-                        traces_meta_query.get_snql_query(),
-                    ],
+                    [query.get_snql_query() for query in queries],
                     Referrer.API_TRACE_EXPLORER_TRACES_META.value,
                 )
-                breakdowns_results = breakdowns_query.process_results(results[0])
-                traces_meta_results = traces_meta_query.process_results(results[1])
+
+                all_results = [
+                    query.process_results(result) for query, result in zip(queries, results)
+                ]
+                breakdowns_results = all_results[0]
+                traces_meta_results = all_results[1]
+                spans_results = all_results[2]
+                suggested_spans_results = all_results[3] if len(all_results) > 3 else None
+
+            fields = spans_results["meta"].get("fields", {})
+            meta = {
+                **spans_results["meta"],
+                "fields": {field: fields[field] for field in serialized["field"]},
+            }
+
+            spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+            for row in spans_results["data"]:
+                spans_by_trace[row["trace"]].append(row)
+
+            suggested_spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+            if suggested_spans_results:
+                for row in suggested_spans_results["data"]:
+                    suggested_spans_by_trace[row["trace"]].append(row)
 
             try:
                 traces_range = {
@@ -241,6 +278,10 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     "spans": [
                         {field: span[field] for field in serialized["field"]}
                         for span in spans_by_trace[row["trace"]]
+                    ],
+                    "suggestedSpans": [
+                        {field: span[field] for field in serialized["field"]}
+                        for span in suggested_spans_by_trace[row["trace"]]
                     ],
                 }
                 for row in traces_meta_results["data"]
