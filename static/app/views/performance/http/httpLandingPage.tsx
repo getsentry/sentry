@@ -21,8 +21,11 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
-import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  DomainsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/tables/domainsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';

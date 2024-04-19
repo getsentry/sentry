@@ -29,7 +29,7 @@ import {ResponseCodeCountChart} from 'sentry/views/performance/http/charts/respo
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/definitions';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
-import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
