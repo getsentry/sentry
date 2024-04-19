@@ -3255,6 +3255,11 @@ class SpanTestCase(BaseTestCase):
 
 
 class TraceTestCase(SpanTestCase):
+    def setUp(self):
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.trace_id = uuid4().hex
+
     def get_start_end_from_day_ago(self, milliseconds: int) -> tuple[datetime, datetime]:
         return self.day_ago, self.day_ago + timedelta(milliseconds=milliseconds)
 
@@ -3366,6 +3371,7 @@ class TraceTestCase(SpanTestCase):
         return [uuid4().hex[:16] for _ in range(3)]
 
     def load_trace(self) -> None:
+        """Generates basic trace data with 3 generations of spans."""
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",
@@ -3391,30 +3397,7 @@ class TraceTestCase(SpanTestCase):
         )
 
         # First Generation
-        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
-        self.gen1_span_ids = self._generate_span_ids()
-        self.gen1_project = self.create_project(organization=self.organization)
-        self.gen1_events = [
-            self.create_event(
-                trace_id=self.trace_id,
-                transaction=f"/transaction/gen1-{i}",
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": f"GET gen2-{i}",
-                        "span_id": gen1_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                ],
-                parent_span_id=root_span_id,
-                project_id=self.gen1_project.id,
-                milliseconds=2000,
-            )
-            for i, (root_span_id, gen1_span_id) in enumerate(
-                zip(self.root_span_ids, self.gen1_span_ids)
-            )
-        ]
+        self.populate_project1()
 
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
@@ -3457,7 +3440,36 @@ class TraceTestCase(SpanTestCase):
             milliseconds=500,
         )
 
+    def populate_project1(self) -> None:
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
+        self.gen1_span_ids = self._generate_span_ids()
+        self.gen1_project = self.create_project(organization=self.organization)
+        self.gen1_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen1-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen2-{i}",
+                        "span_id": gen1_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=root_span_id,
+                project_id=self.gen1_project.id,
+                milliseconds=2000,
+            )
+            for i, (root_span_id, gen1_span_id) in enumerate(
+                zip(self.root_span_ids, self.gen1_span_ids)
+            )
+        ]
+
     def load_errors(self) -> tuple[Event, Event]:
+        """Generates 2 events for gen1 projects."""
+        if not hasattr(self, "gen1_project"):
+            self.populate_project1()
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",

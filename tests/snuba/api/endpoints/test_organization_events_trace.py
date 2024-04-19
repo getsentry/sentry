@@ -8,7 +8,6 @@ from django.urls import NoReverseMatch, reverse
 from sentry import options
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.testutils.cases import TraceTestCase
-from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -38,10 +37,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.file_io_main_thread.problem-creation", 1.0)
         self.login_as(user=self.user)
-
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
-        self.trace_id = uuid4().hex
 
         self.url = reverse(
             self.url_name,
