@@ -12,6 +12,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
+from sentry import options
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.consumers.recording_buffered import (
@@ -203,6 +204,27 @@ class RecordingTestCase(TransactionTestCase):
             user_id=self.organization.default_owner_id,
         )
 
+        assert not track_outcome.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    def test_event_with_replay_video_denylisted(
+        self, track_outcome, mock_record, mock_onboarding_task
+    ):
+        options.set("replay.organizations.id-video-denylist", [self.organization.id])
+
+        segment_id = 0
+        self.submit(
+            self.nonchunked_messages(
+                segment_id=segment_id,
+                compressed=True,
+                replay_video=b"hello, world!",
+            )
+        )
+
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
         assert not track_outcome.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
