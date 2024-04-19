@@ -204,7 +204,10 @@ function SidebarItem({
 
   return (
     <Tooltip
-      disabled={!isInCollapsedState || (shouldAccordionFloat && isOpenInFloatingSidebar)}
+      disabled={
+        (!isInCollapsedState && !isTop) ||
+        (shouldAccordionFloat && isOpenInFloatingSidebar)
+      }
       title={
         <Flex align="center">
           {label} {badges}
