@@ -18,9 +18,10 @@
       We've noticed the cron monitors below have not processed a successful check-in for multiple days:
     </p>
       <ul>
-        {% for monitor_name, monitor_url, earliest_incident_start_date in broken_monitors %}
+        {% for monitor_name, project_slug, monitor_url, earliest_incident_start_date in broken_monitors %}
           <li>
-            <a href="{{monitor_url}}">{{monitor_name}}</a> <br /> Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+            <a href="{{monitor_url}}">{{monitor_name}}</a> | <strong>{{project_slug}}</strong>
+            <br /> Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
           </li>
         {% endfor %}
       </ul>

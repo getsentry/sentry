@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from functools import wraps
 from typing import Any
 
@@ -32,6 +33,8 @@ from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
+
+logger = logging.getLogger(__name__)
 
 
 def catch_raised_errors(func):
@@ -487,6 +490,16 @@ class SentryAppStatsPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
+        if owner_app is None:
+            logger.error(
+                "sentry_app_stats.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
         self.determine_access(request, owner_app)
 
         if is_active_superuser(request):

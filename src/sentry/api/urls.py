@@ -281,6 +281,7 @@ from .endpoints.integrations.sentry_apps import (
     SentryAppInteractionEndpoint,
     SentryAppPublishRequestEndpoint,
     SentryAppRequestsEndpoint,
+    SentryAppRotateSecretEndpoint,
     SentryAppsEndpoint,
     SentryAppsStatsEndpoint,
     SentryAppStatsEndpoint,
@@ -2831,6 +2832,11 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/rotate-secret/$",
+        SentryAppRotateSecretEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-rotate-secret",
     ),
     re_path(
         r"^(?P<sentry_app_slug>[^\/]+)/stats/$",

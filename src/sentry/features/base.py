@@ -95,3 +95,5 @@ class FeatureHandlerStrategy(Enum):
     """Handle the feature using a constant or logic within python"""
     REMOTE = 2
     """Handle the feature using a remote flag management service"""
+    OPTIONS = 3
+    """Handle the feature using options"""

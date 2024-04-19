@@ -13,11 +13,22 @@ export enum TabKey {
   TRACE = 'trace',
 }
 
-function isReplayTab(tab: string): tab is TabKey {
+function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
+  const supportedVideoTabs = [
+    TabKey.TAGS,
+    TabKey.ERRORS,
+    TabKey.BREADCRUMBS,
+    TabKey.NETWORK,
+  ];
+
+  if (isVideoReplay) {
+    return supportedVideoTabs.includes(tab as TabKey);
+  }
+
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
+function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
@@ -25,16 +36,18 @@ function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue) ? (paramValue as TabKey) : defaultTab),
-      [paramValue, defaultTab]
+      () => (isReplayTab({tab: paramValue, isVideoReplay}) ? paramValue : defaultTab),
+      [paramValue, defaultTab, isVideoReplay]
     ),
     setActiveTab: useCallback(
       (value: string) => {
         setParamValue(
-          isReplayTab(value.toLowerCase()) ? value.toLowerCase() : defaultTab
+          isReplayTab({tab: value.toLowerCase(), isVideoReplay})
+            ? value.toLowerCase()
+            : defaultTab
         );
       },
-      [setParamValue, defaultTab]
+      [setParamValue, defaultTab, isVideoReplay]
     ),
   };
 }

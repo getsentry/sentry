@@ -2464,14 +2464,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 
-        # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
-        assert not last_event.group
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            last_event = attempt_to_generate_slow_db_issue()
-            assert last_event.group
-            assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
+        assert last_event.group
+        assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
 
     @patch("sentry.event_manager.metrics.incr")
     def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
