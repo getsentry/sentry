@@ -28,6 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {type Field, FIELDS, SORTS} from './data';
 import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
@@ -41,19 +42,6 @@ import {TracesSearchBar} from './tracesSearchBar';
 import {normalizeTraces} from './utils';
 
 const DEFAULT_PER_PAGE = 20;
-
-const FIELDS = [
-  'project',
-  'transaction.id',
-  'id',
-  'timestamp',
-  'span.op',
-  'span.description',
-  'span.duration',
-  'precise.start_ts',
-  'precise.finish_ts',
-];
-type Field = (typeof FIELDS)[number];
 
 export function Content() {
   const location = useLocation();
@@ -81,9 +69,15 @@ export function Content() {
   );
 
   const traces = useTraces<Field>({
-    fields: FIELDS,
+    fields: [
+      ...FIELDS,
+      ...SORTS.map(field =>
+        field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
+      ),
+    ],
     limit,
     query,
+    sort: SORTS,
   });
 
   const isLoading = traces.isFetching;
@@ -299,6 +293,8 @@ interface UseTracesOptions<F extends string> {
   enabled?: boolean;
   limit?: number;
   query?: string;
+  sort?: string[];
+  suggestedQuery?: string;
 }
 
 function useTraces<F extends string>({
@@ -307,6 +303,8 @@ function useTraces<F extends string>({
   enabled,
   limit,
   query,
+  suggestedQuery,
+  sort,
 }: UseTracesOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -320,6 +318,8 @@ function useTraces<F extends string>({
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
       query,
+      suggestedQuery,
+      sort,
       per_page: limit,
       maxSpansPerTrace: 10,
     },
