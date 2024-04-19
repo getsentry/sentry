@@ -1360,12 +1360,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the Replay'),
+    desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.VIEWED_BY_ID]: {
-    desc: t('Sentry user id(s) who have seen this Replay'),
+    desc: t('Sentry user ID(s) who have seen this replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
