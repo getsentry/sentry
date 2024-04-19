@@ -122,6 +122,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
             aria-expanded={expanded}
             aria-owns={contentId}
             onClick={handleMainItemClick}
+            isOpenInFloatingSidebar={isOpenInFloatingSidebar}
             trailingItems={
               <SidebarAccordionExpandButton
                 size="zero"
