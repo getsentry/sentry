@@ -832,7 +832,10 @@ def update_alert_rule(
             ]
             updated_project_slugs = {project.slug for project in projects}
 
-            AlertRuleProjects.objects.exclude(project__slug__in=updated_project_slugs).delete()
+            # Delete any projects for the alert rule that were removed as part of this update
+            AlertRuleProjects.objects.filter(
+                alert_rule_id=alert_rule.id, project__slug__in=existing_project_slugs
+            ).exclude(project__slug__in=updated_project_slugs).delete()
             for project in projects:
                 alert_rule.projects.add(project)
             # Find any subscriptions that were removed as part of this update

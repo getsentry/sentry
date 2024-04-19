@@ -801,11 +801,21 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.query == ""
 
     def test_delete_projects(self):
+        # Testing delete projects from update
         alert_rule = self.create_alert_rule(
             projects=[self.project, self.create_project(fire_project_created=True)]
         )
-        update_alert_rule(alert_rule, projects=[self.project])
-        assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
+        unaffected_alert_rule = self.create_alert_rule(
+            projects=[self.project, self.create_project(fire_project_created=True)]
+        )
+        with self.tasks():
+            update_alert_rule(alert_rule, projects=[self.project])
+        # NOTE: subscribing alert rule to projects creates a new subscription per project
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        assert subscriptions.count() == 1
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.projects.all().count() == 1
+        assert unaffected_alert_rule.projects.all().count() == 2
 
     def test_new_updated_deleted_projects(self):
         alert_rule = self.create_alert_rule(
