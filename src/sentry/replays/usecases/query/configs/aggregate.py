@@ -145,6 +145,7 @@ search_config["warning_id"] = search_config["warning_ids"]
 
 
 search_config["release"] = search_config["releases"]
+search_config["seen_by_id"] = search_config["viewed_by_id"]
 search_config["trace_id"] = search_config["trace_ids"]
 search_config["trace"] = search_config["trace_ids"]
 search_config["url"] = search_config["urls"]
