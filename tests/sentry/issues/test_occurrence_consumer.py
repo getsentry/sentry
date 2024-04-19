@@ -21,6 +21,7 @@ from sentry.issues.occurrence_consumer import (
     _process_message,
 )
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -200,6 +201,40 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
+
+    def test_new_group_with_user_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.user_id == self.user.id
+
+    def test_new_group_with_team_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"team:{self.team.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.team_id == self.team.id
+
+    def test_new_group_with_invalid_user_assignee(self) -> None:
+        other_user = self.create_user()
+        message = get_test_message(self.project.id, assignee=f"user:{other_user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        with pytest.raises(GroupAssignee.DoesNotExist):
+            GroupAssignee.objects.get(group=group)
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):

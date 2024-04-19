@@ -79,9 +79,6 @@ function ReplayPreviewPlayer({
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
-    if (!organization.features.includes('session-replay-viewed-by-ui')) {
-      return;
-    }
     if (replayRecord && !replayRecord.has_viewed && !isFetching && isPlaying) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
