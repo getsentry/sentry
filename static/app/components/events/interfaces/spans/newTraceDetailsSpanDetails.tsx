@@ -354,9 +354,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const timingKeys = getSpanSubTimings(span) ?? [];
     const parentTransaction = props.node.parent_transaction;
-    const averageSpanSelfTimeInSeconds: number | undefined = span['span.average_time']
-      ? span['span.average_time'] / 1000
-      : undefined;
+    const averageSpanSelfTime: number | undefined =
+      span['span.averageResults']?.['avg(span.self_time)'];
+    const averageSpanDuration: number | undefined =
+      span['span.averageResults']?.['avg(span.duration)'];
 
     return (
       <Fragment>
@@ -369,7 +370,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               <Row title={t('Duration')}>
                 <TraceDrawerComponents.Duration
                   duration={duration}
-                  baseline={undefined}
+                  baseline={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
+                  baseDescription={t(
+                    'Average total time for this span group across the project associated with its parent transaction, over the last 24 hours'
+                  )}
                 />
               </Row>
               {span.exclusive_time ? (
@@ -382,7 +386,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   <TraceDrawerComponents.Duration
                     ratio={span.exclusive_time / 1000 / duration}
                     duration={span.exclusive_time / 1000}
-                    baseline={averageSpanSelfTimeInSeconds}
+                    baseline={
+                      averageSpanSelfTime ? averageSpanSelfTime / 1000 : undefined
+                    }
                     baseDescription={t(
                       'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
                     )}

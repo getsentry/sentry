@@ -188,7 +188,7 @@ function fetchTransactionSpans(
   event_id: string
 ): Promise<EventTransaction> {
   return api.requestPromise(
-    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time`
+    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`
   );
 }
 
