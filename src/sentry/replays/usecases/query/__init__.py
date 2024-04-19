@@ -351,15 +351,15 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
         return {"organization_id": organization.id}
 
 
-def _make_ordered(ordered_replay_ids: list[str], results: Iterable[Any]) -> list[Any]:
-    if not ordered_replay_ids:
+def _make_ordered(replay_id_ordering: list[str], results: Iterable[Any]) -> list[Any]:
+    if not replay_id_ordering:
         return []
     elif not results:
         return []
 
     replay_id_to_index = {}
     i = 0
-    for replay_id in ordered_replay_ids:
+    for replay_id in replay_id_ordering:
         if replay_id not in replay_id_to_index:
             replay_id_to_index[replay_id] = i
             i += 1

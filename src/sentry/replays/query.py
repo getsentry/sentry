@@ -52,7 +52,7 @@ def query_replays_collection_paginated(
     organization: Organization | None = None,
     actor: Any | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
-    """Query aggregated replay collection."""
+    """Query aggregated replay collection. Returns (response, has_more)"""
     paginators = Paginators(limit, offset)
 
     return query_using_optimized_search(
