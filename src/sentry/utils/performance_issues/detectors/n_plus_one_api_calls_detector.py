@@ -54,7 +54,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.span_hashes = {}
+        self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
