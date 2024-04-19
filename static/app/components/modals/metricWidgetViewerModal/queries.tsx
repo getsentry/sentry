@@ -1,16 +1,19 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Input from 'sentry/components/input';
+import Input, {type InputProps} from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {
   IconAdd,
   IconClose,
   IconCopy,
+  IconDelete,
   IconEdit,
   IconEllipsis,
   IconSettings,
@@ -108,7 +111,7 @@ export function Queries({
   return (
     <ExpressionsWrapper>
       {filteredQueries.map((query, index) => (
-        <ExpressionWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
@@ -134,11 +137,12 @@ export function Queries({
                 metricsQuery={query}
               />
             </ExpressionFormRowWrapper>
-            {query.alias && (
+            {query.alias !== undefined && (
               <ExpressionFormRowWrapper>
                 <ExpressionAliasForm
                   expression={query}
                   onChange={alias => onQueryChange({alias}, index)}
+                  hasContextMenu
                 />
               </ExpressionFormRowWrapper>
             )}
@@ -146,7 +150,7 @@ export function Queries({
         </ExpressionWrapper>
       ))}
       {filteredEquations.map((equation, index) => (
-        <ExpressionWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}
@@ -158,12 +162,14 @@ export function Queries({
           )}
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
-              <EquationInput
-                onChange={formula => onEquationChange({formula}, index)}
-                value={equation.formula}
-                availableVariables={availableVariables}
-              />
-              {equation.alias && (
+              <EquationInputWrapper>
+                <EquationInput
+                  onChange={formula => onEquationChange({formula}, index)}
+                  value={equation.formula}
+                  availableVariables={availableVariables}
+                />
+              </EquationInputWrapper>
+              {equation.alias !== undefined && (
                 <ExpressionAliasForm
                   expression={equation}
                   onChange={alias => onEquationChange({alias}, index)}
@@ -310,7 +316,7 @@ function EquationContextMenu({
     const removeEquationItem = {
       leadingItems: [<IconClose key="icon" />],
       key: 'delete',
-      label: t('Remove Query'),
+      label: t('Remove Equation'),
       onAction: () => {
         removeEquation(equationIndex);
       },
@@ -318,7 +324,7 @@ function EquationContextMenu({
     const aliasItem = {
       leadingItems: [<IconEdit key="icon" />],
       key: 'alias',
-      label: t('Alias'),
+      label: t('Add Alias'),
       onAction: () => {
         editAlias(equationIndex);
       },
@@ -389,11 +395,70 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
   );
 }
 
+function ExpressionAliasForm({
+  expression,
+  onChange,
+  hasContextMenu,
+}: {
+  expression: DashboardMetricsExpression;
+  onChange: (alias: string | undefined) => void;
+  hasContextMenu?: boolean;
+}) {
+  return (
+    <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
+      <StyledLabel>as</StyledLabel>
+      <StyledDebouncedInput
+        type="text"
+        value={expression.alias}
+        onChange={e => onChange(e.target.value)}
+        placeholder={t('Add alias')}
+      />
+      <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
+        <StyledButton
+          icon={<IconDelete size="xs" />}
+          aria-label="Clear Alias"
+          onClick={() => onChange(undefined)}
+        />
+      </Tooltip>
+    </ExpressionAliasWrapper>
+  );
+}
+
+// TODO: Move this to a shared component
+function DebouncedInput({
+  onChange,
+  wait = DEFAULT_DEBOUNCE_DURATION,
+  ...inputProps
+}: InputProps & {wait?: number}) {
+  const [value, setValue] = useState<string | number | readonly string[] | undefined>(
+    inputProps.value
+  );
+
+  const handleChange = useMemo(
+    () =>
+      debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange?.(e);
+      }, wait),
+    [onChange, wait]
+  );
+
+  return (
+    <Input
+      {...inputProps}
+      value={value}
+      onChange={e => {
+        setValue(e.target.value);
+        handleChange(e);
+      }}
+    />
+  );
+}
+
 const ExpressionsWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const ExpressionWrapper = styled('div')<{hasQuerySymbol: boolean}>`
+const ExpressionWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
@@ -432,35 +497,40 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   `}
 `;
 
-function ExpressionAliasForm({
-  expression,
-  onChange,
-}: {
-  expression: DashboardMetricsExpression;
-  onChange: (alias: string | undefined) => void;
-}) {
-  return (
-    <QueryAliasWrapper>
-      <div>as</div>
-      <Input
-        type="text"
-        value={expression.alias}
-        onChange={e => onChange(e.target.value)}
-        placeholder={t('Add alias')}
-      />
-      <Button
-        icon={<IconClose />}
-        aria-label="Clear Alias"
-        onClick={() => onChange(undefined)}
-      />
-    </QueryAliasWrapper>
-  );
-}
-
-const QueryAliasWrapper = styled('div')`
+const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
   display: flex;
-  flex-grow: 1;
+  flex-basis: 50%;
   align-items: center;
-  gap: ${space(1)};
   padding-bottom: ${space(1)};
+
+  /* Add padding for the context menu */
+  ${p => p.hasOwnRow && `padding-right: 56px;`}
+  ${p => p.hasOwnRow && `flex-grow: 1;`}
+`;
+
+const StyledLabel = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)} ${space(1.5)};
+
+  color: ${p => p.theme.subText};
+
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+`;
+
+const EquationInputWrapper = styled('div')`
+  width: 100%;
+`;
+
+const StyledDebouncedInput = styled(DebouncedInput)`
+  border-radius: 0;
+  z-index: 1;
+`;
+
+const StyledButton = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
 `;
