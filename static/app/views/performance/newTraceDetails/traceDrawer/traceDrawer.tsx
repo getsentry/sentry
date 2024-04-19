@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -186,6 +186,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     [props.traceGridRef, props.manager, trace_dispatch]
   );
 
+  const [drawerRef, setDrawerRef] = useState<HTMLDivElement | null>(null);
   const drawerOptions: Pick<UsePassiveResizableDrawerOptions, 'min' | 'initialSize'> =
     useMemo(() => {
       const initialSizeInPercentage =
@@ -205,9 +206,10 @@ export function TraceDrawer(props: TraceDrawerProps) {
       return {
         min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 300,
         initialSize,
+        ref: drawerRef,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.traceGridRef, props.trace_state.preferences.layout]);
+    }, [props.traceGridRef, props.trace_state.preferences.layout, drawerRef]);
 
   const resizableDrawerOptions: UsePassiveResizableDrawerOptions = useMemo(() => {
     return {
@@ -332,7 +334,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   }
 
   return (
-    <PanelWrapper layout={props.trace_state.preferences.layout}>
+    <PanelWrapper ref={setDrawerRef} layout={props.trace_state.preferences.layout}>
       <ResizeableHandle
         layout={props.trace_state.preferences.layout}
         onMouseDown={onMouseDown}
