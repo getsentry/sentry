@@ -22,7 +22,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
-from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
@@ -30,6 +29,7 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.utils.actor import ActorTuple
 
 
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
@@ -187,12 +187,7 @@ class AlertRuleSerializer(Serializer):
                 created_by = None
             result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = created_by
 
-        # TODO this needs to be changed to store team/user sets
-        owners_by_type = defaultdict(list)
         for item in item_list:
-            if item.owner_id is not None:
-                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
-
             activations = sorted(
                 activations_by_alert_rule_id.get(item.id, []),
                 key=lambda x: x.date_added,
@@ -200,24 +195,9 @@ class AlertRuleSerializer(Serializer):
             )
             result[item]["activations"] = serialize(activations, **kwargs)
 
-        # TODO this needs to use the user/team columns of the alertrule instead.
-        resolved_actors: dict[str, dict[int | None, int | None]] = {}
-        for k, v in ACTOR_TYPES.items():
-            actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
-            if k == "team":
-                resolved_actors[k] = {actor.id: actor.team_id for actor in actors}
-            if k == "user":
-                resolved_actors[k] = {actor.id: actor.user_id for actor in actors}
-
-        for alert_rule in alert_rules.values():
-            if alert_rule.owner_id:
-                owner_type = actor_type_to_string(alert_rule.owner.type)
-                # TODO This looks like it is generating an actor tuple string
-                if owner_type:
-                    if alert_rule.owner_id in resolved_actors[owner_type]:
-                        result[alert_rule][
-                            "owner"
-                        ] = f"{owner_type}:{resolved_actors[owner_type][alert_rule.owner_id]}"
+            actor = ActorTuple.from_id(user_id=item.user_id, team_id=item.team_id)
+            if actor:
+                result[item]["owner"] = actor.identifier
 
         if "original_alert_rule" in self.expand:
             snapshot_activities = AlertRuleActivity.objects.filter(
@@ -279,7 +259,6 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
-            # TODO hopefully this is the actor tuple string
             "owner": attrs.get("owner", None),
             "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "comparisonDelta": obj.comparison_delta / 60 if obj.comparison_delta else None,
