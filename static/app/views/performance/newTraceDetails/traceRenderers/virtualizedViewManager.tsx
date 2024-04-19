@@ -446,7 +446,7 @@ export class VirtualizedViewManager {
   }
 
   onWheel(event: WheelEvent) {
-    if (event.metaKey) {
+    if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
       if (!this.onWheelEndRaf) {
         this.onWheelStart();
