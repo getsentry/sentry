@@ -560,6 +560,7 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            # TODO actor needs to become team/user
             owner=actor,
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,

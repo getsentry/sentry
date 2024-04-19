@@ -22,6 +22,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
 )
 from sentry.models.project import Project
+from sentry.models.team import Team
 
 
 @region_silo_endpoint
@@ -31,7 +32,7 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
@@ -56,6 +57,7 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
                     )
                 ),
                 incident__organization_id=team.organization_id,
+                # TODO needs to become `user_id in ? or team_id = ?`
                 incident__alert_rule__owner__in=owner_ids,
                 incident_id__in=IncidentProject.objects.filter(project__in=project_list).values(
                     "incident_id"
@@ -129,7 +131,7 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request, team) -> Response:
+    def get(self, request, team: Team) -> Response:
         """
         Returns alert rules ordered by highest number of alerts fired this week.
         """
@@ -152,6 +154,7 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
             incident__incidentactivity__date_added__gte=start,
             incident__incidentactivity__date_added__lt=end,
             organization_id=team.organization_id,
+            # TODO needs to become `user_id in ? or team_id = ?`
             owner__in=owner_ids,
         ).annotate(count=Count("id"))
 

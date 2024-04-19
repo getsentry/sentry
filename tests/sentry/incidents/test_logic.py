@@ -491,6 +491,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 **kwargs,
             )
             assert alert_rule.name == name
+            # TODO add assertions for team/user
             assert alert_rule.owner is None
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             if alert_rule.snuba_query.subscriptions.exists():
@@ -559,6 +560,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
+        # TODO add assertions for team/user
         assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
@@ -596,6 +598,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
+        # TODO add assertions for user/team
         assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
@@ -658,6 +661,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
 
     def test_alert_rule_owner(self):
+        # TODO Make sure user/team are working as well
         alert_rule_1 = create_alert_rule(
             self.organization,
             [self.project],
@@ -950,6 +954,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert action_snapshot.target_display == action.target_display
 
     def test_alert_rule_owner(self):
+        # TODO make sure this is setting team/user as well.
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],

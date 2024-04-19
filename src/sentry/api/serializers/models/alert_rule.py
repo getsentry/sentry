@@ -187,6 +187,7 @@ class AlertRuleSerializer(Serializer):
                 created_by = None
             result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = created_by
 
+        # TODO this needs to be changed to store team/user sets
         owners_by_type = defaultdict(list)
         for item in item_list:
             if item.owner_id is not None:
@@ -199,6 +200,7 @@ class AlertRuleSerializer(Serializer):
             )
             result[item]["activations"] = serialize(activations, **kwargs)
 
+        # TODO this needs to use the user/team columns of the alertrule instead.
         resolved_actors: dict[str, dict[int | None, int | None]] = {}
         for k, v in ACTOR_TYPES.items():
             actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
@@ -210,6 +212,7 @@ class AlertRuleSerializer(Serializer):
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
                 owner_type = actor_type_to_string(alert_rule.owner.type)
+                # TODO This looks like it is generating an actor tuple string
                 if owner_type:
                     if alert_rule.owner_id in resolved_actors[owner_type]:
                         result[alert_rule][
@@ -276,6 +279,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
+            # TODO hopefully this is the actor tuple string
             "owner": attrs.get("owner", None),
             "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "comparisonDelta": obj.comparison_delta / 60 if obj.comparison_delta else None,

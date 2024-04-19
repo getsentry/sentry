@@ -99,6 +99,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         model = AlertRule
         fields = [
             "name",
+            # TODO owner can't stay here forever.
             "owner",
             "query_type",
             "dataset",

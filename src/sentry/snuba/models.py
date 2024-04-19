@@ -57,6 +57,7 @@ class SnubaQuery(Model):
         from sentry.models.organization import Organization
         from sentry.models.project import Project
 
+        # TODO this read could be team/user scoped
         from_alert_rule = AlertRule.objects.filter(
             models.Q(owner_id__in=pk_map.get_pks(get_model_name(Actor)))
             | models.Q(organization_id__in=pk_map.get_pks(get_model_name(Organization)))
