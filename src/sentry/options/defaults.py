@@ -1764,13 +1764,7 @@ register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMAT
 register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-register(
-    "hybrid_cloud.use_region_specific_upload_url", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-register(
-    "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
+register("hybrid_cloud.disable_relative_upload_urls", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
