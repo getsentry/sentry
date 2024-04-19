@@ -84,7 +84,9 @@ class AuthLoginView(BaseView):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+            RateLimitCategory.IP: RateLimit(
+                limit=20, window=1
+            ),  # 20 GET requests per second per IP
         }
     }
 

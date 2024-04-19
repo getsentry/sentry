@@ -194,12 +194,36 @@ def test_option_disabled(mock_buffer):
     mock_commit.assert_has_calls(calls=calls, any_order=True)
 
 
+@django_db_all
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [
-            ("project_id", b"1"),
-        ],
+        "standalone-spans.process-spans-consumer.project-rollout": 1.0,
+    }
+)
+@mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
+def test_option_project_rollout_rate_discard(mock_buffer):
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    strategy = process_spans_strategy().create_with_partitions(
+        commit=mock.Mock(),
+        partitions={},
+    )
+
+    span_data = build_mock_span(project_id=1)
+    message = build_mock_message(span_data, topic)
+    strategy.submit(make_payload(message, partition))
+
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+    mock_buffer.assert_called()
+
+
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [2],
     }
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
