@@ -5,6 +5,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconAdd,
@@ -24,15 +25,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import type {
   DashboardMetricsEquation,
+  DashboardMetricsExpression,
   DashboardMetricsQuery,
 } from 'sentry/views/dashboards/metrics/types';
 import {
   filterEquationsByDisplayType,
   filterQueriesByDisplayType,
+  getMetricQueryName,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {FormulaInput as EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
@@ -80,25 +83,19 @@ export function Queries({
   const handleEditQueryAlias = useCallback(
     (index: number) => {
       const query = metricQueries[index];
-      // eslint-disable-next-line no-alert
-      const newAlias = prompt(t('Edit alias'), query.alias); // TODO: replace with inline input
-      if (newAlias === null) {
-        return;
-      }
-      onQueryChange({alias: newAlias}, index);
+      const alias = getMetricQueryName(query);
+
+      onQueryChange({alias}, index);
     },
     [metricQueries, onQueryChange]
   );
 
   const handleEditEquationAlias = useCallback(
     (index: number) => {
-      const query = metricEquations[index];
-      // eslint-disable-next-line no-alert
-      const newAlias = prompt(t('Edit alias'), query.alias); // TODO: replace with inline input
-      if (newAlias === null) {
-        return;
-      }
-      onEquationChange({alias: newAlias}, index);
+      const equation = metricEquations[index];
+      const alias = getMetricQueryName(equation);
+
+      onEquationChange({alias: alias ?? ''}, index);
     },
     [metricEquations, onEquationChange]
   );
@@ -109,9 +106,9 @@ export function Queries({
   );
 
   return (
-    <QueriesWrapper>
+    <ExpressionsWrapper>
       {filteredQueries.map((query, index) => (
-        <QueryWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index} hasQuerySymbol={showQuerySymbols}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
@@ -121,23 +118,35 @@ export function Queries({
               type={MetricExpressionType.QUERY}
             />
           )}
-          <QueryBuilder
-            onChange={data => onQueryChange(data, index)}
-            metricsQuery={query}
-            projects={selection.projects}
-          />
-          <QueryContextMenu
-            canRemoveQuery={filteredQueries.length > 1}
-            removeQuery={removeQuery}
-            addQuery={addQuery}
-            editAlias={handleEditQueryAlias}
-            queryIndex={index}
-            metricsQuery={query}
-          />
-        </QueryWrapper>
+          <ExpressionFormWrapper>
+            <ExpressionFormRowWrapper>
+              <QueryBuilder
+                onChange={data => onQueryChange(data, index)}
+                metricsQuery={query}
+                projects={selection.projects}
+              />
+              <QueryContextMenu
+                canRemoveQuery={filteredQueries.length > 1}
+                removeQuery={removeQuery}
+                addQuery={addQuery}
+                editAlias={handleEditQueryAlias}
+                queryIndex={index}
+                metricsQuery={query}
+              />
+            </ExpressionFormRowWrapper>
+            {query.alias && (
+              <ExpressionFormRowWrapper>
+                <ExpressionAliasForm
+                  expression={query}
+                  onChange={alias => onQueryChange({alias}, index)}
+                />
+              </ExpressionFormRowWrapper>
+            )}
+          </ExpressionFormWrapper>
+        </ExpressionWrapper>
       ))}
       {filteredEquations.map((equation, index) => (
-        <QueryWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index} hasQuerySymbol={showQuerySymbols}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}
@@ -147,17 +156,27 @@ export function Queries({
               type={MetricExpressionType.EQUATION}
             />
           )}
-          <FormulaInput
-            onChange={formula => onEquationChange({formula}, index)}
-            value={equation.formula}
-            availableVariables={availableVariables}
-          />
-          <EquationContextMenu
-            removeEquation={removeEquation}
-            editAlias={handleEditEquationAlias}
-            equationIndex={index}
-          />
-        </QueryWrapper>
+          <ExpressionFormWrapper>
+            <ExpressionFormRowWrapper>
+              <EquationInput
+                onChange={formula => onEquationChange({formula}, index)}
+                value={equation.formula}
+                availableVariables={availableVariables}
+              />
+              {equation.alias && (
+                <ExpressionAliasForm
+                  expression={equation}
+                  onChange={alias => onEquationChange({alias}, index)}
+                />
+              )}
+              <EquationContextMenu
+                removeEquation={removeEquation}
+                editAlias={handleEditEquationAlias}
+                equationIndex={index}
+              />
+            </ExpressionFormRowWrapper>
+          </ExpressionFormWrapper>
+        </ExpressionWrapper>
       ))}
       {displayType !== DisplayType.BIG_NUMBER && (
         <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
@@ -169,7 +188,7 @@ export function Queries({
           </Button>
         </ButtonBar>
       )}
-    </QueriesWrapper>
+    </ExpressionsWrapper>
   );
 }
 
@@ -230,7 +249,7 @@ function QueryContextMenu({
     const aliasItem = {
       leadingItems: [<IconEdit key="icon" />],
       key: 'alias',
-      label: t('Alias'),
+      label: t('Add Alias'),
       onAction: () => {
         editAlias(queryIndex);
       },
@@ -370,21 +389,27 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
   );
 }
 
-const QueriesWrapper = styled('div')`
+const ExpressionsWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const QueryWrapper = styled('div')<{hasQuerySymbol: boolean}>`
-  display: grid;
+const ExpressionWrapper = styled('div')<{hasQuerySymbol: boolean}>`
+  display: flex;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
-  grid-template-columns: 1fr max-content;
+`;
 
-  ${p =>
-    p.hasQuerySymbol &&
-    `
-  grid-template-columns: max-content 1fr max-content;
-  `}
+const ExpressionFormWrapper = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+
+  gap: ${space(1)};
+`;
+
+const ExpressionFormRowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
@@ -405,4 +430,37 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
     padding-left: ${space(1)};
     margin-left: 38px;
   `}
+`;
+
+function ExpressionAliasForm({
+  expression,
+  onChange,
+}: {
+  expression: DashboardMetricsExpression;
+  onChange: (alias: string | undefined) => void;
+}) {
+  return (
+    <QueryAliasWrapper>
+      <div>as</div>
+      <Input
+        type="text"
+        value={expression.alias}
+        onChange={e => onChange(e.target.value)}
+        placeholder={t('Add alias')}
+      />
+      <Button
+        icon={<IconClose />}
+        aria-label="Clear Alias"
+        onClick={() => onChange(undefined)}
+      />
+    </QueryAliasWrapper>
+  );
+}
+
+const QueryAliasWrapper = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  gap: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
