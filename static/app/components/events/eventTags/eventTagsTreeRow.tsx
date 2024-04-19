@@ -43,7 +43,12 @@ export function TagRow({meta, projectSlug, tag, ...props}: TagRowProps) {
   const tagErrors = tagMeta?.err ?? [];
   const hasTagErrors = tagErrors.length > 0;
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
+    <TreeRow
+      {...props}
+      data-test-id="tag-row"
+      className={'tag-row'}
+      hasErrors={hasTagErrors}
+    >
       <TreeKeyTrunk spacerCount={0} className="row-key">
         <TreeKey hasErrors={hasTagErrors}>{tag.key}</TreeKey>
       </TreeKeyTrunk>

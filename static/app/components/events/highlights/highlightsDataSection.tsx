@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTag, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,11 +28,12 @@ interface HighlightsSectionProps {
   project: Project;
 }
 
+export type EventTagMap = Record<string, {meta: Record<string, any>; tag: EventTag}>;
+
 export default function HighlightsDataSection({event, project}: HighlightsSectionProps) {
   const hasNewTagsUI = useHasNewTagsUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-
   const organization = useOrganization();
   const {isLoading, data} = useDetailedProject({
     orgSlug: organization.slug,
@@ -57,11 +57,10 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
       <ContextTagRow key={i} projectSlug={project.slug} tag={item} meta={{}} />
     ));
 
-  const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
-    event.tags.reduce((tm, tag, i) => {
-      tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
-      return tm;
-    }, {});
+  const tagMap: EventTagMap = event.tags.reduce((tm, tag, i) => {
+    tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
+    return tm;
+  }, {});
   const tagHighlights = (data?.highlightTags ?? []).filter(tKey =>
     tagMap.hasOwnProperty(tKey)
   );
@@ -101,7 +100,15 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
             icon={<IconEdit />}
             onClick={() =>
               openModal(
-                deps => <HighlightsEditModal detailedProject={project} {...deps} />,
+                deps => (
+                  <HighlightsEditModal
+                    detailedProject={project}
+                    previewRows={rows}
+                    event={event}
+                    tagMap={tagMap}
+                    {...deps}
+                  />
+                ),
                 {modalCss: highlightModalCss}
               )
             }
@@ -134,8 +141,5 @@ const ContextTagRow = styled(TagRow)`
 `;
 
 export const highlightModalCss = css`
-  max-width: 800px;
-  @media (min-width: ${theme.breakpoints.small}) {
-    width: 80%;
-  }
+  width: 850px;
 `;

@@ -4,40 +4,38 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {TagColumn} from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import type {EventTagMap} from 'sentry/components/events/highlights/highlightsDataSection';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTag, Project} from 'sentry/types';
+import type {Event, Project} from 'sentry/types';
 
 interface HighlightsEditModalProps extends ModalRenderProps {
   detailedProject: Project;
+  event: Event;
+  previewRows: React.ReactNode[];
+  tagMap: EventTagMap;
 }
 
 export default function HighlightsEditModal({
   Header,
   Body,
   Footer,
-  detailedProject,
+  event,
+  previewRows = [],
+  tagMap,
   closeModal,
 }: HighlightsEditModalProps) {
-  const previewData = [
-    {key: 'browser', value: 'Chrome 120.0.0'},
-    {key: 'environment', value: 'prd'},
-    {key: 'plan.name', value: 'am2_business'},
-    {key: 'os', value: 'Mac OS X >=10.15.7'},
-    {key: 'user', value: 'prod'},
-  ];
   const previewColumnCount = 2;
-
-  const previewColumnSize = Math.ceil(previewData.length / previewColumnCount);
+  const previewColumnSize = Math.ceil(previewRows.length / previewColumnCount);
   const previewColumns: React.ReactNode[] = [];
-  for (let i = 0; i < previewData.length; i += previewColumnSize) {
+  for (let i = 0; i < previewRows.length; i += previewColumnSize) {
     previewColumns.push(
       <EditPreviewColumn key={i}>
-        {previewData.slice(i, i + previewColumnSize).map((tag, j) => (
-          <EditPreviewItem key={j} project={detailedProject} previewTag={tag} />
+        {previewRows.slice(i, i + previewColumnSize).map((row, j) => (
+          <EditPreviewItem key={j} previewRow={row} />
         ))}
       </EditPreviewColumn>
     );
@@ -45,32 +43,7 @@ export default function HighlightsEditModal({
 
   const columnCount = 3;
 
-  const tagData = [
-    'customerDomain',
-    'customerDomain.name',
-    'customerDomain.organizationUrl',
-    'customerDomain.sentryUrl',
-    'device',
-    'device.subdomain',
-    'device.family',
-    'isCustomerDomain',
-    'level',
-    'mechanism',
-    'organization',
-    'organization.slug',
-    'plan',
-    'plan.tier',
-    'plan.total_members',
-    'plan.max_members',
-    'os.family',
-    'os.release',
-    'replay_id',
-    'sentry_version',
-    'timeOrigin',
-    'transaction',
-    'transaction.mode',
-  ];
-
+  const tagData = Object.keys(tagMap);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
   for (let i = 0; i < tagData.length; i += tagColumnSize) {
@@ -83,16 +56,13 @@ export default function HighlightsEditModal({
     );
   }
 
-  const ctxData = {
-    response: ['status_code'],
-    browser: ['name', 'version'],
-    'operating system': ['name'],
-    runtime: ['name', 'version'],
-    user: ['email', 'id', 'ip address'],
-    organization: ['id', 'slug'],
-    replay: ['replay_id', 'slug'],
-    trace: ['status', 'trace id'],
-  };
+  const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
+    (acc, [alias, context]) => {
+      acc[alias] = Object.keys(context).filter(k => k !== 'type');
+      return acc;
+    },
+    {}
+  );
 
   const ctxItems = Object.entries(ctxData);
   const ctxColumnSize = Math.ceil(ctxItems.length / columnCount);
@@ -131,8 +101,10 @@ export default function HighlightsEditModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={() => {}}>
+          <Button onClick={closeModal} size="sm">
+            {t('Cancel')}
+          </Button>
+          <Button priority="primary" size="sm" onClick={() => {}}>
             {t('Save')}
           </Button>
         </ButtonBar>
@@ -142,18 +114,17 @@ export default function HighlightsEditModal({
 }
 
 interface EditPreviewItemProps {
-  previewTag: EventTag;
-  project: Project;
+  previewRow: React.ReactNode;
 }
-function EditPreviewItem({project, previewTag}: EditPreviewItemProps) {
+function EditPreviewItem({previewRow}: EditPreviewItemProps) {
   return (
     <Fragment>
       <EditButton
-        aria-label={`Remove ${previewTag.key} from highlights`}
+        aria-label={`Remove from highlights`}
         icon={<IconSubtract />}
         size="xs"
       />
-      <EditPreviewRow projectSlug={project.slug} tag={previewTag} meta={{}} />
+      {previewRow}
     </Fragment>
   );
 }
@@ -229,6 +200,9 @@ const EditPreviewColumn = styled(TagColumn)`
   .row-value {
     margin-left: 20px;
   }
+  .tag-row:nth-child(4n-2) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const EditHighlightSection = styled('div')`
@@ -250,12 +224,6 @@ const EditHighlightColumn = styled(`div`)`
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
     padding-right: ${space(2)};
-  }
-`;
-
-const EditPreviewRow = styled(TagRow)`
-  :nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
