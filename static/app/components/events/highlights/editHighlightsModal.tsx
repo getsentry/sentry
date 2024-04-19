@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -8,18 +9,29 @@ import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {TagColumn} from 'sentry/components/events/eventTags/eventTagsTree';
 import type {EventTagMap} from 'sentry/components/events/highlights/highlightsDataSection';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+
+type HighlightTags = Required<Project>['highlightTags'];
+type HighlightContext = Required<Project>['highlightContext'];
 
 interface EditHighlightsModalProps extends ModalRenderProps {
-  detailedProject: Project;
   event: Event;
+  highlightContext: HighlightContext;
+  highlightTags: HighlightTags;
   previewRows: React.ReactNode[];
+  project: Project;
   tagMap: EventTagMap;
 }
 
 interface EditPreviewHighlightSectionProps {
+  highlightContext: HighlightContext;
+  highlightTags: HighlightTags;
   onRemovePreview: () => void;
   previewRows: EditHighlightsModalProps['previewRows'];
 }
@@ -53,32 +65,43 @@ function EditPreviewHighlightSection({previewRows}: EditPreviewHighlightSectionP
 
 interface EditTagHighlightSectionProps {
   columnCount: number;
+  highlightTags: HighlightTags;
   onAddTag: (tagKey: string) => void;
   tagMap: EditHighlightsModalProps['tagMap'];
 }
 
 function EditTagHighlightSection({
   columnCount,
+  highlightTags,
   onAddTag,
   tagMap,
 }: EditTagHighlightSectionProps) {
   const tagData = Object.keys(tagMap);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
+  const highlightTagsSet = new Set(highlightTags);
   for (let i = 0; i < tagData.length; i += tagColumnSize) {
     tagColumns.push(
-      <EditHighlightColumn key={i}>
-        {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => (
-          <EditTagContainer key={j}>
-            <EditButton
-              aria-label={`Add ${tagKey} tag to highlights`}
-              icon={<IconAdd />}
-              size="xs"
-              onClick={() => onAddTag(tagKey)}
-            />
-            <HighlightKey>{tagKey}</HighlightKey>
-          </EditTagContainer>
-        ))}
+      <EditHighlightColumn key={`tag-column-${i}`}>
+        {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
+          const isDisabled = highlightTagsSet.has(tagKey);
+          return (
+            <EditTagContainer key={`tag-${i}-${j}`}>
+              <EditButton
+                aria-label={`Add ${tagKey} tag to highlights`}
+                icon={<IconAdd />}
+                size="xs"
+                onClick={() => onAddTag(tagKey)}
+                disabled={isDisabled}
+                title={isDisabled && t('Already highlighted')}
+                tooltipProps={{delay: 500}}
+              />
+              <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
+                {tagKey}
+              </HighlightKey>
+            </EditTagContainer>
+          );
+        })}
       </EditHighlightColumn>
     );
   }
@@ -91,17 +114,29 @@ function EditTagHighlightSection({
     </EditHighlightSection>
   );
 }
+
 interface EditContextHighlightSectionProps {
   columnCount: number;
   event: EditHighlightsModalProps['event'];
+  highlightContext: HighlightContext;
   onAddContextKey: (contextType: string, contextKey: string) => void;
 }
 
 function EditContextHighlightSection({
   columnCount,
   event,
+  highlightContext,
   onAddContextKey,
 }: EditContextHighlightSectionProps) {
+  const ctxDisableMap: Record<string, Set<string>> = Object.entries(
+    highlightContext
+  ).reduce(
+    (disableMap, [contextType, contextKeys]) => ({
+      ...disableMap,
+      [contextType]: new Set(contextKeys ?? []),
+    }),
+    {}
+  );
   const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
     (acc, [alias, context]) => {
       acc[alias] = Object.keys(context).filter(k => k !== 'type');
@@ -114,21 +149,29 @@ function EditContextHighlightSection({
   const contextColumns: React.ReactNode[] = [];
   for (let i = 0; i < ctxItems.length; i += ctxColumnSize) {
     contextColumns.push(
-      <EditHighlightColumn key={i}>
+      <EditHighlightColumn key={`ctx-column-${i}`}>
         {ctxItems.slice(i, i + ctxColumnSize).map(([contextType, contextKeys], j) => (
-          <EditContextContainer key={j}>
+          <EditContextContainer key={`ctxv-item-${i}-${j}`}>
             <ContextType>{contextType}</ContextType>
-            {contextKeys.map((contextKey, k) => (
-              <Fragment key={k}>
-                <EditButton
-                  aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
-                  icon={<IconAdd />}
-                  size="xs"
-                  onClick={() => onAddContextKey(contextType, contextKey)}
-                />
-                <HighlightKey>{contextKey}</HighlightKey>
-              </Fragment>
-            ))}
+            {contextKeys.map((contextKey, k) => {
+              const isDisabled = ctxDisableMap[contextType]?.has(contextKey) ?? false;
+              return (
+                <Fragment key={`ctx-key-${i}-${j}-${k}`}>
+                  <EditButton
+                    aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
+                    icon={<IconAdd />}
+                    size="xs"
+                    onClick={() => onAddContextKey(contextType, contextKey)}
+                    disabled={isDisabled}
+                    title={isDisabled && t('Already highlighted')}
+                    tooltipProps={{delay: 500}}
+                  />
+                  <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
+                    {contextKey}
+                  </HighlightKey>
+                </Fragment>
+              );
+            })}
           </EditContextContainer>
         ))}
       </EditHighlightColumn>
@@ -150,12 +193,48 @@ export default function EditHighlightsModal({
   Body,
   Footer,
   event,
+  highlightContext: prevHighlightContext,
+  highlightTags: prevHighlightTags,
+  project,
   previewRows = [],
   tagMap,
   closeModal,
 }: EditHighlightsModalProps) {
-  const columnCount = 3;
+  const [highlightContext, setHighlightContext] =
+    useState<HighlightContext>(prevHighlightContext);
+  const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
+  const organization = useOrganization();
+  const api = useApi();
+
+  const {mutate: saveHighlights, isLoading} = useMutation<Project, RequestError>({
+    mutationFn: () => {
+      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+        method: 'PUT',
+        data: {
+          highlightContext,
+          highlightTags,
+        },
+      });
+    },
+    onSuccess: (_updatedProject: Project) => {
+      addSuccessMessage(
+        tct(`Successfully updated highlights for '[projectName]' project`, {
+          projectName: project.name,
+        })
+      );
+      closeModal();
+    },
+    onError: _error => {
+      addErrorMessage(
+        tct(`Failed to update highlights for '[projectName]' project`, {
+          projectName: project.name,
+        })
+      );
+    },
+  });
+
+  const columnCount = 3;
   return (
     <Fragment>
       <Header>
@@ -163,18 +242,27 @@ export default function EditHighlightsModal({
       </Header>
       <Body>
         <EditPreviewHighlightSection
+          highlightTags={highlightTags}
+          highlightContext={highlightContext}
           previewRows={previewRows}
           onRemovePreview={() => {}}
         />
         <EditTagHighlightSection
           columnCount={columnCount}
+          highlightTags={highlightTags}
+          onAddTag={tagKey => setHighlightTags([...highlightTags, tagKey])}
           tagMap={tagMap}
-          onAddTag={_tk => {}}
         />
         <EditContextHighlightSection
           event={event}
           columnCount={columnCount}
-          onAddContextKey={_ck => {}}
+          highlightContext={highlightContext}
+          onAddContextKey={(contextType, contextKey) =>
+            setHighlightContext({
+              ...highlightContext,
+              [contextType]: [...(highlightContext[contextType] ?? []), contextKey],
+            })
+          }
         />
       </Body>
       <Footer>
@@ -182,8 +270,13 @@ export default function EditHighlightsModal({
           <Button onClick={closeModal} size="sm">
             {t('Cancel')}
           </Button>
-          <Button priority="primary" size="sm" onClick={() => {}}>
-            {t('Save')}
+          <Button
+            disabled={isLoading}
+            onClick={() => saveHighlights()}
+            priority="primary"
+            size="sm"
+          >
+            {isLoading ? t('Saving...') : t('Save')}
           </Button>
         </ButtonBar>
       </Footer>
@@ -262,7 +355,8 @@ const EditContextContainer = styled(EditTagContainer)`
 
 const EditButton = styled(Button)`
   grid-column: span 1;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
+  border-color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.border)};
   width: 18px;
   height: 18px;
   min-height: 18px;
@@ -273,11 +367,14 @@ const EditButton = styled(Button)`
     height: 10px;
     width: 10px;
   }
+  &:hover {
+    color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
+  }
 `;
 
-const HighlightKey = styled('p')`
+const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
   font-family: ${p => p.theme.text.familyMono};
   margin-bottom: 0;
   word-wrap: break-word;

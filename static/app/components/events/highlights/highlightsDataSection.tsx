@@ -39,7 +39,11 @@ export default function HighlightsDataSection({
   const hasNewTagsUI = useHasNewTagsUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const {isLoading, data} = useDetailedProject({
+  const {
+    isLoading,
+    data: detailedProject,
+    refetch,
+  } = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -49,12 +53,12 @@ export default function HighlightsDataSection({
     return null;
   }
 
-  const contextHighlights = data?.highlightContext ?? {};
-  const contextHighlightsTypes = new Set(Object.keys(contextHighlights));
-  const contextHighlightRows = getOrderedContextItems(event)
-    .filter(([alias]) => contextHighlightsTypes.has(alias))
+  const highlightContext = detailedProject?.highlightContext ?? {};
+  const highlightContextTypeSet = new Set(Object.keys(highlightContext));
+  const highlightContextRows = getOrderedContextItems(event)
+    .filter(([alias]) => highlightContextTypeSet.has(alias))
     .reduce<EventTag[]>((acc, [alias, ctx]) => {
-      const newEntries: EventTag[] = (data?.highlightContext?.[alias] ?? [])
+      const newEntries: EventTag[] = (detailedProject?.highlightContext?.[alias] ?? [])
         .map(hcKey => ({
           key: `${alias}: ${hcKey}`,
           value: ctx[hcKey],
@@ -63,27 +67,34 @@ export default function HighlightsDataSection({
       return acc.concat(newEntries);
     }, [])
     .map((item, i) => (
-      <ContextTagRow key={i} projectSlug={project.slug} tag={item} meta={{}} />
+      <ContextTagRow
+        key={`highlight-ctx-${i}`}
+        projectSlug={project.slug}
+        tag={item}
+        meta={{}}
+      />
     ));
 
   const tagMap: EventTagMap = event.tags.reduce((tm, tag, i) => {
     tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
     return tm;
   }, {});
-  const tagHighlights = (data?.highlightTags ?? []).filter(tKey =>
-    tagMap.hasOwnProperty(tKey)
-  );
-  const tagHighlightRows = tagHighlights.map((tKey, i) => (
-    <TagRow key={i} projectSlug={project.slug} {...tagMap[tKey]} />
-  ));
+  const highlightTags = detailedProject?.highlightTags ?? [];
+  const highlightTagRows = highlightTags
+    .filter(tKey => tagMap.hasOwnProperty(tKey))
+    .map((tKey, i) => (
+      <TagRow key={`highlight-tag-${i}`} projectSlug={project.slug} {...tagMap[tKey]} />
+    ));
 
-  const rows = [...contextHighlightRows, ...tagHighlightRows];
+  const rows = [...highlightContextRows, ...highlightTagRows];
 
   const columns: React.ReactNode[] = [];
   const columnSize = Math.ceil(rows.length / columnCount);
   for (let i = 0; i < rows.length; i += columnSize) {
     columns.push(
-      <HighlightColumn key={i}>{rows.slice(i, i + columnSize)}</HighlightColumn>
+      <HighlightColumn key={`highlight-column-${i}`}>
+        {rows.slice(i, i + columnSize)}
+      </HighlightColumn>
     );
   }
 
@@ -111,14 +122,16 @@ export default function HighlightsDataSection({
               openModal(
                 deps => (
                   <EditHighlightsModal
-                    detailedProject={project}
+                    project={detailedProject ?? project}
+                    highlightContext={highlightContext}
+                    highlightTags={highlightTags}
                     previewRows={rows}
                     event={event}
                     tagMap={tagMap}
                     {...deps}
                   />
                 ),
-                {modalCss: highlightModalCss}
+                {modalCss: highlightModalCss, onClose: refetch}
               )
             }
           >
