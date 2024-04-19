@@ -94,6 +94,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/sentry-apps/[^/]+/avatar/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/api-tokens/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/api-tokens/[^/]+/$'),
+  new RegExp('^api/0/sentry-apps/[^/]+/rotate-secret/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/stats/$'),
   new RegExp('^api/0/sentry-apps/[^/]+/publish-request/$'),
   new RegExp('^api/0/sentry-app-installations/[^/]+/$'),
