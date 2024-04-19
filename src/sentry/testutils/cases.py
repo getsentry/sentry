@@ -1332,34 +1332,25 @@ class SnubaTestCase(BaseTestCase):
     def store_outcome(self, group):
         data = [self.__wrap_group(group)]
         assert (
-            _snuba_pool.urlopen(
-                "POST",
-                "/tests/entities/outcomes/insert",
-                body=json.dumps(data),
-                headers={},
-            ).status
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
+            ).status_code
             == 200
         )
 
     def store_span(self, span):
         assert (
-            _snuba_pool.urlopen(
-                "POST",
-                "/tests/entities/spans/insert",
-                body=json.dumps([span]),
-                headers={},
-            ).status
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+            ).status_code
             == 200
         )
 
     def store_spans(self, spans):
         assert (
-            _snuba_pool.urlopen(
-                "POST",
-                "/tests/entities/spans/insert",
-                body=json.dumps(spans),
-                headers={},
-            ).status
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+            ).status_code
             == 200
         )
 
