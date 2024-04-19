@@ -67,6 +67,8 @@ export enum PerformanceWidgetSetting {
   OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
   MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
+  SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -395,5 +397,19 @@ export const WIDGET_DEFINITIONS: ({
     subTitle: t('Top screens by count'),
     fields: ['avg(measurements.time_to_initial_display)'],
     dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID,
+  },
+  [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]: {
+    title: t('Average Cold Start'),
+    titleTooltip: '',
+    subTitle: t('Top screens by start count'),
+    fields: ['avg(measurements.app_start_cold)'],
+    dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START,
+  },
+  [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]: {
+    title: t('Average Warm Start'),
+    titleTooltip: '',
+    subTitle: t('Top screens by start count'),
+    fields: ['avg(measurements.app_start_warm)'],
+    dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START,
   },
 });

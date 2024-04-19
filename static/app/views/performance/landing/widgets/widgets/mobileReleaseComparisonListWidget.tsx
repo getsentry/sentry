@@ -48,13 +48,13 @@ import {
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {OUTPUT_TYPE, YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -90,7 +90,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
   return childData;
 }
 
-function SlowScreensByTTID(props: PerformanceWidgetProps) {
+function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
@@ -101,7 +101,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
   } = useReleaseSelection();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {organization, InteractiveTitle} = props;
+  const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
   const field = props.fields[0];
@@ -118,14 +118,17 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
         let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
-        eventView.fields = [
-          {field: 'transaction'},
-          {field: YAXIS_COLUMNS[YAxis.TTID]},
-          {field: 'count()'},
-        ];
+        const sortField = {
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
+            'count_starts(measurements.app_start_cold)',
+          [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
+            'count_starts(measurements.app_start_warm)',
+        }[props.chartSetting];
+        eventView.fields = [{field: 'transaction'}, {field}, {field: sortField}];
         eventView.sorts = [
           {
-            field: 'count()',
+            field: sortField,
             kind: 'desc',
           },
         ];
@@ -202,10 +205,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             dataset: DiscoverDatasets.METRICS,
           };
 
-          eventView.fields = [
-            {field: 'avg(measurements.time_to_initial_display)'},
-            {field: 'release'},
-          ];
+          eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.addFilterValue('event.type', 'transaction');
           mutableSearch.addFilterValue('transaction.op', 'ui.load');
@@ -301,10 +301,10 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             bottom: '0',
           }}
           type={ChartType.LINE}
-          aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
+          aggregateOutputFormat="duration"
           tooltipFormatterOptions={{
             valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, OUTPUT_TYPE[YAxis.TTID]),
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
           }}
           error={provided.widgetData.chart.error}
           disableXAxis
@@ -313,6 +313,21 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
       );
     };
 
+  const isAppStartup = [
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
+  ].includes(props.chartSetting);
+  const targetModulePath = isAppStartup
+    ? '/performance/mobile/app-startup/'
+    : '/performance/mobile/screens/';
+  const targetQueryParams = isAppStartup
+    ? {
+        app_start_type:
+          props.chartSetting === PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START
+            ? 'cold'
+            : 'warm',
+      }
+    : {};
   const getItems = provided =>
     provided.widgetData.list.data.map(
       listItem =>
@@ -323,13 +338,14 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             <Fragment>
               <GrowLink
                 to={normalizeUrl({
-                  pathname: `/performance/mobile/screens/spans/`,
+                  pathname: `${targetModulePath}spans/`,
                   query: {
                     project: listItem['project.id'],
                     transaction,
                     primaryRelease,
                     secondaryRelease,
                     ...normalizeDateTimeParams(location.query),
+                    ...targetQueryParams,
                   },
                 })}
               >
@@ -337,10 +353,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
               </GrowLink>
               <RightAlignedCell>
                 <StyledDurationWrapper>
-                  <PerformanceDuration
-                    milliseconds={listItem['avg(measurements.time_to_initial_display)']}
-                    abbreviation
-                  />
+                  <PerformanceDuration milliseconds={listItem[field]} abbreviation />
                 </StyledDurationWrapper>
               </RightAlignedCell>
             </Fragment>
@@ -374,9 +387,10 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
       HeaderActions={() => (
         <LinkButton
           to={normalizeUrl({
-            pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
+            pathname: targetModulePath,
             query: {
               ...normalizeDateTimeParams(pageFilter),
+              ...targetQueryParams,
               primaryRelease,
               secondaryRelease,
             },
@@ -404,7 +418,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
   );
 }
 
-export default SlowScreensByTTID;
+export default MobileReleaseComparisonListWidget;
 
 const StyledDurationWrapper = styled('div')`
   padding: 0 ${space(1)};
