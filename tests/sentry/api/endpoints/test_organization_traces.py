@@ -305,7 +305,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
         )
-        assert 0
 
 
 @pytest.mark.parametrize(
