@@ -1804,18 +1804,8 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Webhook processing controls
 register(
-    "hybridcloud.webhookpayload.use_parallel",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.webhookpayload.use_mailbox_buckets",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
