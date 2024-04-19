@@ -115,7 +115,9 @@ class RelocationRetryEndpoint(Endpoint):
                 scheduled_pause_at_step=get_autopause_value(),
             )
 
-            relocation_retry_link_promo_code.send_robust(relocation_uuid, new_relocation.uuid)
+            relocation_retry_link_promo_code.send_robust(
+                old_relocation_id=relocation_uuid, new_relocation_id=new_relocation.uuid
+            )
             RelocationFile.objects.create(
                 relocation=new_relocation,
                 file=file,
