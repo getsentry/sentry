@@ -1238,6 +1238,7 @@ export enum ReplayFieldKey {
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URLS = 'urls',
+  VIEWED_BY_IDS = 'viewed_by_ids',
 }
 
 export enum ReplayClickFieldKey {
@@ -1294,6 +1295,7 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.VIEWED_BY_IDS,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1362,6 +1364,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.VIEWED_BY_IDS]: {
+    desc: t('Sentry user id(s) who have seen this Replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  }
 };
 
 export const REPLAY_CLICK_FIELDS = [
