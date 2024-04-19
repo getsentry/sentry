@@ -58,7 +58,7 @@ class HelpSource extends Component<Props, State> {
     }
   }
 
-  search = new SentryGlobalSearch(['docs', 'help-center', 'develop', 'blog']);
+  search = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop', 'blog']);
 
   async unbouncedSearch(query: string) {
     this.setState({loading: true});

@@ -372,8 +372,8 @@ class QueryResult:
             series_query=series_query,
             totals_query=totals_query,
             result={
-                "series": {"data": {}, "meta": {}},
-                "totals": {"data": {}, "meta": {}},
+                "series": {"data": [], "meta": []},
+                "totals": {"data": [], "meta": []},
                 # We want to honor the date ranges of the supplied query.
                 "modified_start": scheduled_query.metrics_query.start,
                 "modified_end": scheduled_query.metrics_query.end,

@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {
   isMetricsEquationWidget,
   MetricExpressionType,
@@ -14,6 +14,7 @@ import {
 } from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -38,7 +39,7 @@ export function MetricScratchpad() {
     metricsSamples,
   } = useMetricsContext();
   const {selection} = usePageFilters();
-
+  const location = useLocation();
   const router = useRouter();
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
@@ -61,17 +62,43 @@ export function MetricScratchpad() {
         addErrorMessage(t('No matching transaction found'));
         return;
       }
+
+      const isTransaction = sample.id === sample['segment.id'];
+      const dataRow: {
+        id: string;
+        project: string;
+        trace: string;
+        timestamp?: number;
+      } = {
+        id: sample['transaction.id'],
+        project: sample.project,
+        trace: sample.trace,
+      };
+
+      if (sample.timestamp) {
+        const timestamp = new Date(sample.timestamp).getTime();
+        if (!isNaN(timestamp)) {
+          dataRow.timestamp = timestamp / 1000;
+        }
+      }
+
       router.push(
-        getMetricsCorrelationSpanUrl(
+        generateLinkToEventInTraceView({
+          traceSlug: dataRow.trace,
+          projectSlug: dataRow.project,
+          eventId: dataRow.id,
+          timestamp: dataRow.timestamp ?? '',
+          location: {
+            ...location,
+            query: {...location.query, referrer: 'metrics', openPanel: 'open'},
+          },
           organization,
-          sample.project,
-          sample.id,
-          sample['transaction.id'],
-          sample['segment.id']
-        )
+          transactionName: isTransaction ? sample.transaction : undefined,
+          spanId: isTransaction ? sample.id : undefined,
+        })
       );
     },
-    [router, organization]
+    [router, organization, location]
   );
 
   const firstWidget = widgets[0];
@@ -123,6 +150,7 @@ export function MetricScratchpad() {
                     selectedWidgetIndex === index ? highlightedSampleId : undefined
                   }
                   metricsSamples={metricsSamples}
+                  overlays={widget.overlays}
                 />
               )}
             </MultiChartWidgetQueries>
@@ -149,6 +177,7 @@ export function MetricScratchpad() {
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
+          overlays={firstWidget.overlays}
         />
       )}
     </Wrapper>
