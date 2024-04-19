@@ -10,6 +10,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk import Hub, set_tag
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
@@ -68,6 +69,12 @@ class RecordingIngestMessage:
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
 def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_hub: Hub) -> None:
     """Ingest non-chunked recording messages."""
+    if message_dict.get("replay_video") and message_dict["org_id"] in options.get(
+        "replay.organizations.id-video-denylist"
+    ):
+        # Organization has been denylisted -- exit early.
+        return None
+
     with current_hub:
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",

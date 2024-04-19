@@ -55,6 +55,7 @@ from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
+from sentry import options
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -224,6 +225,12 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             # TODO: DLQ
             logger.exception("Could not decode recording message.")
             return None
+
+    if decoded_message.get("replay_video") and decoded_message["org_id"] in options.get(
+        "replay.organizations.id-video-denylist"
+    ):
+        # Organization has been denylisted -- exit early.
+        return None
 
     try:
         headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
