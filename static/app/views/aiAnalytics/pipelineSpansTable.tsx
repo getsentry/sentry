@@ -157,12 +157,10 @@ function renderBodyCell(
       <Link
         to={generateLinkToEventInTraceView({
           organization,
-          eventSlug: `${row[SpanIndexedField.PROJECT]}:${row[SpanIndexedField.TRANSACTION_ID]}`,
-          dataRow: {
-            id: row[SpanIndexedField.TRANSACTION_ID],
-            trace: row[SpanIndexedField.TRACE],
-            timestamp: row[SpanIndexedField.TIMESTAMP],
-          },
+          eventId: row[SpanIndexedField.TRANSACTION_ID],
+          projectSlug: row[SpanIndexedField.PROJECT],
+          traceSlug: row[SpanIndexedField.TRACE],
+          timestamp: row[SpanIndexedField.TIMESTAMP],
           location,
           eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],

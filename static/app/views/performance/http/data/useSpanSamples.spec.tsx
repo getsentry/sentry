@@ -8,7 +8,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
+import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
 import type {IndexedProperty} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
