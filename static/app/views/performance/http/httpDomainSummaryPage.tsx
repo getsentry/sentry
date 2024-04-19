@@ -23,20 +23,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
 import {
   DomainTransactionsTable,
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
-import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
