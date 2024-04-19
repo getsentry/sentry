@@ -139,7 +139,7 @@ describe('SentryMemberTeamSelectorField', () => {
       <SentryMemberTeamSelectorField
         label="Select Owner"
         onChange={mock}
-        memberOfProjectSlug={project.slug}
+        memberOfProjectSlugs={[project.slug]}
         name="team-or-member"
         multiple
       />
