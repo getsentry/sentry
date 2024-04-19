@@ -87,6 +87,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
     )
     aggregate = serializers.CharField(required=True, min_length=1)
+    # TODO(mark) This needs special handling to set user_id and team_id
     owner = ActorField(
         required=False,
         allow_null=True,
