@@ -53,7 +53,6 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.group'
-  | 'span.category'
   | 'transaction'
   | 'transaction.method'
   | 'release'
