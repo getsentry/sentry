@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
