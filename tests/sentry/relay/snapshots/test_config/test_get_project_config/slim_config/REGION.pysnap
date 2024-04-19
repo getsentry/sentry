@@ -10,7 +10,6 @@ config:
     scrubDefaults: true
     sensitiveFields: []
   features:
-  - organizations:session-replay-video
   - organizations:transaction-name-mark-scrubbed-as-sanitized
   - organizations:transaction-name-normalize
   piiConfig:
