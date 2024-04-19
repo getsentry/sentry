@@ -33,12 +33,16 @@ export type EventTagMap = Record<string, {meta: Record<string, any>; tag: EventT
 export default function HighlightsDataSection({event, project}: HighlightsSectionProps) {
   const hasNewTagsUI = useHasNewTagsUI();
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
   const organization = useOrganization();
   const {isLoading, data} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  if (!hasNewTagsUI) {
+    return null;
+  }
 
   const contextHighlights = data?.highlightContext ?? {};
   const contextHighlightsTypes = new Set(Object.keys(contextHighlights));
@@ -78,10 +82,6 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
     );
   }
 
-  if (!hasNewTagsUI || isLoading) {
-    return null;
-  }
-
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -90,10 +90,7 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
       actions={
         <ButtonBar gap={1}>
           <LinkButton href="#tags" size="xs">
-            {t('All Tags')}
-          </LinkButton>
-          <LinkButton href="#context" size="xs">
-            {t('All Context')}
+            {t('View All')}
           </LinkButton>
           <Button
             size="xs"
@@ -119,7 +116,7 @@ export default function HighlightsDataSection({event, project}: HighlightsSectio
       }
     >
       <HighlightContainer ref={containerRef} columnCount={columnCount}>
-        {columns}
+        {isLoading ? null : columns}
       </HighlightContainer>
     </EventDataSection>
   );
