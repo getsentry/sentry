@@ -737,6 +737,9 @@ def update_alert_rule(
         updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
+        updated_query_fields["resolution"] = timedelta(
+            minutes=get_alert_resolution(time_window, organization=alert_rule.organization)
+        )
     if threshold_type:
         updated_fields["threshold_type"] = threshold_type.value
     if resolve_threshold is not NOT_SET:
@@ -762,8 +765,8 @@ def update_alert_rule(
         updated_fields["team_id"] = owner.team_id if owner else None
         updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
-        resolution = get_alert_resolution(time_window, organization=alert_rule.organization)
-
+        window: int = time_window or int(alert_rule.snuba_query.time_window / 60)
+        resolution = get_alert_resolution(window, organization=alert_rule.organization)
         if comparison_delta is not None:
             # Since comparison alerts make twice as many queries, run the queries less frequently.
             resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
@@ -771,6 +774,13 @@ def update_alert_rule(
 
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
+
+    if time_window and comparison_delta is NOT_SET and alert_rule.comparison_delta is not None:
+        resolution = (
+            get_alert_resolution(time_window, organization=alert_rule.organization)
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+        )
+        updated_query_fields["resolution"] = timedelta(minutes=resolution)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()

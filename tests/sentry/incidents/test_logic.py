@@ -16,10 +16,11 @@ from sentry.incidents.events import (
     IncidentCreatedEvent,
     IncidentStatusUpdatedEvent,
 )
-from sentry.incidents.logic import (
+from sentry.incidents.logic import (  # get_alert_resolution,
     CRITICAL_TRIGGER_LABEL,
+    DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS,
     DEFAULT_ALERT_RULE_RESOLUTION,
-    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
@@ -698,7 +699,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
@@ -732,6 +735,71 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
+
+    def test_create_alert_default_resolution(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_create_alert_resolution_load_shedding(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_create_alert_load_shedding_comparison(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=60,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            * 60
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+        )
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1006,12 +1074,18 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
         assert self.alert_rule.comparison_delta == comparison_delta * 60
-        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            self.alert_rule.snuba_query.resolution
+            == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         # Should be no change if we don't specify `comparison_delta` for update at all.
         update_alert_rule(self.alert_rule)
         assert self.alert_rule.comparison_delta == comparison_delta * 60
-        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            self.alert_rule.snuba_query.resolution
+            == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         # Should change if we explicitly set it to None.
         update_alert_rule(self.alert_rule, comparison_delta=None)
@@ -1061,6 +1135,126 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_window(self):
+        time_window = 1440
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+        )
+
+        time_window = 90
+        updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_window_with_comparison(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+        time_window = 90
+        updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
+
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_comparison(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert alert_rule.snuba_query.resolution == 1800
+        updated_alert_rule = update_alert_rule(alert_rule, comparison_delta=90)
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_comparison_and_window(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert alert_rule.snuba_query.resolution == 1800
+        time_window = 30
+        updated_alert_rule = update_alert_rule(
+            alert_rule, time_window=time_window, comparison_delta=90
+        )
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -2619,3 +2813,19 @@ class TestCustomMetricAlertRule(TestCase):
         )
 
         mocked_schedule_invalidate_project_config.assert_not_called()
+
+
+class TestGetAlertResolution(TestCase):
+    def test_get_alert_resolution(self):
+        # Test that the default resolution is used
+        pass
+
+    # Enable the feature and ensure it's using the new resolution
+    def test_get_alert_resolution_load_shedding(self):
+        # test that the lookup table is used
+        pass
+
+    # Enable the feature and get resolution, should be the default alert resolution
+    def test_get_alert_resolution_load_shedding_unknown_time_window(self):
+        # test that it returns default if the time window is unknown
+        pass
