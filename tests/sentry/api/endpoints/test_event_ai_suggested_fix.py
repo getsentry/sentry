@@ -162,7 +162,7 @@ class EventAiSuggestedFixEndpointTest(APITestCase):
                 ]
             }
         }
-        exceptions = describe_event_for_ai(event=event_data, model="gpt-3.5-turbo")
+        exceptions = describe_event_for_ai(event=event_data)
         assert (
             len(exceptions.get("exceptions", [])) == 1
         ), "Should have one exception in the event data"

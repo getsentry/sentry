@@ -174,8 +174,7 @@ def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
     return [x for x in frames if not x.get("delete")]
 
 
-def describe_event_for_ai(event, model):
-    detailed = model.startswith("gpt-4")
+def describe_event_for_ai(event, detailed=False):
     data = {}
 
     msg = event.get("message")
@@ -250,10 +249,10 @@ def describe_event_for_ai(event, model):
     return data
 
 
-def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL):
+def suggest_fix(event_data):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
-    event_info = describe_event_for_ai(event_data, model=model)
+    event_info = describe_event_for_ai(event_data)
 
     response = complete_prompt(
         usecase=LLMUseCase.SUGGESTED_FIX,
