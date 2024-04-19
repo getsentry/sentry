@@ -14,6 +14,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
@@ -59,7 +60,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 project_ids=ALL_ACCESS_PROJECTS,
                 date_filter_optional=False,
             )
-        except NoProjects:
+        except (NoProjects, InvalidParams):
             return Response(status=404)
 
         try:

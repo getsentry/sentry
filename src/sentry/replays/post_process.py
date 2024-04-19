@@ -95,7 +95,7 @@ def generate_restricted_fieldset(
         yield from response
 
 
-def _strip_dashes(field: str | None) -> str:
+def _strip_dashes(field: str | None) -> str | None:
     if field:
         return field.replace("-", "")
     return field

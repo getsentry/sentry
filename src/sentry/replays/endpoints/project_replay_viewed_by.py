@@ -10,11 +10,13 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
@@ -66,7 +68,10 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         # query for user ids who viewed the replay
-        filter_params = self.get_filter_params(request, project, date_filter_optional=False)
+        try:
+            filter_params = self.get_filter_params(request, project, date_filter_optional=False)
+        except (NoProjects, InvalidParams):
+            return Response(status=404)
 
         # If no rows were found then the replay does not exist and a 404 is returned.
         viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(
