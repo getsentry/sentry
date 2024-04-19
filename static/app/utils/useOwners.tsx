@@ -19,7 +19,9 @@ export function useOwners({currentValue}: Options) {
   // Ensure the current value of the fields members is loaded
   const ensureUserIds = useMemo(
     () =>
-      currentValue?.filter(item => item.startsWith('user:')).map(user => user.slice(7)),
+      currentValue
+        ?.filter(item => item.startsWith('user:'))
+        .map(user => user.replace(/^user:/, '')),
     [currentValue]
   );
   useMembers({ids: ensureUserIds});
@@ -34,7 +36,9 @@ export function useOwners({currentValue}: Options) {
   // Ensure the current value of the fields teams is loaded
   const ensureTeamIds = useMemo(
     () =>
-      currentValue?.filter(item => item.startsWith('team:')).map(user => user.slice(5)),
+      currentValue
+        ?.filter(item => item.startsWith('team:'))
+        .map(user => user.replace(/^team:/, '')),
     [currentValue]
   );
   useTeamsById({ids: ensureTeamIds});
