@@ -1,10 +1,16 @@
-import {useMemo, useRef} from 'react';
+import {type RefObject, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/utils';
+import {QueryBuilderFocusType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  focusIsWithinToken,
+  formatFilterValue,
+  getValidOpsForFilter,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   TermOperator,
   type Token,
@@ -27,6 +33,14 @@ const OP_LABELS = {
   [TermOperator.LESS_THAN_EQUAL]: '<=',
   [TermOperator.NOT_EQUAL]: 'is not',
 };
+
+function useFocusPart(ref: RefObject<HTMLDivElement>, isFocused: boolean) {
+  useEffect(() => {
+    if (isFocused) {
+      ref.current?.focus();
+    }
+  }, [isFocused, ref]);
+}
 
 const getOpLabel = (token: TokenResult<Token.FILTER>) => {
   if (token.negated) {
@@ -86,12 +100,31 @@ function FilterKey({token}: SearchQueryTokenProps) {
 }
 
 function FilterValue({token}: SearchQueryTokenProps) {
-  // TODO(malwilley): Add edit functionality
+  const {focus, dispatch} = useSearchQueryBuilder();
+  const ref = useRef<HTMLDivElement>(null);
+  const isFocused =
+    focus?.type === QueryBuilderFocusType.TOKEN_VALUE && focusIsWithinToken(focus, token);
+  const isEditing = isFocused && focus.editing;
+
+  useFocusPart(ref, isFocused);
+
+  if (isEditing) {
+    return (
+      <ValueDiv>
+        <SearchQueryBuilderValueCombobox token={token} />
+      </ValueDiv>
+    );
+  }
 
   return (
-    <ValueDiv tabIndex={-1} role="gridcell" aira-label={t('Edit token value')}>
+    <ValueDiv
+      tabIndex={-1}
+      role="gridcell"
+      aria-label={t('Edit token value')}
+      onClick={() => dispatch({type: 'CLICK_TOKEN_VALUE', token})}
+    >
       <InteractionStateLayer />
-      {token.value.text}
+      {formatFilterValue(token)}
     </ValueDiv>
   );
 }

@@ -88,5 +88,50 @@ describe('SearchQueryBuilder', function () {
         )
       ).toBeInTheDocument();
     });
+
+    it('can modify the value by clicking into it', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Should display as "firefox" to start
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'firefox'
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Edit token value'}));
+      // Should have placeholder text of previous value
+      expect(screen.getByRole('combobox')).toHaveAttribute('placeholder', 'firefox');
+
+      // Clicking the "Chrome option should update the value"
+      await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
+      expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'Chrome'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('escapes values with spaces and reserved characters', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Edit token value'}));
+      await userEvent.keyboard('some" value{enter}');
+      // Value should be surrounded by quotes and escaped
+      expect(
+        screen.getByRole('row', {name: 'browser.name:"some\\" value"'})
+      ).toBeInTheDocument();
+      // Display text should be display the original value
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'some" value'
+        )
+      ).toBeInTheDocument();
+    });
   });
 });
