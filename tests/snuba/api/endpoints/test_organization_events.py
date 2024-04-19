@@ -6300,7 +6300,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "email": "hellboy@bar.com",
             "ip_address": "127.0.0.1",
         }
-        replay_id = str(uuid.uuid4().hex)
+        replay_id = uuid.uuid4().hex
         with self.options({"issues.group_attributes.send_kafka": True}):
             event = self.store_event(
                 data={
@@ -6343,8 +6343,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
 
         data = response.data["data"][0]
-        returned_replay_id = data.pop("replayId")
-        assert returned_replay_id.replace("-", "") == replay_id
         assert data == {
             "id": event.event_id,
             "events.transaction": "",
@@ -6354,6 +6352,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "events.environment": None,
             "user.display": user_data["email"],
             "device": "Mac",
+            "replayId": replay_id,
             "os": "",
             "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
