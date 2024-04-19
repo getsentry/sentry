@@ -95,6 +95,52 @@ describe('Autofix', () => {
     expect(triggerAutofixMock).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the root cause component when changes step is present', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/`,
+      body: {
+        autofix: AutofixDataFixture({
+          steps: [
+            AutofixStepFixture({
+              type: AutofixStepType.ROOT_CAUSE_ANALYSIS,
+              title: 'Root Cause',
+              causes: [
+                {
+                  actionability: 1,
+                  id: 'cause-1',
+                  likelihood: 1,
+                  title: 'Test Cause Title',
+                  description: 'Test Cause Description',
+                  suggested_fixes: [
+                    {
+                      id: 'fix-1',
+                      title: 'Test Fix Title',
+                      description: 'Test Fix Description',
+                      elegance: 1,
+                      snippet: {
+                        file_path: 'test/file/path.py',
+                        snippet: 'two = 1 + 1',
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
+          ],
+        }),
+      },
+    });
+
+    render(<Autofix event={event} group={group} />);
+
+    expect(await screen.findByText('Root Cause')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sentry has identified 1 potential root cause/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Test Cause Title')).toBeInTheDocument();
+    expect(screen.getByText('Test Cause Description')).toBeInTheDocument();
+  });
+
   it('renders the diff component when changes step is present', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/autofix/`,
@@ -122,6 +168,9 @@ describe('Autofix', () => {
     render(<Autofix event={event} group={group} />);
 
     expect(await screen.findByText('Review Fix')).toBeInTheDocument();
-    // expect(screen.getByText('Test PR Title')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Create a Pull Request'})
+    ).toBeInTheDocument();
   });
 });

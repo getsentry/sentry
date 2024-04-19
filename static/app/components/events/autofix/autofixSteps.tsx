@@ -58,7 +58,7 @@ function stepShouldBeginExpanded(step: AutofixStep) {
   }
 
   if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-    return step.selection ? true : false;
+    return step.selection ? false : true;
   }
 
   return step.status !== 'COMPLETED';
