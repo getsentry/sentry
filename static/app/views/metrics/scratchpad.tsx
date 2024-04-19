@@ -150,6 +150,7 @@ export function MetricScratchpad() {
                     selectedWidgetIndex === index ? highlightedSampleId : undefined
                   }
                   metricsSamples={metricsSamples}
+                  overlays={widget.overlays}
                 />
               )}
             </MultiChartWidgetQueries>
@@ -176,6 +177,7 @@ export function MetricScratchpad() {
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
+          overlays={firstWidget.overlays}
         />
       )}
     </Wrapper>

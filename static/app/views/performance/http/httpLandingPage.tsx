@@ -18,11 +18,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
-import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import {
+  DomainsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/tables/domainsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';

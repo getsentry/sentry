@@ -2330,11 +2330,6 @@ SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
-# User Feedback Spam Detection
-SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
-SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
-
-
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
@@ -2760,7 +2755,7 @@ SENTRY_USE_SPANS_BUFFER = False
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag activates consuming GroupAttribute messages in the development environment
-SENTRY_USE_GROUP_ATTRIBUTES = False
+SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
@@ -2958,6 +2953,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                     "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
                 ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                # TODO: remove setting
                 "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
                     "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
                 ),

@@ -1282,6 +1282,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to drop any in-flight work in the multiprocesing strategy
+# of the indexer during consumer shutdowns, rebalances, etc.
+register(
+    "sentry-metrics.indexer.drop-work-in-multiprocessing",
+    default=True,  # False means we don't drop any work
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1796,18 +1804,8 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Webhook processing controls
 register(
-    "hybridcloud.webhookpayload.use_parallel",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.webhookpayload.use_mailbox_buckets",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1894,7 +1892,7 @@ register(
 # The flag activates whether to send group attributes messages to kafka
 register(
     "issues.group_attributes.send_kafka",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2390,6 +2388,12 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.process-spans-consumer.project-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
@@ -2419,6 +2423,26 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Options for setting LLM providers and usecases
+register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
+# Example provider:
+#     "openai": {
+#         "options": {
+#             "api_key": "",
+#         },
+#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
+#     }
+
+register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
+# Example usecase:
+#     "suggestedfix": {
+#         "provider": "openai",
+#         "options": {
+#             "model": "gpt-3.5-turbo",
+#         },
+#     }
+# }
 
 register(
     "feedback.filter_garbage_messages",

@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
