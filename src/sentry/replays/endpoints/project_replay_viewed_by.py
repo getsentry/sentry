@@ -16,7 +16,6 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
@@ -70,8 +69,10 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         # query for user ids who viewed the replay
         try:
             filter_params = self.get_filter_params(request, project, date_filter_optional=False)
-        except (NoProjects, InvalidParams):
+        except NoProjects:
             return Response(status=404)
+        # "start" and "end" keys are expected to exist due to date_filter_optional=False.
+        # The fx returns defaults if filters aren't in the request
 
         # If no rows were found then the replay does not exist and a 404 is returned.
         viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(

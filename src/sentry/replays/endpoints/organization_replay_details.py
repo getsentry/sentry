@@ -14,7 +14,6 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
@@ -60,8 +59,10 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 project_ids=ALL_ACCESS_PROJECTS,
                 date_filter_optional=False,
             )
-        except (NoProjects, InvalidParams):
+        except NoProjects:
             return Response(status=404)
+        # "start" and "end" keys are expected to exist due to date_filter_optional=False.
+        # The fx returns defaults if filters aren't in the request
 
         try:
             replay_id = str(uuid.UUID(replay_id))

@@ -233,8 +233,6 @@ def get_date_range_from_stats_period(
             raise InvalidParams(str(e))
     elif optional:
         return None, None
-    else:
-        raise InvalidParams("start and end are both required")
 
     if start >= end:
         raise InvalidParams("start must be before end")
