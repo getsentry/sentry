@@ -11,10 +11,10 @@ from sentry.replays.validators import VALID_FIELD_SET
 
 
 class DeviceResponseType(TypedDict, total=False):
-    name: str | None
     brand: str | None
-    model: str | None
     family: str | None
+    model: str | None
+    name: str | None
 
 
 class SDKResponseType(TypedDict, total=False):
@@ -33,47 +33,47 @@ class BrowserResponseType(TypedDict, total=False):
 
 
 class UserResponseType(TypedDict, total=False):
-    id: str | None
-    username: str | None
-    email: str | None
-    ip: str | None
     display_name: str | None
+    email: str | None
+    id: str | None
+    ip: str | None
+    username: str | None
 
 
 @extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
-    id: str
-    project_id: str
-    trace_ids: list[str]
-    error_ids: list[str]
-    environment: str | None
-    tags: dict[str, list[str]] | list
-    user: UserResponseType
-    sdk: SDKResponseType
-    os: OSResponseType
+    activity: int | None
     browser: BrowserResponseType
-    device: DeviceResponseType
-    is_archived: bool | None
-    urls: list[str] | None
     clicks: list[dict[str, Any]]
     count_dead_clicks: int | None
-    count_rage_clicks: int | None
     count_errors: int | None
-    duration: int | None
-    finished_at: str | None
-    started_at: str | None
-    activity: int | None
-    count_urls: int | None
-    replay_type: str
-    count_segments: int | None
-    platform: str | None
-    releases: list[str]
-    dist: str | None
-    warning_ids: list[str] | None
-    info_ids: list[str] | None
-    count_warnings: int | None
     count_infos: int | None
+    count_rage_clicks: int | None
+    count_segments: int | None
+    count_urls: int | None
+    count_warnings: int | None
+    device: DeviceResponseType
+    dist: str | None
+    duration: int | None
+    environment: str | None
+    error_ids: list[str]
+    finished_at: str | None
     has_viewed: bool
+    id: str
+    info_ids: list[str] | None
+    is_archived: bool | None
+    os: OSResponseType
+    platform: str | None
+    project_id: str
+    releases: list[str]
+    replay_type: str
+    sdk: SDKResponseType
+    started_at: str | None
+    tags: dict[str, list[str]] | list
+    trace_ids: list[str]
+    urls: list[str] | None
+    user: UserResponseType
+    warning_ids: list[str] | None
 
 
 def process_raw_response(
@@ -95,10 +95,10 @@ def generate_restricted_fieldset(
         yield from response
 
 
-def _strip_dashes(field: str | None) -> str | None:
+def _strip_dashes(field: str | None) -> str:
     if field:
         return field.replace("-", "")
-    return field
+    return ""
 
 
 def generate_normalized_output(
@@ -117,13 +117,32 @@ def generate_normalized_output(
         ret_item["project_id"] = str(item["project_id"])
 
         # modified + renamed fields
-        ret_item["id"] = _strip_dashes(item.get("replay_id", None))
         ret_item["environment"] = item.get("agg_environment", None)
-        ret_item["releases"] = list(filter(bool, item.get("releases", [])))
         # Returns a UInt8 of either 0 or 1. We coerce to a bool.
         ret_item["has_viewed"] = bool(item.get("has_viewed", 0))
+        ret_item["id"] = _strip_dashes(item.get("replay_id", None))
+        ret_item["releases"] = list(filter(bool, item.get("releases", [])))
 
         # computed fields
+        ret_item["browser"] = {
+            "name": item.get("browser_name", None),
+            "version": item.get("browser_version", None),
+        }
+        ret_item["clicks"] = extract_click_fields(item)
+        ret_item["device"] = {
+            "name": item.get("device_name", None),
+            "brand": item.get("device_brand", None),
+            "model": item.get("device_model", None),
+            "family": item.get("device_family", None),
+        }
+        ret_item["os"] = {
+            "name": item.get("os_name", None),
+            "version": item.get("os_version", None),
+        }
+        ret_item["sdk"] = {
+            "name": item.get("sdk_name", None),
+            "version": item.get("sdk_version", None),
+        }
         ret_item["tags"] = dict_unique_list(
             zip(
                 item.get("tk", None) or [],
@@ -142,47 +161,28 @@ def generate_normalized_output(
             or ret_item["user"]["id"]
             or ret_item["user"]["ip"]
         )
-        ret_item["sdk"] = {
-            "name": item.get("sdk_name", None),
-            "version": item.get("sdk_version", None),
-        }
-        ret_item["os"] = {
-            "name": item.get("os_name", None),
-            "version": item.get("os_version", None),
-        }
-        ret_item["browser"] = {
-            "name": item.get("browser_name", None),
-            "version": item.get("browser_version", None),
-        }
-        ret_item["device"] = {
-            "name": item.get("device_name", None),
-            "brand": item.get("device_brand", None),
-            "model": item.get("device_model", None),
-            "family": item.get("device_family", None),
-        }
-        ret_item["clicks"] = extract_click_fields(item)
 
         # optional fields
-        ret_item["trace_ids"] = item.get("traceIds", [])
-        ret_item["error_ids"] = item.get("errorIds", [])
-        ret_item["urls"] = item.get("urls_sorted", None)
-        ret_item["is_archived"] = item.get("isArchived", None)
         ret_item["activity"] = item.get("activity", None)
         ret_item["count_dead_clicks"] = item.get("count_dead_clicks", None)
         ret_item["count_errors"] = item.get("count_errors", None)
+        ret_item["count_infos"] = item.get("count_infos", None)
         ret_item["count_rage_clicks"] = item.get("count_rage_clicks", None)
         ret_item["count_segments"] = item.get("count_segments", None)
         ret_item["count_urls"] = item.get("count_urls", None)
+        ret_item["count_warnings"] = item.get("count_warnings", None)
         ret_item["dist"] = item.get("dist", None)
         ret_item["duration"] = item.get("duration", None)
+        ret_item["error_ids"] = item.get("errorIds", [])
         ret_item["finished_at"] = item.get("finished_at", None)
+        ret_item["info_ids"] = item.get("info_ids", None)
+        ret_item["is_archived"] = item.get("isArchived", None)
         ret_item["platform"] = item.get("platform", None)
         ret_item["replay_type"] = item.get("replay_type", "session")
         ret_item["started_at"] = item.get("started_at", None)
+        ret_item["trace_ids"] = item.get("traceIds", [])
+        ret_item["urls"] = item.get("urls_sorted", None)
         ret_item["warning_ids"] = item.get("warning_ids", None)
-        ret_item["info_ids"] = item.get("info_ids", None)
-        ret_item["count_infos"] = item.get("count_infos", None)
-        ret_item["count_warnings"] = item.get("count_warnings", None)
 
         # excluded fields: agg_urls, clickClass, click_selector
         # Don't need clickClass and click_selector for the click field, as they are only used for searching.
@@ -212,32 +212,16 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
 
 def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
     archived_replay_response = {
-        "id": _strip_dashes(replay_id),
-        "project_id": str(project_id),
-        "trace_ids": [],
-        "error_ids": [],
-        "environment": None,
-        "tags": [],
-        "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
-        "sdk": {"name": None, "version": None},
-        "os": {"name": None, "version": None},
         "browser": {"name": None, "version": None},
         "device": {"name": None, "brand": None, "model": None, "family": None},
-        "urls": None,
-        "activity": None,
-        "count_dead_clicks": None,
-        "count_rage_clicks": None,
-        "count_errors": None,
-        "duration": None,
-        "finished_at": None,
-        "started_at": None,
-        "is_archived": True,
-        "count_segments": None,
-        "count_urls": None,
-        "dist": None,
-        "platform": None,
-        "releases": None,
-        "clicks": None,
+        "error_ids": [],
+        "id": _strip_dashes(replay_id),
+        "os": {"name": None, "version": None},
+        "project_id": str(project_id),
+        "sdk": {"name": None, "version": None},
+        "tags": [],
+        "trace_ids": [],
+        "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
     }
     for field in VALID_FIELD_SET:
         if field not in archived_replay_response:
