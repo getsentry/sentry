@@ -6,9 +6,12 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {TagColumn} from 'sentry/components/events/eventTags/eventTagsTree';
-import type {EventTagMap} from 'sentry/components/events/highlights/highlightsDataSection';
-import {IconAdd, IconSubtract} from 'sentry/icons';
+import {
+  type HighlightContext,
+  HighlightsDataContent,
+  type HighlightTags,
+} from 'sentry/components/events/highlights/highlightsDataSection';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
@@ -17,66 +20,64 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type HighlightTags = Required<Project>['highlightTags'];
-type HighlightContext = Required<Project>['highlightContext'];
-
 interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
-  previewRows: React.ReactNode[];
   project: Project;
-  tagMap: EventTagMap;
 }
 
 interface EditPreviewHighlightSectionProps {
+  event: Event;
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
   onRemovePreview: () => void;
-  previewRows: EditHighlightsModalProps['previewRows'];
+  project: Project;
 }
 
-function EditPreviewHighlightSection({previewRows}: EditPreviewHighlightSectionProps) {
+function EditPreviewHighlightSection({
+  event,
+  project,
+  highlightContext,
+  highlightTags,
+}: EditPreviewHighlightSectionProps) {
   const previewColumnCount = 2;
-  const previewColumnSize = Math.ceil(previewRows.length / previewColumnCount);
-  const previewColumns: React.ReactNode[] = [];
-  for (let i = 0; i < previewRows.length; i += previewColumnSize) {
-    previewColumns.push(
-      <EditPreviewColumn key={i}>
-        {previewRows.slice(i, i + previewColumnSize).map((previewRow, j) => (
-          <Fragment key={j}>
-            <EditButton
-              aria-label={`Remove from highlights`}
-              icon={<IconSubtract />}
-              size="xs"
-            />
-            {previewRow}
-          </Fragment>
-        ))}
-      </EditPreviewColumn>
-    );
-  }
+  //           {/* <EditButton
+  //             aria-label={`Remove from highlights`}
+  //             icon={<IconSubtract />}
+  //             size="xs"
+  //             onClick={() => onRemovePreview()}
+  //           /> */}
   return (
-    <EditHighlightPreview columnCount={previewColumnCount}>
-      {previewColumns}
+    <EditHighlightPreview>
+      <HighlightsDataContent
+        event={event}
+        columnCount={previewColumnCount}
+        highlightContext={highlightContext}
+        highlightTags={highlightTags}
+        project={project}
+        tagRowProps={{
+          config: {disableActions: true, disableRichValue: true, disableSearchKey: true},
+        }}
+      />
     </EditHighlightPreview>
   );
 }
 
 interface EditTagHighlightSectionProps {
   columnCount: number;
+  event: EditHighlightsModalProps['event'];
   highlightTags: HighlightTags;
   onAddTag: (tagKey: string) => void;
-  tagMap: EditHighlightsModalProps['tagMap'];
 }
 
 function EditTagHighlightSection({
   columnCount,
+  event,
   highlightTags,
   onAddTag,
-  tagMap,
 }: EditTagHighlightSectionProps) {
-  const tagData = Object.keys(tagMap);
+  const tagData = event.tags.map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
   const highlightTagsSet = new Set(highlightTags);
@@ -196,8 +197,6 @@ export default function EditHighlightsModal({
   highlightContext: prevHighlightContext,
   highlightTags: prevHighlightTags,
   project,
-  previewRows = [],
-  tagMap,
   closeModal,
 }: EditHighlightsModalProps) {
   const [highlightContext, setHighlightContext] =
@@ -242,16 +241,17 @@ export default function EditHighlightsModal({
       </Header>
       <Body>
         <EditPreviewHighlightSection
+          event={event}
           highlightTags={highlightTags}
           highlightContext={highlightContext}
-          previewRows={previewRows}
           onRemovePreview={() => {}}
+          project={project}
         />
         <EditTagHighlightSection
+          event={event}
           columnCount={columnCount}
           highlightTags={highlightTags}
           onAddTag={tagKey => setHighlightTags([...highlightTags, tagKey])}
-          tagMap={tagMap}
         />
         <EditContextHighlightSection
           event={event}
@@ -295,30 +295,15 @@ const Subtitle = styled('h4')`
   padding-bottom: ${space(0.5)};
 `;
 
-const EditHighlightPreview = styled('div')<{columnCount: number}>`
+const EditHighlightPreview = styled('div')`
   border: 1px dashed ${p => p.theme.border};
   border-radius: 4px;
   padding: ${space(2)};
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
-  align-items: start;
   margin: 0 -${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const EditPreviewColumn = styled(TagColumn)`
-  grid-template-columns: 22px auto 1fr;
-  column-gap: 0;
-  button {
-    margin-right: ${space(0.25)};
-  }
-  .row-value {
-    margin-left: 20px;
-  }
-  .tag-row:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
+// const EditPreviewColumn = sty
 
 const EditHighlightSection = styled('div')`
   margin-top: 25px;

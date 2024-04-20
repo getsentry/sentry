@@ -13,69 +13,25 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+interface EventTagTreeRowConfig {
+  disableActions?: boolean;
+  disableRichValue?: boolean;
+  disableSearchKey?: boolean;
+}
 
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
   projectSlug: string;
   tagKey: string;
+  config?: EventTagTreeRowConfig;
   isLast?: boolean;
   spacerCount?: number;
-}
-
-export interface TagRowProps {
-  meta: Record<string, any>;
-  projectSlug: string;
-  tag: EventTag;
-}
-
-/**
- * Renders a styled row similar to those appearing in the tree, but without dropdowns or spacers
- * Used primarily for styling to appear similar to EventTagsTreeRow items
- */
-export function TagRow({meta, projectSlug, tag, ...props}: TagRowProps) {
-  const organization = useOrganization();
-  const tagMeta = meta?.value?.[''];
-  const tagErrors = tagMeta?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0;
-  return (
-    <TreeRow
-      {...props}
-      data-test-id="tag-row"
-      className={'tag-row'}
-      hasErrors={hasTagErrors}
-    >
-      <TreeKeyTrunk spacerCount={0} className="row-key">
-        <TreeKey hasErrors={hasTagErrors}>{tag.key}</TreeKey>
-      </TreeKeyTrunk>
-      <TreeValueTrunk className="row-value">
-        <TreeValue hasErrors={hasTagErrors}>
-          {tag.key === 'release' ? (
-            <VersionHoverCard
-              organization={organization}
-              projectSlug={projectSlug}
-              releaseVersion={tag.value}
-              showUnderline
-              underlineColor="linkUnderline"
-            >
-              <Version version={tag.value} truncate />
-            </VersionHoverCard>
-          ) : (
-            <EventTagsValue tag={tag} meta={tagMeta} withOnlyFormattedText />
-          )}
-        </TreeValue>
-        {hasTagErrors && (
-          <TreeValueErrors data-test-id="tag-tree-row-errors">
-            <AnnotatedTextErrors errors={tagErrors} />
-          </TreeValueErrors>
-        )}
-      </TreeValueTrunk>
-    </TreeRow>
-  );
 }
 
 export default function EventTagsTreeRow({
@@ -85,12 +41,13 @@ export default function EventTagsTreeRow({
   projectSlug,
   spacerCount = 0,
   isLast = false,
+  config = {},
 }: EventTagsTreeRowProps) {
   const organization = useOrganization();
   const originalTag = content.originalTag;
   const tagMeta = content.meta?.value?.[''];
   const tagErrors = tagMeta?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0;
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
 
   if (!originalTag) {
     return (
@@ -108,6 +65,29 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
+  const tagValue =
+    originalTag.key === 'release' && !config?.disableRichValue ? (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={projectSlug}
+        releaseVersion={content.value}
+        showUnderline
+        underlineColor="linkUnderline"
+      >
+        <Version version={content.value} truncate />
+      </VersionHoverCard>
+    ) : (
+      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+    );
+
+  const tagActions = hasTagErrors ? (
+    <TreeValueErrors data-test-id="tag-tree-row-errors">
+      <AnnotatedTextErrors errors={tagErrors} />
+    </TreeValueErrors>
+  ) : (
+    <EventTagsTreeRowDropdown content={content} event={event} />
+  );
+
   return (
     <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
       <TreeKeyTrunk spacerCount={spacerCount}>
@@ -117,34 +97,16 @@ export default function EventTagsTreeRow({
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
-        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+        {!config?.disableSearchKey && (
+          <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+        )}
         <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
           {tagKey}
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue hasErrors={hasTagErrors}>
-          {originalTag.key === 'release' ? (
-            <VersionHoverCard
-              organization={organization}
-              projectSlug={projectSlug}
-              releaseVersion={content.value}
-              showUnderline
-              underlineColor="linkUnderline"
-            >
-              <Version version={content.value} truncate />
-            </VersionHoverCard>
-          ) : (
-            <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
-          )}
-        </TreeValue>
-        {hasTagErrors ? (
-          <TreeValueErrors data-test-id="tag-tree-row-errors">
-            <AnnotatedTextErrors errors={tagErrors} />
-          </TreeValueErrors>
-        ) : (
-          <EventTagsTreeRowDropdown content={content} event={event} />
-        )}
+        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
   );

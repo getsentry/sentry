@@ -5,20 +5,26 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
+import {
+  ContextCardContent,
+  type ContextCardContentProps,
+} from 'sentry/components/events/contexts/contextCard';
+import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {TagColumn, TagContainer} from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import EventTagsTreeRow, {
+  type EventTagsTreeRowProps,
+} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {
   useHasNewTagsUI,
   useIssueDetailsColumnCount,
 } from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
+import {getHighlightContextItems} from 'sentry/components/events/highlights/util';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTag, Group, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,65 +34,80 @@ interface HighlightsSectionProps {
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
+export type HighlightTags = Required<Project>['highlightTags'];
+export type HighlightContext = Required<Project>['highlightContext'];
 
-export type EventTagMap = Record<string, {meta: Record<string, any>; tag: EventTag}>;
+interface HighlightsDataContentProps {
+  columnCount: number;
+  event: Event;
+  highlightContext: HighlightContext;
+  highlightTags: HighlightTags;
+  project: Project;
+  contextRowProps?: Partial<ContextCardContentProps>;
+  tagRowProps?: Partial<EventTagsTreeRowProps>;
+}
 
-export default function HighlightsDataSection({
+export function HighlightsDataContent({
   event,
+  columnCount,
+  highlightContext,
+  highlightTags,
   project,
-  viewAllRef,
-}: HighlightsSectionProps) {
-  const hasNewTagsUI = useHasNewTagsUI();
-  const containerRef = useRef<HTMLDivElement>(null);
+  tagRowProps,
+  contextRowProps,
+  ...props
+}: HighlightsDataContentProps) {
   const organization = useOrganization();
-  const {
-    isLoading,
-    data: detailedProject,
-    refetch,
-  } = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
+
+  const highlightContextDataItems = getHighlightContextItems({
+    event,
+    project,
+    organization,
+    highlightContext,
   });
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
+    (rowList, [alias, items], i) => {
+      const meta = getContextMeta(event, alias);
+      const newRows = items.map((item, j) => (
+        <HighlightContextContent
+          key={`highlight-ctx-${i}-${j}`}
+          meta={meta}
+          item={item}
+          alias={alias}
+          config={{includeAliasInSubject: true}}
+          {...contextRowProps}
+        />
+      ));
+      return [...rowList, ...newRows];
+    },
+    []
+  );
 
-  if (!hasNewTagsUI) {
-    return null;
-  }
-
-  const highlightContext = detailedProject?.highlightContext ?? {};
-  const highlightContextTypeSet = new Set(Object.keys(highlightContext));
-  const highlightContextRows = getOrderedContextItems(event)
-    .filter(([alias]) => highlightContextTypeSet.has(alias))
-    .reduce<EventTag[]>((acc, [alias, ctx]) => {
-      const newEntries: EventTag[] = (detailedProject?.highlightContext?.[alias] ?? [])
-        .map(hcKey => ({
-          key: `${alias}: ${hcKey}`,
-          value: ctx[hcKey],
-        }))
-        .filter(item => defined(item.value));
-      return acc.concat(newEntries);
-    }, [])
-    .map((item, i) => (
-      <ContextTagRow
-        key={`highlight-ctx-${i}`}
+  const EMPTY_TAG_VALUE = '--';
+  const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
+    event.tags.reduce((tm, tag, i) => {
+      tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
+      return tm;
+    }, {});
+  const highlightTagRows = highlightTags
+    .filter(tagKey => tagMap.hasOwnProperty(tagKey))
+    .map((tagKey, i) => (
+      <EventTagsTreeRow
+        key={`highlight-tag-${i}`}
+        content={{
+          subtree: {},
+          meta: tagMap[tagKey]?.meta ?? {},
+          value: tagMap[tagKey]?.tag?.value ?? EMPTY_TAG_VALUE,
+          originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_TAG_VALUE},
+        }}
+        event={event}
+        tagKey={tagKey}
         projectSlug={project.slug}
-        tag={item}
-        meta={{}}
+        {...tagRowProps}
       />
     ));
 
-  const tagMap: EventTagMap = event.tags.reduce((tm, tag, i) => {
-    tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
-    return tm;
-  }, {});
-  const highlightTags = detailedProject?.highlightTags ?? [];
-  const highlightTagRows = highlightTags
-    .filter(tKey => tagMap.hasOwnProperty(tKey))
-    .map((tKey, i) => (
-      <TagRow key={`highlight-tag-${i}`} projectSlug={project.slug} {...tagMap[tKey]} />
-    ));
-
-  const rows = [...highlightContextRows, ...highlightTagRows];
+  const rows = [...highlightTagRows, ...highlightContextRows];
 
   const columns: React.ReactNode[] = [];
   const columnSize = Math.ceil(rows.length / columnCount);
@@ -98,6 +119,37 @@ export default function HighlightsDataSection({
     );
   }
 
+  return (
+    <HighlightContainer columnCount={columnCount} {...props}>
+      {columns}
+    </HighlightContainer>
+  );
+}
+
+export default function HighlightsDataSection({
+  event,
+  project,
+  viewAllRef,
+}: HighlightsSectionProps) {
+  const hasNewTagsUI = useHasNewTagsUI();
+  const organization = useOrganization();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const {
+    isLoading,
+    data: detailedProject,
+    refetch,
+  } = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  if (!hasNewTagsUI) {
+    return null;
+  }
+
+  const highlightContext = detailedProject?.highlightContext ?? {};
+  const highlightTags = detailedProject?.highlightTags ?? [];
   const viewAllButton = viewAllRef ? (
     <Button
       onClick={() => viewAllRef?.current?.scrollIntoView({behavior: 'smooth'})}
@@ -122,12 +174,10 @@ export default function HighlightsDataSection({
               openModal(
                 deps => (
                   <EditHighlightsModal
-                    project={detailedProject ?? project}
+                    event={event}
                     highlightContext={highlightContext}
                     highlightTags={highlightTags}
-                    previewRows={rows}
-                    event={event}
-                    tagMap={tagMap}
+                    project={detailedProject ?? project}
                     {...deps}
                   />
                 ),
@@ -140,9 +190,17 @@ export default function HighlightsDataSection({
         </ButtonBar>
       }
     >
-      <HighlightContainer ref={containerRef} columnCount={columnCount}>
-        {isLoading ? null : columns}
-      </HighlightContainer>
+      <div ref={containerRef}>
+        {isLoading ? null : (
+          <HighlightsDataContent
+            event={event}
+            project={project}
+            highlightContext={highlightContext}
+            highlightTags={highlightTags}
+            columnCount={columnCount}
+          />
+        )}
+      </div>
     </EventDataSection>
   );
 }
@@ -156,10 +214,8 @@ const HighlightColumn = styled(TagColumn)`
   grid-column: span 1;
 `;
 
-const ContextTagRow = styled(TagRow)`
-  .row-key {
-    text-transform: capitalize;
-  }
+const HighlightContextContent = styled(ContextCardContent)`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export const highlightModalCss = css`
