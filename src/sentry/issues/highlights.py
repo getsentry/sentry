@@ -54,7 +54,7 @@ MOBILE_HIGHLIGHTS: HighlightPreset = {
     "context": {"profile": ["profile_id"], "app": ["name"], "device": ["family"]},
 }
 
-FALLBACK_HIGLIGHTS: HighlightPreset = {
+FALLBACK_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS,
     "context": {"user": ["email"], "trace": ["trace_id"]},
 }
