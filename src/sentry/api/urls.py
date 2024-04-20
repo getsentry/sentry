@@ -41,6 +41,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     ReleaseThresholdStatusIndexEndpoint,
 )
 from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.api.endpoints.relocations.artifacts.index import RelocationArtifactIndexEndpoint
 from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
 from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
@@ -869,6 +870,11 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/artifacts/$",
         RelocationArtifactIndexEndpoint.as_view(),
         name="sentry-api-0-relocations-artifacts-index",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/artifacts/(?P<artifact_kind>[^\/]+)/(?P<file_name>[^\/]+)$",
+        RelocationArtifactDetailsEndpoint.as_view(),
+        name="sentry-api-0-relocations-artifacts-details",
     ),
 ]
 
