@@ -6,12 +6,18 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {
-  type HighlightContext,
-  HighlightsDataContent,
-  type HighlightTags,
+import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
+import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import type {
+  HighlightContext,
+  HighlightTags,
 } from 'sentry/components/events/highlights/highlightsDataSection';
-import {IconAdd} from 'sentry/icons';
+import {
+  getHighlightContextItems,
+  getHighlightTagItems,
+} from 'sentry/components/events/highlights/util';
+import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
@@ -31,7 +37,8 @@ interface EditPreviewHighlightSectionProps {
   event: Event;
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
-  onRemovePreview: () => void;
+  onRemoveContextKey: (contextType: string, contextKey: string) => void;
+  onRemoveTag: (tagKey: string) => void;
   project: Project;
 }
 
@@ -40,26 +47,74 @@ function EditPreviewHighlightSection({
   project,
   highlightContext,
   highlightTags,
+  onRemoveContextKey,
+  onRemoveTag,
 }: EditPreviewHighlightSectionProps) {
+  const organization = useOrganization();
   const previewColumnCount = 2;
-  //           {/* <EditButton
-  //             aria-label={`Remove from highlights`}
-  //             icon={<IconSubtract />}
-  //             size="xs"
-  //             onClick={() => onRemovePreview()}
-  //           /> */}
-  return (
-    <EditHighlightPreview>
-      <HighlightsDataContent
-        event={event}
-        columnCount={previewColumnCount}
-        highlightContext={highlightContext}
-        highlightTags={highlightTags}
-        project={project}
-        tagRowProps={{
-          config: {disableActions: true, disableRichValue: true, disableSearchKey: true},
-        }}
+
+  const highlightContextDataItems = getHighlightContextItems({
+    event,
+    project,
+    organization,
+    highlightContext,
+  });
+  const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
+    (rowList, [alias, items], i) => {
+      const meta = getContextMeta(event, alias);
+      const newRows = items.map((item, j) => (
+        <Fragment key={`edit-highlight-ctx-${i}-${j}`}>
+          <EditButton
+            aria-label={`Remove from highlights`}
+            icon={<IconSubtract />}
+            size="xs"
+            onClick={() => onRemoveContextKey(alias, item.key)}
+          />
+          <EditPreviewContextItem
+            meta={meta}
+            item={item}
+            alias={alias}
+            config={{includeAliasInSubject: true, disableErrors: true}}
+          />
+        </Fragment>
+      ));
+      return [...rowList, ...newRows];
+    },
+    []
+  );
+
+  const highlightTagItems = getHighlightTagItems({event, highlightTags});
+  const highlightTagRows = highlightTagItems.map((content, i) => (
+    <Fragment key={`edit-highlight-tag-${i}`}>
+      <EditButton
+        aria-label={`Remove from highlights`}
+        icon={<IconSubtract />}
+        size="xs"
+        onClick={() => onRemoveTag(content.originalTag.key)}
       />
+      <EditPreviewTagItem
+        content={content}
+        event={event}
+        tagKey={content.originalTag.key}
+        projectSlug={project.slug}
+        config={{disableActions: true, disableRichValue: true}}
+      />
+    </Fragment>
+  ));
+
+  const rows = [...highlightTagRows, ...highlightContextRows];
+  const columns: React.ReactNode[] = [];
+  const columnSize = Math.ceil(rows.length / previewColumnCount);
+  for (let i = 0; i < rows.length; i += columnSize) {
+    columns.push(
+      <EditPreviewColumn key={`edit-highlight-column-${i}`}>
+        {rows.slice(i, i + columnSize)}
+      </EditPreviewColumn>
+    );
+  }
+  return (
+    <EditHighlightPreview columnCount={previewColumnCount}>
+      {columns}
     </EditHighlightPreview>
   );
 }
@@ -244,7 +299,17 @@ export default function EditHighlightsModal({
           event={event}
           highlightTags={highlightTags}
           highlightContext={highlightContext}
-          onRemovePreview={() => {}}
+          onRemoveTag={tagKey =>
+            setHighlightTags(highlightTags.filter(tag => tag !== tagKey))
+          }
+          onRemoveContextKey={(contextType, contextKey) =>
+            setHighlightContext({
+              ...highlightContext,
+              [contextType]: (highlightContext[contextType] ?? []).filter(
+                key => key !== contextKey
+              ),
+            })
+          }
           project={project}
         />
         <EditTagHighlightSection
@@ -295,15 +360,16 @@ const Subtitle = styled('h4')`
   padding-bottom: ${space(0.5)};
 `;
 
-const EditHighlightPreview = styled('div')`
+const EditHighlightPreview = styled('div')<{columnCount: number}>`
   border: 1px dashed ${p => p.theme.border};
   border-radius: 4px;
   padding: ${space(2)};
+  display: grid;
+  grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
+  align-items: start;
   margin: 0 -${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
-
-// const EditPreviewColumn = sty
 
 const EditHighlightSection = styled('div')`
   margin-top: 25px;
@@ -314,8 +380,8 @@ const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
 `;
 
-const EditHighlightColumn = styled(`div`)`
-  flex: 1;
+const EditHighlightColumn = styled('div')`
+  grid-column: span 1;
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
@@ -324,6 +390,32 @@ const EditHighlightColumn = styled(`div`)`
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
     padding-right: ${space(2)};
+  }
+`;
+
+const EditPreviewColumn = styled(EditHighlightColumn)`
+  display: grid;
+  grid-template-columns: 22px auto 1fr;
+  column-gap: 0;
+  button {
+    margin-right: ${space(0.25)};
+  }
+`;
+
+const EditPreviewContextItem = styled(ContextCardContent)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-column: span 2;
+  .ctx-row-value {
+    grid-column: span 1;
+  }
+  &:nth-child(4n-2) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+const EditPreviewTagItem = styled(EventTagsTreeRow)`
+  &:nth-child(4n-2) {
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 

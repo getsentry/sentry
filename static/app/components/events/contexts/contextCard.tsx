@@ -26,6 +26,7 @@ interface ContextCardProps {
 }
 
 interface ContextCardContentConfig {
+  disableErrors?: boolean;
   includeAliasInSubject?: boolean;
 }
 
@@ -49,7 +50,7 @@ export function ContextCardContent({
   }
   const contextMeta = meta?.[contextKey];
   const contextErrors = contextMeta?.['']?.err ?? [];
-  const hasErrors = contextErrors.length > 0;
+  const hasErrors = contextErrors.length > 0 && !config?.disableErrors;
 
   const dataComponent = (
     <StructuredData
@@ -68,7 +69,7 @@ export function ContextCardContent({
   return (
     <ContextContent hasErrors={hasErrors} {...props}>
       <ContextSubject>{contextSubject}</ContextSubject>
-      <ContextValue hasErrors={hasErrors}>
+      <ContextValue hasErrors={hasErrors} className="ctx-row-value">
         {defined(action?.link) ? (
           <Link to={action.link}>{dataComponent}</Link>
         ) : (

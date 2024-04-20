@@ -5,26 +5,24 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  ContextCardContent,
-  type ContextCardContentProps,
-} from 'sentry/components/events/contexts/contextCard';
+import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {TagColumn, TagContainer} from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsTreeRow, {
-  type EventTagsTreeRowProps,
-} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {
   useHasNewTagsUI,
   useIssueDetailsColumnCount,
 } from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
-import {getHighlightContextItems} from 'sentry/components/events/highlights/util';
+import {
+  getHighlightContextItems,
+  getHighlightTagItems,
+} from 'sentry/components/events/highlights/util';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag, Group, Project} from 'sentry/types';
+import type {Event, Group, Project} from 'sentry/types';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,95 +34,6 @@ interface HighlightsSectionProps {
 }
 export type HighlightTags = Required<Project>['highlightTags'];
 export type HighlightContext = Required<Project>['highlightContext'];
-
-interface HighlightsDataContentProps {
-  columnCount: number;
-  event: Event;
-  highlightContext: HighlightContext;
-  highlightTags: HighlightTags;
-  project: Project;
-  contextRowProps?: Partial<ContextCardContentProps>;
-  tagRowProps?: Partial<EventTagsTreeRowProps>;
-}
-
-export function HighlightsDataContent({
-  event,
-  columnCount,
-  highlightContext,
-  highlightTags,
-  project,
-  tagRowProps,
-  contextRowProps,
-  ...props
-}: HighlightsDataContentProps) {
-  const organization = useOrganization();
-
-  const highlightContextDataItems = getHighlightContextItems({
-    event,
-    project,
-    organization,
-    highlightContext,
-  });
-  const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, [alias, items], i) => {
-      const meta = getContextMeta(event, alias);
-      const newRows = items.map((item, j) => (
-        <HighlightContextContent
-          key={`highlight-ctx-${i}-${j}`}
-          meta={meta}
-          item={item}
-          alias={alias}
-          config={{includeAliasInSubject: true}}
-          {...contextRowProps}
-        />
-      ));
-      return [...rowList, ...newRows];
-    },
-    []
-  );
-
-  const EMPTY_TAG_VALUE = '--';
-  const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
-    event.tags.reduce((tm, tag, i) => {
-      tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
-      return tm;
-    }, {});
-  const highlightTagRows = highlightTags
-    .filter(tagKey => tagMap.hasOwnProperty(tagKey))
-    .map((tagKey, i) => (
-      <EventTagsTreeRow
-        key={`highlight-tag-${i}`}
-        content={{
-          subtree: {},
-          meta: tagMap[tagKey]?.meta ?? {},
-          value: tagMap[tagKey]?.tag?.value ?? EMPTY_TAG_VALUE,
-          originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_TAG_VALUE},
-        }}
-        event={event}
-        tagKey={tagKey}
-        projectSlug={project.slug}
-        {...tagRowProps}
-      />
-    ));
-
-  const rows = [...highlightTagRows, ...highlightContextRows];
-
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(rows.length / columnCount);
-  for (let i = 0; i < rows.length; i += columnSize) {
-    columns.push(
-      <HighlightColumn key={`highlight-column-${i}`}>
-        {rows.slice(i, i + columnSize)}
-      </HighlightColumn>
-    );
-  }
-
-  return (
-    <HighlightContainer columnCount={columnCount} {...props}>
-      {columns}
-    </HighlightContainer>
-  );
-}
 
 export default function HighlightsDataSection({
   event,
@@ -159,6 +68,51 @@ export default function HighlightsDataSection({
     </Button>
   ) : null;
 
+  const highlightContextDataItems = getHighlightContextItems({
+    event,
+    project,
+    organization,
+    highlightContext,
+  });
+  const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
+    (rowList, [alias, items], i) => {
+      const meta = getContextMeta(event, alias);
+      const newRows = items.map((item, j) => (
+        <HighlightContextContent
+          key={`highlight-ctx-${i}-${j}`}
+          meta={meta}
+          item={item}
+          alias={alias}
+          config={{includeAliasInSubject: true}}
+        />
+      ));
+      return [...rowList, ...newRows];
+    },
+    []
+  );
+
+  const highlightTagItems = getHighlightTagItems({event, highlightTags});
+  const highlightTagRows = highlightTagItems.map((content, i) => (
+    <EventTagsTreeRow
+      key={`highlight-tag-${i}`}
+      content={content}
+      event={event}
+      tagKey={content.originalTag.key}
+      projectSlug={project.slug}
+    />
+  ));
+
+  const rows = [...highlightTagRows, ...highlightContextRows];
+  const columns: React.ReactNode[] = [];
+  const columnSize = Math.ceil(rows.length / columnCount);
+  for (let i = 0; i < rows.length; i += columnSize) {
+    columns.push(
+      <HighlightColumn key={`highlight-column-${i}`}>
+        {rows.slice(i, i + columnSize)}
+      </HighlightColumn>
+    );
+  }
+
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -190,17 +144,9 @@ export default function HighlightsDataSection({
         </ButtonBar>
       }
     >
-      <div ref={containerRef}>
-        {isLoading ? null : (
-          <HighlightsDataContent
-            event={event}
-            project={project}
-            highlightContext={highlightContext}
-            highlightTags={highlightTags}
-            columnCount={columnCount}
-          />
-        )}
-      </div>
+      <HighlightContainer columnCount={columnCount} ref={containerRef}>
+        {isLoading ? null : columns}
+      </HighlightContainer>
     </EventDataSection>
   );
 }

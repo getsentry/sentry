@@ -72,19 +72,17 @@ export function getHighlightTagItems({
 }: {
   event: Event;
   highlightTags: HighlightTags;
-}): TagTreeContent[] {
-  const DEFAULT_TAG_VALUE = '-';
+}): Required<TagTreeContent>[] {
+  const EMPTY_TAG_VALUE = '';
   const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
     event.tags.reduce((tm, tag, i) => {
       tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
       return tm;
     }, {});
-  return highlightTags
-    .filter(tagKey => tagMap.hasOwnProperty(tagKey))
-    .map(tagKey => ({
-      subtree: {},
-      meta: tagMap[tagKey]?.meta ?? {},
-      value: tagMap[tagKey]?.tag?.value ?? DEFAULT_TAG_VALUE,
-      originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: DEFAULT_TAG_VALUE},
-    }));
+  return highlightTags.map(tagKey => ({
+    subtree: {},
+    meta: tagMap[tagKey]?.meta ?? {},
+    value: tagMap[tagKey]?.tag?.value ?? EMPTY_TAG_VALUE,
+    originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_TAG_VALUE},
+  }));
 }

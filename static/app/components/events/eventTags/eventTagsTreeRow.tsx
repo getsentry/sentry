@@ -21,7 +21,6 @@ import useRouter from 'sentry/utils/useRouter';
 interface EventTagTreeRowConfig {
   disableActions?: boolean;
   disableRichValue?: boolean;
-  disableSearchKey?: boolean;
 }
 
 export interface EventTagsTreeRowProps {
@@ -42,6 +41,7 @@ export default function EventTagsTreeRow({
   spacerCount = 0,
   isLast = false,
   config = {},
+  ...props
 }: EventTagsTreeRowProps) {
   const organization = useOrganization();
   const originalTag = content.originalTag;
@@ -89,7 +89,7 @@ export default function EventTagsTreeRow({
   );
 
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
@@ -97,9 +97,7 @@ export default function EventTagsTreeRow({
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
-        {!config?.disableSearchKey && (
-          <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-        )}
+        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
         <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
           {tagKey}
         </TreeKey>
@@ -225,6 +223,7 @@ export const TreeRow = styled('div')<{hasErrors: boolean}>`
   display: grid;
   align-items: center;
   grid-column: span 2;
+  column-gap: ${space(1.5)};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
