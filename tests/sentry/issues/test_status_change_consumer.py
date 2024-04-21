@@ -47,7 +47,12 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         self.fingerprint = ["touch-id"]
 
     def _assert_statuses_set(
-        self, status, substatus, group_history_status, activity_type, priority=None
+        self,
+        status: int,
+        substatus: int | None,
+        group_history_status: int,
+        activity_type: ActivityType,
+        priority: PriorityLevel | None = None,
     ) -> None:
         self.group.refresh_from_db()
         assert self.group.status == status
