@@ -589,6 +589,7 @@ module = [
     "sentry.issues.escalating_group_forecast",
     "sentry.issues.escalating_issues_alg",
     "sentry.issues.forecasts",
+    "sentry.issues.grouptype",
     "sentry.issues.ignored",
     "sentry.issues.ingest",
     "sentry.issues.issue_occurrence",
