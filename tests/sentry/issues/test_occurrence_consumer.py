@@ -188,7 +188,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @with_feature("projects:issue-priority")
     @with_feature("projects:first-event-severity-calculation")
     @mock.patch("sentry.event_manager._get_severity_score")
-    def test_issue_platform_override_priority(self, mock_get_severity_score) -> None:
+    def test_issue_platform_override_priority(
+        self, mock_get_severity_score: mock.MagicMock
+    ) -> None:
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
         message["initial_issue_priority"] = PriorityLevel.HIGH.value

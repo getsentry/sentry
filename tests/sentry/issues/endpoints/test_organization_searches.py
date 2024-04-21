@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
 
 
@@ -12,13 +13,13 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("test@test.com")
 
     def get_response(self, *args, **params):
         return super().get_response(*args, **params)
 
-    def create_base_data(self):
+    def create_base_data(self) -> dict[str, SavedSearch]:
         user_1 = self.user
         user_2 = self.create_user()
 
@@ -103,7 +104,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             "savedsearch_other_pinned": savedsearch_other_pinned,
         }
 
-    def check_results(self, expected):
+    def check_results(self, expected) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
         assert response.data == serialize(expected)
@@ -126,13 +127,13 @@ class CreateOrganizationSearchesTest(APITestCase):
     method = "post"
 
     @cached_property
-    def manager(self):
+    def manager(self) -> User:
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user, role="manager")
         return user
 
     @cached_property
-    def member(self):
+    def member(self) -> User:
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user)
         return user
@@ -349,13 +350,13 @@ class OrganizationSearchesGetTest(APITestCase):
     method = "get"
 
     @cached_property
-    def manager(self):
+    def manager(self) -> User:
         user = self.create_user("manager@test.com")
         self.create_member(organization=self.organization, user=user, role="manager")
         return user
 
     @cached_property
-    def member(self):
+    def member(self) -> User:
         user = self.create_user("member@test.com")
         self.create_member(organization=self.organization, user=user)
         return user

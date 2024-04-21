@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -161,7 +161,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert math.isnan(threshold)
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    def test_get_latest_threshold_simple(self, mock_update) -> None:
+    def test_get_latest_threshold_simple(self, mock_update: MagicMock) -> None:
         """
         Tests that we get the last threshold stored when the stale date has not passed yet.
         """
@@ -173,7 +173,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert threshold == 0.1
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    def test_get_latest_threshold_outdated(self, mock_update) -> None:
+    def test_get_latest_threshold_outdated(self, mock_update: MagicMock) -> None:
         """
         Tests that we update the threshold when the stale date has passed.
         """
@@ -187,7 +187,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert get_latest_threshold(self.project) == 1.5
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    def test_get_latest_threshold_when_none_saved(self, mock_update) -> None:
+    def test_get_latest_threshold_when_none_saved(self, mock_update: MagicMock) -> None:
         """
         Tests that we update the threshold when it is non-existent.
         """
@@ -195,7 +195,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert get_latest_threshold(self.project) == 10.7
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    def test_get_latest_threshold_locked(self, mock_update) -> None:
+    def test_get_latest_threshold_locked(self, mock_update: MagicMock) -> None:
         """
         Tests that we return the stale threshold when another process has the lock.
         """
@@ -217,7 +217,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             assert threshold == 0.7
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    def test_get_latest_threshold_locked_no_stale(self, mock_update) -> None:
+    def test_get_latest_threshold_locked_no_stale(self, mock_update: MagicMock) -> None:
         """
         Tests that we return 0 when another process has the lock and there is no stale value.
         """
@@ -232,7 +232,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             assert threshold == 0
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
-    def test_update_threshold_simple(self, mock_calculation) -> None:
+    def test_update_threshold_simple(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we save the newly calculated threshold at the default TTL and return it.
         """
@@ -248,7 +248,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.ttl("date-key") == DEFAULT_TTL
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
-    def test_update_threshold_with_stale(self, mock_calculation) -> None:
+    def test_update_threshold_with_stale(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return the stale threshold if the calculation method returns None.
         """
@@ -259,7 +259,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
-    def test_update_threshold_none(self, mock_calculation) -> None:
+    def test_update_threshold_none(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return 0 if the calculation method returns None and we don't have a stale
         threshold.
@@ -268,7 +268,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert update_threshold(self.project, "threshold-key", "date-key") == 0
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
-    def test_update_threshold_nan(self, mock_calculation) -> None:
+    def test_update_threshold_nan(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return 0 and save a threshold for the default TTL if the calculation returned NaN.
         """

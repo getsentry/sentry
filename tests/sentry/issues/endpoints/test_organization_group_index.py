@@ -1,7 +1,7 @@
 import functools
 from datetime import UTC, datetime, timedelta
 from time import sleep
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
@@ -119,7 +119,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
     )
-    def test_sort_by_trends(self, mock_query) -> None:
+    def test_sort_by_trends(self, mock_query: MagicMock) -> None:
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -158,7 +158,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: dict = {
+        aggregate_kwargs: dict[str, str] = {
             "log_level": "3",
             "has_stacktrace": "5",
             "relative_volume": "1",
@@ -804,7 +804,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert len(response.data) == 0
 
     @patch("sentry.analytics.record")
-    def test_advanced_search_errors(self, mock_record) -> None:
+    def test_advanced_search_errors(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
@@ -831,7 +831,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     # the orderby being sent to snuba for a certain call. This function has a simple
     # return value and can be used to set variables in the snuba payload.
     @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
-    def test_assigned_to_pagination(self, patched_params_update) -> None:
+    def test_assigned_to_pagination(self, patched_params_update: MagicMock) -> None:
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
@@ -2327,7 +2327,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
         autospec=True,
     )
-    def test_use_group_snuba_dataset(self, mock_query) -> None:
+    def test_use_group_snuba_dataset(self, mock_query: MagicMock) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2375,7 +2375,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_order_by_freq(self, mock_query) -> None:
+    def test_snuba_order_by_freq(self, mock_query: MagicMock) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2408,7 +2408,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_order_by_user_count(self, mock_query) -> None:
+    def test_snuba_order_by_user_count(self, mock_query: MagicMock) -> None:
         user1 = {
             "email": "foo@example.com",
         }
@@ -2677,7 +2677,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_query_title(self, mock_query) -> None:
+    def test_snuba_query_title(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         event1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "MyMessage"},
@@ -2706,7 +2706,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     )
     @override_options({"issues.group_attributes.send_kafka": True})
     @with_feature("organizations:issue-platform")
-    def test_snuba_perf_issue(self, mock_query) -> None:
+    def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
         _, _, group_info = self.store_search_issue(
@@ -2888,7 +2888,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_resolve_with_integration(self, mock_sync_status_outbound) -> None:
+    def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.organization
@@ -2945,7 +2945,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_set_unresolved_with_integration(self, mock_sync_status_outbound) -> None:
+    def test_set_unresolved_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -3886,7 +3886,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4) -> None:
+    def test_merge(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -3920,7 +3922,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4) -> None:
+    def test_merge_performance_issues(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -4161,7 +4165,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         return super().get_response(org, **kwargs)
 
     @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream) -> None:
+    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
@@ -4234,7 +4238,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
     @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream) -> None:
+    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 

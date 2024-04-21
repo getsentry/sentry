@@ -4,6 +4,7 @@ from unittest.mock import PropertyMock, patch
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -92,7 +93,9 @@ class BaseProjectStacktraceLink(APITestCase):
 
         self.login_as(self.user)
 
-    def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
+    def expected_configurations(
+        self, code_mapping: RepositoryProjectPathConfig
+    ) -> Mapping[str, Any]:
         return {
             "automaticallyGenerated": code_mapping.automatically_generated,
             "defaultBranch": "master",
