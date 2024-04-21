@@ -134,6 +134,12 @@ export class VirtualizedViewManager {
       },
     };
 
+    this.registerContainerRef = this.registerContainerRef.bind(this);
+    this.registerHorizontalScrollBarContainerRef =
+      this.registerHorizontalScrollBarContainerRef.bind(this);
+    this.registerDividerRef = this.registerDividerRef.bind(this);
+    this.registerIndicatorContainerRef = this.registerIndicatorContainerRef.bind(this);
+
     this.onDividerMouseDown = this.onDividerMouseDown.bind(this);
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
@@ -348,18 +354,21 @@ export class VirtualizedViewManager {
     ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
   }
 
-  registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
-    this.span_bars[index] = ref ? {ref, space} : undefined;
-    this.span_patterns[index] = [];
-  }
-
-  registerSpanPatternRef(
+  registerSpanBarRef(
     ref: HTMLElement | null,
     space: [number, number],
+    color: string,
     index: number
   ) {
-    if (!ref) return;
-    this.span_patterns[index].push({ref, space});
+    this.span_bars[index] = ref ? {ref, space} : undefined;
+
+    if (ref) {
+      const spanTransform = this.computeSpanCSSMatrixTransform(space);
+      ref.style.backgroundColor = color;
+      ref.style.transform = `matrix(${spanTransform.join(',')})`;
+      // @ts-expect-error we set a number on purpose
+      ref.style.setProperty('--inverse-span-scale', 1 / spanTransform[0]);
+    }
   }
 
   registerInvisibleBarRef(
@@ -369,6 +378,7 @@ export class VirtualizedViewManager {
   ) {
     this.invisible_bars[index] = ref ? {ref, space} : undefined;
   }
+
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
   }
@@ -380,6 +390,15 @@ export class VirtualizedViewManager {
     index: number
   ) {
     this.span_text[index] = ref ? {ref, text, space} : undefined;
+
+    if (ref) {
+      // const [inside, text_transform] = this.computeSpanTextPlacement(node!, space, text);
+      // if (text_transform === null) {
+      //   return;
+      // }
+      // ref.style.color = inside ? 'white' : '';
+      // ref.style.transform = `translateX(${text_transform}px)`;
+    }
   }
 
   registerColumnRef(
@@ -943,6 +962,7 @@ export class VirtualizedViewManager {
   initialize(container: HTMLElement) {
     if (this.container !== container && this.resize_observer !== null) {
       this.teardown();
+      return;
     }
 
     this.container = container;
@@ -1039,7 +1059,7 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.5;
+    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
     const width = this.text_measurer.measure(text);
 
     const has_profiles = node && node.profiles.length > 0;
@@ -1073,8 +1093,7 @@ export class VirtualizedViewManager {
         : TEXT_PADDING;
 
     // precompute all anchor points aot, so we make the control flow more readable.
-    // this wastes some cycles, but it's not a big deal as computers are fast when
-    // it comes to simple arithmetic.
+    // this wastes some cycles, but it's not a big deal as computers go brrrr when it comes to simple arithmetic.
     /// |---| text
     const right_outside =
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
@@ -1188,9 +1207,31 @@ export class VirtualizedViewManager {
     return [0, right_outside];
   }
 
+  last_list_column_width = 0;
+  last_span_column_width = 0;
+  last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
+
+    if (this.container) {
+      if (this.last_list_column_width !== list_width) {
+        this.container.style.setProperty(
+          '--list-column-width',
+          // @ts-expect-error we set number value type on purpose
+          Math.round(list_width * 1000) / 1000
+        );
+        this.last_list_column_width = list_width;
+      }
+      if (this.last_span_column_width !== span_list_width) {
+        this.container.style.setProperty(
+          '--span-column-width',
+          // @ts-expect-error we set number value type on purpose
+          Math.round(span_list_width * 1000) / 1000
+        );
+        this.last_span_column_width = span_list_width;
+      }
+    }
 
     if (this.divider) {
       this.divider.style.transform = `translate(
@@ -1208,20 +1249,11 @@ export class VirtualizedViewManager {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
       this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
-      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
-    }
-
-    if (this.container) {
-      this.container.style.setProperty(
-        '--list-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(list_width * 1000) / 1000
-      );
-      this.container.style.setProperty(
-        '--span-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(span_list_width * 1000) / 1000
-      );
+      const new_indicator_container_width = span_list_width - correction;
+      if (this.last_indicator_width !== new_indicator_container_width) {
+        this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
+        this.last_indicator_width = new_indicator_container_width;
+      }
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
@@ -1235,13 +1267,6 @@ export class VirtualizedViewManager {
           '--inverse-span-scale',
           1 / span_transform[0] + ''
         );
-      }
-
-      for (const pattern of this.span_patterns?.[i] ?? []) {
-        if (!pattern) continue;
-        const span_transform = this.computeSpanCSSMatrixTransform(pattern.space);
-        pattern.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        pattern.ref.style.setProperty('--inverse-span-scale', 1 / span_transform[0] + '');
       }
 
       const node = this.columns.list.column_nodes[i];
@@ -1439,6 +1464,8 @@ export class VirtualizedViewManager {
 
     if (this.resize_observer) {
       this.resize_observer.disconnect();
+      this.resize_observer = null;
+      this.container = null;
     }
   }
 }
