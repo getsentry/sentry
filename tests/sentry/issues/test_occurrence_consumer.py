@@ -174,7 +174,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     @with_feature("projects:issue-priority")
-    def test_issue_platform_default_priority(self):
+    def test_issue_platform_default_priority(self) -> None:
         # test default priority of LOW
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -188,7 +188,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @with_feature("projects:issue-priority")
     @with_feature("projects:first-event-severity-calculation")
     @mock.patch("sentry.event_manager._get_severity_score")
-    def test_issue_platform_override_priority(self, mock_get_severity_score):
+    def test_issue_platform_override_priority(self, mock_get_severity_score) -> None:
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
         message["initial_issue_priority"] = PriorityLevel.HIGH.value

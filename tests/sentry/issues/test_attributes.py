@@ -140,13 +140,13 @@ class GroupAttributesTest(TestCase):
 
 
 class PostSaveLogGroupAttributesChangedTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         self.run_attr_test(self.group, [], "all")
         self.run_attr_test(self.group, ["status"], "status")
         self.run_attr_test(self.group, ["status", "last_seen"], "status")
         self.run_attr_test(self.group, ["status", "substatus"], "status-substatus")
 
-    def run_attr_test(self, group, update_fields, expected_str):
+    def run_attr_test(self, group, update_fields, expected_str) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -161,7 +161,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             )
             send_snapshot_values.assert_called_with(None, group, False)
 
-    def test_new(self):
+    def test_new(self) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -172,7 +172,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
 
             send_snapshot_values.assert_called_with(None, new_group, False)
 
-    def test_model_update(self):
+    def test_model_update(self) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -184,11 +184,11 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
 
 
 class PostUpdateLogGroupAttributesChangedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group_2 = self.create_group()
 
-    def test(self):
+    def test(self) -> None:
         self.run_attr_test([self.group, self.group_2], {"status": GroupStatus.RESOLVED}, "status")
         self.run_attr_test(
             [self.group, self.group_2],
@@ -196,7 +196,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             "status-substatus",
         )
 
-    def run_attr_test(self, groups, update_fields, expected_str):
+    def run_attr_test(self, groups, update_fields, expected_str) -> None:
         groups.sort(key=lambda g: g.id)
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"

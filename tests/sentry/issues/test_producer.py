@@ -86,7 +86,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
 
 
 class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fingerprint = ["group-1"]
         self.event = self.store_event(
             data={
@@ -189,7 +189,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 status=STRING_TO_STATUS_LOOKUP[gh_status],
             ).exists()
 
-    def test_with_status_change_unresolved(self):
+    def test_with_status_change_unresolved(self) -> None:
         # We modify a single group through different substatuses that are supported in the UI
         # to ensure the status change is processed correctly.
         self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
@@ -265,7 +265,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             assert self.group.substatus == self.initial_substatus
 
     @patch("sentry.issues.status_change_consumer.logger.error")
-    def test_invalid_hashes(self, mock_logger_error) -> None:
+    def test_invalid_hashes(self, mock_logger_error: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
