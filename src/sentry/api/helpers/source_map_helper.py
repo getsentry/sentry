@@ -44,7 +44,7 @@ class SourceMapException(Exception):
 
 def source_map_debug(
     project: Project,
-    event_id: int,
+    event_id: str,
     exception_idx: int,
     frame_idx: int,
 ) -> SourceMapDebug:
