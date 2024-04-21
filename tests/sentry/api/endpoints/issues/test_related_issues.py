@@ -51,12 +51,14 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
 
     def test_trace_connected_errors(self) -> None:
         error, _ = self.load_errors()
-        self.group_id = error.group.id
+        assert error is not None and error.group_id is not None
+        # XXX: Fix the typing of the code that saves events
+        self.group_id = int(error.group_id)
 
         response = self.get_success_response()
         assert response.json() == {
             "data": [
                 {"type": "same_root_cause", "data": []},
-                {"type": "trace_connected", "data": []},
+                {"type": "trace_connected", "data": [[]]},
             ],
         }

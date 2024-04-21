@@ -1504,7 +1504,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
 
 def find_errors_for_trace_id(
     params: Mapping[str, str],
-    trace_id: int,
+    trace_id: str,
     selected_columns: Sequence[str] | None = None,
     limit: int | None = MAX_TRACE_SIZE,
 ) -> QueryBuilder:
@@ -1523,6 +1523,10 @@ def find_errors_for_trace_id(
         if selected_columns is None
         else selected_columns
     )
+    # Required because of orderby usage
+    if "id" not in _columns:
+        _columns.append("id")
+
     return QueryBuilder(
         Dataset.Events,
         params,
