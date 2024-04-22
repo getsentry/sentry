@@ -7,7 +7,7 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import type EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 

@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {

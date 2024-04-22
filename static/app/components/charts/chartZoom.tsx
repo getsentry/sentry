@@ -13,7 +13,7 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,

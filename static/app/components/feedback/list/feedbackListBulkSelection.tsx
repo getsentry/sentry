@@ -8,7 +8,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props

@@ -1,5 +1,5 @@
-import type {EventAttachment} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {EventAttachment} from 'sentry/types/group';
 
 export type ViewerProps = {
   attachment: EventAttachment;

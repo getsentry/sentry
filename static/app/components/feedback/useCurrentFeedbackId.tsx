@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import decodeFeedbackSlug from 'sentry/components/feedback/decodeFeedbackSlug';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

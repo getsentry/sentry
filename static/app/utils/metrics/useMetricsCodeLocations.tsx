@@ -1,4 +1,4 @@
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {getDateTimeParams} from 'sentry/utils/metrics';
 import type {MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';

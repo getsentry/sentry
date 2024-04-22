@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
 
 const group = GroupFixture({
   level: 'error',

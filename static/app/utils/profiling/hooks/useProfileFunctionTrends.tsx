@@ -1,5 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

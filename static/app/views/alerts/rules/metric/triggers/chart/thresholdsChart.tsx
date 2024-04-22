@@ -12,7 +12,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import {

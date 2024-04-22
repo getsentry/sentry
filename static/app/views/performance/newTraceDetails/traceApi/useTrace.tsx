@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   TraceFullDetailed,
   TraceSplitResults,

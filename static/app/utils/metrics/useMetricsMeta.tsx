@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQueries} from 'sentry/utils/queryClient';

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import type {
   MetricsEquationWidget,
   MetricsQueryWidget,

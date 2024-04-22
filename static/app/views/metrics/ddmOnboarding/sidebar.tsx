@@ -18,7 +18,8 @@ import {
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 

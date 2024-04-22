@@ -6,7 +6,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
