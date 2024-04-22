@@ -7,7 +7,8 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit, ResolvedStatusDetails} from 'sentry/types';
+import type {ResolvedStatusDetails} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;

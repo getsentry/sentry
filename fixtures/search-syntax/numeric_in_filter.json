@@ -17,7 +17,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -25,7 +28,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -33,7 +39,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502
+                }
               }
             }
           ]
@@ -60,7 +69,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -68,7 +80,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -76,7 +91,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502
+                }
               }
             }
           ]
@@ -103,7 +121,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -111,7 +132,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -119,7 +143,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502
+                }
               }
             }
           ]
@@ -146,7 +173,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -154,7 +184,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -162,7 +195,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502
+                }
               }
             }
           ]
@@ -183,7 +219,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "100",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 100
+                }
               }
             }
           ]
@@ -211,7 +250,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -219,7 +261,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -227,7 +272,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "502",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 502
+                }
               }
             }
           ]
@@ -283,7 +331,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -291,7 +342,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             },
             {
@@ -322,7 +376,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "500",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 500
+                }
               }
             },
             {
@@ -330,7 +387,10 @@
               "value": {
                 "type": "valueNumber",
                 "value": "501",
-                "unit": null
+                "unit": null,
+                "parsed": {
+                  "value": 501
+                }
               }
             }
           ]

@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -57,6 +58,8 @@ class Rule(Model):
         choices=RuleSource.as_choices(),
     )
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -66,6 +69,16 @@ class Rule(Model):
         db_table = "sentry_rule"
         app_label = "sentry"
         indexes = (models.Index(fields=("project", "status", "owner")),)
+        constraints = (
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
+                    | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
+                    | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)
+                ),
+                name="rule_owner_user_or_team_check",
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "label")
 

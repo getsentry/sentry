@@ -164,6 +164,7 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
+    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -425,6 +426,7 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
     API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
     API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY = "api.starfish.mobile-platform-compatibility"
     API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
     API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
     API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"

@@ -16,15 +16,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
-  organization,
   isVideoReplay,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
-  // The new trace table inside Breadcrumb items:
-  const hasTraceTable = organization.features.includes('session-replay-trace-table');
-
   // For video replays, we hide the console, a11y, trace, and memory tabs
   // The console tab isn't useful for video replays; most of the useful logging
   // context will come from breadcrumbs
@@ -35,8 +31,7 @@ function getReplayTabs({
     [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),
-    [TabKey.PERF]: null,
+    [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip
@@ -75,10 +70,13 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
-  const supportedVideoTabs = [TabKey.TAGS, TabKey.ERRORS, TabKey.BREADCRUMBS];
 
-  const unsupportedVideoTab = tab => {
-    return isVideoReplay && !supportedVideoTabs.includes(tab);
+  const isTabDisabled = (tab: string) => {
+    return (
+      tab === TabKey.NETWORK &&
+      isVideoReplay &&
+      !organization.features.includes('session-replay-mobile-network-tab')
+    );
   };
 
   return (
@@ -86,10 +84,10 @@ function FocusTabs({className, isVideoReplay}: Props) {
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
-            disabled={unsupportedVideoTab(tab)}
+            disabled={isTabDisabled(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
-            isActive={() => (unsupportedVideoTab(tab) ? false : tab === activeTab)}
+            isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={e => {
               e.preventDefault();
@@ -101,9 +99,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            <Tooltip
-              title={unsupportedVideoTab(tab) ? t('This feature is coming soon') : null}
-            >
+            <Tooltip title={isTabDisabled(tab) ? t('This feature is coming soon') : null}>
               {label}
             </Tooltip>
           </ListLink>

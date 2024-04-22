@@ -58,7 +58,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
   if (isARateUnit(unit)) {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
+        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit, {
+          minimumValue: MINIMUM_RATE_VALUE,
+        })}
       </NumberContainer>
     );
   }
@@ -96,7 +98,11 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
   if (unit === 'percentage') {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatPercentage(typeof value === 'string' ? parseFloat(value) : value)}
+        {formatPercentage(
+          typeof value === 'string' ? parseFloat(value) : value,
+          undefined,
+          {minimumValue: MINIMUM_PERCENTAGE_VALUE}
+        )}
       </NumberContainer>
     );
   }
@@ -113,6 +119,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
 
   return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
 }
+
+const MINIMUM_RATE_VALUE = 0.01;
+const MINIMUM_PERCENTAGE_VALUE = 0.0001; // 0.01%
 
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
   text-align: ${p => p.align};

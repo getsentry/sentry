@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,7 +38,9 @@ function getMetaQueryParams(
   };
 }
 
-export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
+export function useTraceMeta(
+  traceSlug?: string
+): UseApiQueryResult<TraceMeta | null, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -49,14 +51,16 @@ export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const trace = traceSlug ?? params.traceSlug;
+
   return useApiQuery(
     [
-      `/organizations/${organization.slug}/events-trace-meta/${params.traceSlug ?? ''}/`,
+      `/organizations/${organization.slug}/events-trace-meta/${trace ?? ''}/`,
       {query: queryParams},
     ],
     {
       staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug,
+      enabled: !!trace && !!organization.slug,
     }
   );
 }

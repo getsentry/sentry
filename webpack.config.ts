@@ -13,7 +13,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import type {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {
+  Configuration as DevServerConfig,
+  ProxyConfigArray,
+  Static,
+} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -576,46 +580,59 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy = {};
+    let controlSiloProxy: ProxyConfigArray = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select control/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
-      controlSiloProxy = {
-        '/auth/**': controlSiloAddress,
-        '/account/**': controlSiloAddress,
-        '/api/0/users/**': controlSiloAddress,
-        '/api/0/api-tokens/**': controlSiloAddress,
-        '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
-        '/api/0/organizations/*/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/api-authorizations/**': controlSiloAddress,
-        '/api/0/api-applications/**': controlSiloAddress,
-        '/api/0/doc-integrations/**': controlSiloAddress,
-        '/api/0/assistant/**': controlSiloAddress,
-      };
+      controlSiloProxy = [
+        {
+          context: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+        },
+      ];
     }
 
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as object),
+        ...(appConfig.devServer.static as Static),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
-      proxy: {
+      proxy: [
         ...controlSiloProxy,
-        '/api/store/**': relayAddress,
-        '/api/{1..9}*({0..9})/**': relayAddress,
-        '/api/0/relays/outcomes/': relayAddress,
-        '!/_static/dist/sentry/**': backendAddress,
-      },
+        {
+          context: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+        },
+        {
+          context: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+        },
+      ],
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }

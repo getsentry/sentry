@@ -4,7 +4,7 @@ import {AutofixCard} from 'sentry/components/events/autofix/autofixCard';
 import type {GroupWithAutofix} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
 interface Props {
   event: Event;
@@ -22,7 +22,7 @@ export function Autofix({event, group}: Props) {
     <ErrorBoundary mini>
       <div>
         {autofixData ? (
-          <AutofixCard data={autofixData} onRetry={reset} />
+          <AutofixCard data={autofixData} onRetry={reset} groupId={group.id} />
         ) : (
           <AutofixBanner
             groupId={group.id}
