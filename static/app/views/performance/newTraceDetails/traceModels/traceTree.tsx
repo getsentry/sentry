@@ -112,7 +112,7 @@ import {
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   interface Span extends RawSpanType {
-    childTransaction: Transaction | undefined;
+    childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
   }
   type Trace = TraceSplitResults<Transaction>;
@@ -279,7 +279,7 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
     if (
       node.value.op === 'http.client' &&
       node.value.origin === 'auto.http.okhttp' &&
-      !node.value.childTransaction
+      !node.value.childTransactions.length
     ) {
       return true;
     }
@@ -609,7 +609,10 @@ export class TraceTree {
       }
     }
 
-    const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
+    const transactionsToSpanMap = new Map<
+      string,
+      TraceTreeNode<TraceTree.Transaction>[]
+    >();
 
     for (const child of parent.children) {
       if (isTransactionNode(child)) {
@@ -621,17 +624,18 @@ export class TraceTree {
             : // This should be unique, but unreachable at lookup time.
               `unreachable-${child.value.event_id}`;
 
-        transactionsToSpanMap.set(key, child);
+        const list = transactionsToSpanMap.get(key) ?? [];
+        list.push(child);
+        transactionsToSpanMap.set(key, list);
       }
-      continue;
     }
 
     for (const span of spans) {
-      const childTransaction = transactionsToSpanMap.get(span.span_id);
+      const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        childTransaction: childTransaction?.value,
+        childTransactions,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
@@ -652,12 +656,14 @@ export class TraceTree {
       // This is the case where the current span is the parent of a transaction.
       // When zooming into the parent of the txn, we want to place a copy
       // of the txn as a child of the parenting span.
-      if (childTransaction) {
-        const clonedChildTxn = childTransaction.cloneDeep();
-        node.spanChildren.push(clonedChildTxn);
-        clonedChildTxn.parent = node;
-        // Delete the transaction from the lookup table so that we don't
-        // duplicate the transaction in the tree.
+      if (childTransactions) {
+        for (const childTransaction of childTransactions) {
+          const clonedChildTxn = childTransaction.cloneDeep();
+          node.spanChildren.push(clonedChildTxn);
+          clonedChildTxn.parent = node;
+          // Delete the transaction from the lookup table so that we don't
+          // duplicate the transaction in the tree.
+        }
         transactionsToSpanMap.delete(span.span_id);
       }
 
@@ -684,18 +690,20 @@ export class TraceTree {
     }
 
     // Whatever remains is transaction nodes that we failed to reparent under the spans.
-    for (const [_, transaction] of transactionsToSpanMap) {
-      if ('parent_span_id' in transaction.value && !!transaction.value.parent_span_id) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-reparenting']);
-          scope.captureMessage(
-            'Failed to reparent transaction under span. None of the spans we fetched had a span_id matching the parent_span_id of the transaction.'
-          );
-        });
+    for (const [_, transactions] of transactionsToSpanMap) {
+      for (const transaction of transactions) {
+        if ('parent_span_id' in transaction.value && !!transaction.value.parent_span_id) {
+          Sentry.withScope(scope => {
+            scope.setFingerprint(['trace-view-reparenting']);
+            scope.captureMessage(
+              'Failed to reparent transaction under span. None of the spans we fetched had a span_id matching the parent_span_id of the transaction.'
+            );
+          });
+        }
+        const cloned = transaction.cloneDeep();
+        parent.spanChildren.push(cloned);
+        cloned.parent = parent;
       }
-      const cloned = transaction.cloneDeep();
-      parent.spanChildren.push(cloned);
-      cloned.parent = parent;
     }
 
     parent.zoomedIn = true;
