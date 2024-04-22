@@ -1,6 +1,9 @@
 import {createContext, useCallback} from 'react';
 
-import type {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
+import type {
+  OnboardingProjectStatus,
+  OnboardingSelectedSDK,
+} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type Project = {

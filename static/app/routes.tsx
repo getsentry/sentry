@@ -1589,6 +1589,22 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="queues/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/queues/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/queues/destinationSummary/destinationSummaryPage'
+              )
+          )}
+        />
+      </Route>
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute

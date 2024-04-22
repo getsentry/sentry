@@ -5,7 +5,8 @@ import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-searc
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
 // eslint-disable-next-line no-restricted-imports

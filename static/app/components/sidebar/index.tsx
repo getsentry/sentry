@@ -252,7 +252,8 @@ function Sidebar() {
         if (
           organization.features.includes('spans-first-ui') ||
           organization.features.includes('performance-http-view') ||
-          organization.features.includes('performance-cache-view')
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('performance-queues-view')
         ) {
           return (
             <SidebarAccordion
@@ -316,6 +317,17 @@ function Sidebar() {
                   }
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="performance-queues-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/queues/`}
+                  id="performance-queues"
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>

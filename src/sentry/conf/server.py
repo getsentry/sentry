@@ -1912,6 +1912,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Enable queues module ui
+    "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
     "organizations:performance-cache-view": False,
     # Enable mobile starfish app start module view
@@ -2013,6 +2015,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
+    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
@@ -2753,7 +2756,7 @@ SENTRY_USE_SPANS_BUFFER = False
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag activates consuming GroupAttribute messages in the development environment
-SENTRY_USE_GROUP_ATTRIBUTES = False
+SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
@@ -2951,6 +2954,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                     "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
                 ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                # TODO: remove setting
                 "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
                     "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
                 ),

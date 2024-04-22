@@ -470,6 +470,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -1796,18 +1802,8 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Webhook processing controls
 register(
-    "hybridcloud.webhookpayload.use_parallel",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.webhookpayload.use_mailbox_buckets",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1894,7 +1890,7 @@ register(
 # The flag activates whether to send group attributes messages to kafka
 register(
     "issues.group_attributes.send_kafka",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2375,6 +2371,15 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# rollout rate: % of profiles for which we ingest the extracted profile
+# functions metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Standalone spans

@@ -110,7 +110,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     () => ({
       fields: field,
       component: provided => {
-        if (isLoadingReleases) {
+        if (isLoadingReleases || (!primaryRelease && !secondaryRelease)) {
           return null;
         }
 
