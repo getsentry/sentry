@@ -122,7 +122,6 @@ export class AssigneeSelectorDropdown extends Component<
 
   // DONE
   getInitialState() {
-    // (like this? arrow functions? function declarations?)
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.state.loading
       ? undefined
@@ -197,6 +196,7 @@ export class AssigneeSelectorDropdown extends Component<
     this.setState({memberList: members});
   };
 
+  // Renamed to currentMemberList
   memberList(): User[] | undefined {
     return this.props.memberList ?? this.state.memberList;
   }
@@ -229,6 +229,7 @@ export class AssigneeSelectorDropdown extends Component<
       }));
   }
 
+  // Renamed to handleUserAssign
   assignToUser(user: User | Actor) {
     const {organization} = this.props;
     assignToUser({
@@ -240,6 +241,7 @@ export class AssigneeSelectorDropdown extends Component<
     this.setState({loading: true});
   }
 
+  // Renamed to handleTeamAssign
   assignToTeam(team: Team) {
     const {organization} = this.props;
 

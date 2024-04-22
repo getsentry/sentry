@@ -2,13 +2,15 @@
 import {useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {clearAssignment} from 'sentry/actionCreators/group';
+import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import type DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {
   Actor,
   Group,
@@ -57,7 +59,7 @@ export interface NewAssigneeSelectorDropdownProps {
   // disabled?: boolean;
   group?: Group | FeedbackIssue;
   memberList?: User[];
-  // onAssign?: OnAssignCallback;
+  onAssign?: OnAssignCallback;
   onClear?: () => void;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
@@ -73,19 +75,32 @@ type AssigneeDropdownState = {
 function NewAssigneeSelectorDropdown({
   id,
   organization,
-  group,
+  // group,
   memberList,
+  onAssign,
   onClear,
   owners,
 }: NewAssigneeSelectorDropdownProps) {
+  // XXX: Use 'useOrganization' hook instead of passing in org?
+  // XXX: okay to get rid of 'group' prop here?
+  const groups = useLegacyStore(GroupStore);
+  const memberLists = useLegacyStore(MemberListStore);
+  const group = groups.find(item => item.id === id);
+
+  // Replace getInitialState with useState hook
   const [state, setState] = useState<AssigneeDropdownState>(() => {
-    const stateGroup = GroupStore.get(id);
-    const stateAssignedTo = stateGroup?.assignedTo;
+    const stateAssignedTo = group?.assignedTo;
+
+    // XXX: guessing there's ab better way to do these two lines w/ useLegacyStore
     const stateLoading = GroupStore.hasStatus(id, 'assignTo');
-    const stateMemberList = MemberListStore.state.loading
-      ? undefined
-      : MemberListStore.getAll();
-    const stateSuggestedOwners = stateGroup?.owners;
+    const stateMemberList = memberLists.loading ? undefined : memberLists.members;
+
+    // XXX: is this change correct?
+    // const stateMemberList = MemberListStore.state.loading
+    //   ? undefined
+    //   : MemberListStore.getAll();
+
+    const stateSuggestedOwners = group?.owners;
 
     return {
       assignedTo: stateAssignedTo,
@@ -96,6 +111,7 @@ function NewAssigneeSelectorDropdown({
   });
 
   // Previously memberList()
+  // XXX: what to call this function?
   const currentMemberList = (): User[] | undefined => {
     return memberList ?? state.memberList;
   };
@@ -178,6 +194,15 @@ function NewAssigneeSelectorDropdown({
       .filter((owner): owner is SuggestedAssignee => !!owner);
   };
 
+  const handleMemberListUpdate = (members: User[]) => {
+    if (members === memberList) {
+      // XXX: Is this necessary?
+      return;
+    }
+
+    setState(prevState => ({...prevState, memberList: members}));
+  };
+
   const assignableTeams = (): AssignableTeam[] => {
     const currGroup = GroupStore.get(id) ?? group;
     if (!currGroup) {
@@ -193,6 +218,67 @@ function NewAssigneeSelectorDropdown({
         email: team.id,
         team,
       }));
+  };
+
+  const onGroupChange = (itemIds: Set<string>) => {
+    if (!itemIds.has(id)) {
+      return;
+    }
+    // XXX: bad naming oof (group is now a prop and not state, can't diff with "this")
+    const recGroup = GroupStore.get(id);
+    setState({
+      suggestedOwners: recGroup?.owners,
+      loading: GroupStore.hasStatus(id, 'assignTo'),
+    });
+  };
+
+  // Previously assignToTeam
+  const assignToTeam = (team: Team) => {
+    // XXX: Is my async-related assumption correct here? (also in handleUserAssign)
+    setState({loading: true});
+    assignToActor({
+      actor: {id: team.id, type: 'team'},
+      id: id,
+      orgSlug: organization.slug,
+      assignedBy: 'assignee_selector',
+    });
+    setState({loading: false});
+  };
+
+  // Previously assignToUser
+  const handleUserAssign = (user: User | Actor) => {
+    setState({loading: true});
+    assignToUser({
+      id: id,
+      orgSlug: organization.slug,
+      user,
+      assignedBy: 'assignee_selector',
+    });
+    setState({loading: false});
+  };
+
+  const handleAssign: React.ComponentProps<typeof DropdownAutoComplete>['onSelect'] = (
+    {value: {type, assignee}},
+    _state,
+    e
+  ) => {
+    if (type === 'member') {
+      handleUserAssign(assignee);
+    }
+
+    if (type === 'team') {
+      handleUserAssign(assignee);
+    }
+
+    e?.stopPropagation();
+
+    if (onAssign) {
+      const suggestionType = type === 'member' ? 'user' : type;
+      const suggestion = getSuggestedAssignees().find(
+        actor => actor.type === suggestionType && actor.id === assignee.id
+      );
+      onAssign(type, assignee, suggestion);
+    }
   };
 
   const clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
