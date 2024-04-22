@@ -57,7 +57,9 @@ class Rule(Model):
         default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
+    # Deprecated. Use owner_user_id or owner_team instead.
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
@@ -110,10 +112,15 @@ class Rule(Model):
         return rv
 
     def save(self, *args, **kwargs):
+        self._validate_owner()
         rv = super().save(*args, **kwargs)
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
         return rv
+
+    def _validate_owner(self):
+        if self.owner_id is not None and self.owner_team_id is None and self.owner_user_id is None:
+            raise ValueError("Rule with owner requires either owner_team or owner_user_id")
 
     def get_audit_log_data(self):
         return {

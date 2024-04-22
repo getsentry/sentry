@@ -541,6 +541,27 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
+    def test_team_owner(self):
+        team = self.create_team(organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"team:{team.id}",
+            actionMatch="any",
+            filterMatch="any",
+            frequency=5,
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+        )
+        assert response.status_code == 200
+        assert response.data["owner"] == f"team:{team.id}"
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_id
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
     def test_frequency_percent_validation(self):
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -747,6 +768,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
+            "owner_user_id": self.user.id,
+            "owner_team_id": None,
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
