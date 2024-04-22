@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Input, {inputStyles} from 'sentry/components/input';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
@@ -129,7 +130,7 @@ export function FormulaInput({
         }
 
         onChange(joinTokens(equalizeWhitespace(escapeVariables(tokens))));
-      }, 200),
+      }, DEFAULT_DEBOUNCE_DURATION),
     [onChange, parseAndValidateFormula]
   );
 

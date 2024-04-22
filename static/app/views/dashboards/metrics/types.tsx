@@ -10,6 +10,7 @@ export interface DashboardMetricsQuery {
   op: string;
   orderBy: Order;
   type: MetricExpressionType.QUERY;
+  alias?: string;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -21,6 +22,7 @@ export interface DashboardMetricsEquation {
   id: number;
   isHidden: boolean;
   type: MetricExpressionType.EQUATION;
+  alias?: string;
 }
 
 export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;
