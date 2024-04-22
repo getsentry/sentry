@@ -2480,3 +2480,10 @@ register(
     default={"limit": 1000, "window": 300, "concurrent_limit": 15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "issue_platform.use_kafka_partition_key",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
