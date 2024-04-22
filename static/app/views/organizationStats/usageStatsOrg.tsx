@@ -29,7 +29,7 @@ import {
   getDateFromMoment,
 } from './usageChart/utils';
 import type {UsageSeries, UsageStat} from './types';
-import type {ChartStats, UsageChartPanelProps} from './usageChart';
+import type {ChartStats, UsageChartProps} from './usageChart';
 import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
@@ -222,7 +222,7 @@ class UsageStatsOrganization<
     };
   }
 
-  get chartProps(): UsageChartPanelProps {
+  get chartProps(): UsageChartProps {
     const {dataCategory} = this.props;
     const {error, errors, loading} = this.state;
     const {
@@ -237,7 +237,7 @@ class UsageStatsOrganization<
 
     const hasError = error || !!dataError;
     const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
-    const chartProps: UsageChartPanelProps = {
+    const chartProps = {
       isLoading: loading,
       isError: hasError,
       errors: chartErrors,
@@ -250,7 +250,7 @@ class UsageStatsOrganization<
       usageDateShowUtc: chartDateUtc,
       usageDateInterval: chartDateInterval,
       usageStats: chartStats,
-    };
+    } as UsageChartProps;
 
     return chartProps;
   }

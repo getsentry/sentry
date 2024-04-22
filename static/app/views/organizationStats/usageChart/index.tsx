@@ -113,7 +113,7 @@ const enum SeriesTypes {
   FILTERED = 'Filtered',
 }
 
-type UsageChartProps = {
+export type UsageChartProps = {
   dataCategory: DataCategoryInfo['plural'];
 
   dataTransform: ChartDataTransform;
@@ -516,7 +516,7 @@ function UsageChartBody({
   );
 }
 
-export interface UsageChartPanelProps extends UsageChartProps {
+interface UsageChartPanelProps extends UsageChartProps {
   footer?: React.ReactNode;
   title?: React.ReactNode;
 }
