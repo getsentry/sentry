@@ -2373,6 +2373,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# rollout rate: % of profiles for which we ingest the extracted profile
+# functions metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
