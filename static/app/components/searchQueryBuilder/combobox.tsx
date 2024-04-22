@@ -141,6 +141,14 @@ export function SearchQueryBuilderCombobox({
     offset: [0, 8],
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
+    onInteractOutside: () => {
+      if (state.inputValue) {
+        onChange(state.inputValue);
+      } else {
+        onExit();
+      }
+      state.close();
+    },
   });
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(

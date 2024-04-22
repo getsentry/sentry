@@ -71,10 +71,13 @@ function FilterOperator({token}: SearchQueryTokenProps) {
     <DropdownMenu
       trigger={triggerProps => (
         <OpDiv
-          tabIndex={-1}
+          {...triggerProps}
           role="gridcell"
           aria-label={t('Edit token operator')}
-          {...triggerProps}
+          onClick={e => {
+            triggerProps.onClick?.(e);
+            dispatch({type: 'CLICK_TOKEN_OP', token});
+          }}
         >
           <InteractionStateLayer />
           {getOpLabel(token)}
