@@ -514,7 +514,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe("renders changes for 'event-tags-new-ui' flag", function () {
+  describe("renders changes for 'event-tags-tree-ui' flag", function () {
     const featuredOrganization = OrganizationFixture({
       features: ['event-attachments', 'event-tags-tree-ui'],
     });
@@ -595,7 +595,7 @@ describe('EventTagsAndScreenshot', function () {
       assertFlagAndQueryParamWork();
     });
 
-    it("allows filtering with 'event-tags-new-ui' flag", async function () {
+    it("allows filtering with 'event-tags-tree-ui' flag", async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -636,7 +636,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(rows).toHaveLength(allTags.length);
     });
 
-    it("promotes custom tags with 'event-tags-new-ui' flag", async function () {
+    it("promotes custom tags with 'event-tags-tree-ui' flag", async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],

@@ -144,18 +144,18 @@ function TagTreeColumns({
         // If it's the last entry, create a column with the remaining rows
         if (index === tagTreeRowGroups.length - 1) {
           columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
+            <TagColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex)}
-            </TreeColumn>
+            </TagColumn>
           );
           return {startIndex, runningTotal, columns};
         }
-        // If we reach the goal column size, wrap rows in a TreeColumn.
+        // If we reach the goal column size, wrap rows in a TagColumn.
         if (runningTotal >= columnRowGoal) {
           columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
+            <TagColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex, index)}
-            </TreeColumn>
+            </TagColumn>
           );
           runningTotal = 0;
           startIndex = index;
@@ -175,25 +175,20 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer ref={containerRef}>
-      <TreeGarden columnCount={columnCount}>
-        <TagTreeColumns columnCount={columnCount} {...props} />
-      </TreeGarden>
-    </TreeContainer>
+    <TagContainer columnCount={columnCount} ref={containerRef}>
+      <TagTreeColumns columnCount={columnCount} {...props} />
+    </TagContainer>
   );
 }
 
-const TreeContainer = styled('div')`
+export const TagContainer = styled('div')<{columnCount: number}>`
   margin-top: ${space(1.5)};
-`;
-
-const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
 `;
 
-const TreeColumn = styled('div')`
+export const TagColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};

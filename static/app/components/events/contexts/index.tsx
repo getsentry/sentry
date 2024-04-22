@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import ContextCard from 'sentry/components/events/contexts/contextCard';
 import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {Event} from 'sentry/types/event';
@@ -15,6 +14,38 @@ type Props = {
   event: Event;
   group?: Group;
 };
+
+type ContextValueType = any;
+
+export function getOrderedContextItems(event): [string, ContextValueType][] {
+  const {user, contexts} = event;
+
+  const {feedback, response, ...otherContexts} = contexts ?? {};
+  const orderedContext: [string, ContextValueType][] = [
+    ['response', response],
+    ['feedback', feedback],
+    ['user', user],
+    ...Object.entries(otherContexts),
+  ];
+  // For these context keys, use 'key' as 'type' rather than 'value.type'
+  const overrideTypes = new Set(['response', 'feedback', 'user']);
+  const items = orderedContext
+    .filter(([_k, v]) => {
+      const contextKeys = Object.keys(v ?? {});
+      const isInvalid =
+        // Empty context
+        contextKeys.length === 0 ||
+        // Empty aside from 'type' key
+        (contextKeys.length === 1 && contextKeys[0] === 'type');
+      return !isInvalid;
+    })
+    .map<[string, ContextValueType]>(([alias, ctx]) => [
+      alias,
+      {...ctx, type: overrideTypes.has(ctx.type) ? ctx : ctx?.type ?? alias},
+    ]);
+
+  return items;
+}
 
 export function EventContexts({event, group}: Props) {
   const hasNewTagsUI = useHasNewTagsUI();
@@ -39,37 +70,7 @@ export function EventContexts({event, group}: Props) {
   }, [usingOtel, sdk]);
 
   if (hasNewTagsUI) {
-    const orderedContext: [string, any][] = [
-      ['response', response],
-      ['feedback', feedback],
-      ['user', user],
-      ...Object.entries(otherContexts),
-    ];
-    // For these context keys, use 'key' as 'type' rather than 'value.type'
-    const overrideTypes = new Set(['response', 'feedback', 'user']);
-    const cards = orderedContext
-      .filter(([_k, v]) => {
-        const contextKeys = Object.keys(v ?? {});
-        const isInvalid =
-          // Empty context
-          contextKeys.length === 0 ||
-          // Empty aside from 'type' key
-          (contextKeys.length === 1 && contextKeys[0] === 'type');
-        return !isInvalid;
-      })
-      .map(([k, v]) => (
-        <ContextCard
-          key={k}
-          type={overrideTypes.has(k) ? k : v?.type ?? ''}
-          alias={k}
-          value={v}
-          event={event}
-          group={group}
-          project={project}
-        />
-      ));
-
-    return <ContextDataSection cards={cards} />;
+    return <ContextDataSection event={event} group={group} project={project} />;
   }
 
   return (
