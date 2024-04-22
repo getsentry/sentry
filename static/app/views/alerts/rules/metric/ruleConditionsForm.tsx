@@ -771,6 +771,7 @@ const MonitorSelect = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  height: 6rem;
 `;
 
 type MonitorCardProps = {
@@ -787,6 +788,7 @@ const MonitorCard = styled('div')<MonitorCardProps>`
   flex-grow: 1;
   flex-direction: column;
   cursor: pointer;
+  justify-content: center;
 
   &:focus,
   &:hover {
