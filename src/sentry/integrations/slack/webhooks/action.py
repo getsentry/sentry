@@ -102,7 +102,8 @@ def load_json(data: Any) -> JSONData:
         # Span is required because `json.loads` calls it by default
         with sentry_sdk.start_span(op="sentry.utils.json.loads"):
             return orjson.loads(data)
-    return json.loads(data)
+    else:
+        return json.loads(data)
 
 
 # TODO: remove this when orjson experiment is successful
