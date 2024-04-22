@@ -85,12 +85,13 @@ def _ensure_monitor_with_config(
     try:
         owner_actor = parse_and_validate_actor(owner, project.organization_id)
     except Exception:
-        extra = {
-            "slug": monitor_slug,
-            "owner": owner,
-        }
-        logger.info("monitors.consumer.owner_not_in_org", extra=extra)
-        logger.exception("Error attempting to resolve owner")
+        logger.exception(
+            "Error attempting to resolve owner",
+            extra={
+                "slug": monitor_slug,
+                "owner": owner,
+            },
+        )
     else:
         if owner_actor and owner_actor.type == User:
             owner_user_id = owner_actor.id
