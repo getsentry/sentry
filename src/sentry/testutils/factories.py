@@ -12,7 +12,6 @@ from datetime import UTC, datetime
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
-from unittest import mock
 from uuid import uuid4
 
 import petname
@@ -28,6 +27,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import GroupEvent
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -893,7 +893,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def store_event(data, project_id, assert_no_errors=True, sent_at=None):
+    def store_event(
+        data: Mapping[str, Any],
+        project_id: int,
+        assert_no_errors: bool = True,
+        sent_at: datetime | None = None,
+    ) -> GroupEvent:
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data, sent_at=sent_at)
@@ -902,27 +907,7 @@ class Factories:
             errors = manager.get_data().get("errors")
             assert not errors, errors
 
-        normalized_data = manager.get_data()
-        event = None
-
-        # When fingerprint is present on transaction, inject performance problems
-        if (
-            normalized_data.get("type") == "transaction"
-            and normalized_data.get("fingerprint") is not None
-        ):
-            with mock.patch(
-                "sentry.event_manager._detect_performance_problems",
-                Factories.inject_performance_problems,
-            ):
-                event = manager.save(project_id)
-
-        else:
-            event = manager.save(project_id)
-
-        if event.groups:
-            for group in event.groups:
-                group.save()
-
+        event = manager.save(project_id)
         if event.group:
             event.group.save()
 
@@ -1348,7 +1333,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_userreport(project, event_id=None, **kwargs):
+    def create_userreport(
+        project: Project, event_id: str | None = None, **kwargs: dict[str, Any]
+    ) -> UserReport:
         event = Factories.store_event(
             data={
                 "timestamp": datetime.now(UTC).isoformat(),

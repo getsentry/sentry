@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
@@ -277,7 +277,7 @@ class Fixtures:
             user=user, provider=provider, uid=uid, extra_data=extra_data
         )
 
-    def store_event(self, *args, **kwargs) -> Event:
+    def store_event(self, *args: Any, **kwargs: Any) -> GroupEvent:
         return Factories.store_event(*args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):

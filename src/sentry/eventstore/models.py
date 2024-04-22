@@ -716,18 +716,18 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
         self._occurrence = occurrence
 
-    def __eq__(self, other):
+    def __eq__(self, other: GroupEvent) -> bool:
         if not isinstance(other, GroupEvent):
             return False
         return other.event_id == self.event_id and other.group_id == self.group_id
 
-    def __hash__(self):
+    def __hash__(self) -> str:
         return hash((self.group_id, self.event_id))
 
     @property

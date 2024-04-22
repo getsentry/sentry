@@ -138,7 +138,7 @@ from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent, Event
+    from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 
 logger = logging.getLogger("sentry.events")
 
@@ -324,7 +324,7 @@ class EventManager:
 
     def __init__(
         self,
-        data: dict[str, Any],
+        data: Mapping[str, Any],
         version: str = "5",
         project: Project | None = None,
         grouping_config: GroupingConfig | None = None,
@@ -411,7 +411,7 @@ class EventManager:
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
-    ) -> Event:
+    ) -> GroupEvent:
         """
         After normalizing and processing an event, save adjacent models such as
         releases and environments to postgres and write the event into
