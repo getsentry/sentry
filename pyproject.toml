@@ -205,7 +205,6 @@ module = [
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.group_index.index",
     "sentry.api.helpers.group_index.update",
-    "sentry.api.helpers.group_index.validators.status_details",
     "sentry.api.invite_helper",
     "sentry.api.issue_search",
     "sentry.api.paginator",
