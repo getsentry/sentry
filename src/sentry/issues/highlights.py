@@ -1,37 +1,30 @@
+import re
 from collections.abc import Mapping
 from typing import TypedDict
 
-from jsonschema import Draft7Validator
-from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
-from rest_framework.serializers import ValidationError
 
 from sentry.models.project import Project
-from sentry.utils.json import JSONData
-from sentry.utils.platform_categories import BACKEND, FRONTEND, MOBILE
-
-HIGHLIGHT_CONTEXT_SCHEMA: JSONData = {
-    "type": "object",
-    "patternProperties": {"^.*$": {"type": "array", "items": {"type": "string"}}},
-    "additionalProperties": False,
-}
+from sentry.utils.platform_categories import BACKEND_SET, FRONTEND_SET, MOBILE_SET
 
 
 class HighlightContextField(serializers.Field):
     def to_internal_value(self, data):
-        if data is None:
-            return
+        if not isinstance(data, dict):
+            raise serializers.ValidationError("Expected a dictionary.")
 
-        if data == "" or data == {} or data == []:
-            return {}
-
-        v = Draft7Validator(HIGHLIGHT_CONTEXT_SCHEMA)
-        try:
-            v.validate(data)
-        except SchemaValidationError as e:
-            raise ValidationError(e.message)
+        for key, value in data.items():
+            if not re.match(r"^.*$", key):
+                raise serializers.ValidationError(f"Key '{key}' is invalid.")
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                raise serializers.ValidationError(f"Value for '{key}' must be a list of strings.")
+            # Remove duplicates
+            data[key] = list(set(value))
 
         return data
+
+    def to_representation(self, value):
+        return value
 
 
 class HighlightPreset(TypedDict):
@@ -63,10 +56,10 @@ FALLBACK_HIGHLIGHTS: HighlightPreset = {
 def get_highlight_preset_for_project(project: Project) -> HighlightPreset:
     if not project.platform or project.platform == "other":
         return FALLBACK_HIGLIGHTS
-    elif project.platform in FRONTEND:
+    elif project.platform in FRONTEND_SET:
         return FRONTEND_HIGHLIGHTS
-    elif project.platform in BACKEND:
+    elif project.platform in BACKEND_SET:
         return BACKEND_HIGHLIGHTS
-    elif project.platform in MOBILE:
+    elif project.platform in MOBILE_SET:
         return MOBILE_HIGHLIGHTS
     return FALLBACK_HIGLIGHTS

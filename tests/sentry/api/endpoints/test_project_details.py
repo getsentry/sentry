@@ -873,7 +873,8 @@ class ProjectUpdateTest(APITestCase):
 
     def test_highlight_context(self):
         # Default with or without flag, ignore update attempt
-        highlight_context = {"bird-words": ["red", "robin"]}
+        highlight_context_type = "bird-words"
+        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -891,8 +892,17 @@ class ProjectUpdateTest(APITestCase):
                 self.proj_slug,
                 highlightContext=highlight_context,
             )
-            assert self.project.get_option("sentry:highlight_context") == highlight_context
-            assert resp.data["highlightContext"] == highlight_context
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 4
+            )
 
             # Set to empty
             resp = self.get_success_response(
@@ -909,7 +919,7 @@ class ProjectUpdateTest(APITestCase):
                 self.proj_slug,
                 highlightContext={"bird-words": ["invalid", 123, "integer"]},
             )
-            assert "not of type 'string'" in resp.data["highlightContext"][0]
+            assert "must be a list of strings" in resp.data["highlightContext"][0]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)

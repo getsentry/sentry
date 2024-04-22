@@ -19,6 +19,7 @@ FRONTEND = [
     "javascript-astro",
     "unity",
 ]
+FRONTEND_SET = set(FRONTEND)
 
 # Mirrors `const mobile` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
@@ -42,6 +43,7 @@ MOBILE = [
     "cocoa-objc",
     "cocoa-swift",
 ]
+MOBILE_SET = set(MOBILE)
 
 # Mirrors `const backend` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
@@ -108,6 +110,7 @@ BACKEND = [
     "ruby-rails",
     "rust",
 ]
+BACKEND_SET = set(BACKEND)
 
 # Mirrors `const serverless` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
