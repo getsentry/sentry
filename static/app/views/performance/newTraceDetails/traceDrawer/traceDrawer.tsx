@@ -5,6 +5,11 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
+import {
+  ButtonContainer,
+  ButtonGroup,
+  ValueRow,
+} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -753,6 +758,24 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
 
         tr {
           display: grid;
+        }
+
+        ${ValueRow}{
+          grid-template-columns: none;
+          grid-template-rows: min-content min-content;
+          gap: 0;
+
+          pre {
+            padding-bottom: 0 !important;
+          }
+
+          ${ButtonContainer} {
+            padding-top: 0;
+
+           ${ButtonGroup} {
+              flex-direction: row;
+            }
+          }
         }
       `}
 `;
