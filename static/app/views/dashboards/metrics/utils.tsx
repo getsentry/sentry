@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';

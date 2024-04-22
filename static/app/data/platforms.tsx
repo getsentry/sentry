@@ -1,4 +1,4 @@
-import type {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types/project';
 
 // If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
 // in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
