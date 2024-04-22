@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -10,6 +11,7 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
@@ -240,3 +242,72 @@ class MarkOkTestCase(TestCase):
                 "new_substatus": None,
             },
         ) == dict(status_change)
+
+    @mock.patch("sentry.analytics.record")
+    def test_mark_ok_broken_recovery(self, mock_record):
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+                "recovery_threshold": None,
+            },
+        )
+
+        # Start with monitor in an ERROR state and broken detection
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+            last_checkin=now - timedelta(minutes=1),
+            next_checkin=now,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=timezone.now() - timedelta(days=14),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=checkin,
+            starting_timestamp=checkin.date_added,
+        )
+        MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident,
+        )
+
+        # OK checkin comes in
+        success_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+            date_added=now,
+        )
+        mark_ok(success_checkin, ts=now)
+
+        # Monitor has recovered to OK with updated upcoming timestamps
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.next_checkin == now + timedelta(minutes=1)
+        assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
+        assert monitor_environment.last_checkin == now
+
+        # We recorded an analytics event
+        mock_record.assert_called_with(
+            "cron_monitor_broken_status.recovery",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            monitor_id=monitor.id,
+            monitor_env_id=monitor_environment.id,
+        )
