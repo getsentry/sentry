@@ -46,7 +46,7 @@ export function CacheLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
+    referrer: Referrer.LANDING_CACHE_THROUGHPUT_CHART,
   });
 
   return (
