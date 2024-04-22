@@ -148,7 +148,7 @@ function makeTraceFromTransaction(
 function useDemoTrace(
   demo: string | undefined,
   organization: {slug: string}
-): Pick<UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>, 'data' | 'status'> {
+): UseApiQueryResult<TraceSplitResults<TraceFullDetailed> | undefined, any> {
   const demoEventSlug = parseDemoEventSlug(demo);
 
   // When projects don't have performance set up, we allow them to view a demo transaction.
@@ -175,12 +175,17 @@ function useDemoTrace(
   // causing the trace view to re-render as we interact with it.
   const demoTraceQueryResults = useMemo(() => {
     return {
+      ...demoEventQuery,
       data: makeTraceFromTransaction(demoEventQuery.data),
-      status: demoEventQuery.status,
     };
-  }, [demoEventQuery.data, demoEventQuery.status]);
+  }, [demoEventQuery]);
 
-  return demoTraceQueryResults;
+  // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
+  // from EventTransaction to TraceSplitResults<TraceFullDetailed>
+  return demoTraceQueryResults as UseApiQueryResult<
+    TraceSplitResults<TraceFullDetailed> | undefined,
+    any
+  >;
 }
 
 type UseTraceParams = {
@@ -190,7 +195,7 @@ type UseTraceParams = {
 const DEFAULT_OPTIONS = {};
 export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
-): Pick<UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any>, 'data' | 'status'> {
+): UseApiQueryResult<TraceSplitResults<TraceFullDetailed> | undefined, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -212,5 +217,5 @@ export function useTrace(
     }
   );
 
-  return mode === 'demo' ? demoTrace : {data: traceQuery.data, status: traceQuery.status};
+  return mode === 'demo' ? demoTrace : traceQuery;
 }

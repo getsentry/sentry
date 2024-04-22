@@ -45,7 +45,7 @@ function getMetaQueryParams(
 
 export function useTraceMeta(
   traceSlug?: string
-): Pick<UseApiQueryResult<TraceMeta | null, any>, 'data' | 'isLoading'> {
+): UseApiQueryResult<TraceMeta | null, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -84,7 +84,30 @@ export function useTraceMeta(
         projects: 1,
         transactions: 1,
       },
+      failureCount: 0,
+      errorUpdateCount: 0,
+      failureReason: null,
+      error: null,
+      isError: false,
+      isFetched: true,
+      isFetchedAfterMount: true,
+      isFetching: false,
       isLoading: false,
+      isLoadingError: false,
+      isInitialLoading: false,
+      isPaused: false,
+      isPlaceholderData: false,
+      isPreviousData: false,
+      isRefetchError: false,
+      isRefetching: false,
+      isStale: false,
+      isSuccess: true,
+      status: 'success',
+      fetchStatus: 'idle',
+      dataUpdatedAt: Date.now(),
+      errorUpdatedAt: Date.now(),
+      refetch: traceMetaQueryResults.refetch,
+      remove: traceMetaQueryResults.remove,
     };
   }
 

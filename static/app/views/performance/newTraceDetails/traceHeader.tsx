@@ -71,7 +71,7 @@ function TraceHeaderEmptyTrace() {
 }
 
 type TraceHeaderProps = {
-  metaResults: Pick<UseApiQueryResult<TraceMeta | null, any>, 'data' | 'isLoading'>;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceID: string | undefined;
