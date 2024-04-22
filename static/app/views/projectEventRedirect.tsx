@@ -24,7 +24,8 @@ function ProjectEventRedirect({router}: Props) {
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
     // Django view).
-    const endpoint = router.location.pathname;
+    const [_, organization, ...rest] = router.location.pathname.split('/');
+    const endpoint = ['', 'organizations', organization, 'projects', ...rest].join('/');
 
     // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
