@@ -49,7 +49,7 @@ class CreateAuditEntryTest(TestCase):
         req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req)
+        entry = create_audit_entry(req, organization_id=org.id)
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
@@ -57,8 +57,10 @@ class CreateAuditEntryTest(TestCase):
         self.assert_no_delete_log_created()
 
     def test_audit_entry_frontend(self):
+        org = self.create_organization()
+
         req = fake_http_request(self.create_user())
-        entry = create_audit_entry(req)
+        entry = create_audit_entry(req, organization_id=org.id)
 
         assert entry.actor == req.user
         assert entry.actor_key is None
