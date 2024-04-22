@@ -1,4 +1,4 @@
-FROM python:3.11.9-alpine
+FROM python:3.11.9-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
