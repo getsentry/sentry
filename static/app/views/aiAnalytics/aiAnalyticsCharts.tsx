@@ -8,55 +8,6 @@ import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 
-export function TotalTokensUsedChart() {
-  const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(
-    [
-      {
-        name: 'total',
-        mri: `c:spans/ai.total_tokens.used@none`,
-        op: 'sum',
-        // TODO this double counts the (e.g.) langchain and openai token usage
-      },
-    ],
-    selection,
-    {
-      intervalLadder: 'dashboard',
-    }
-  );
-
-  if (!isGlobalSelectionReady) {
-    return null;
-  }
-
-  if (isError) {
-    return <div>{'' + error}</div>;
-  }
-
-  return (
-    <TokenChartContainer>
-      <PanelTitle>{t('Total tokens used')}</PanelTitle>
-      <MetricChartContainer
-        timeseriesData={timeseriesData}
-        isLoading={isLoading}
-        metricQueries={[
-          {
-            name: 'mql',
-            formula: '$total',
-          },
-        ]}
-        displayType={MetricDisplayType.AREA}
-        chartHeight={200}
-      />
-    </TokenChartContainer>
-  );
-}
-
 interface NumberOfPipelinesChartProps {
   groupId?: string;
 }
@@ -165,6 +116,62 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
           {
             name: 'mql',
             formula: '$a',
+          },
+        ]}
+        displayType={MetricDisplayType.AREA}
+        chartHeight={200}
+      />
+    </TokenChartContainer>
+  );
+}
+
+interface TokensUsedChartProps {
+  groupId?: string;
+}
+export function TokensUsedChart({groupId}: TokensUsedChartProps) {
+  const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  let query = 'span.category:"ai"';
+  if (groupId) {
+    query = `${query} span.ai.pipeline.group:"${groupId}"`;
+  }
+  const {
+    data: timeseriesData,
+    isLoading,
+    isError,
+    error,
+  } = useMetricsQuery(
+    [
+      {
+        name: 'tokens',
+        mri: `c:spans/ai.total_tokens.used@none`,
+        op: 'sum',
+        query,
+      },
+    ],
+    selection,
+    {
+      intervalLadder: 'dashboard',
+    }
+  );
+
+  if (!isGlobalSelectionReady) {
+    return null;
+  }
+
+  if (isError) {
+    return <div>{'' + error}</div>;
+  }
+
+  return (
+    <TokenChartContainer>
+      <PanelTitle>{t('AI tokens used')}</PanelTitle>
+      <MetricChartContainer
+        timeseriesData={timeseriesData}
+        isLoading={isLoading}
+        metricQueries={[
+          {
+            name: 'mql',
+            formula: '$tokens',
           },
         ]}
         displayType={MetricDisplayType.AREA}

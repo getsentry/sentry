@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
+  TokensUsedChart,
 } from 'sentry/views/aiAnalytics/aiAnalyticsCharts';
 import {PipelineSpansTable} from 'sentry/views/aiAnalytics/pipelineSpansTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -128,12 +129,15 @@ export default function AiAnalyticsPage({params}: Props) {
                         </MetricsRibbon>
                       </SpaceBetweenWrap>
                     </ModuleLayout.Full>
-                    <ModuleLayout.Half>
+                    <ModuleLayout.Third>
                       <NumberOfPipelinesChart groupId={groupId} />
-                    </ModuleLayout.Half>
-                    <ModuleLayout.Half>
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
                       <PipelineDurationChart groupId={groupId} />
-                    </ModuleLayout.Half>
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <TokensUsedChart groupId={groupId} />
+                    </ModuleLayout.Third>
                     <ModuleLayout.Full>
                       <PipelineSpansTable groupId={groupId} />
                     </ModuleLayout.Full>

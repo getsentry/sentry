@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
-  TotalTokensUsedChart,
+  TokensUsedChart,
 } from 'sentry/views/aiAnalytics/aiAnalyticsCharts';
 import {PipelinesTable} from 'sentry/views/aiAnalytics/PipelinesTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -62,13 +62,13 @@ export default function AiAnalyticsPage() {
                       </PageFilterBar>
                     </ModuleLayout.Full>
                     <ModuleLayout.Third>
-                      <TotalTokensUsedChart />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
                       <NumberOfPipelinesChart />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
                       <PipelineDurationChart />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <TokensUsedChart />
                     </ModuleLayout.Third>
                     <ModuleLayout.Full>
                       <PipelinesTable />
