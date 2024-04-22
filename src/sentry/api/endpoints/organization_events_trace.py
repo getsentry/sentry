@@ -415,7 +415,7 @@ def child_sort_key(item: TraceEvent) -> list[int]:
         ]
 
 
-def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
+def count_performance_issues(trace_id: str, params: ParamsType) -> int:
     transaction_query = QueryBuilder(
         Dataset.IssuePlatform,
         params,
@@ -431,7 +431,7 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 @sentry_sdk.tracing.trace
 def update_params_with_trace_timestamp_projects(
     trace_id: str,
-    params: Mapping[str, str],
+    params: ParamsType,
 ) -> None:
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
@@ -485,7 +485,7 @@ def update_params_with_trace_timestamp_projects(
 
 def query_trace_data(
     trace_id: str,
-    params: Mapping[str, str],
+    params: ParamsType,
     limit: int,
     event_id: str | None,
     use_spans: bool,
@@ -619,7 +619,7 @@ def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
     trace_id: str,
-    params: Mapping[str, str],
+    params: ParamsType,
 ) -> Sequence[SnubaTransaction]:
     """Augment the list of transactions with parent, error and problem data"""
     with sentry_sdk.start_span(op="augment.transactions", description="setup"):
@@ -1503,7 +1503,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 def find_errors_for_trace_id(
-    params: Mapping[str, str],
+    params: ParamsType,
     trace_id: str,
     selected_columns: Sequence[str] | None = None,
     limit: int | None = MAX_TRACE_SIZE,
