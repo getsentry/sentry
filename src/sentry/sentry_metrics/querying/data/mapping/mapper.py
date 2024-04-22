@@ -79,7 +79,9 @@ class Project2ProjectIDMapper(Mapper):
 
     def forward(self, projects: Sequence[Project], value: str) -> int:
         if value not in self.map:
-            self.map[value] = None
+            # if the project cannot be found, set the project_id to 0 so that it is passed to Snuba and returns empty
+            # results as usual, as opposed to throwing an error.
+            self.map[value] = 0
             for project in projects:
                 if project.slug == value:
                     self.map[value] = project.id

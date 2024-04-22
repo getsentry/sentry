@@ -1958,3 +1958,29 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(data) == 1
         assert data[0]["series"] == [None, None, None]
         assert data[0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_filter_by_unknown_project_slug(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            filters="project:unknown-project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None
