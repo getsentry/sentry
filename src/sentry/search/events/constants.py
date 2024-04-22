@@ -191,6 +191,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
@@ -311,6 +313,7 @@ DEFAULT_METRIC_TAGS = {
     "query_hash",
     "release",
     "resource.render_blocking_status",
+    "cache.hit",
     "satisfaction",
     "sdk",
     "session.status",
@@ -327,6 +330,7 @@ SPAN_METRICS_MAP = {
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "cache.item_size": "d:spans/cache.item_size@byte",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons

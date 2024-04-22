@@ -142,9 +142,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
     permission_classes = (OrganizationAndStaffPermission,)

@@ -81,7 +81,7 @@ MAX_VALIDATION_RUNS = 3
 
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
-MAX_USERS_PER_RELOCATION = 200
+MAX_USERS_PER_RELOCATION = 2000
 
 RELOCATION_FILES_TO_BE_VALIDATED = [
     RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,

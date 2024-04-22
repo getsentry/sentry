@@ -24,7 +24,7 @@ from sentry.replays.lib.new_query.fields import (
     SumLengthField,
     UUIDColumnField,
 )
-from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import parse_int, parse_ipv4, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
@@ -120,7 +120,7 @@ search_config: dict[str, FieldProtocol] = {
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_str, SumOfIPv4Scalar),
+    "user.ip_address": StringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
     "viewed_by_id": IntegerColumnField("viewed_by_id", parse_int, SumOfIntegerIdScalar),
     "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
@@ -145,6 +145,7 @@ search_config["warning_id"] = search_config["warning_ids"]
 
 
 search_config["release"] = search_config["releases"]
+search_config["seen_by_id"] = search_config["viewed_by_id"]
 search_config["trace_id"] = search_config["trace_ids"]
 search_config["trace"] = search_config["trace_ids"]
 search_config["url"] = search_config["urls"]

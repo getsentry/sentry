@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 
 type Props = {
@@ -8,9 +9,7 @@ type Props = {
 };
 
 export function useQueuesMetricsQuery({destination, transaction, enabled}: Props) {
-  const mutableSearch = new MutableSearch(
-    'span.op:[queue.task.celery,queue.submit.celery]'
-  );
+  const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
   if (destination) {
     // TODO: This should filter by destination, not transaction
     mutableSearch.addFilterValue('transaction', destination);
@@ -32,7 +31,7 @@ export function useQueuesMetricsQuery({destination, transaction, enabled}: Props
     enabled,
     sorts: [],
     limit: 10,
-    referrer: 'api.starfish.queues-module-destination-summary',
+    referrer: 'api.performance.queues.destination-summary',
   });
 
   return response;
