@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
   isVideoReplay,
+  organization,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
@@ -26,9 +27,13 @@ function getReplayTabs({
   // context will come from breadcrumbs
   // A11y, trace, and memory aren't applicable for mobile
 
+  const showConsoleTab = organization.features.includes(
+    'session-replay-mobile-network-tab'
+  );
+
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.CONSOLE]: showConsoleTab ? t('Console') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
@@ -73,7 +78,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
 
   const isTabDisabled = (tab: string) => {
     return (
-      (tab === TabKey.NETWORK || tab === TabKey.CONSOLE) &&
+      tab === TabKey.NETWORK &&
       isVideoReplay &&
       !organization.features.includes('session-replay-mobile-network-tab')
     );
