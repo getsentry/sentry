@@ -440,34 +440,40 @@ class Referrer(Enum):
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
 
     # Performance Requests Module
-    API_PERF_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
-    API_PERF_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
-    API_PERF_HTTP_LANDING_RESPONSE_CODE_CHART = "api.performance.http.landing-response-code-chart"
-    API_PERF_HTTP_LANDING_THROUGHPUT_CHART = "api.performance.http.landing-throughput-chart"
-    API_PERF_HTTP_DOMAIN_SUMMARY_DURATION_CHART = (
+    API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
+    API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
+    API_PERFORMANCE_HTTP_LANDING_RESPONSE_CODE_CHART = (
+        "api.performance.http.landing-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_LANDING_THROUGHPUT_CHART = "api.performance.http.landing-throughput-chart"
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_DURATION_CHART = (
         "api.performance.http.domain-summary-duration-chart"
     )
-    API_PERF_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON = (
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON = (
         "api.performance.http.domain-summary-metrics-ribbon"
     )
-    API_PERF_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART = (
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART = (
         "api.performance.http.domain-summary-response-code-chart"
     )
-    API_PERF_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART = (
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART = (
         "api.performance.http.domain-summary-throughput-chart"
     )
-    API_PERF_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST = (
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST = (
         "api.performance.http.domain-summary-transactions-list"
     )
-    API_PERF_HTTP_SAMPLES_PANEL_DURATION_CHART = "api.performance.http.samples-panel-duration-chart"
-    API_PERF_HTTP_SAMPLES_PANEL_DURATION_SAMPLES = (
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_CHART = (
+        "api.performance.http.samples-panel-duration-chart"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES = (
         "api.performance.http.samples-panel-duration-samples"
     )
-    API_PERF_HTTP_SAMPLES_PANEL_METRICS_RIBBON = "api.performance.http.samples-panel-metrics-ribbon"
-    API_PERF_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART = (
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON = (
+        "api.performance.http.samples-panel-metrics-ribbon"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART = (
         "api.performance.http.samples-panel-response-code-chart"
     )
-    API_PERF_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
         "api.performance.http.samples-panel-response-code-samples"
     )
 
