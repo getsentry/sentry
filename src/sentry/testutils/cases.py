@@ -3328,7 +3328,8 @@ class TraceTestCase(SpanTestCase):
                     PerformanceFileIOMainThreadGroupType,
                     "noise_config",
                     new=NoiseConfig(0, timedelta(minutes=1)),
-                ), mock.patch.object(
+                ),
+                mock.patch.object(
                     PerformanceSlowDBQueryGroupType,
                     "noise_config",
                     new=NoiseConfig(0, timedelta(minutes=1)),
