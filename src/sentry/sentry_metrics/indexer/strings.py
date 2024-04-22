@@ -101,9 +101,6 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.score.weight.fid@ratio": PREFIX + 146,
     "d:transactions/measurements.score.weight.lcp@ratio": PREFIX + 147,
     "d:transactions/measurements.score.weight.ttfb@ratio": PREFIX + 148,
-    "g:spans/self_time@millisecond": PREFIX + 149,
-    "g:spans/self_time_light@millisecond": PREFIX + 150,
-    "g:spans/total_time@millisecond": PREFIX + 151,
     # Last possible index: 199
 }
 
@@ -230,6 +227,9 @@ SPAN_METRICS_NAMES = {
     "d:spans/webvital.score.weight.inp@ratio": PREFIX + 416,
     "d:spans/webvital.inp@millisecond": PREFIX + 417,
     "c:spans/usage@none": PREFIX + 418,
+    "g:spans/self_time@millisecond": PREFIX + 419,
+    "g:spans/self_time_light@millisecond": PREFIX + 420,
+    "g:spans/total_time@millisecond": PREFIX + 421,
     # Last possible index: 499
 }
 
