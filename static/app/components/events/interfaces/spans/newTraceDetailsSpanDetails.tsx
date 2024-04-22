@@ -738,7 +738,7 @@ const Flex = styled('div')`
   display: flex;
   align-items: center;
 `;
-const ButtonGroup = styled('div')`
+export const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};

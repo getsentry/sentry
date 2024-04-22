@@ -7,6 +7,7 @@ import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import {
   ButtonContainer,
+  ButtonGroup,
   ValueRow,
 } from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
@@ -771,7 +772,7 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
           ${ButtonContainer} {
             padding-top: 0;
 
-            & > div {
+           ${ButtonGroup} {
               flex-direction: row;
             }
           }
