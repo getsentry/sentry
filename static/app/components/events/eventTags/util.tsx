@@ -173,7 +173,7 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * accurately describe the available space.
  */
 export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
-  const {width} = useDimensions({elementRef});
+  const {width} = useDimensions<HTMLElement>({elementRef});
   const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
     ({minWidth}) => width >= minWidth
   );
