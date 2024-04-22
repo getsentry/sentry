@@ -701,7 +701,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         extra_condition: Function | None = None,
     ) -> SelectType:
 
-        base_condition = (
+        return self._resolve_count_if(
             Function(
                 "equals",
                 [
@@ -709,21 +709,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     self.resolve_metric("span.self_time"),
                 ],
             ),
-        )
-
-        if extra_condition:
-            condition = Function(
-                "and",
-                [
-                    base_condition,
-                    extra_condition,
-                ],
-            )
-        else:
-            condition = base_condition
-
-        return self._resolve_count_if(
-            condition,
             Function(
                 "equals",
                 [
@@ -743,7 +728,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
         statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
 
-        base_condition = (
+        return self._resolve_count_if(
             Function(
                 "equals",
                 [
@@ -751,21 +736,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     self.resolve_metric("span.self_time"),
                 ],
             ),
-        )
-
-        if extra_condition:
-            condition = Function(
-                "and",
-                [
-                    base_condition,
-                    extra_condition,
-                ],
-            )
-        else:
-            condition = base_condition
-
-        return self._resolve_count_if(
-            condition,
             Function(
                 "in",
                 [
