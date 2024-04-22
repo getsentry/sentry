@@ -213,7 +213,6 @@ const SourceContextWrapper = styled('div')<{isLast?: boolean}>`
   word-wrap: break-word;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  /* TODO(ddm): find out how it is done on the issues page */
   line-height: 24px;
   min-height: ${space(3)};
   white-space: pre;

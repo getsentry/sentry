@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
+import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
@@ -46,7 +46,7 @@ export function MetricScratchpad() {
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
-    echarts.connect(DDM_CHART_GROUP);
+    echarts.connect(METRIC_CHART_GROUP);
   }, [widgets]);
 
   const handleChange = useCallback(

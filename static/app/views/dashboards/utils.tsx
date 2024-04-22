@@ -413,7 +413,7 @@ export function getWidgetMetricsUrl(
   // ensures that My Projects selection is properly handled
   const project = selection.projects.length ? selection.projects : [0];
 
-  const ddmLocation = getMetricsUrl(organization.slug, {
+  const metricsLocation = getMetricsUrl(organization.slug, {
     ...datetime,
     project,
     environment: selection.environments,
@@ -429,7 +429,7 @@ export function getWidgetMetricsUrl(
     }),
   });
 
-  return ddmLocation;
+  return metricsLocation;
 }
 
 export function flattenErrors(

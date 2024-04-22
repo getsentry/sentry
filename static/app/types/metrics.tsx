@@ -43,7 +43,7 @@ export interface MetricsApiRequestQuery extends MetricsApiRequestMetric {
   statsPeriod?: string;
 }
 
-export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
+export type MetricsDataIntervalLadder = 'metrics' | 'bar' | 'dashboard';
 
 export type MetricsApiResponse = {
   end: string;

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DDMContextProvider, useMetricsContext} from 'sentry/views/metrics/context';
+import {MetricsContextProvider, useMetricsContext} from 'sentry/views/metrics/context';
 import {MetricsLayout} from 'sentry/views/metrics/layout';
 import {useOptInModal} from 'sentry/views/metrics/optInModal';
 
@@ -44,11 +44,11 @@ function Metrics() {
 
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
-      <DDMContextProvider>
+      <MetricsContextProvider>
         <WrappedPageFiltersContainer>
           <MetricsLayout />
         </WrappedPageFiltersContainer>
-      </DDMContextProvider>
+      </MetricsContextProvider>
     </SentryDocumentTitle>
   );
 }

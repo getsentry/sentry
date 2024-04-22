@@ -209,12 +209,12 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.METRICS) {
-    const ddmLocation = getWidgetMetricsUrl(widget, selection, organization);
+    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
 
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Metrics'),
-      to: ddmLocation,
+      to: metricsLocation,
     });
   }
 
