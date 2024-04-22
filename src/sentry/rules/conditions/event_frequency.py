@@ -140,13 +140,15 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if state.is_new and value > 1:
             return False
 
-        # TODO(mgaeta): Bug: Rule is optional.
+        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
+        comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
         try:
-            current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+            current_value = self.get_rate(event, interval, self.rule.environment_id, comparison_type, comparison_interval)  # type: ignore[arg-type, union-attr]
         # XXX(CEO): once inc-666 work is concluded, rm try/except
         except RateLimitExceeded:
             metrics.incr("rule.event_frequency.snuba_query_limit")
             return False
+
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
@@ -214,7 +216,16 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_rate(self, event: GroupEvent, interval: str, environment_id: int) -> int:
+    def get_rate(
+        self,
+        event: GroupEvent,
+        interval: str,
+        environment_id: int,
+        comparison_type: str,
+        comparison_interval: timedelta | None = None,
+        batch: bool = False,
+        group_ids: list[int] | None = None,
+    ) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
@@ -223,18 +234,40 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
         with option_override_cm:
-            result: int = self.query(event, end - duration, end, environment_id=environment_id)
-            comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
-            if comparison_type == ComparisonType.PERCENT:
-                comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
-                comparison_end = end - comparison_interval
-                # TODO: Figure out if there's a way we can do this less frequently. All queries are
-                # automatically cached for 10s. We could consider trying to cache this and the main
-                # query for 20s to reduce the load.
-                comparison_result = self.query(
-                    event, comparison_end - duration, comparison_end, environment_id=environment_id
+            if batch:
+                start = end - duration
+                result = self.batch_query(
+                    group_ids=group_ids,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
                 )
-                result = percent_increase(result, comparison_result)
+            else:
+                result: int = self.query(event, end - duration, end, environment_id=environment_id)
+            if comparison_type == ComparisonType.PERCENT:
+                comparison_end = end - comparison_interval
+                if batch:
+                    comparison_result = self.batch_query(
+                        group_ids=group_ids,
+                        start=start,
+                        end=comparison_end,
+                        environment_id=environment_id,
+                    )
+                    result = {
+                        group_id: percent_increase(result[group_id], comparison_result[group_id])
+                        for group_id in group_ids
+                    }
+                else:
+                    # TODO: Figure out if there's a way we can do this less frequently. All queries are
+                    # automatically cached for 10s. We could consider trying to cache this and the main
+                    # query for 20s to reduce the load.
+                    comparison_result = self.query(
+                        event,
+                        comparison_end - duration,
+                        comparison_end,
+                        environment_id=environment_id,
+                    )
+                    result = percent_increase(result, comparison_result)
 
         return result
 
