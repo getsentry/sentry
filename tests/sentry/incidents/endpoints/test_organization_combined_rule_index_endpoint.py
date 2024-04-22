@@ -512,7 +512,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=4),
-                "owner": self.team.actor,
+                "owner": f"team:{self.team.id}",
             }
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -553,7 +553,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=4),
-                "owner": another_org_team.actor,
+                "owner": f"team:{another_org_team.id}",
             }
         )
 
@@ -833,7 +833,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=2),
-                "owner": team.actor,
+                "owner": f"team:{team.id}",
             }
         )
         team.delete()

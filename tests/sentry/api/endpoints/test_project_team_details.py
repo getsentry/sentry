@@ -83,9 +83,11 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
 
         # Associate rules with the team that also get deleted:
         # self.create_rule(name="test_rule", owner=f"team:{team.id}")
-        r1 = Rule.objects.create(label="test rule", project=project, owner=team.actor)
+        r1 = Rule.objects.create(
+            label="test rule", project=project, owner=team.actor, owner_team=team
+        )
         r2 = Rule.objects.create(
-            label="another test rule", project=another_project, owner=team.actor
+            label="another test rule", project=another_project, owner=team.actor, owner_team=team
         )
         ar1 = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
