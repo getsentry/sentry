@@ -1,6 +1,6 @@
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {extractSlug} from 'sentry/utils/extractSlug';
 
 import {normalizeUrl} from './withDomainRequired';
