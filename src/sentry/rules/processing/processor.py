@@ -53,26 +53,33 @@ def is_condition_slow(
     return False
 
 
-class RuleProcessor:
+def split_conditions_and_filters(
+    data: list[Mapping[str, Any]],
+) -> tuple[list[MutableMapping[str, Any]], list[Mapping[str, Any]]]:
+    conditions = []
+    filters = []
+    for condition_or_filter in data:
+        id = condition_or_filter["id"]
+        rule_cls = rules.get(id)
+        if rule_cls is None:
+            logger.warning("Unregistered condition or filter %r", id)
+            continue
+
+        if rule_cls.rule_type == EventFilter.rule_type:
+            filters.append(condition_or_filter)
+        elif rule_cls.rule_type == EventCondition.rule_type:
+            conditions.append(condition_or_filter)
+    return conditions, filters
+
+
+class RuleProcessorBase:
     def __init__(
         self,
         event: GroupEvent,
-        is_new: bool,
-        is_regression: bool,
-        is_new_group_environment: bool,
-        has_reappeared: bool,
-        has_escalated: bool = False,
     ) -> None:
         self.event = event
         self.group = event.group
         self.project = event.project
-
-        self.is_new = is_new
-        self.is_regression = is_regression
-        self.is_new_group_environment = is_new_group_environment
-        self.has_reappeared = has_reappeared
-        self.has_escalated = has_escalated
-
         self.grouped_futures: MutableMapping[
             str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ] = {}
@@ -143,6 +150,25 @@ class RuleProcessor:
 
         return rule_statuses
 
+    def apply(
+        self,
+    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
+        # we should only apply rules on unresolved issues
+        if not self.event.group.is_unresolved():
+            return {}.values()
+
+        self.grouped_futures.clear()
+        rules = self.get_rules()
+        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
+            "rule", flat=True
+        )
+        rule_statuses = self.bulk_get_rule_status(rules)
+        for rule in rules:
+            if rule.id not in snoozed_rules:
+                self.apply_rule(rule, rule_statuses[rule.id])
+
+        return self.grouped_futures.values()
+
     def condition_matches(
         self,
         condition: MutableMapping[str, Any],
@@ -174,6 +200,24 @@ class RuleProcessor:
 
         rule_type: str = rule_cls.rule_type
         return rule_type
+
+
+class RuleProcessor(RuleProcessorBase):
+    def __init__(
+        self,
+        event: GroupEvent,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        has_reappeared: bool,
+        has_escalated: bool = False,
+    ) -> None:
+        super().__init__(event)
+        self.is_new = is_new
+        self.is_regression = is_regression
+        self.is_new_group_environment = is_new_group_environment
+        self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated
 
     def get_state(self) -> EventState:
         return EventState(
@@ -307,22 +351,3 @@ class RuleProcessor:
                     self.grouped_futures[key] = (future.callback, [rule_future])
                 else:
                     self.grouped_futures[key][1].append(rule_future)
-
-    def apply(
-        self,
-    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
-        # we should only apply rules on unresolved issues
-        if not self.event.group.is_unresolved():
-            return {}.values()
-
-        self.grouped_futures.clear()
-        rules = self.get_rules()
-        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
-            "rule", flat=True
-        )
-        rule_statuses = self.bulk_get_rule_status(rules)
-        for rule in rules:
-            if rule.id not in snoozed_rules:
-                self.apply_rule(rule, rule_statuses[rule.id])
-
-        return self.grouped_futures.values()
