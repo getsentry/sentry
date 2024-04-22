@@ -658,6 +658,7 @@ def post_process_group(
                     event=event,
                 )
 
+        metric_tags = {}
         if group_id:
             group_state: GroupState = {
                 "id": group_id,
@@ -689,12 +690,11 @@ def post_process_group(
             }
             run_post_process_job(group_job)
 
-        metric_tags = {}
-        if group_events:
-            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
-            # random one
-            group_event = list(group_events.values())[0]
-            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+            if group_events:
+                # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
+                # random one
+                group_event = list(group_events.values())[0]
+                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
             duration = time() - event.data["received"]
