@@ -28,7 +28,7 @@ function getReplayTabs({
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
+    [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
@@ -73,7 +73,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
 
   const isTabDisabled = (tab: string) => {
     return (
-      tab === TabKey.NETWORK &&
+      (tab === TabKey.NETWORK || tab === TabKey.CONSOLE) &&
       isVideoReplay &&
       !organization.features.includes('session-replay-mobile-network-tab')
     );
