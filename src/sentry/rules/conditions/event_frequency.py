@@ -141,11 +141,14 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        try:
+            current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        # XXX(CEO): once inc-666 work is concluded, rm try/except
+        except RateLimitExceeded:
+            metrics.incr("rule.event_frequency.snuba_query_limit")
+            return False
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
-        if current_value:
-            return current_value > value
-        return False
+        return current_value > value
 
     def passes_activity_frequency(
         self, activity: ConditionActivity, buckets: dict[datetime, int]
@@ -179,9 +182,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
-    def query(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int | None:
+    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: int) -> int:
         """
         Queries Snuba for a unique condition for a single group.
         """
@@ -189,7 +190,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int | None:
+    ) -> int:
         """
         Abstract method that specifies how to query Snuba for a single group
         depending on the condition. Must be implemented by subclasses.
@@ -213,17 +214,16 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_rate(self, event: GroupEvent, interval: str, environment_id: int) -> int | None:
+    def get_rate(self, event: GroupEvent, interval: str, environment_id: int) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-        result: int | None = None
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
         with option_override_cm:
-            result = self.query(event, end - duration, end, environment_id=environment_id)
+            result: int = self.query(event, end - duration, end, environment_id=environment_id)
             comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
             if comparison_type == ComparisonType.PERCENT:
                 comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
@@ -234,8 +234,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 comparison_result = self.query(
                     event, comparison_end - duration, comparison_end, environment_id=environment_id
                 )
-                if result and comparison_result:
-                    result = percent_increase(result, comparison_result)
+                result = percent_increase(result, comparison_result)
 
         return result
 
@@ -249,24 +248,18 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-    ) -> Mapping[int, int] | None:
-        try:
-            result: Mapping[int, int] = tsdb_function(
-                model=model,
-                keys=keys,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-                use_cache=True,
-                jitter_value=group.id,
-                tenant_ids={"organization_id": group.project.organization_id},
-                referrer_suffix=referrer_suffix,
-            )
-        # XXX(CEO): once inc-666 work is concluded, rm try/except
-        except RateLimitExceeded:
-            metrics.incr("rule.event_frequency.snuba_query_limit")
-            return None
-
+    ) -> Mapping[int, int]:
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
+            referrer_suffix=referrer_suffix,
+        )
         return result
 
     def get_chunked_result(
@@ -292,8 +285,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
             )
-            if result:
-                batch_totals.update(result)
+            batch_totals.update(result)
         return batch_totals
 
 
@@ -303,8 +295,8 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int | None:
-        sums: Mapping[int, int] | None = self.get_snuba_query_result(
+    ) -> int:
+        sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
             group=event.group,
@@ -314,9 +306,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             referrer_suffix="alert_event_frequency",
         )
-        if sums:
-            return sums[event.group_id]
-        return None
+        return sums[event.group_id]
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
@@ -362,8 +352,8 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int | None:
-        totals: Mapping[int, int] | None = self.get_snuba_query_result(
+    ) -> int:
+        totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
             group=event.group,
@@ -373,9 +363,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             referrer_suffix="alert_event_uniq_user_frequency",
         )
-        if totals:
-            return totals[event.group_id]
-        return None
+        return totals[event.group_id]
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
@@ -516,7 +504,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             session_count_last_hour, self.get_option("interval")
         )
         if avg_sessions_in_interval:
-            issue_count_result = self.get_snuba_query_result(
+            issue_count = self.get_snuba_query_result(
                 tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
                 group=event.group,
@@ -525,9 +513,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="alert_event_frequency_percent",
-            )
-            if issue_count_result:
-                issue_count = issue_count_result[event.group_id]
+            )[event.group_id]
 
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now
