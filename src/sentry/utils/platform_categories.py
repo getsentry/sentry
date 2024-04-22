@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 
 # Mirrors `const frontend` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-FRONTEND = [
+FRONTEND = {
     "dart",
     "javascript",
     "javascript-react",
@@ -18,11 +18,11 @@ FRONTEND = [
     "javascript-sveltekit",
     "javascript-astro",
     "unity",
-]
+}
 
 # Mirrors `const mobile` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-MOBILE = [
+MOBILE = {
     "android",
     "apple-ios",
     "cordova",
@@ -41,11 +41,11 @@ MOBILE = [
     "java-android",
     "cocoa-objc",
     "cocoa-swift",
-]
+}
 
 # Mirrors `const backend` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-BACKEND = [
+BACKEND = {
     "bun",
     "deno",
     "dotnet",
@@ -107,11 +107,11 @@ BACKEND = [
     "ruby-rack",
     "ruby-rails",
     "rust",
-]
+}
 
 # Mirrors `const serverless` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-SERVERLESS = [
+SERVERLESS = {
     "dotnet-awslambda",
     "dotnet-gcpfunctions",
     "node-awslambda",
@@ -121,11 +121,11 @@ SERVERLESS = [
     "python-azurefunctions",
     "python-gcpfunctions",
     "python-serverless",
-]
+}
 
 # Mirrors `const desktop` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-DESKTOP = [
+DESKTOP = {
     "apple-macos",
     "dotnet",
     "dotnet-maui",
@@ -144,11 +144,11 @@ DESKTOP = [
     "native-qt",
     "unity",
     "unreal",
-]
+}
 
 # TODO: @athena Remove this
 # This is only temporary since we decide the right category. Don't add anything here or your frontend experience will be broken
-TEMPORARY = ["nintendo"]
+TEMPORARY = {"nintendo"}
 
 CATEGORY_LIST = [
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},
