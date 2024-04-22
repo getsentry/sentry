@@ -1502,6 +1502,109 @@ describe('TraceTree', () => {
       expect(request).toHaveBeenCalled();
       expect(tree.expand(node, true)).toBe(false);
     });
+
+    it('expanding', async () => {
+      const organization = OrganizationFixture();
+      const api = new MockApiClient();
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+      );
+
+      const node = tree.list[0];
+
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/undefined:undefined/?averageColumn=span.self_time',
+        method: 'GET',
+        body: makeEvent(),
+      });
+
+      tree.zoomIn(node, true, {api, organization});
+      await waitFor(() => {
+        expect(node.zoomedIn).toBe(true);
+      });
+      expect(request).toHaveBeenCalled();
+      expect(tree.expand(node, true)).toBe(false);
+    });
+
+    it('accounts for intermediary expanded or collapsed nodes in autogrouped chain', async () => {
+      const organization = OrganizationFixture();
+      const api = new MockApiClient();
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({project_slug: 'project', event_id: 'event_id'}),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent({}, [
+          makeSpan({start_timestamp: 0, op: 'span', span_id: 'root'}),
+          makeSpan({
+            start_timestamp: 10,
+            op: 'last',
+            span_id: 'last',
+            parent_span_id: 'root',
+          }),
+          makeSpan({
+            start_timestamp: 0,
+            op: 'db',
+            parent_span_id: 'root',
+            span_id: 'first-db',
+          }),
+          makeSpan({
+            start_timestamp: 0,
+            op: 'db',
+            parent_span_id: 'first-db',
+            span_id: 'second-db',
+          }),
+          makeSpan({
+            start_timestamp: 0,
+            op: 'other',
+            parent_span_id: 'second-db',
+            span_id: 'other',
+          }),
+          makeSpan({
+            start_timestamp: 0,
+            op: 'another',
+            parent_span_id: 'second-db',
+            span_id: 'other',
+          }),
+        ]),
+      });
+
+      tree.zoomIn(tree.list[1], true, {api, organization});
+
+      await waitFor(() => {
+        expect(tree.list[1].zoomedIn).toBe(true);
+      });
+
+      tree.print();
+      // expand autogroup
+      tree.expand(tree.list[3], true);
+      const last = tree.list[tree.list.length - 1];
+      // root
+      //  transaction
+      //    span
+      //      parent autogroup (2) <-- expand the autogroup and collapse nodes between head/tail
+      //        db <--- collapse
+      //        db <--- collapse
+      //          other
+      //          another
+      //        last
+
+      // collapse innermost two children
+      tree.expand(tree.list[5], false);
+      tree.expand(tree.list[4], false);
+      // collapse autogroup
+      tree.expand(tree.list[3], false);
+      tree.expand(tree.list[3], true);
+      expect(tree.list[tree.list.length - 1]).toBe(last);
+    });
   });
 
   describe('zooming', () => {
