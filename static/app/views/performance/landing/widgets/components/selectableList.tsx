@@ -103,6 +103,17 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
   );
 }
 
+export function TimeConsumingDomainsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {t('Domains may not be listed due to the filters above or a low sampling rate')}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
