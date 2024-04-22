@@ -1029,7 +1029,6 @@ export class TraceTree {
 
         this._list.splice(index + 1, childrenCount);
 
-        node.getVisibleChildrenCount();
         const newChildren = [node.head].concat(
           node.head.getVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
         );
@@ -1667,11 +1666,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     let count = 0;
 
-    if (
-      this.expanded ||
-      isParentAutogroupedNode(this) ||
-      isMissingInstrumentationNode(this)
-    ) {
+    if (isParentAutogroupedNode(this)) {
+      if (this.expanded) {
+        return this.head.getVisibleChildrenCount();
+      }
+      return this.tail.getVisibleChildrenCount();
+    }
+
+    if (this.expanded || isMissingInstrumentationNode(this)) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         stack.push(this.children[i]);
       }
