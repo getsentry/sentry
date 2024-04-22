@@ -91,6 +91,10 @@ def validate(
         need_ordering: dict[NormalizedModelName, dict[tuple, JSONData]] = defaultdict(dict)
         pks_to_usernames: dict[int, str] = dict()
 
+        # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more
+        # sustainable export-side solution.
+        user_options_seen_ids: dict[tuple[int, str], InstanceID] = dict()
+
         for model in models:
             pk = model["pk"]
             model_name = NormalizedModelName(model["model"])
@@ -106,6 +110,20 @@ def validate(
                 id, found = ordinal_counters[model_name].assign(model, pk, side)
                 findings.extend(found)
                 model_map[model_name][id] = model
+
+                # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more
+                # sustainable export-side solution.
+                if (
+                    str(model_name) == "sentry.useroption"
+                    and not model["fields"].get("project_id", None)
+                    and not model["fields"].get("organization_id", None)
+                ):
+                    duplicate_id = user_options_seen_ids.pop(
+                        (model["fields"]["user"], model["fields"]["key"]), None
+                    )
+                    user_options_seen_ids[(model["fields"]["user"], model["fields"]["key"])] = id
+                    if duplicate_id is not None:
+                        del model_map[model_name][duplicate_id]
                 continue
 
             custom_ordinal_parts = []
@@ -138,6 +156,18 @@ def validate(
                 id, found = ordinal_counters[model_name].assign(model, ordinal_value, side)
                 findings.extend(found)
                 model_map[model_name][id] = model
+
+        # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more sustainable
+        # export-side solution.
+        user_option_model_name = NormalizedModelName("sentry.useroption")
+        user_option_model_map = model_map.get(user_option_model_name, None)
+        if user_option_model_map is not None:
+            counter = 1
+            model_map[user_option_model_name] = ordereddict()
+            for model in user_option_model_map.values():
+                id = InstanceID(str(user_option_model_name), counter)
+                model_map[user_option_model_name][id] = model
+                counter += 1
 
         return (model_map, ordinal_counters)
 
