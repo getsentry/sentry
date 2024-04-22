@@ -13,6 +13,7 @@ from django.urls import reverse
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
@@ -25,6 +26,7 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
+    get_metrics_dsn,
 )
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
@@ -901,3 +903,11 @@ def test_set_frames_platform_android():
 
     platforms = [m["platform"] for m in android_prof["profile"]["methods"]]
     assert platforms == ["android", "android"]
+
+
+@django_db_all
+def test_get_metrics_dsn(default_project):
+    key1 = ProjectKey.objects.create(project=default_project, use_case=UseCase.PROFILING.value)
+    ProjectKey.objects.create(project_id=default_project.id, use_case=UseCase.PROFILING.value)
+
+    assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)

@@ -1062,7 +1062,7 @@ def get_metrics_dsn(project_id: int) -> str:
         project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
     except ProjectKey.MultipleObjectsReturned:
         # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
-        project_key = ProjectKey.objects.first(**kwargs)
+        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
     return project_key.get_dsn(public=True)
 
 
