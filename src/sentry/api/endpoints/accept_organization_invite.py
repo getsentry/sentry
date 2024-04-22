@@ -31,48 +31,56 @@ from sentry.utils import auth
 logger = logging.getLogger(__name__)
 
 
+def handle_empty_organization_id_or_slug(
+    member_id: int, user_id: int, request: HttpRequest
+) -> RpcUserInviteContext | None:
+    member_mapping: OrganizationMemberMapping | None = None
+    member_mappings: Mapping[int, OrganizationMemberMapping] = {
+        omm.organization_id: omm
+        for omm in OrganizationMemberMapping.objects.filter(organizationmember_id=member_id).all()
+    }
+    org_mappings = OrganizationMapping.objects.filter(
+        organization_id__in=list(member_mappings.keys())
+    )
+    for mapping in org_mappings:
+        try:
+            if get_region_by_name(mapping.region_name).is_historic_monolith_region():
+                member_mapping = member_mappings.get(mapping.organization_id)
+                break
+        except RegionResolutionError:
+            pass
+
+    if member_mapping is None:
+        return None
+    invite_context = organization_service.get_invite_by_id(
+        organization_id=member_mapping.organization_id,
+        organization_member_id=member_id,
+        user_id=user_id,
+    )
+
+    logger.info(
+        "organization.member_invite.no_id_or_slug",
+        extra={
+            "member_id": member_id,
+            "org_id": member_mapping.organization_id,
+            "url": request.path,
+            "method": request.method,
+        },
+    )
+
+    return invite_context
+
+
 def get_invite_state(
     member_id: int,
     organization_id_or_slug: int | str | None,
     user_id: int,
     request: HttpRequest,
 ) -> RpcUserInviteContext | None:
+
     if organization_id_or_slug is None:
-        member_mapping: OrganizationMemberMapping | None = None
-        member_mappings: Mapping[int, OrganizationMemberMapping] = {
-            omm.organization_id: omm
-            for omm in OrganizationMemberMapping.objects.filter(
-                organizationmember_id=member_id
-            ).all()
-        }
-        org_mappings = OrganizationMapping.objects.filter(
-            organization_id__in=list(member_mappings.keys())
-        )
-        for mapping in org_mappings:
-            try:
-                if get_region_by_name(mapping.region_name).is_historic_monolith_region():
-                    member_mapping = member_mappings.get(mapping.organization_id)
-                    break
-            except RegionResolutionError:
-                pass
+        return handle_empty_organization_id_or_slug(member_id, user_id, request)
 
-        if member_mapping is None:
-            return None
-        invite_context = organization_service.get_invite_by_id(
-            organization_id=member_mapping.organization_id,
-            organization_member_id=member_id,
-            user_id=user_id,
-        )
-
-        logger.info(
-            "organization.member_invite.no_slug",
-            extra={
-                "member_id": member_id,
-                "org_id": member_mapping.organization_id,
-                "url": request.path,
-                "method": request.method,
-            },
-        )
     else:
         if (
             id_or_slug_path_params_enabled(
