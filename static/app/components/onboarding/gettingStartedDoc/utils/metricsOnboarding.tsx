@@ -217,7 +217,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/node/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/metrics/" />
               ),
             }
           ),

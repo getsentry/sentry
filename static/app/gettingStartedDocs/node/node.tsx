@@ -87,7 +87,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/node/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/node/sourcemaps/',
     }),
   ],
   verify: () => [
@@ -128,7 +128,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/node/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/node/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],
