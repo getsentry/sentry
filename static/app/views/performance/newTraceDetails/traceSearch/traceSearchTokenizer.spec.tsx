@@ -25,7 +25,7 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     event: makeEvent(),
     errors: [],
     performance_issues: [],
-    childTransaction: undefined,
+    childTransactions: [],
     ...overrides,
   } as TraceTree.Span;
 }

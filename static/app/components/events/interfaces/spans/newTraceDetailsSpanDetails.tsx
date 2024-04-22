@@ -26,7 +26,6 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -83,13 +82,11 @@ type TransactionResult = {
 };
 
 export type SpanDetailProps = {
-  childTransactions: TraceFullDetailed[] | null;
   event: Readonly<EventTransaction>;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: TraceTreeNode<TraceTree.Span>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   openPanel: string | undefined;
   organization: Organization;
-  span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
@@ -103,12 +100,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
   const resolvedModule: ModuleName = resolveSpanModule(
-    props.span.sentry_tags?.op,
-    props.span.sentry_tags?.category
+    props.node.value.sentry_tags?.op,
+    props.node.value.sentry_tags?.category
   );
 
   function renderTraversalButton(): React.ReactNode {
-    if (!props.childTransactions) {
+    if (!props.node.value.childTransactions) {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
@@ -118,15 +115,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       );
     }
 
-    if (props.childTransactions.length <= 0) {
+    if (props.node.value.childTransactions.length <= 0) {
       return null;
     }
 
-    const {span, trace, event, organization} = props;
+    const {trace, event, organization} = props;
 
-    assert(!isGapSpan(span));
+    assert(!isGapSpan(props.node.value));
 
-    if (props.childTransactions.length === 1) {
+    if (props.node.value.childTransactions.length === 1) {
       // Note: This is rendered by renderSpanChild() as a dedicated row
       return null;
     }
@@ -138,7 +135,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const childrenEventView = EventView.fromSavedQuery({
       id: undefined,
-      name: `Children from Span ID ${span.span_id}`,
+      name: `Children from Span ID ${props.node.value.span_id}`,
       fields: [
         'transaction',
         'project',
@@ -147,7 +144,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         'timestamp',
       ],
       orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
+      query: `event.type:transaction trace:${props.node.value.trace_id} trace.parent_span:${props.node.value.span_id}`,
       projects: organization.features.includes('global-views')
         ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
@@ -168,19 +165,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanChild(): React.ReactNode {
-    const {childTransactions, organization} = props;
+    const childTransaction = props.node.value.childTransactions?.[0];
 
-    if (!childTransactions || childTransactions.length !== 1) {
+    if (!childTransaction) {
       return null;
     }
 
-    const childTransaction = childTransactions[0];
-
     const transactionResult: TransactionResult = {
-      'project.name': childTransaction.project_slug,
-      transaction: childTransaction.transaction,
-      'trace.span': childTransaction.span_id,
-      id: childTransaction.event_id,
+      'project.name': childTransaction.value.project_slug,
+      transaction: childTransaction.value.transaction,
+      'trace.span': childTransaction.value.span_id,
+      id: childTransaction.value.event_id,
     };
 
     const eventSlug = generateSlug(transactionResult);
@@ -198,10 +193,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            orgSlug: props.organization.slug,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
-            projectID: String(childTransaction.project_id),
+            projectID: String(childTransaction.value.project_id),
           });
 
           return (
@@ -226,9 +221,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanDetailActions() {
-    const {span, organization, event} = props;
+    const {organization, event} = props;
 
-    if (isGapSpan(span) || !span.op || !span.hash) {
+    if (isGapSpan(props.node.value) || !props.node.value.op || !props.node.value.hash) {
       return null;
     }
 
@@ -236,14 +231,18 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     return (
       <ButtonGroup>
-        <SpanSummaryButton event={event} organization={organization} span={span} />
+        <SpanSummaryButton
+          event={event}
+          organization={organization}
+          span={props.node.value}
+        />
         <StyledButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
             transaction: transactionName,
             query: location.query,
-            spanSlug: {op: span.op, group: span.hash},
+            spanSlug: {op: props.node.value.op, group: props.node.value.hash},
             projectID: event.projectID,
           })}
         >
@@ -254,9 +253,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderOrphanSpanMessage() {
-    const {span} = props;
-
-    if (!isOrphanSpan(span)) {
+    if (!isOrphanSpan(props.node.value)) {
       return null;
     }
 
@@ -270,15 +267,16 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, node} = props;
+    const hasErrors =
+      props.node.errors.size > 0 || props.node.performance_issues.size > 0;
 
-    const hasErrors = node.errors.size > 0 || node.performance_issues.size > 0;
-
-    if (!hasErrors || isGapSpan(span)) {
+    if (!hasErrors || isGapSpan(props.node.value)) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={issues} node={props.node} />;
+    return (
+      <IssueList organization={props.organization} issues={issues} node={props.node} />
+    );
   }
 
   function partitionSizes(data): {
@@ -306,17 +304,19 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderProfileMessage() {
-    const {organization, span, event} = props;
-
-    if (!organization.features.includes('profiling') || isGapSpan(span)) {
+    if (
+      !props.organization.features.includes('profiling') ||
+      isGapSpan(props.node.value)
+    ) {
       return null;
     }
 
-    return <SpanProfileDetails span={span} event={event} />;
+    return <SpanProfileDetails span={props.node.value} event={props.event} />;
   }
 
   function renderSpanDetails() {
-    const {span, event, organization} = props;
+    const {event, organization} = props;
+    const span = props.node.value;
 
     if (isGapSpan(span)) {
       return (
@@ -445,7 +445,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               )}
               <Row title={t('Status')}>{span.status || ''}</Row>
-              <SpanHTTPInfo span={props.span} />
+              <SpanHTTPInfo span={span} />
               <Row
                 title={
                   resolvedModule === ModuleName.DB && span.op?.startsWith('db')

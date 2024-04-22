@@ -63,7 +63,7 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransaction: undefined,
+    childTransactions: [],
     event: makeEvent() as EventTransaction,
     ...overrides,
   };
@@ -1223,7 +1223,7 @@ describe('TraceTree', () => {
     });
     expect(request).toHaveBeenCalled();
 
-    expect(tree.list.length).toBe(6);
+    expect(tree.list.length).toBe(7);
 
     assertTransactionNode(tree.list[1]);
     assertSpanNode(tree.list[2]);
@@ -1569,6 +1569,53 @@ describe('TraceTree', () => {
       expect(node.children[0].depth).toBe(node.depth + 1);
     });
 
+    it('handles orphaned transaction nodes', async () => {
+      // Data quality issue where children transactions cannot be
+      // reparented under the fetched spans
+      //
+      // transaction <-- zooming          transaction
+      //   - child transaction              - span
+      //   - another child transaction        - child transaction
+      //                                    - another child transaction (orphaned)
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'root',
+              project_slug: 'project',
+              event_id: 'event_id',
+              children: [
+                makeTransaction({transaction: 'child', parent_span_id: 'span'}),
+                makeTransaction({transaction: 'another child'}),
+              ],
+            }),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent({}, [makeSpan({span_id: 'span'})]),
+      });
+
+      assertTransactionNode(tree.list[tree.list.length - 1]);
+
+      tree.zoomIn(tree.list[1], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      await waitFor(() => {
+        expect(tree.list[1].zoomedIn).toBe(true);
+      });
+
+      const last = tree.list[tree.list.length - 1];
+      assertTransactionNode(last);
+      expect(last.value.transaction).toBe('another child');
+    });
+
     it('handles bottom up zooming', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -1767,8 +1814,13 @@ describe('TraceTree', () => {
             makeTransaction({
               project_slug: 'project',
               event_id: 'event_id',
+              transaction: 'root',
               children: [
-                makeTransaction({project_slug: 'other_project', event_id: 'event_id'}),
+                makeTransaction({
+                  project_slug: 'other_project',
+                  event_id: 'event_id',
+                  transaction: 'child',
+                }),
               ],
             }),
           ],
@@ -1785,7 +1837,6 @@ describe('TraceTree', () => {
       });
 
       tree.expand(tree.list[1], true);
-
       expect(tree.list.length).toBe(3);
 
       tree.zoomIn(tree.list[1], true, {
@@ -1794,7 +1845,7 @@ describe('TraceTree', () => {
       });
 
       await waitFor(() => {
-        expect(tree.list.length).toBe(4);
+        expect(tree.list.length).toBe(5);
       });
 
       tree.zoomIn(tree.list[1], false, {
