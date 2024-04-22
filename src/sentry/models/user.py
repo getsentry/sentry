@@ -316,7 +316,7 @@ class User(BaseModel, AbstractBaseUser):
         # of anything with a HybridCloudForeignKey, even if the user is no longer
         # a member of any organizations in that region.
         if is_user_delete:
-            user_regions = find_all_region_names()
+            user_regions = set(find_all_region_names())
         else:
             user_regions = find_regions_for_user(identifier)
 
