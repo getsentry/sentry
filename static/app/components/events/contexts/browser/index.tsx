@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
 import {
   getContextMeta,

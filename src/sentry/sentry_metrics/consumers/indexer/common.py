@@ -12,7 +12,6 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message, Value
 
-from sentry import options
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
@@ -154,9 +153,6 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
                 len(self.__batch),
                 last.committable,
             )
-
-        if options.get("sentry-metrics.indexer.drop-work-in-multiprocessing"):
-            timeout = 0.0
 
         self.__next_step.close()
         self.__next_step.join(timeout)

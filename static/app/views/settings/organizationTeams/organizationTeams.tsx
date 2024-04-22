@@ -17,7 +17,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AccessRequest, Organization} from 'sentry/types';
+import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';

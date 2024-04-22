@@ -1478,6 +1478,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
+    # Rollout of the new API rate limits for organization events
+    "organizations:api-organization_events-rate-limit-reduced-rollout": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1912,6 +1914,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Enable queues module ui
+    "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
     "organizations:performance-cache-view": False,
     # Enable mobile starfish app start module view
@@ -2013,6 +2017,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
+    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated

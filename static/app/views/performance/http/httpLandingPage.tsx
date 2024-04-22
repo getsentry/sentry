@@ -21,6 +21,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
@@ -80,7 +81,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-landing-throughput-chart',
+    referrer: Referrer.LANDING_THROUGHPUT_CHART,
   });
 
   const {
@@ -90,7 +91,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
-    referrer: 'api.starfish.http-module-landing-duration-chart',
+    referrer: Referrer.LANDING_DURATION_CHART,
   });
 
   const {
@@ -100,7 +101,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-landing-response-code-chart',
+    referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
   });
 
   const domainsListResponse = useSpanMetrics({
@@ -119,7 +120,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-landing-domains-list',
+    referrer: Referrer.LANDING_DOMAINS_LIST,
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);

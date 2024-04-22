@@ -17,6 +17,9 @@ describe('useOwners', () => {
   const mockUsers = [UserFixture()];
   const mockTeams = [TeamFixture()];
 
+  let teamsRequest: jest.Mock;
+  let membersRequest: jest.Mock;
+
   const queryClient = makeTestQueryClient();
 
   function Wrapper({children}) {
@@ -34,11 +37,11 @@ describe('useOwners', () => {
       url: `/organizations/org-slug/user-teams/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
+    teamsRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
+    membersRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/`,
       body: [],
     });
@@ -51,6 +54,31 @@ describe('useOwners', () => {
     });
 
     await waitFor(() => !result.current.fetching);
+
+    expect(result.current.members).toEqual(mockUsers);
+    expect(result.current.teams).toEqual(mockTeams);
+  });
+
+  it('fetches users and memberrs', async () => {
+    const {result} = renderHook(useOwners, {
+      wrapper: Wrapper,
+      initialProps: {currentValue: ['user:5', 'team:4']},
+    });
+
+    await waitFor(() => !result.current.fetching);
+
+    expect(teamsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {query: 'id:4'},
+      })
+    );
+    expect(membersRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {query: 'user.id:5'},
+      })
+    );
 
     expect(result.current.members).toEqual(mockUsers);
     expect(result.current.teams).toEqual(mockTeams);
