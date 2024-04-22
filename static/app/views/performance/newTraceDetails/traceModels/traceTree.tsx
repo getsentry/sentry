@@ -612,12 +612,16 @@ export class TraceTree {
     const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
 
     for (const child of parent.children) {
-      if (
-        isTransactionNode(child) &&
-        'parent_span_id' in child.value &&
-        typeof child.value.parent_span_id === 'string'
-      ) {
-        transactionsToSpanMap.set(child.value.parent_span_id, child);
+      if (isTransactionNode(child)) {
+        // keep track of the transaction nodes that should be reparented under the newly fetched spans.
+        const key =
+          'parent_span_id' in child.value &&
+          typeof child.value.parent_span_id === 'string'
+            ? child.value.parent_span_id
+            : // This should be unique, but unreachable at lookup time.
+              `unreachable-${child.value.event_id}`;
+
+        transactionsToSpanMap.set(key, child);
       }
       continue;
     }
@@ -645,15 +649,16 @@ export class TraceTree {
         node.performance_issues.add(performanceIssue);
       }
 
-      // This is the case where the current span is the parent of a txn at the
-      // trace level. When zooming into the parent of the txn, we want to place a copy
+      // This is the case where the current span is the parent of a transaction.
+      // When zooming into the parent of the txn, we want to place a copy
       // of the txn as a child of the parenting span.
       if (childTransaction) {
-        const clonedChildTxn =
-          childTransaction.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
-
+        const clonedChildTxn = childTransaction.cloneDeep();
         node.spanChildren.push(clonedChildTxn);
         clonedChildTxn.parent = node;
+        // Delete the transaction from the lookup table so that we don't
+        // duplicate the transaction in the tree.
+        transactionsToSpanMap.delete(span.span_id);
       }
 
       lookuptable[span.span_id] = node;
@@ -676,6 +681,13 @@ export class TraceTree {
       }
       parent.spanChildren.push(node);
       node.parent = parent;
+    }
+
+    // Whatever remains is transaction nodes that we failed to reparent under the spans.
+    for (const [_, transaction] of transactionsToSpanMap) {
+      const cloned = transaction.cloneDeep();
+      parent.spanChildren.push(cloned);
+      cloned.parent = parent;
     }
 
     parent.zoomedIn = true;
