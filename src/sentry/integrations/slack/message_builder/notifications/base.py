@@ -3,9 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
-
-from sentry.features.rollout import in_random_rollout
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
@@ -36,10 +33,11 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
             self.recipient, ExternalProviders.SLACK
         )
         actions = self.notification.get_message_actions(self.recipient, ExternalProviders.SLACK)
-        if in_random_rollout("integrations.slack.enable-orjson"):
-            callback_id = orjson.dumps(callback_id_raw) if callback_id_raw else None
-        else:
-            callback_id = json.dumps(callback_id_raw) if callback_id_raw else None
+        callback_id = (
+            json.dumps_experimental("integrations.slack.enable-orjson", callback_id_raw)
+            if callback_id_raw
+            else None
+        )
 
         first_block_text = ""
         if title_link:

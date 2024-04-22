@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-import orjson
 from django.utils import timezone
 from django.utils.timesince import timesince
 from django.utils.translation import gettext as _
@@ -15,7 +14,6 @@ from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
-from sentry.features.rollout import in_random_rollout
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -686,10 +684,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if rule_id:
             block_id["rule"] = rule_id
 
-        if in_random_rollout("integrations.slack.enable-orjson"):
-            block_id = orjson.dumps(block_id)
-        else:
-            block_id = json.dumps(block_id)
+        block_id = json.dumps_experimantal("integrations.slack.enable-orjson", block_id)
 
         return self._build_blocks(
             *blocks,

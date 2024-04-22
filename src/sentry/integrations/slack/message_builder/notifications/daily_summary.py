@@ -4,11 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
-import orjson
 from sentry_relay.processing import parse_release
 
 from sentry import features
-from sentry.features.rollout import in_random_rollout
 from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
@@ -191,10 +189,11 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
         text = subject
         callback_id_raw = self.notification.get_callback_data()
-        if in_random_rollout("integrations.slack.enable-orjson"):
-            callback_id = orjson.dumps(callback_id_raw) if callback_id_raw else None
-        else:
-            callback_id = json.dumps(callback_id_raw) if callback_id_raw else None
+        callback_id = (
+            json.dumps_experimental("integrations.slack.enable-orjson", callback_id_raw)
+            if callback_id_raw
+            else None
+        )
 
         footer = self.notification.build_notification_footer(
             self.recipient, ExternalProviders.SLACK

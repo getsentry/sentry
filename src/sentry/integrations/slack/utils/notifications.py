@@ -3,12 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 import sentry_sdk
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.features.rollout import in_random_rollout
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -61,11 +59,7 @@ def send_incident_alert_notification(
     ).build()
     text = attachment["text"]
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
-
-    if in_random_rollout("integrations.slack.enable-orjson"):
-        attachments = orjson.dumps([blocks])
-    else:
-        attachments = json.dumps([blocks])
+    attachments = json.dumps_experimental("integrations.slack.enable-orjson", [blocks])
 
     payload = {
         "channel": channel,

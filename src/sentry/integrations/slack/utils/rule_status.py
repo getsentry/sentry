@@ -3,11 +3,8 @@ from __future__ import annotations
 from typing import Union, cast
 from uuid import uuid4
 
-import orjson
-import sentry_sdk
 from django.conf import settings
 
-from sentry.features.rollout import in_random_rollout
 from sentry.utils import json
 from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
@@ -15,14 +12,6 @@ from sentry.utils.redis import redis_clusters
 SLACK_FAILED_MESSAGE = (
     "The slack resource does not exist or has not been granted access in that workspace."
 )
-
-
-# TODO: remove this when orjson experiment is successful
-def dump_json(data) -> str | bytes:
-    if in_random_rollout("integrations.slack.enable-orjson"):
-        return orjson.dumps(data)
-    else:
-        return json.dumps(data)
 
 
 class RedisRuleStatus:
@@ -49,17 +38,15 @@ class RedisRuleStatus:
     def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
-        if in_random_rollout("integrations.slack.enable-orjson"):
-            # Span is required because `json.loads` calls it by default
-            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-                return orjson.loads(cast(Union[str, bytes], value))
-        return json.loads(cast(Union[str, bytes], value))
+        return json.loads_experimental(
+            "integrations.slack.enable-orjson", cast(Union[str, bytes], value)
+        )
 
     def _generate_uuid(self) -> str:
         return uuid4().hex
 
     def _set_initial_value(self) -> None:
-        value = dump_json({"status": "pending"})
+        value = json.dumps_experimental("integrations.slack.enable-orjson", {"status": "pending"})
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 
     def _get_redis_key(self) -> str:
@@ -79,4 +66,4 @@ class RedisRuleStatus:
         elif status == "failed":
             value["error"] = SLACK_FAILED_MESSAGE
 
-        return dump_json(value)
+        return json.dumps_experimental("integrations.slack.enable-orjson", value)
