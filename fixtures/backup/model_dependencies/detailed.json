@@ -5311,20 +5311,20 @@
         "model": "sentry.actor",
         "nullable": true
       },
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      },
-      "team": {
+      "owner_team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.team",
         "nullable": true
       },
-      "user_id": {
+      "owner_user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
         "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
+        "nullable": false
       }
     },
     "model": "sentry.rule",
