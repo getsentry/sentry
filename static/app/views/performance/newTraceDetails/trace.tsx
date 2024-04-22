@@ -1875,17 +1875,19 @@ const TraceStylingWrapper = styled('div')`
       transform: scaleX(var(--inverse-span-scale));
       background-image: linear-gradient(
         135deg,
-        transparent 25%,
-        ${p => p.theme.blue300} 25%,
-        ${p => p.theme.blue300} 50%,
-        transparent 50%,
-        transparent 75%,
-        ${p => p.theme.blue300} 75%,
-        ${p => p.theme.blue300} 100%
+        var(--pattern-odd) 25%,
+        var(--pattern-even) 25%,
+        var(--pattern-even) 50%,
+        var(--pattern-odd) 50%,
+        var(--pattern-odd) 75%,
+        var(--pattern-even) 75%,
+        var(--pattern-even) 100%
       );
-      background-size: 16px 16px;
+      background-size: 9px 9px;
 
       &.performance_issue {
+        --pattern-odd: ${p => p.theme.surface300};
+        --pattern-even: ${p => p.theme.blue300};
       }
     }
 
