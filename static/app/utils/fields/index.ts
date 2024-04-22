@@ -1362,7 +1362,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.SEEN_BY_ID]: {
-    desc: t('Sentry user id(s) who have seen this Replay'),
+    desc: t('Sentry user ID(s) who have seen this replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
