@@ -31,9 +31,9 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+            RateLimitCategory.IP: RateLimit(limit=10, window=1),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
         }
     }
 
@@ -62,7 +62,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
         with start_span(op="start_search") as span:
             span.set_data("query_kwargs", query_kwargs)
-            result = search.query(**query_kwargs)
+            result = search.backend.query(**query_kwargs)
             return result.hits
 
     def get(self, request: Request, organization) -> Response:

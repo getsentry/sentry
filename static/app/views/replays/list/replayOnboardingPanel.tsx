@@ -288,7 +288,7 @@ export function SetupReplaysCTA({
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23699186513947-Session-Replay-FAQ" />
               ),
             })}
           />

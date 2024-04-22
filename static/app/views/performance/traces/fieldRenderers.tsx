@@ -13,11 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
@@ -159,18 +155,12 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    eventSlug: generateEventSlug({
-      id: transactionId,
-      project: projectSlug,
-    }),
+    projectSlug,
+    traceSlug: traceId,
+    timestamp,
+    eventId: transactionId,
     organization,
     location,
-    eventView: EventView.fromLocation(location),
-    dataRow: {
-      id: transactionId,
-      trace: traceId,
-      timestamp,
-    },
     spanId,
   });
 

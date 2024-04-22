@@ -8,7 +8,8 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team as TeamType, User as UserType} from 'sentry/types';
+import type {Team as TeamType} from 'sentry/types/organization';
+import type {User as UserType} from 'sentry/types/user';
 
 describe('ActorAvatar', function () {
   const user: UserType = {

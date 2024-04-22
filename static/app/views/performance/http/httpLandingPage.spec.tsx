@@ -74,7 +74,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-landing-domains-list',
+          referrer: 'api.performance.http.landing-domains-list',
         }),
       ],
       body: {
@@ -156,7 +156,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: 'api.starfish.http-module-landing-throughput-chart',
+          referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -181,7 +181,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: 'api.starfish.http-module-landing-duration-chart',
+          referrer: 'api.performance.http.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -206,7 +206,7 @@ describe('HTTPLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http',
-          referrer: 'api.starfish.http-module-landing-response-code-chart',
+          referrer: 'api.performance.http.landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -239,7 +239,7 @@ describe('HTTPLandingPage', function () {
           per_page: 10,
           project: [],
           query: 'span.module:http span.domain:*git*',
-          referrer: 'api.starfish.http-module-landing-domains-list',
+          referrer: 'api.performance.http.landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',
         },

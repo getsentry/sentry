@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {Button} from 'sentry/components/button';
 import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
@@ -31,10 +29,6 @@ export function SpanNodeDetails({
   const {event} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
-
-  const childTransactions = useMemo(() => {
-    return node.value.childTransaction ? [node.value.childTransaction] : [];
-  }, [node.value.childTransaction]);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -79,12 +73,10 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
-                  span={span}
                   node={node}
                   event={event}
                   openPanel="open"
                   organization={organization}
-                  childTransactions={childTransactions}
                   trace={parseTrace(event)}
                   onParentClick={onParentClick}
                 />
