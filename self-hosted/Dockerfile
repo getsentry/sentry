@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 
 ENV GOSU_VERSION=1.17 \
-  GOSU_SHA256=0f25a21cf64e58078057adc78f38705163c1d564a959ff30a891c31917011a54 \
+  GOSU_SHA256=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3 \
   TINI_VERSION=0.19.0 \
   TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
 
