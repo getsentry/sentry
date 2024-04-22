@@ -1959,9 +1959,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0]["series"] == [None, None, None]
         assert data[0]["totals"] is None
 
-    @pytest.mark.xfail(
-        reason="Filtering for unknown project slugs is currently not handled and leads to an exception"
-    )
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_filter_by_unknown_project_slug(self) -> None:
         self.empty_project = self.create_project(name="empty project")
