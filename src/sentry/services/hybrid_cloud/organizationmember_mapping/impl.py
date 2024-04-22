@@ -17,7 +17,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):

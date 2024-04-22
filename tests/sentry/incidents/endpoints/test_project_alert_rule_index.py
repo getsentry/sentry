@@ -4,7 +4,7 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time

@@ -10,7 +10,7 @@ from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics

@@ -35,7 +35,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics

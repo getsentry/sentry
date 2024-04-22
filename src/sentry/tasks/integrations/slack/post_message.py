@@ -6,7 +6,7 @@ from typing import Any
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")

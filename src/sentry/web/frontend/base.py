@@ -44,8 +44,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry

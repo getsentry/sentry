@@ -10,7 +10,7 @@ import pydantic
 
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 

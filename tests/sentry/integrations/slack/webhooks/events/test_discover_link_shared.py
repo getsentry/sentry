@@ -6,7 +6,7 @@ import responses
 
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 

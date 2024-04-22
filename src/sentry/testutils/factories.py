@@ -141,7 +141,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode

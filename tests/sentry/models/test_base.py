@@ -5,7 +5,7 @@ from pytest import raises
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import Model, ModelSiloLimit, get_model_if_available
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 
 

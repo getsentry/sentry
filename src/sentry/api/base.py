@@ -32,7 +32,7 @@ from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry

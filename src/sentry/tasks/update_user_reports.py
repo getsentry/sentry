@@ -8,7 +8,7 @@ from sentry import eventstore, features
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.iterators import chunked
 

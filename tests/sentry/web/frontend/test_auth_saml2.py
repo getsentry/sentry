@@ -17,7 +17,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature

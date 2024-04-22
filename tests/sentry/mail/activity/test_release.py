@@ -15,7 +15,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType

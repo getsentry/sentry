@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.db import DatabaseError, IntegrityError, router
 from django.utils import timezone
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction

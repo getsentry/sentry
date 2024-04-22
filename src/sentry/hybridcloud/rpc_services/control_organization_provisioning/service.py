@@ -9,7 +9,7 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning.model imp
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.organization.model import OrganizationProvisioningOptions
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class ControlOrganizationProvisioningRpcService(RpcService):

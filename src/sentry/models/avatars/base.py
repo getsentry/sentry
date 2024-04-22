@@ -15,7 +15,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import connections, transaction
 from django.db.transaction import Atomic, get_connection
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.utils.env import in_test_environment
 
 

@@ -13,7 +13,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     get_watermark,
     schedule_hybrid_cloud_foreign_key_jobs,

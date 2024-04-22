@@ -9,7 +9,7 @@ from sentry.services.hybrid_cloud.auth import (
     auth_service,
 )
 from sentry.signals import receivers_raise_on_send
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all

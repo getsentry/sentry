@@ -27,7 +27,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format

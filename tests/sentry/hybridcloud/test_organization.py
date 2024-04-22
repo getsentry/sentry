@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
 from sentry.services.hybrid_cloud.project import RpcProject
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner

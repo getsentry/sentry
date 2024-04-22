@@ -26,7 +26,8 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature

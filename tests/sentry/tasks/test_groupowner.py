@@ -5,7 +5,7 @@ from django.utils import timezone
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils.cases import TestCase

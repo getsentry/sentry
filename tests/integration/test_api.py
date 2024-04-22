@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba

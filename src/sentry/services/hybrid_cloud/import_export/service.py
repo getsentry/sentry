@@ -19,7 +19,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
 

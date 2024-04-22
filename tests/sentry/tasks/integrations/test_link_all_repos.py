@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

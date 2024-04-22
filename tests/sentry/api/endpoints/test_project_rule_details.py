@@ -19,7 +19,7 @@ from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time

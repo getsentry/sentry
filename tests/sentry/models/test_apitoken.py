@@ -9,7 +9,7 @@ from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner

@@ -4,7 +4,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

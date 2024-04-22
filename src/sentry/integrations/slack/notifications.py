@@ -18,7 +18,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics

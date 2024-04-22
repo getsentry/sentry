@@ -6,7 +6,7 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.organization import OrganizationProvisioningOptions
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class RegionOrganizationProvisioningRpcService(RpcService):

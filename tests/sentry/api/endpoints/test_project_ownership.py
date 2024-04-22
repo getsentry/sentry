@@ -6,7 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.projectownership import ProjectOwnership
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner

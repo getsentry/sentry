@@ -23,7 +23,8 @@ from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

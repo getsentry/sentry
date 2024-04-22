@@ -3,7 +3,7 @@ from functools import cached_property
 import responses
 
 from sentry.integrations.github_enterprise.repository import GitHubEnterpriseRepositoryProvider
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 

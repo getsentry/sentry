@@ -94,8 +94,8 @@ from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode

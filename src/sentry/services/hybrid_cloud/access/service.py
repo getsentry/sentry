@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcMemberSsoState,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)

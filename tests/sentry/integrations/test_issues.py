@@ -9,7 +9,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType

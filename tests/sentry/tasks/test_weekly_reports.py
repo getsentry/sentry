@@ -18,7 +18,8 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,

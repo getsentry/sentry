@@ -17,7 +17,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.scheduledeletion import ScheduledDeletion
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json

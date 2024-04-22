@@ -8,7 +8,7 @@ from sentry.auth.providers.dummy import DummyProvider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.check_auth import (
     AUTH_CHECK_INTERVAL,
     AUTH_CHECK_SKEW,

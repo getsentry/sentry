@@ -21,7 +21,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics

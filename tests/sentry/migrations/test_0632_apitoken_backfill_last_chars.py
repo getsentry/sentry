@@ -1,6 +1,6 @@
 from django.db import router
 
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import no_silo_test

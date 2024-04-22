@@ -51,7 +51,8 @@ from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (

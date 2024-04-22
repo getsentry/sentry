@@ -12,7 +12,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 

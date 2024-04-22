@@ -13,7 +13,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 

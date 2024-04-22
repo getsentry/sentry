@@ -12,7 +12,7 @@ import pydantic
 from django.db import router, transaction
 from django.db.models import Model
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,8 @@ from django.db import router
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

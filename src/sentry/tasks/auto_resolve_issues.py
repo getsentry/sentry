@@ -15,7 +15,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs

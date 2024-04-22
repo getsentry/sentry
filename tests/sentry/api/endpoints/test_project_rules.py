@@ -19,7 +19,7 @@ from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature

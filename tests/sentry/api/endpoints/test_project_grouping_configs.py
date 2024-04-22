@@ -3,7 +3,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode

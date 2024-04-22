@@ -6,7 +6,7 @@ from sentry import features
 from sentry.integrations.slack.service import SlackService
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 

@@ -8,7 +8,7 @@ from sentry.models.organizationslugreservation import (
 )
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.outbox import outbox_context
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
