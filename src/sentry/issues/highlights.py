@@ -5,7 +5,7 @@ from typing import TypedDict
 from rest_framework import serializers
 
 from sentry.models.project import Project
-from sentry.utils.platform_categories import BACKEND_SET, FRONTEND_SET, MOBILE_SET
+from sentry.utils.platform_categories import BACKEND, FRONTEND, MOBILE
 
 
 class HighlightContextField(serializers.Field):
@@ -56,10 +56,10 @@ FALLBACK_HIGHLIGHTS: HighlightPreset = {
 def get_highlight_preset_for_project(project: Project) -> HighlightPreset:
     if not project.platform or project.platform == "other":
         return FALLBACK_HIGHLIGHTS
-    elif project.platform in FRONTEND_SET:
+    elif project.platform in FRONTEND:
         return FRONTEND_HIGHLIGHTS
-    elif project.platform in BACKEND_SET:
+    elif project.platform in BACKEND:
         return BACKEND_HIGHLIGHTS
-    elif project.platform in MOBILE_SET:
+    elif project.platform in MOBILE:
         return MOBILE_HIGHLIGHTS
     return FALLBACK_HIGHLIGHTS
