@@ -46,14 +46,21 @@ describe('transactionsTable', () => {
   });
   it('renders', async () => {
     render(<TransactionsTable />);
-    screen.getByText('Transactions');
-    screen.getByText('Type');
-    screen.getByText('Avg Time in Queue');
-    screen.getByText('Avg Processing Time');
-    screen.getByText('Error Rate');
-    screen.getByText('Published');
-    screen.getByText('Processed');
-    screen.getByText('Time Spent');
+    expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
+
+    expect(screen.getByRole('columnheader', {name: 'Transactions'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Type'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Avg Time in Queue'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Avg Processing Time'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Error Rate'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Published'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Processed'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
+
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
@@ -73,8 +80,8 @@ describe('transactionsTable', () => {
       })
     );
     await screen.findByText('celery.backend_cleanup');
-    screen.getByText('3.00ms');
-    screen.getByText(2);
-    screen.getByText('6.00ms');
+    expect(screen.getByRole('cell', {name: '3.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
   });
 });

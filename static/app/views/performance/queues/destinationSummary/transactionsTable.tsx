@@ -19,6 +19,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
@@ -91,9 +92,9 @@ export function TransactionsTable({error, pageLinks}: Props) {
   const destination = decodeScalar(location.query.destination);
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
-  const mutableSearch = new MutableSearch(
-    'span.op:[queue.task.celery,queue.submit.celery]'
-  );
+  const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
+  // TODO: This should filter by destination, not transaction.
+  // We are using transaction for now as a proxy to demo some functionality until destination becomes a filterable tag.
   if (destination) {
     mutableSearch.addFilterValue('transaction', destination);
   }
