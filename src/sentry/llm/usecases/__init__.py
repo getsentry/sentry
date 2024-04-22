@@ -18,6 +18,7 @@ SENTRY_LLM_SERVICE_ALIASES = {
 class LLMUseCase(Enum):
     EXAMPLE = "example"  # used in tests / examples
     SUGGESTED_FIX = "suggestedfix"  # OG version of suggested fix
+    SPAM_DETECTION = "spamdetection"
 
 
 llm_provider_backends: dict[str, LlmModelBase] = {}
