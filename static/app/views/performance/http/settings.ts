@@ -5,7 +5,7 @@ export const MODULE_TITLE = t('Requests');
 
 export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
-export const RELEASE_LEVEL: BadgeType = 'beta';
+export const RELEASE_LEVEL: BadgeType = 'new';
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {
