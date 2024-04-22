@@ -3029,7 +3029,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "vroom": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
                 "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
