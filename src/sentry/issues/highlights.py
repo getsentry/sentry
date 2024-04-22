@@ -55,11 +55,11 @@ FALLBACK_HIGHLIGHTS: HighlightPreset = {
 
 def get_highlight_preset_for_project(project: Project) -> HighlightPreset:
     if not project.platform or project.platform == "other":
-        return FALLBACK_HIGLIGHTS
+        return FALLBACK_HIGHLIGHTS
     elif project.platform in FRONTEND_SET:
         return FRONTEND_HIGHLIGHTS
     elif project.platform in BACKEND_SET:
         return BACKEND_HIGHLIGHTS
     elif project.platform in MOBILE_SET:
         return MOBILE_HIGHLIGHTS
-    return FALLBACK_HIGLIGHTS
+    return FALLBACK_HIGHLIGHTS
