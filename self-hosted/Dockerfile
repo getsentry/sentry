@@ -1,4 +1,4 @@
-FROM python:3.11.6-slim-bullseye
+FROM python:3.11.9-alpine
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -11,7 +11,7 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 
-ENV GOSU_VERSION=1.12 \
+ENV GOSU_VERSION=1.17 \
   GOSU_SHA256=0f25a21cf64e58078057adc78f38705163c1d564a959ff30a891c31917011a54 \
   TINI_VERSION=0.19.0 \
   TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
@@ -62,7 +62,7 @@ RUN set -x \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/requirements-frozen.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
-                                                                  # pinned the same as in getsentry
+  # pinned the same as in getsentry
   && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
   && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
