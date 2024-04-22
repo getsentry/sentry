@@ -129,6 +129,7 @@ class FeatureManager(RegisteredFeatureManager):
         super().__init__()
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
+        self.option_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
     def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
@@ -158,6 +159,12 @@ class FeatureManager(RegisteredFeatureManager):
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
+        if entity_feature_strategy == FeatureHandlerStrategy.OPTIONS:
+            if name.startswith("users:"):
+                raise NotImplementedError(
+                    "OPTIONS feature handler strategy only supports organizations (for now)"
+                )
+            self.option_features.add(name)
         self._feature_registry[name] = cls
 
     def _get_feature_class(self, name: str) -> type[Feature]:

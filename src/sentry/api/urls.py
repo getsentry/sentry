@@ -229,8 +229,9 @@ from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
-from .endpoints.group_ai_autofix import GroupAiAutofixEndpoint
+from .endpoints.group_ai_autofix import GroupAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
+from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
@@ -281,6 +282,7 @@ from .endpoints.integrations.sentry_apps import (
     SentryAppInteractionEndpoint,
     SentryAppPublishRequestEndpoint,
     SentryAppRequestsEndpoint,
+    SentryAppRotateSecretEndpoint,
     SentryAppsEndpoint,
     SentryAppsStatsEndpoint,
     SentryAppStatsEndpoint,
@@ -485,6 +487,9 @@ from .endpoints.project_app_store_connect_credentials import (
 )
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
+from .endpoints.project_autofix_create_codebase_index import (
+    ProjectAutofixCreateCodebaseIndexEndpoint,
+)
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
@@ -763,9 +768,14 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-participants",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
-            GroupAiAutofixEndpoint.as_view(),
-            name=f"{name_prefix}-group-ai-autofix",
+            r"^(?P<issue_id>[^\/]+)/autofix/$",
+            GroupAutofixEndpoint.as_view(),
+            name=f"{name_prefix}-group-autofix",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/autofix/update/$",
+            GroupAutofixUpdateEndpoint.as_view(),
+            name=f"{name_prefix}-group-autofix-update",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
@@ -2721,6 +2731,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-stats",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/create/$",
+        ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
+        name="sentry-api-0-project-autofix-codebase-index-create",
+    ),
 ]
 
 TEAM_URLS = [
@@ -2831,6 +2846,11 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/rotate-secret/$",
+        SentryAppRotateSecretEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-rotate-secret",
     ),
     re_path(
         r"^(?P<sentry_app_slug>[^\/]+)/stats/$",

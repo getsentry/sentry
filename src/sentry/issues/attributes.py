@@ -4,7 +4,6 @@ from datetime import datetime
 from enum import Enum
 from typing import cast
 
-import requests
 import urllib3
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -24,6 +23,7 @@ from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post
 from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.snuba import _snuba_pool
 
 logger = logging.getLogger(__name__)
 
@@ -110,13 +110,15 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to snuba directly
         try:
-            resp = requests.post(
-                f"{settings.SENTRY_SNUBA}/tests/entities/group_attributes/insert",
-                data=json.dumps([snapshot]),
+            resp = _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/group_attributes/insert",
+                body=json.dumps([snapshot]),
+                headers={},
             )
-            if resp.status_code != 200:
+            if resp.status != 200:
                 raise snuba.SnubaError(
-                    f"HTTP {resp.status_code} response from Snuba! {resp.content.decode('utf-8')}"
+                    f"HTTP {resp.status} response from Snuba! {resp.data.decode('utf-8')}"
                 )
             return None
         except urllib3.exceptions.HTTPError as err:

@@ -28,13 +28,28 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
+from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
+MAX_PAYLOAD_SIZE = 10 * 1000 * 1000  # 10 MB
 
 BATCH_SIZE = 100
+
+
+def in_process_spans_rollout_group(project_id: int | None) -> bool:
+    if project_id and project_id in options.get(
+        "standalone-spans.process-spans-consumer.project-allowlist"
+    ):
+        return True
+
+    if project_id and (project_id % 100000) / 100000 < options.get(
+        "standalone-spans.process-spans-consumer.project-rollout"
+    ):
+        return True
+    return False
 
 
 @dataclasses.dataclass
@@ -71,9 +86,7 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         logger.exception("Failed to parse span message header")
         return FILTERED_PAYLOAD
 
-    if project_id is None or project_id not in options.get(
-        "standalone-spans.process-spans-consumer.project-allowlist"
-    ):
+    if not project_id or not in_process_spans_rollout_group(project_id=project_id):
         return FILTERED_PAYLOAD
 
     assert isinstance(message.value, BrokerValue)
@@ -162,11 +175,19 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
                 for i in range(0, len(keys), BATCH_SIZE):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
-                    for segment in segments:
+                    for j, segment in enumerate(segments):
                         if not segment:
                             continue
 
                         payload_data = prepare_buffered_segment_payload(segment)
+                        if len(payload_data) > MAX_PAYLOAD_SIZE:
+                            logger.warning(
+                                "Failed to produce message: max payload size exceeded.",
+                                extra={"segment_key": keys[i + j]},
+                            )
+                            metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
+                            continue
+
                         buffered_segments.append(KafkaPayload(None, payload_data, []))
 
     return buffered_segments

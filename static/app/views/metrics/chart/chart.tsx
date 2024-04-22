@@ -26,6 +26,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/metrics/chart/types';
 import type {UseFocusAreaResult} from 'sentry/views/metrics/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/metrics/chart/useMetricChartSamples';
+import type {UseMetricReleasesResult} from 'sentry/views/metrics/chart/useMetricReleases';
 
 const MAIN_X_AXIS_ID = 'xAxis';
 
@@ -36,6 +37,7 @@ type ChartProps = {
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
+  releases?: UseMetricReleasesResult;
   samples?: UseMetricSamplesResult;
 };
 
@@ -73,7 +75,7 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = memo(
   forwardRef<ReactEchartsRef, ChartProps>(
     (
-      {series, displayType, height, group, samples, focusArea, enableZoom},
+      {series, displayType, height, group, samples, focusArea, enableZoom, releases},
       forwardedRef
     ) => {
       const chartRef = useRef<ReactEchartsRef>(null);
@@ -96,7 +98,6 @@ export const MetricChart = memo(
         }
       });
 
-      // TODO(ddm): This assumes that all series have the same bucket size
       const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
       const isSubMinuteBucket = bucketSize < 60_000;
       const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
@@ -154,6 +155,7 @@ export const MetricChart = memo(
           showTimeInTooltip: true,
           addSecondsToTimeFormat: isSubMinuteBucket,
           limit: 10,
+          utc: !!dateTimeOptions.utc,
           filter: (_, seriesParam) => {
             return seriesParam?.axisId === MAIN_X_AXIS_ID;
           },
@@ -220,10 +222,12 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = defaultFormatAxisLabel(
+                const date = params[0].value[0];
+
+                defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
-                  false,
+                  timeseriesFormatters.utc,
                   timeseriesFormatters.showTimeInTooltip,
                   timeseriesFormatters.addSecondsToTimeFormat,
                   timeseriesFormatters.bucketSize
@@ -298,6 +302,11 @@ export const MetricChart = memo(
         if (samples?.applyChartProps) {
           baseChartProps = samples.applyChartProps(baseChartProps);
         }
+
+        if (releases?.applyChartProps) {
+          baseChartProps = releases.applyChartProps(baseChartProps);
+        }
+
         // Apply focus area props as last so it can disable tooltips
         if (focusArea?.applyChartProps) {
           baseChartProps = focusArea.applyChartProps(baseChartProps);
@@ -315,6 +324,7 @@ export const MetricChart = memo(
         uniqueUnits,
         samples,
         focusArea,
+        releases,
         firstUnit,
       ]);
 
@@ -326,7 +336,6 @@ export const MetricChart = memo(
           </ChartWrapper>
         );
       }
-
       return (
         <ChartWrapper>
           <ChartZoom>
@@ -368,7 +377,6 @@ function CombinedChart({
 
     return [];
   }, [displayType, scatterSeries, series, chartProps.colors]);
-
   return <BaseChart {...chartProps} series={combinedSeries} />;
 }
 

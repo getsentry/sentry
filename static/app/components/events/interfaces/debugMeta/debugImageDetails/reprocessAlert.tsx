@@ -5,8 +5,9 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 enum ReprocessableEventReason {
   // It can have many reasons. The event is too old to be reprocessed (very unlikely!)
