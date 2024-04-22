@@ -53,6 +53,7 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.group'
+  | 'span.category'
   | 'transaction'
   | 'transaction.method'
   | 'release'
@@ -201,6 +202,9 @@ export type IndexedResponse = {
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
+  [SpanIndexedField.MESSAGE_ID]: string;
+  [SpanIndexedField.MESSAGE_SIZE]: number;
+  [SpanIndexedField.MESSAGE_STATUS]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;

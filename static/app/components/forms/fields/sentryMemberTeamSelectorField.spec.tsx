@@ -1,8 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -124,5 +125,37 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await userEvent.click(screen.getByLabelText('Clear choices'));
     expect(mock).toHaveBeenCalledWith([], expect.anything());
+  });
+
+  it('disables teams not associated with project', async () => {
+    const project = ProjectFixture();
+    const teamWithProject = TeamFixture({projects: [project], slug: 'my-team'});
+    const teamWithoutProject = TeamFixture({id: '2', slug: 'disabled-team'});
+    TeamStore.init();
+    TeamStore.loadInitialData([teamWithProject, teamWithoutProject]);
+
+    const mock = jest.fn();
+    render(
+      <SentryMemberTeamSelectorField
+        label="Select Owner"
+        onChange={mock}
+        memberOfProjectSlugs={[project.slug]}
+        name="team-or-member"
+        multiple
+      />
+    );
+
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
+    expect(
+      within(
+        (await screen.findByText('My Teams')).parentElement as HTMLElement
+      ).getByText('#my-team')
+    ).toBeInTheDocument();
+
+    expect(
+      within(
+        (await screen.findByText('Disabled Teams')).parentElement as HTMLElement
+      ).getByText('#disabled-team')
+    ).toBeInTheDocument();
   });
 });

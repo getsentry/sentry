@@ -13,16 +13,13 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
@@ -38,7 +35,8 @@ type TableColumnKeys =
   | 'spanDuration'
   | 'occurrences'
   | 'cumulativeDuration'
-  | 'spans';
+  | 'spans'
+  | 'project';
 
 type TableColumn = GridColumnOrder<TableColumnKeys>;
 
@@ -163,9 +161,10 @@ function renderBodyCellWithMeta(
         : null;
 
       const target = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug(dataRow),
-        dataRow: {...dataRow, trace: traceSlug, timestamp: dataRow.timestamp / 1000},
-        eventView: EventView.fromLocation(location),
+        eventId: dataRow.id,
+        traceSlug,
+        timestamp: dataRow.timestamp / 1000,
+        projectSlug: dataRow.project,
         location,
         organization,
         spanId: worstSpan.id,
@@ -188,6 +187,7 @@ const COLUMN_TYPE: Omit<
   spanDuration: 'duration',
   occurrences: 'integer',
   cumulativeDuration: 'duration',
+  project: 'string',
 };
 
 const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
