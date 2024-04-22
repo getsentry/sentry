@@ -64,7 +64,7 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -3469,7 +3469,7 @@ class TraceTestCase(SpanTestCase):
             )
         ]
 
-    def load_errors(self) -> tuple[GroupEvent, GroupEvent]:
+    def load_errors(self) -> tuple[Event, Event]:
         """Generates trace with errors."""
         if not hasattr(self, "gen1_project"):
             self.populate_project1()
