@@ -75,7 +75,7 @@ export function generateLinkToEventInTraceView({
       organization,
       String(traceSlug),
       dateSelection,
-      {},
+      location.query,
       normalizedTimestamp,
       eventId,
       spanId
