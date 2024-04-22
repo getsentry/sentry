@@ -698,7 +698,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
-        extra_condition: Function | None = None,
     ) -> SelectType:
 
         return self._resolve_count_if(
