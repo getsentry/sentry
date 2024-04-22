@@ -191,6 +191,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
