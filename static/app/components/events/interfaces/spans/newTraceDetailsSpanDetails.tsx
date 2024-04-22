@@ -543,7 +543,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 ) : null
               )}
               {unknownKeys.map(key => {
-                if (key === 'event' || key === 'childTransaction') {
+                if (key === 'event' || key === 'childTransactions') {
                   // dont render the entire JSON payload
                   return null;
                 }
