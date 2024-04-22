@@ -216,7 +216,7 @@ function EventTagsTreeRowDropdown({
   );
 }
 
-export const TreeRow = styled('div')<{hasErrors: boolean}>`
+const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
   position: relative;
@@ -282,7 +282,7 @@ const TreeValueTrunk = styled('div')`
   grid-column-gap: ${space(0.5)};
 `;
 
-export const TreeValue = styled('div')<{hasErrors?: boolean}>`
+const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
@@ -292,7 +292,7 @@ export const TreeValue = styled('div')<{hasErrors?: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
 `;
 
-export const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
+const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
 `;
 

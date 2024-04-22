@@ -144,18 +144,18 @@ function TagTreeColumns({
         // If it's the last entry, create a column with the remaining rows
         if (index === tagTreeRowGroups.length - 1) {
           columns.push(
-            <TagColumn key={columns.length} data-test-id="tag-tree-column">
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex)}
-            </TagColumn>
+            </TreeColumn>
           );
           return {startIndex, runningTotal, columns};
         }
-        // If we reach the goal column size, wrap rows in a TagColumn.
+        // If we reach the goal column size, wrap rows in a TreeColumn.
         if (runningTotal >= columnRowGoal) {
           columns.push(
-            <TagColumn key={columns.length} data-test-id="tag-tree-column">
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex, index)}
-            </TagColumn>
+            </TreeColumn>
           );
           runningTotal = 0;
           startIndex = index;
@@ -175,20 +175,20 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TagContainer columnCount={columnCount} ref={containerRef}>
+    <TreeContainer columnCount={columnCount} ref={containerRef}>
       <TagTreeColumns columnCount={columnCount} {...props} />
-    </TagContainer>
+    </TreeContainer>
   );
 }
 
-export const TagContainer = styled('div')<{columnCount: number}>`
+export const TreeContainer = styled('div')<{columnCount: number}>`
   margin-top: ${space(1.5)};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
 `;
 
-export const TagColumn = styled('div')`
+export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
