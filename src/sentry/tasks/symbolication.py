@@ -17,7 +17,7 @@ from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.processing import realtime_metrics
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task

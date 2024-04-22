@@ -142,12 +142,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             all_projects_params["projects_objects"] = all_projects_snuba_params.projects
             all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
 
+            trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
+
             with handle_query_errors():
                 breakdowns_query = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
                     cast(ParamsType, all_projects_params),
                     snuba_params=all_projects_snuba_params,
-                    query=None,
+                    query="is_transaction:1",
                     selected_columns=[
                         "trace",
                         "project",
@@ -165,9 +167,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         transform_alias_to_input_format=True,
                     ),
                 )
-                # TODO: this should be `is_transaction:1` but there's some
-                # boolean mapping that's not working for this field
-                breakdowns_query.add_conditions([Condition(Column("is_segment"), Op.EQ, 1)])
+                breakdowns_query.add_conditions([trace_id_condition])
 
             with handle_query_errors():
                 traces_meta_query = SpansIndexedQueryBuilder(
@@ -188,6 +188,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         transform_alias_to_input_format=True,
                     ),
                 )
+                traces_meta_query.add_conditions([trace_id_condition])
 
             sort = serialized.get("sort")
             suggested_query = serialized.get("suggestedQuery", "")
@@ -213,16 +214,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     )
                     for query_str in query_strs
                 ]
+                for spans_query in spans_queries:
+                    spans_query.add_conditions([trace_id_condition])
 
             queries = [
                 breakdowns_query,
                 traces_meta_query,
                 *spans_queries,
             ]
-
-            trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
-            for query in queries:
-                query.add_conditions([trace_id_condition])
 
             with handle_query_errors():
                 results = bulk_snql_query(

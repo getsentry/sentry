@@ -10,7 +10,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class OrganizationMappingService(RpcService):

@@ -337,6 +337,84 @@ class MonitorConsumerTest(TestCase):
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
 
+    def test_monitor_create_owner(self):
+        self.send_checkin(
+            "my-new-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{self.user.id}",
+            },
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor = monitor_environment.monitor
+        assert monitor.name == "my-new-monitor"
+        assert monitor.owner_user_id == self.user.id
+        assert "owner" not in monitor.config
+
+    def test_monitor_create_owner_invalid(self):
+        bad_user = self.create_user()
+        self.send_checkin(
+            "my-new-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{bad_user.id}",
+            },
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor = monitor_environment.monitor
+        assert monitor.name == "my-new-monitor"
+        assert monitor.owner_user_id is None
+        assert "owner" not in monitor.config
+
+    def test_monitor_update_owner(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{self.user.id}",
+            },
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id == self.user.id
+        assert "owner" not in monitor.config
+
+    def test_monitor_update_owner_to_team(self):
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"team:{self.team.id}",
+            },
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id == self.team.id
+        assert "owner" not in monitor.config
+
     def test_monitor_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
@@ -722,6 +800,34 @@ class MonitorConsumerTest(TestCase):
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment="my-environment",
         )
+
+        # Check-in was not produced as we could not assign a monitor seat
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+        # Monitor was created, but is disabled
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert monitor.status == ObjectStatus.DISABLED
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assign_monitor_seat.assert_called_with(monitor)
+
+    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_accept_upsert_existing_monitor(
+        self,
+        check_accept_monitor_checkin,
+        assign_monitor_seat,
+    ):
+        """
+        Validate the unusual casse where a seat does not already exist but a
+        monitor does exist. We should ensure assign_monitor_seat is called
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin("my-monitor", environment="my-environment")
 
         # Check-in was not produced as we could not assign a monitor seat
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()

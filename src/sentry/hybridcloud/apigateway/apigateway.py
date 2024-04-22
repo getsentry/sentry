@@ -14,8 +14,7 @@ from sentry.hybridcloud.apigateway.proxy import (
     proxy_sentryapp_request,
     proxy_sentryappinstallation_request,
 )
-from sentry.silo import SiloMode
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 

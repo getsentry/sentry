@@ -6,7 +6,7 @@ import responses
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba

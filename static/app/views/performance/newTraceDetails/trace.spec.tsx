@@ -159,7 +159,7 @@ function mockSpansResponse(
   body: Partial<EventTransaction> = {}
 ) {
   return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time`,
+    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',
     asyncDelay: 1,
     body,
