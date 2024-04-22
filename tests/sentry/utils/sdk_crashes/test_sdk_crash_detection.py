@@ -179,9 +179,12 @@ class SDKCrashDetectionTest(
         (0.0, 0.5, False),
         (1.0, 0.0001, True),
         (1.0, 0.9999, True),
+        (0.1, 0.0001, True),
         (0.1, 0.09, True),
         (0.1, 0.1, True),
         (0.1, 0.11, False),
+        (0.1, 0.5, False),
+        (0.1, 0.999, False),
     ],
 )
 @django_db_all
