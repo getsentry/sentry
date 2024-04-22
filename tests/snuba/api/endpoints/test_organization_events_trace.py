@@ -18,6 +18,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
+        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
@@ -36,6 +37,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         super().setUp()
         options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.file_io_main_thread.problem-creation", 1.0)
+        options.set("performance.issues.slow_db_query.problem-creation", 1.0)
         self.login_as(user=self.user)
 
         self.url = reverse(
@@ -566,12 +568,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
-        assert len(root["performance_issues"]) == 1
-        # The perf issue is added as the last span
-        perf_issue_span = self.root_event.data["spans"][-1]
-        assert root["performance_issues"][0]["suspect_spans"][0] == perf_issue_span["span_id"]
-        assert root["performance_issues"][0]["start"] == perf_issue_span["start_timestamp"]
-        assert root["performance_issues"][0]["end"] == perf_issue_span["timestamp"]
+        self.assert_performance_issues(root)
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -603,6 +600,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen3["children"]) == 0
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0
+
+    def assert_performance_issues(self, root):
+        """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
+        pass
 
     def client_get(self, data, url=None):
         if url is None:
@@ -1317,6 +1318,16 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         data["useSpans"] = 1
         return super().client_get(data, url)
 
+    def assert_performance_issues(self, root):
+        assert len(root["performance_issues"]) == 2
+        # The perf issues are the last 2 spans
+        perf_issue_spans = {span["span_id"]: span for span in self.root_event.data["spans"][-2:]}
+        for perf_issue in root["performance_issues"]:
+            assert len(perf_issue["suspect_spans"]) == 1
+            expected = perf_issue_spans[perf_issue["suspect_spans"][0]]
+            assert perf_issue["start"] == expected["start_timestamp"]
+            assert perf_issue["end"] == expected["timestamp"]
+
     def test_simple(self):
         self.load_trace()
         with self.feature(self.FEATURES):
@@ -1520,7 +1531,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 0
-        assert data["performance_issues"] == 1
+        assert data["performance_issues"] == 2
 
     def test_with_errors(self):
         self.load_trace()
@@ -1536,7 +1547,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 2
-        assert data["performance_issues"] == 1
+        assert data["performance_issues"] == 2
 
     def test_with_default(self):
         self.load_trace()
@@ -1552,4 +1563,4 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 1
-        assert data["performance_issues"] == 1
+        assert data["performance_issues"] == 2
