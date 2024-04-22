@@ -259,7 +259,7 @@ def test_datetime_number_of_days() -> None:
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
     def save_mock_escalating_group_forecast(
-        self, group: Group, forecast_values=list[int], date_added=datetime
+        self, group: Group, forecast_values: list[int], date_added: datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
         escalating_forecast = EscalatingGroupForecast(

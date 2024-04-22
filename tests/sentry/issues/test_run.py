@@ -1,4 +1,6 @@
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -18,7 +20,9 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
-    def build_mock_message(self, data, topic=None):
+    def build_mock_message(
+        self, data: Mapping[str, Any] | None, topic: ArroyoTopic | None = None
+    ) -> mock.Mock:
         message = mock.Mock()
         message.value.return_value = json.dumps(data)
         if topic:
@@ -27,7 +31,7 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
 
     @with_feature("organizations:profile-file-io-main-thread-ingest")
     @mock.patch("sentry.issues.occurrence_consumer.save_issue_occurrence")
-    def test_saves_issue_occurrence(self, mock_save_issue_occurrence):
+    def test_saves_issue_occurrence(self, mock_save_issue_occurrence: mock.MagicMock) -> None:
         topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
         partition_1 = Partition(topic, 0)
         partition_2 = Partition(topic, 1)

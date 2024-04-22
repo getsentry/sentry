@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
@@ -197,7 +197,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_no_stack_root_match(self, mock_integration) -> None:
+    def test_file_no_stack_root_match(self, mock_integration: MagicMock) -> None:
         # Pretend that the file was not found in the repository
         mock_integration.return_value = None
 
@@ -215,7 +215,9 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.utils.stacktrace_link.Timer")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_timer_duration_for_analytics(self, mock_integration, mock_timer, mock_record) -> None:
+    def test_timer_duration_for_analytics(
+        self, mock_integration: MagicMock, mock_timer: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_integration.return_value = "https://github.com/"
         mock_duration = PropertyMock(return_value=5)
         type(mock_timer.return_value.__enter__.return_value).duration = mock_duration
@@ -286,7 +288,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_android_worked(self, mock_integration) -> None:
+    def test_munge_android_worked(self, mock_integration: MagicMock) -> None:
         file_path = "src/getsentry/file.java"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
@@ -302,7 +304,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_android_failed_stack_root_mismatch(self, mock_integration) -> None:
+    def test_munge_android_failed_stack_root_mismatch(self, mock_integration: MagicMock) -> None:
         """
         Returns a stack_root_mismatch if module doesn't match stack root
         """
@@ -324,7 +326,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_cocoa_abs_path_success(self, mock_integration) -> None:
+    def test_cocoa_abs_path_success(self, mock_integration: MagicMock) -> None:
         """
         Cocoa events with code mappings referencing the abs_path should apply correctly.
         """
@@ -347,7 +349,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_cocoa_filename_success(self, mock_integration) -> None:
+    def test_cocoa_filename_success(self, mock_integration: MagicMock) -> None:
         """
         Cocoa events with code mappings that match the file should apply correctly.
         """
@@ -370,7 +372,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_cocoa_failed_stack_root_mismatch(self, mock_integration) -> None:
+    def test_cocoa_failed_stack_root_mismatch(self, mock_integration: MagicMock) -> None:
         """
         Should return stack_root_mismatch if stack root doesn't match file or abs_path
         """
@@ -393,7 +395,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_flutter_worked(self, mock_integration) -> None:
+    def test_munge_flutter_worked(self, mock_integration: MagicMock) -> None:
         file_path = "a/b/main.dart"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
