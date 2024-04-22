@@ -480,6 +480,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             self._get_queue_for_post_process(event),
             skip_consume,
-            group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )

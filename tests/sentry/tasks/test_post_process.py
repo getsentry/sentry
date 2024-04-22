@@ -2414,7 +2414,6 @@ class PostProcessGroupPerformanceTest(
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
-            group_states=None,
         )
 
         assert transaction_processed_signal_mock.call_count == 1

@@ -39,7 +39,6 @@ def basic_protocol_handler(
             kwargs[name] = task_state[name]
 
         if task_state:
-            kwargs["group_states"] = task_state.get("group_states")
             kwargs["queue"] = task_state.get("queue")
 
         return kwargs
@@ -139,17 +138,6 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
-def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
-    if value is None:
-        return None
-
-    parsed = json.loads(value)
-    if not isinstance(parsed, list):
-        raise ValueError(f"'{value}' could not be parsed into an instance of list.")
-
-    return json.loads(value)
-
-
 def get_task_kwargs_for_message_from_headers(
     headers: Sequence[tuple[str, bytes | None]]
 ) -> dict[str, Any] | None:
@@ -198,27 +186,10 @@ def get_task_kwargs_for_message_from_headers(
                 "is_new": is_new,
                 "is_regression": is_regression,
                 "is_new_group_environment": is_new_group_environment,
+                "queue": decode_str(_required("queue"))
+                if "queue" in header_data
+                else "post_process_errors",
             }
-
-            group_states_str = decode_optional_str(header_data.get("group_states"))
-            group_states = None
-            try:
-                group_states = decode_optional_list_str(group_states_str)
-            except ValueError:
-                logger.exception(
-                    "Received event with malformed group_states: '%s'", group_states_str
-                )
-            except Exception:
-                logger.exception(
-                    "Uncaught exception thrown when trying to parse group_states: '%s'",
-                    group_states_str,
-                )
-            task_state["group_states"] = group_states
-
-            # default in case queue is not sent
-            task_state["queue"] = (
-                decode_str(_required("queue")) if "queue" in header_data else "post_process_errors"
-            )
 
         else:
             event_data = {}
