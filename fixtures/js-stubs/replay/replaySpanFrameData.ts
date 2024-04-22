@@ -91,8 +91,8 @@ export function ReplayPaintFrameFixture(
 }
 
 export function ReplayRequestFrameFixture(
-  fields: TestableFrame<'resource.fetch' | 'resource.xhr'>
-): MockFrame<'resource.fetch' | 'resource.xhr'> {
+  fields: TestableFrame<'resource.fetch' | 'resource.xhr' | 'resource.http'>
+): MockFrame<'resource.fetch' | 'resource.xhr' | 'resource.http'> {
   return BaseFrame(fields.op ?? 'resource.xhr', {
     ...fields,
     data: {
