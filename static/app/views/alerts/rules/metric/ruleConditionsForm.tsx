@@ -771,6 +771,7 @@ const MonitorSelect = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  height: 6rem;
 `;
 
 type MonitorCardProps = {
@@ -787,18 +788,22 @@ const MonitorCard = styled('div')<MonitorCardProps>`
   flex-grow: 1;
   flex-direction: column;
   cursor: pointer;
+  justify-content: center;
 
   &:focus,
   &:hover {
     outline: 1px solid ${p => p.theme.purple200};
     background-color: ${p => p.theme.backgroundSecondary};
+    margin: 0;
   }
 
   border-top-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
   border-bottom-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
   border-top-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
   border-bottom-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
-  outline: ${p => (p.isSelected ? `1px solid ${p.theme.purple400}` : 'none')};
+  margin: ${p =>
+    p.isSelected ? (p.position === 'left' ? '1px 2px 1px 0' : '1px 0 1px 2px') : 0};
+  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple400}` : 'none')};
 `;
 
 const ActivatedAlertFields = styled('div')`
