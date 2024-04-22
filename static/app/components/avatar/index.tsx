@@ -8,10 +8,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarSentryApp, DocIntegration} from 'sentry/types/integrations';
-import type {
-  OrganizationSummary,
-  Team,
-} from 'sentry/types/organization';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 
 import ActorAvatar from './actorAvatar';

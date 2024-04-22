@@ -8,7 +8,7 @@ import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import type {TagCollection} from 'sentry/types/group';
-import { SavedSearchType} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';

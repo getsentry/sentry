@@ -22,7 +22,7 @@ import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MRI,ParsedMRI} from 'sentry/types/metrics';
+import type {MRI, ParsedMRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';

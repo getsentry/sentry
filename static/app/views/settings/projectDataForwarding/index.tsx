@@ -19,7 +19,7 @@ import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type { Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
