@@ -147,8 +147,9 @@ def _batch_write_to_redis(
         # Collects spans for each segment_id
         spans_map[key].append(span)
 
-        # Collects "first_seen" timestamps for each segment in batch
-        if not segment_first_seen_ts.get(key):
+        # Collects "first_seen" timestamps for each segment in batch.
+        # Batch step doesn't guarantee order, so pick lowest ts.
+        if not segment_first_seen_ts.get(key) or timestamp < segment_first_seen_ts[key]:
             segment_first_seen_ts[key] = timestamp
 
         # Collects latest timestamps processed in each partition. It is
