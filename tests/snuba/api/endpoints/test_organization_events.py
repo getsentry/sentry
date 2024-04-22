@@ -1,9 +1,8 @@
 import math
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest import mock
-from uuid import uuid4
 
 import pytest
 from django.test import override_settings
@@ -29,6 +28,7 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
+    SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -42,17 +42,9 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase, SpanTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
-    # Some base data for create_span
-    base_span: dict[str, Any] = {
-        "is_segment": False,
-        "retention_days": 90,
-        "tags": {},
-        "sentry_tags": {},
-        "measurements": {},
-    }
 
     def setUp(self):
         super().setUp()
@@ -80,68 +72,6 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
-
-    def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
-        if timestamp is None:
-            timestamp = self.ten_mins_ago
-
-        min_age = before_now(minutes=10)
-        if timestamp > min_age:
-            # Sentry does some rounding of timestamps to improve cache hits in snuba.
-            # This can result in events not being returns if the timestamps
-            # are too recent.
-            raise Exception(
-                f"Please define a timestamp older than 10 minutes to avoid flakey tests. Want a timestamp before {min_age}, got: {timestamp} "
-            )
-
-        start_timestamp = None
-        if duration is not None:
-            start_timestamp = timestamp - duration
-            start_timestamp = start_timestamp - timedelta(
-                microseconds=start_timestamp.microsecond % 1000
-            )
-
-        return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
-
-    def create_span(
-        self, extra_data=None, organization=None, project=None, start_ts=None, duration=1000
-    ):
-        """Create span json, not required for store_span, but with no params passed should just work out of the box"""
-        if organization is None:
-            organization = self.organization
-        if project is None:
-            project = self.project
-        if start_ts is None:
-            start_ts = datetime.now() - timedelta(minutes=1)
-        if extra_data is None:
-            extra_data = {}
-        span = self.base_span.copy()
-        # Load some defaults
-        span.update(
-            {
-                "event_id": uuid4().hex,
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "trace_id": uuid4().hex,
-                "span_id": uuid4().hex[:16],
-                "parent_span_id": uuid4().hex[:16],
-                "segment_id": uuid4().hex[:16],
-                "group_raw": uuid4().hex[:16],
-                "profile_id": uuid4().hex,
-                # Multiply by 1000 cause it needs to be ms
-                "start_timestamp_ms": int(start_ts.timestamp() * 1000),
-                "timestamp": int(start_ts.timestamp() * 1000),
-                "received": start_ts.timestamp(),
-                "duration_ms": duration,
-                "exclusive_time_ms": duration,
-            }
-        )
-        # Load any specific custom data
-        span.update(extra_data)
-        # coerce to string
-        for tag, value in dict(span["tags"]).items():
-            span["tags"][tag] = str(value)
-        return span
 
     def _setup_user_misery(
         self, per_transaction_threshold: bool = False, project: Project | None = None
