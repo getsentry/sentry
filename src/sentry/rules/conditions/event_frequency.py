@@ -26,8 +26,9 @@ from sentry.types.condition_activity import (
     ConditionActivity,
     round_to_five_minute,
 )
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.snuba import options_override
+from sentry.utils.snuba import RateLimitExceeded, options_override
 
 STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -242,18 +243,24 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-    ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
-            model=model,
-            keys=keys,
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-            jitter_value=group.id,
-            tenant_ids={"organization_id": group.project.organization_id},
-            referrer_suffix=referrer_suffix,
-        )
+    ) -> Mapping[int, int] | None:
+        try:
+            result: Mapping[int, int] = tsdb_function(
+                model=model,
+                keys=keys,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+                jitter_value=group.id,
+                tenant_ids={"organization_id": group.project.organization_id},
+                referrer_suffix=referrer_suffix,
+            )
+        # XXX(CEO): once inc-666 work is concluded, rm try/except
+        except RateLimitExceeded:
+            metrics.incr("rule.event_frequency.snuba_query_limit")
+            return None
+
         return result
 
     def get_chunked_result(
