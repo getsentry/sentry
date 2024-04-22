@@ -1645,11 +1645,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       return this.tail.getVisibleChildrenCount();
     }
 
-    if (
-      this.expanded ||
-      isParentAutogroupedNode(this) ||
-      isMissingInstrumentationNode(this)
-    ) {
+    if (this.expanded || isMissingInstrumentationNode(this)) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         stack.push(this.children[i]);
       }
