@@ -94,14 +94,14 @@ class SlackOptionsLoadEndpoint(Endpoint):
         if not group or not features.has(
             "organizations:slack-block-kit", group.project.organization
         ):
-            request_data = json.dumps("integrations.slack.enable-orjson", slack_request.data)
-
             logger.exception(
                 "slack.options_load.request-error",
                 extra={
                     "group_id": group.id if group else None,
                     "organization_id": group.project.organization.id if group else None,
-                    "request_data": request_data,
+                    "request_data": json.dumps_experimental(
+                        "integrations.slack.enable-orjson", slack_request.data
+                    ),
                 },
             )
             return self.respond(status=status.HTTP_400_BAD_REQUEST)

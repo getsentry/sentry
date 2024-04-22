@@ -197,7 +197,7 @@ class SlackActionEndpoint(Endpoint):
             if view:
                 private_metadata = view.get("private_metadata")
                 if private_metadata:
-                    data = json.dumps_experimental(
+                    data = json.loads_experimental(
                         "integrations.slack.enable-orjson", private_metadata
                     )
                     channel_id = data.get("channel_id")
@@ -583,7 +583,7 @@ class SlackActionEndpoint(Endpoint):
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
-                private_metadata = json.dumps_experimental(
+                private_metadata = json.loads_experimental(
                     "integrations.slack.enable-orjson",
                     slack_request.data["view"]["private_metadata"],
                 )

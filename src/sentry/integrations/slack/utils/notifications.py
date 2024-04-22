@@ -59,12 +59,11 @@ def send_incident_alert_notification(
     ).build()
     text = attachment["text"]
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
-    attachments = json.dumps_experimental("integrations.slack.enable-orjson", [blocks])
 
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": attachments,
+        "attachments": json.dumps_experimental("integrations.slack.enable-orjson", [blocks]),
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,
