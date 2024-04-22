@@ -6,7 +6,7 @@ import EventAttachmentActions from 'sentry/components/events/eventAttachmentActi
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
 import {types} from 'sentry/views/issueDetails/groupEventAttachments/types';
 
 type Props = {

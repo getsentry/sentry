@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,

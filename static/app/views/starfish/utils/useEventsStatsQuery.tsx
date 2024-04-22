@@ -1,4 +1,4 @@
-import type {MultiSeriesEventsStats} from 'sentry/types';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';

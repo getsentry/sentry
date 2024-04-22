@@ -23,15 +23,9 @@ import {
 } from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {
-  DateString,
-  Environment,
-  MinimalProject,
-  Organization,
-  PageFilters,
-  PinnedPageFilter,
-  Project,
-} from 'sentry/types';
+import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 

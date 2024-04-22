@@ -25,13 +25,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  Project,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';

@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 
 import VisualMap from 'sentry/components/charts/components/visualMap';
 import type {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import type {EventsStatsData} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import type {EventsStatsData} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   getDurationUnit,

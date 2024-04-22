@@ -2,7 +2,7 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {

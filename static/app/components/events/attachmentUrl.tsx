@@ -1,7 +1,8 @@
 import {memo} from 'react';
 
 import {Role} from 'sentry/components/acl/role';
-import type {IssueAttachment, Organization} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
