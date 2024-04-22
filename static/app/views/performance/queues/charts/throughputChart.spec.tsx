@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
@@ -22,7 +22,7 @@ describe('throughputChart', () => {
       },
     });
   });
-  it('renders', () => {
+  it('renders', async () => {
     render(<ThroughputChart />);
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -38,5 +38,6 @@ describe('throughputChart', () => {
         }),
       })
     );
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });
