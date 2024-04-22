@@ -722,7 +722,7 @@ class GroupEvent(BaseEvent):
         self.data = data
         self._occurrence = occurrence
 
-    def __eq__(self, other: GroupEvent) -> bool:
+    def __eq__(self, other: BaseEvent) -> bool:
         if not isinstance(other, GroupEvent):
             return False
         return other.event_id == self.event_id and other.group_id == self.group_id

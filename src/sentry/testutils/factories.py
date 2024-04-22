@@ -27,7 +27,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -898,7 +898,7 @@ class Factories:
         project_id: int,
         assert_no_errors: bool = True,
         sent_at: datetime | None = None,
-    ) -> GroupEvent:
+    ) -> Event:
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data, sent_at=sent_at)
@@ -1346,7 +1346,7 @@ class Factories:
         )
 
         return UserReport.objects.create(
-            group_id=event.group.id,
+            group_id=event.group_id,
             event_id=event.event_id,
             project_id=project.id,
             name="Jane Bloggs",
