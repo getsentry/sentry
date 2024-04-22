@@ -742,8 +742,20 @@ class Columns(Enum):
     REPLAY_ID = Column(
         group_name=None,
         event_name="replay_id",
-        transaction_name=None,
-        discover_name=None,
+        transaction_name="replay_id",
+        discover_name="replay_id",
+        issue_platform_name="replay_id",
+        alias="replay.id",
+    )
+    # We used to set the replay_id as a tag on error events as
+    # replayId. We allow this query for backwards compatibility,
+    # but in the future shouldn't be displayed in the UI anywhere
+    # as a suggested column.
+    REPLAY_ID_DEPRECATED = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name="replay_id",
+        discover_name="replay_id",
         issue_platform_name="replay_id",
         alias="replayId",
     )

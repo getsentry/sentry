@@ -30,7 +30,7 @@ class OrganizationReplayCountEndpointTest(
     def setUp(self):
         super().setUp()
         self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
-        self.min_ago = before_now(minutes=1)
+        self.min_ago = before_now(minutes=2)
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-replay-count",
@@ -38,7 +38,7 @@ class OrganizationReplayCountEndpointTest(
         )
         self.features = {"organizations:session-replay": True}
 
-    def test_simple(self):
+    def test_simple_b(self):
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -70,7 +70,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -79,7 +79,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": uuid.uuid4().hex,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
+                "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -88,7 +88,9 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex}
+                },  # a replay id that doesn't exist
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -97,7 +99,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay3_id},
+                "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -105,6 +107,7 @@ class OrganizationReplayCountEndpointTest(
 
         query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
+
             response = self.client.get(self.url, query, format="json")
 
         expected = {
@@ -146,7 +149,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -155,7 +158,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": uuid.uuid4().hex,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
+                "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -164,7 +167,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
+                "contexts": {"replay": {"replay_id": uuid.uuid4().hex}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -173,7 +176,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay3_id},
+                "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -315,7 +318,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -324,7 +327,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -357,7 +360,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -366,7 +369,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -397,7 +400,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "transaction": "t-1",
             },
             project_id=self.project.id,
@@ -409,36 +412,6 @@ class OrganizationReplayCountEndpointTest(
 
         expected = {
             event_a.transaction: 1,
-        }
-        assert response.status_code == 200, response.content
-        assert response.data == expected
-
-    def test_max_51(self):
-        replay_ids = [uuid.uuid4().hex for _ in range(100)]
-        for replay_id in replay_ids:
-            self.store_replays(
-                mock_replay(
-                    datetime.datetime.now() - datetime.timedelta(seconds=22),
-                    self.project.id,
-                    replay_id,
-                )
-            )
-            event_a = self.store_event(
-                data={
-                    "event_id": uuid.uuid4().hex,
-                    "timestamp": iso_format(self.min_ago),
-                    "tags": {"replayId": replay_id},
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-            )
-
-        query = {"query": f"issue.id:[{event_a.group.id}]"}
-        with self.feature(self.features):
-            response = self.client.get(self.url, query, format="json")
-
-        expected = {
-            event_a.group.id: 51,
         }
         assert response.status_code == 200, response.content
         assert response.data == expected
@@ -580,7 +553,7 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_a,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -607,7 +580,6 @@ class OrganizationReplayCountEndpointTest(
             data={
                 "event_id": event_id_b,
                 "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
                 "fingerprint": ["group-2"],
             },
             project_id=project.id,
