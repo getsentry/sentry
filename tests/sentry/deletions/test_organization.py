@@ -22,7 +22,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase

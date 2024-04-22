@@ -9,7 +9,7 @@ from sentry.hybridcloud.models.cacheversion import (
     RegionCacheVersion,
 )
 from sentry.hybridcloud.rpc.services.caching import ControlCachingService, RegionCachingService
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 _V = TypeVar("_V")
 

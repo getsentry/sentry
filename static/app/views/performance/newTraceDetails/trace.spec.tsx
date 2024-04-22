@@ -212,7 +212,7 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransaction: undefined,
+    childTransactions: [],
     event: makeEvent() as EventTransaction,
     ...overrides,
   };

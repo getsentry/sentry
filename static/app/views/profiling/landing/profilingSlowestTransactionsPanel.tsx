@@ -18,7 +18,8 @@ import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOver
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {

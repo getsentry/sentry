@@ -47,6 +47,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:crons-broken-monitor-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -235,6 +236,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-queues-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-cache-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -283,6 +285,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:extract-transaction-from-segment-span", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("projects:span-metrics-double-write-distributions-as-gauges", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)

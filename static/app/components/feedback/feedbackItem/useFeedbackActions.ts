@@ -7,7 +7,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,6 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Organization, TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';

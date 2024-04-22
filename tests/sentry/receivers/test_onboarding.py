@@ -27,7 +27,7 @@ from sentry.signals import (
     plugin_enabled,
     project_created,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner

@@ -33,7 +33,7 @@ from sentry.profiles.java import (
 )
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome

@@ -20,7 +20,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 

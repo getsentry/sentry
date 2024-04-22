@@ -17,7 +17,7 @@ from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound

@@ -470,6 +470,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -1282,14 +1288,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to drop any in-flight work in the multiprocesing strategy
-# of the indexer during consumer shutdowns, rebalances, etc.
-register(
-    "sentry-metrics.indexer.drop-work-in-multiprocessing",
-    default=True,  # False means we don't drop any work
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1892,7 +1890,7 @@ register(
 # The flag activates whether to send group attributes messages to kafka
 register(
     "issues.group_attributes.send_kafka",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2375,6 +2373,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# rollout rate: % of profiles for which we ingest the extracted profile
+# functions metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2449,4 +2456,27 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organizations with increased rate limits for organization_events API
+register(
+    "api.organization_events.rate-limit-increased.orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Increased rate limits for organization_events API for the orgs above
+register(
+    "api.organization_events.rate-limit-increased.limits",
+    type=Dict,
+    default={"limit": 50, "window": 1, "concurrent_limit": 50},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Reduced rate limits for organization_events API for the orgs in LA/EA/GA rollout
+# Once GA'd, this will be the default rate limit for all orgs not on the increase list
+register(
+    "api.organization_events.rate-limit-reduced.limits",
+    type=Dict,
+    default={"limit": 1000, "window": 300, "concurrent_limit": 15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

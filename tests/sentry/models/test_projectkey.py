@@ -4,7 +4,7 @@ import pytest
 from django.test import override_settings
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import create_test_regions, region_silo_test

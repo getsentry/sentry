@@ -8,7 +8,7 @@ from django.core import mail
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
