@@ -108,7 +108,16 @@ export function TimeConsumingDomainsWidgetEmptyStateWarning() {
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
-        {t('Domains may not be listed due to the filters above or a low sampling rate')}
+        {tct(
+          'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+                {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
