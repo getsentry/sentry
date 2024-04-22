@@ -2457,3 +2457,26 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# List of organizations with increased rate limits for organization_events API
+register(
+    "api.organization_events.rate-limit-increased.orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Increased rate limits for organization_events API for the orgs above
+register(
+    "api.organization_events.rate-limit-increased.limits",
+    type=Dict,
+    default={"limit": 50, "window": 1, "concurrent_limit": 50},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Reduced rate limits for organization_events API for the orgs in LA/EA/GA rollout
+# Once GA'd, this will be the default rate limit for all orgs not on the increase list
+register(
+    "api.organization_events.rate-limit-reduced.limits",
+    type=Dict,
+    default={"limit": 1000, "window": 300, "concurrent_limit": 15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
