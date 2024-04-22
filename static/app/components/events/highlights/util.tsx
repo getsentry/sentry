@@ -2,16 +2,15 @@ import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {getFormattedContextData} from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import type {
-  HighlightContext,
-  HighlightTags,
-} from 'sentry/components/events/highlights/highlightsDataSection';
-import type {
   Event,
   EventTag,
   KeyValueListData,
   Organization,
   Project,
 } from 'sentry/types';
+
+export type HighlightTags = Required<Project>['highlightTags'];
+export type HighlightContext = Required<Project>['highlightContext'];
 
 export function getHighlightContextItems({
   event,
