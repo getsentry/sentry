@@ -115,7 +115,7 @@ class SetupWizard(PermissionTestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
         cached = default_cache.get(key)
-
+        assert cached.get("apiKeys") is not None
         assert cached.get("apiKeys") == serialize(user_api_token)
 
     def test_return_org_auth_token_if_one_org(self):
