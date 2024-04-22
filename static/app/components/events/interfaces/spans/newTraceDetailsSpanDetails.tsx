@@ -548,6 +548,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           </table>
           {span._metrics_summary ? (
             <CustomMetricsEventData
+              projectId={event.projectID}
               metricsSummary={span._metrics_summary}
               startTimestamp={span.start_timestamp}
             />
