@@ -440,7 +440,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
               defaultQuery=""
               query={tableQuery}
               placeholder={t('Filter your projects')}
-              aria-label={t('Filter projects')}
+              aria-label={t()}
               onSearch={this.handleSearch}
             />
           </Container>
