@@ -125,7 +125,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return {
             ...state,
             focus: {
-              type: QueryBuilderFocusType.TOKEN_OP,
+              type: QueryBuilderFocusType.FILTER_OP,
               range: {
                 start: action.token.location.start.offset,
                 end: action.token.location.end.offset,
@@ -136,7 +136,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return {
             ...state,
             focus: {
-              type: QueryBuilderFocusType.TOKEN_VALUE,
+              type: QueryBuilderFocusType.FILTER_VALUE,
               range: {
                 start: action.token.location.start.offset,
                 end: action.token.location.end.offset,

@@ -4,7 +4,10 @@ import {Item, Section} from '@react-stately/collections';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {formatFilterValue} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  escapeTagValue,
+  formatFilterValue,
+} from 'sentry/components/searchQueryBuilder/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
@@ -20,14 +23,6 @@ function isStringFilterValues(
   tagValues: string[] | SearchGroup[]
 ): tagValues is string[] {
   return typeof tagValues[0] === 'string';
-}
-
-export function escapeTagValue(value: string): string {
-  // Wrap in quotes if there is a space
-  const isArrayTag = value.startsWith('[') && value.endsWith(']') && value.includes(',');
-  return (value.includes(' ') || value.includes('"')) && !isArrayTag
-    ? `"${value.replace(/"/g, '\\"')}"`
-    : value;
 }
 
 function getPredefinedValues({key}: {key?: Tag}): string[] {

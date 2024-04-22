@@ -1,4 +1,4 @@
-import {type RefObject, useEffect, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -34,14 +34,6 @@ const OP_LABELS = {
   [TermOperator.NOT_EQUAL]: 'is not',
 };
 
-function useFocusPart(ref: RefObject<HTMLDivElement>, isFocused: boolean) {
-  useEffect(() => {
-    if (isFocused) {
-      ref.current?.focus();
-    }
-  }, [isFocused, ref]);
-}
-
 const getOpLabel = (token: TokenResult<Token.FILTER>) => {
   if (token.negated) {
     return OP_LABELS[TermOperator.NOT_EQUAL];
@@ -71,13 +63,10 @@ function FilterOperator({token}: SearchQueryTokenProps) {
     <DropdownMenu
       trigger={triggerProps => (
         <OpDiv
-          {...triggerProps}
+          tabIndex={-1}
           role="gridcell"
           aria-label={t('Edit token operator')}
-          onClick={e => {
-            triggerProps.onClick?.(e);
-            dispatch({type: 'CLICK_TOKEN_OP', token});
-          }}
+          {...triggerProps}
         >
           <InteractionStateLayer />
           {getOpLabel(token)}
@@ -104,12 +93,10 @@ function FilterKey({token}: SearchQueryTokenProps) {
 
 function FilterValue({token}: SearchQueryTokenProps) {
   const {focus, dispatch} = useSearchQueryBuilder();
-  const ref = useRef<HTMLDivElement>(null);
   const isFocused =
-    focus?.type === QueryBuilderFocusType.TOKEN_VALUE && focusIsWithinToken(focus, token);
+    focus?.type === QueryBuilderFocusType.FILTER_VALUE &&
+    focusIsWithinToken(focus, token);
   const isEditing = isFocused && focus.editing;
-
-  useFocusPart(ref, isFocused);
 
   if (isEditing) {
     return (
