@@ -14,7 +14,7 @@ class HighlightContextField(serializers.Field):
             raise serializers.ValidationError("Expected a dictionary.")
 
         for key, value in data.items():
-            if not re.match(r"^.*$", key):
+            if not re.match(r"^.+$", key):
                 raise serializers.ValidationError(f"Key '{key}' is invalid.")
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 raise serializers.ValidationError(f"Value for '{key}' must be a list of strings.")

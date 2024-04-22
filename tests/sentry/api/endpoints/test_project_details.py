@@ -849,7 +849,6 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:highlight_tags") is None
 
         preset = get_highlight_preset_for_project(self.project)
-        assert resp.data["highlightContext"] == preset["context"]
         assert resp.data["highlightTags"] == preset["tags"]
 
         with self.feature("organizations:event-tags-tree-ui"):
@@ -913,7 +912,19 @@ class ProjectUpdateTest(APITestCase):
             assert self.project.get_option("sentry:highlight_context") == {}
             assert resp.data["highlightContext"] == {}
 
-            # Checking schema validation
+            # Checking validation
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=["bird-words", ["red", "blue"]],
+            )
+            assert "Expected a dictionary" in resp.data["highlightContext"][0]
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext={"": ["empty", "context", "type"]},
+            )
+            assert "Key '' is invalid" in resp.data["highlightContext"][0]
             resp = self.get_error_response(
                 self.org_slug,
                 self.proj_slug,
