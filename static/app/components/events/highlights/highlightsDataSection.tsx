@@ -1,6 +1,8 @@
 import ContextSummary from 'sentry/components/events/contextSummary';
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 
 interface HighlightsSectionProps {
   event: Event;
