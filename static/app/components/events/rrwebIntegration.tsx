@@ -5,8 +5,10 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
