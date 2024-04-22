@@ -12,7 +12,7 @@ import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRo
 import type {
   HighlightContext,
   HighlightTags,
-} from 'sentry/components/events/highlights/highlightsDataSection';
+} from 'sentry/components/events/highlights/util';
 import {
   getHighlightContextItems,
   getHighlightTagItems,

@@ -35,8 +35,6 @@ interface HighlightsSectionProps {
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
-export type HighlightTags = Required<Project>['highlightTags'];
-export type HighlightContext = Required<Project>['highlightContext'];
 
 export default function HighlightsDataSection({
   event,
