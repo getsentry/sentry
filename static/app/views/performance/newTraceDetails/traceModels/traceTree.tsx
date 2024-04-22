@@ -685,6 +685,14 @@ export class TraceTree {
 
     // Whatever remains is transaction nodes that we failed to reparent under the spans.
     for (const [_, transaction] of transactionsToSpanMap) {
+      if ('parent_span_id' in transaction.value && !!transaction.value.parent_span_id) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-view-reparenting']);
+          scope.captureMessage(
+            'Failed to reparent transaction under span. None of the spans we fetched had a span_id matching the parent_span_id of the transaction.'
+          );
+        });
+      }
       const cloned = transaction.cloneDeep();
       parent.spanChildren.push(cloned);
       cloned.parent = parent;
