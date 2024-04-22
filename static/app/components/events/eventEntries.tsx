@@ -16,7 +16,7 @@ import type {
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
-import {EntryType, EventOrGroupType} from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';

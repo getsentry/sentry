@@ -1,7 +1,7 @@
 import Tag from 'sentry/components/badge/tag';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {Deploy} from 'sentry/types';
+import type {Deploy} from 'sentry/types/release';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
