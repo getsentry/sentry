@@ -234,12 +234,7 @@ export function getMetricsSeriesName(
   groupBy?: Record<string, string>,
   isMultiQuery: boolean = true
 ) {
-  let name = '';
-  if (isMetricFormula(query)) {
-    name = unescapeMetricsFormula(query.formula);
-  } else {
-    name = formatMRIField(MRIToField(query.mri, query.op));
-  }
+  let name = getMetricQueryName(query);
 
   if (isMultiQuery) {
     name = `${query.name}: ${name}`;
@@ -259,6 +254,15 @@ export function getMetricsSeriesName(
     return `${name} - ${formattedGrouping}`;
   }
   return formattedGrouping;
+}
+
+export function getMetricQueryName(query: MetricsQueryApiQueryParams): string {
+  return (
+    query.alias ??
+    (isMetricFormula(query)
+      ? unescapeMetricsFormula(query.formula)
+      : formatMRIField(MRIToField(query.mri, query.op)))
+  );
 }
 
 export function getMetricsSeriesId(
