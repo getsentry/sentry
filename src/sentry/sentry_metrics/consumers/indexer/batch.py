@@ -501,13 +501,13 @@ class IndexerBatch:
                     "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
                 ):
                     if in_random_rollout("sentry-metrics.indexer.reconstruct.enable-orjson"):
-                        serialized_msg = orjson.dumps(new_payload_value).encode()
+                        serialized_msg = orjson.dumps(new_payload_value)
                     else:
-                        serialized_msg = rapidjson.dumps(new_payload_value).encode()
+                        serialized_msg = rapidjson.dumps(new_payload_value)
 
                     kafka_payload = KafkaPayload(
                         key=message.payload.key,
-                        value=serialized_msg,
+                        value=serialized_msg.encode(),
                         headers=[
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),
