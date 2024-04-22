@@ -19,6 +19,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
     TabKey.ERRORS,
     TabKey.BREADCRUMBS,
     TabKey.NETWORK,
+    TabKey.CONSOLE,
   ];
 
   if (isVideoReplay) {
