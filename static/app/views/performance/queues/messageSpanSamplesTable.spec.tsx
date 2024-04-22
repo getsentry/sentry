@@ -14,10 +14,13 @@ describe('messageSpanSamplesTable', () => {
   beforeEach(() => {});
   it('renders', () => {
     render(<MessageSpanSamplesTable data={[]} isLoading={false} />);
-    screen.getByText('Span ID');
-    screen.getByText('Message ID');
-    screen.getByText('Processing Latency');
-    screen.getByText('Message Size');
-    screen.getByText('Status');
+    expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Span ID'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Message ID'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Processing Latency'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Message Size'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
   });
 });
