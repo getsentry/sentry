@@ -18,11 +18,17 @@ import {generateQueryWithTag, isUrl} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
+interface EventTagTreeRowConfig {
+  disableActions?: boolean;
+  disableRichValue?: boolean;
+}
+
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
   projectSlug: string;
   tagKey: string;
+  config?: EventTagTreeRowConfig;
   isLast?: boolean;
   spacerCount?: number;
 }
@@ -34,12 +40,14 @@ export default function EventTagsTreeRow({
   projectSlug,
   spacerCount = 0,
   isLast = false,
+  config = {},
+  ...props
 }: EventTagsTreeRowProps) {
   const organization = useOrganization();
   const originalTag = content.originalTag;
   const tagMeta = content.meta?.value?.[''];
   const tagErrors = tagMeta?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0;
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
 
   if (!originalTag) {
     return (
@@ -57,8 +65,31 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
+  const tagValue =
+    originalTag.key === 'release' && !config?.disableRichValue ? (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={projectSlug}
+        releaseVersion={content.value}
+        showUnderline
+        underlineColor="linkUnderline"
+      >
+        <Version version={content.value} truncate />
+      </VersionHoverCard>
+    ) : (
+      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+    );
+
+  const tagActions = hasTagErrors ? (
+    <TreeValueErrors data-test-id="tag-tree-row-errors">
+      <AnnotatedTextErrors errors={tagErrors} />
+    </TreeValueErrors>
+  ) : (
+    <EventTagsTreeRowDropdown content={content} event={event} />
+  );
+
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
@@ -72,28 +103,8 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue>
-          {originalTag.key === 'release' ? (
-            <VersionHoverCard
-              organization={organization}
-              projectSlug={projectSlug}
-              releaseVersion={content.value}
-              showUnderline
-              underlineColor="linkUnderline"
-            >
-              <Version version={content.value} truncate />
-            </VersionHoverCard>
-          ) : (
-            <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
-          )}
-        </TreeValue>
-        {hasTagErrors ? (
-          <TreeValueErrors data-test-id="tag-tree-row-errors">
-            <AnnotatedTextErrors errors={tagErrors} />
-          </TreeValueErrors>
-        ) : (
-          <EventTagsTreeRowDropdown content={content} event={event} />
-        )}
+        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
   );
@@ -205,13 +216,14 @@ function EventTagsTreeRowDropdown({
   );
 }
 
-const TreeRow = styled('div')<{hasErrors: boolean}>`
+export const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
   position: relative;
   display: grid;
   align-items: center;
   grid-column: span 2;
+  column-gap: ${space(1.5)};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
@@ -270,17 +282,18 @@ const TreeValueTrunk = styled('div')`
   grid-column-gap: ${space(0.5)};
 `;
 
-const TreeValue = styled('div')`
+export const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
 `;
 
-const TreeKey = styled(TreeValue)<{hasErrors: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.gray300)};
+export const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
 `;
 
 /**
