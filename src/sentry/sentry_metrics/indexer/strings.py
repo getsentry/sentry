@@ -101,6 +101,9 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.score.weight.fid@ratio": PREFIX + 146,
     "d:transactions/measurements.score.weight.lcp@ratio": PREFIX + 147,
     "d:transactions/measurements.score.weight.ttfb@ratio": PREFIX + 148,
+    "g:spans/self_time@millisecond": PREFIX + 149,
+    "g:spans/self_time_light@millisecond": PREFIX + 150,
+    "g:spans/total_time@millisecond": PREFIX + 151,
     # Last possible index: 199
 }
 
