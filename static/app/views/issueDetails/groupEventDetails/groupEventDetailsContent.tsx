@@ -43,6 +43,7 @@ import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
@@ -86,7 +87,7 @@ function DefaultGroupEventDetailsContent({
   const hasNewTagsUI = useHasNewTagsUI();
 
   const projectSlug = project.slug;
-  const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+  const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
