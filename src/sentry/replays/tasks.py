@@ -10,7 +10,7 @@ from sentry.replays.lib.storage import filestore, make_video_filename, storage, 
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher

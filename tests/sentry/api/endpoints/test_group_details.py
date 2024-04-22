@@ -24,7 +24,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time

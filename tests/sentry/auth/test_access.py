@@ -19,7 +19,7 @@ from sentry.models.user import User
 from sentry.models.userrole import UserRole
 from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test

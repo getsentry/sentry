@@ -9,7 +9,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----

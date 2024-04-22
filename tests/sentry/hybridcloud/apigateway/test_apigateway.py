@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response

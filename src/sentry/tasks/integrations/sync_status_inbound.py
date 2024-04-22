@@ -13,7 +13,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus

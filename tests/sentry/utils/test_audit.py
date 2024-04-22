@@ -7,7 +7,7 @@ from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode

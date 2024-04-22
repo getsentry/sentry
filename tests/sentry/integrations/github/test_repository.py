@@ -11,7 +11,7 @@ from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
