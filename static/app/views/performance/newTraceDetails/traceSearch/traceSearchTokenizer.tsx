@@ -38,8 +38,10 @@ const SPAN_KEYS: Record<keyof TraceTree.Span, Type> = {
   origin: 'string',
   parent_span_id: 'string',
   same_process_as_parent: 'boolean',
+  // TODO Jonas Badalic: The response for the avg duration metrics is now an object and can return
+  // both the avg span_self time and the avg span duration. This will need to be handled differently.
   // This one will need to be flattened
-  'span.average_time': 'number',
+  'span.averageResults': 'object',
   status: 'string',
 
   // These are both records and will need to be handled differently
