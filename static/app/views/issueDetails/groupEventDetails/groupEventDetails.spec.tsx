@@ -497,7 +497,7 @@ describe('groupEventDetails', () => {
   describe('changes to event tags ui', () => {
     async function assertNewTagsView() {
       expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-      const contextSummary = screen.getByTestId('highlighted-event-data');
+      const contextSummary = screen.getByTestId('event-highlights');
       const contextSummaryContainer = within(contextSummary);
       // 3 contexts in makeDefaultMockData.event.contexts, trace is ignored
       expect(contextSummaryContainer.queryAllByTestId('context-item')).toHaveLength(3);
