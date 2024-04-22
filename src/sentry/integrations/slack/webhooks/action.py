@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+import orjson
 import requests as requests_
 import sentry_sdk
 from django.urls import reverse
@@ -19,6 +20,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -39,6 +41,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
+from sentry.utils.json import JSONData
 
 from ..utils import logger
 
@@ -91,6 +94,15 @@ ARCHIVE_OPTIONS = {
     "Until 1000 events": "ignored:archived_until_condition_met:1000",
     "Forever": "ignored:archived_forever",
 }
+
+
+# TODO: remove this once we're confident that orjson is working as expected
+def load_json(data: Any) -> JSONData:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        # Span is required because `json.loads` calls it by default
+        with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+            return orjson.loads(data)
+    return json.loads(data)
 
 
 def update_group(
@@ -197,7 +209,7 @@ class SlackActionEndpoint(Endpoint):
             if view:
                 private_metadata = view.get("private_metadata")
                 if private_metadata:
-                    data = json.loads(private_metadata)
+                    data = load_json(private_metadata)
                     channel_id = data.get("channel_id")
                     response_url = data.get("orig_response_url")
 
@@ -571,7 +583,7 @@ class SlackActionEndpoint(Endpoint):
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
-                private_metadata = json.loads(slack_request.data["view"]["private_metadata"])
+                private_metadata = load_json(slack_request.data["view"]["private_metadata"])
                 slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
