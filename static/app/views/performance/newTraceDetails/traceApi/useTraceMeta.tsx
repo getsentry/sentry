@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';

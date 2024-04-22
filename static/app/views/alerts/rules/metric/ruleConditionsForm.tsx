@@ -383,7 +383,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             alertType={alertType}
             required
           />
-          {monitorType === MonitorType.CONTINUOUS && (
+          {monitorType !== MonitorType.ACTIVATED && (
             <SelectControl
               name="timeWindow"
               styles={this.selectControlStyles}
