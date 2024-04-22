@@ -16,7 +16,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
     serialize_organization_integration,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode

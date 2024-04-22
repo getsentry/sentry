@@ -1,7 +1,7 @@
 from django.db import router
 from django.db.models import F
 
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 

@@ -1,3 +1,5 @@
+import uuid
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -196,12 +198,13 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert meta["dataset"] == "spansIndexed"
 
     def test_inp_span(self):
+        replay_id = uuid.uuid4().hex
         self.store_spans(
             [
                 self.create_span(
                     {
                         "sentry_tags": {
-                            "replay_id": "abc123",
+                            "replay_id": replay_id,
                             "browser.name": "Chrome",
                             "transaction": "/pageloads/",
                         }
@@ -213,7 +216,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         response = self.do_request(
             {
                 "field": ["replay.id", "browser.name", "origin.transaction", "count()"],
-                "query": "replay.id:abc123 AND browser.name:Chrome AND origin.transaction:/pageloads/",
+                "query": f"replay.id:{replay_id} AND browser.name:Chrome AND origin.transaction:/pageloads/",
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spansIndexed",
@@ -224,7 +227,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["replay.id"] == "abc123"
+        assert data[0]["replay.id"] == replay_id
         assert data[0]["browser.name"] == "Chrome"
         assert data[0]["origin.transaction"] == "/pageloads/"
         assert meta["dataset"] == "spansIndexed"

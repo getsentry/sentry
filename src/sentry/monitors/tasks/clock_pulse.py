@@ -15,7 +15,7 @@ from django.conf import settings
 from sentry.conf.types.kafka_definition import Topic
 from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
 from sentry.monitors.types import ClockPulseMessage
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import (

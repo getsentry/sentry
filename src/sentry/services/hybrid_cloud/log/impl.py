@@ -11,7 +11,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, LogService, UserIpEvent
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class DatabaseBackedLogService(LogService):

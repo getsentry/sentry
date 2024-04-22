@@ -23,7 +23,7 @@ from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -361,7 +361,14 @@ def handle_group_owners(
     from sentry.services.hybrid_cloud.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
+    logging_params = {
+        "group": group.id,
+        "project": project.id,
+        "organization": project.organization_id,
+        "issue_owners_length": len(issue_owners) if issue_owners else 0,
+    }
     try:
+        logger.info("handle_group_owners.start", extra=logging_params)
         with (
             metrics.timer("post_process.handle_group_owners"),
             sentry_sdk.start_span(op="post_process.handle_group_owners"),
@@ -383,12 +390,8 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                logging_params = {
-                    "group": group.id,
-                    "project": project.id,
-                    "organization": project.organization_id,
-                    "group_owner_id": group_owner.id,
-                }
+                local_logging_params = logging_params.copy()
+                local_logging_params["group_owner_id"] = group_owner.id
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -405,7 +408,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "assignment_deleted"},
+                        extra={**local_logging_params, "reason": "assignment_deleted"},
                     )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
@@ -417,7 +420,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "outdated_rule"},
+                        extra={**local_logging_params, "reason": "outdated_rule"},
                     )
                 else:
                     keeping_owners.add(lookup_key)
@@ -459,17 +462,11 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
-                logger.info(
-                    "group_owners.bulk_create",
-                    extra={
-                        "group_id": group.id,
-                        "project_id": project.id,
-                        "organization_id": project.organization_id,
-                        "count": len(new_group_owners),
-                    },
-                )
+                logging_params["count"] = len(new_group_owners)
+                logger.info("group_owners.bulk_create", extra=logging_params)
 
     except UnableToAcquireLock:
+        logger.info("handle_group_owners.lock_failed", extra=logging_params)
         pass
 
 

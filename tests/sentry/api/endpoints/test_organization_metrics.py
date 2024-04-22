@@ -10,7 +10,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
     SessionMRI,
