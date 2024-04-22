@@ -723,7 +723,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
-        extra_condition: Function | None = None,
     ) -> SelectType:
 
         statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
