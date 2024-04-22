@@ -1,7 +1,11 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from django.utils import timezone
+
+from sentry import analytics
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +63,18 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                         "grouphash": incident.grouphash,
                     },
                 )
+                # if incident was longer than the broken env time, check if there was a broken detection that is also now resolved
+                if incident.starting_timestamp <= timezone.now() - timedelta(
+                    days=NUM_DAYS_BROKEN_PERIOD
+                ):
+                    if incident.monitorenvbrokendetection_set.exists():
+                        analytics.record(
+                            "cron_monitor_broken_status.recovery",
+                            organization_id=monitor_env.monitor.organization_id,
+                            project_id=monitor_env.monitor.project_id,
+                            monitor_id=monitor_env.monitor.id,
+                            monitor_env_id=monitor_env.id,
+                        )
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params

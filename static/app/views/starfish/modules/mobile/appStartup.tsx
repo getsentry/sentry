@@ -42,7 +42,7 @@ export default function InitializationModule() {
   }, [location]);
 
   return (
-    <Feature features="starfish-mobile-appstart" organization={organization}>
+    <Feature features="spans-first-ui" organization={organization}>
       <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
         <Layout.Page>
           <PageAlertProvider>

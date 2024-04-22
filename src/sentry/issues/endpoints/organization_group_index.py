@@ -92,9 +92,11 @@ def inbox_search(
         return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
-    invalid_search_terms = [
-        str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
-    ]
+    invalid_search_terms = (
+        [str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms]
+        if search_filters
+        else []
+    )
     if invalid_search_terms:
         raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
 
@@ -204,7 +206,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
                 )
 
-                result = search.query(**query_kwargs)
+                result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
     @track_slo_response("workflow")
@@ -332,7 +334,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 if groups:
                     return Response(serialize(groups, request.user, serializer(), request=request))
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
+            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
@@ -484,9 +486,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return update_groups(
-            request, request.GET.getlist("id"), projects, organization.id, search_fn
-        )
+        ids = [int(id) for id in request.GET.getlist("id")]
+        return update_groups(request, ids, projects, organization.id, search_fn)
 
     @track_slo_response("workflow")
     def delete(self, request: Request, organization) -> Response:

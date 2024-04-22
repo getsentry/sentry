@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import QuerySet
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models.auditlogentry import AuditLogEntry
@@ -10,7 +11,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, LogService, UserIpEvent
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class DatabaseBackedLogService(LogService):
@@ -51,13 +52,21 @@ class DatabaseBackedLogService(LogService):
             ).update(last_active=event.last_seen)
 
     def find_last_log(
-        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+        self,
+        *,
+        organization_id: int | None,
+        target_object_id: int | None,
+        event: int | None,
+        data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
-        last_entry: AuditLogEntry | None = AuditLogEntry.objects.filter(
+        last_entry_q: QuerySet[AuditLogEntry] = AuditLogEntry.objects.filter(
             organization_id=organization_id,
             target_object=target_object_id,
             event=event,
-        ).last()
+        )
+        if data:
+            last_entry_q = last_entry_q.filter(data=data)
+        last_entry: AuditLogEntry | None = last_entry_q.last()
 
         if last_entry is None:
             return None
@@ -87,6 +96,11 @@ class OutboxBackedLogService(LogService):
         outbox.save()
 
     def find_last_log(
-        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+        self,
+        *,
+        organization_id: int | None,
+        target_object_id: int | None,
+        event: int | None,
+        data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         return None

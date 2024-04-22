@@ -3,8 +3,8 @@ import {renderLinksInText} from 'sentry/components/events/interfaces/crashConten
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {

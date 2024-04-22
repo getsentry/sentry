@@ -86,11 +86,7 @@ export function MetricWidgetCard({
     }
     if (widget.displayType === DisplayType.BIG_NUMBER) {
       return (
-        <MetricBigNumberContainer
-          timeseriesData={timeseriesData}
-          isLoading={isLoading}
-          metricQueries={metricQueries}
-        />
+        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isLoading} />
       );
     }
 

@@ -7,7 +7,7 @@ import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Avatar} from 'sentry/types';
+import type {Avatar} from 'sentry/types/core';
 
 import Gravatar from './gravatar';
 import type {ImageStyleProps} from './styles';

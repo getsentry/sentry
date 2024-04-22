@@ -22,7 +22,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
@@ -50,6 +50,7 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
@@ -125,7 +126,10 @@ export function TraceView() {
   const meta = useTraceMeta();
 
   return (
-    <SentryDocumentTitle title={t('Trace')} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={`${t('Trace')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
       <NoProjectMessage organization={organization}>
         <TraceViewContent
           status={trace.status}
@@ -724,6 +728,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
           />
           <TraceResetZoomButton viewManager={viewManager} />
+          <TraceShortcuts />
         </TraceToolbar>
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
           <Trace
@@ -805,7 +810,7 @@ const TraceInnerLayout = styled('div')`
 const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 1fr min-content min-content;
   gap: ${space(1)};
 `;
 

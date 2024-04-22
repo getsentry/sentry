@@ -81,8 +81,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
 
         try:
             data = json.loads(self.request.body)
-        except ValueError as e:
-            logger.info("gitlab.body.parse_error", extra={"error": str(e)})
+        except ValueError:
             data = {}
 
         return self.get_response_from_webhookpayload(

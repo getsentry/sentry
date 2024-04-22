@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import type {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 
 import type {CommonStoreDefinition} from './types';
 

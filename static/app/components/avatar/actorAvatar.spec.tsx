@@ -8,7 +8,8 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team as TeamType, User as UserType} from 'sentry/types';
+import type {Team as TeamType} from 'sentry/types/organization';
+import type {User as UserType} from 'sentry/types/user';
 
 describe('ActorAvatar', function () {
   const user: UserType = {
@@ -94,6 +95,34 @@ describe('ActorAvatar', function () {
     );
 
     expect(await screen.findByText('CT')).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalled();
+  });
+
+  it('should fetch a user not in the store', async function () {
+    const organization = OrganizationFixture();
+
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    const user2 = UserFixture({id: '2', name: 'COOL USER'});
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [{user: user2}],
+    });
+
+    render(
+      <ActorAvatar
+        actor={{
+          id: user2.id,
+          name: user2.name,
+          email: user2.email,
+          type: 'user',
+        }}
+      />
+    );
+
+    expect(await screen.findByText('CU')).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalled();
   });
 });

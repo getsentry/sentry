@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import Enum
 from typing import Any, Union, cast
@@ -11,6 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.data.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
@@ -145,6 +146,7 @@ class ScheduledQuery:
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
+    mappers: list[Mapper] = field(default_factory=list)
 
     def initialize(
         self,
@@ -318,7 +320,7 @@ class ScheduledQuery:
         return metrics_query, None
 
 
-@dataclass(frozen=True)
+@dataclass
 class QueryResult:
     """
     Represents the result of a ScheduledQuery containing its associated series and totals results.
@@ -370,8 +372,8 @@ class QueryResult:
             series_query=series_query,
             totals_query=totals_query,
             result={
-                "series": {"data": {}, "meta": {}},
-                "totals": {"data": {}, "meta": {}},
+                "series": {"data": [], "meta": []},
+                "totals": {"data": [], "meta": []},
                 # We want to honor the date ranges of the supplied query.
                 "modified_start": scheduled_query.metrics_query.start,
                 "modified_end": scheduled_query.metrics_query.end,
@@ -445,11 +447,23 @@ class QueryResult:
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
+        if "series" not in self.result:
+            return []
         return self.result["series"]["data"]
+
+    @series.setter
+    def series(self, value: Sequence[Mapping[str, Any]]) -> None:
+        self.result["series"]["data"] = value
 
     @property
     def totals(self) -> Sequence[Mapping[str, Any]]:
+        if "totals" not in self.result:
+            return []
         return self.result["totals"]["data"]
+
+    @totals.setter
+    def totals(self, value: Sequence[Mapping[str, Any]]) -> None:
+        self.result["totals"]["data"] = value
 
     @property
     def meta(self) -> Sequence[Mapping[str, str]]:
@@ -464,7 +478,11 @@ class QueryResult:
         # that we can correctly render groups in case they are not returned from the db because of missing data.
         #
         # Sorting of the groups is done to maintain consistency across function calls.
-        return sorted(UsedGroupBysVisitor().visit(self._any_query().metrics_query.query))
+        scheduled_query = self._any_query()
+        mappers = [mapper for mapper in scheduled_query.mappers if mapper.applied_on_groupby]
+        return sorted(
+            UsedGroupBysVisitor(mappers=mappers).visit(scheduled_query.metrics_query.query)
+        )
 
     @property
     def interval(self) -> int | None:
@@ -612,9 +630,10 @@ class QueryExecutor:
             self._projects
         ).items():
             for metric_blocking in metrics_blocking_state.metrics.values():
-                blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
-                    project_id
-                )
+                if metric_blocking.is_blocked:
+                    blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
+                        project_id
+                    )
 
         return blocked_metrics_for_projects
 
@@ -773,7 +792,7 @@ class QueryExecutor:
         while continue_execution:
             continue_execution = self._bulk_execute()
 
-    def execute(self) -> Sequence[QueryResult]:
+    def execute(self) -> list[QueryResult]:
         """
         Executes the scheduled queries in the execution loop.
 
@@ -797,7 +816,7 @@ class QueryExecutor:
                     "Not all queries were executed in the execution loop"
                 )
 
-        return cast(Sequence[QueryResult], self._query_results)
+        return cast(list[QueryResult], self._query_results)
 
     def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
         """
@@ -812,6 +831,7 @@ class QueryExecutor:
             unit_family=intermediate_query.unit_family,
             unit=intermediate_query.unit,
             scaling_factor=intermediate_query.scaling_factor,
+            mappers=intermediate_query.mappers,
         )
 
         # In case the user chooses to run also a series query, we will duplicate the query and chain it after totals.

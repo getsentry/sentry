@@ -26,7 +26,7 @@ from sentry.sentry_metrics.querying.units import (
     get_unit_family_and_unit,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import block_metric
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -1087,7 +1087,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert len(data[0]) == 0
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
@@ -1126,10 +1127,52 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 2
-        assert len(data[0]) == 0
+        assert len(data[0][0]["series"]) == 3
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
         assert data[1][0]["totals"] == self.to_reference_unit(10.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_one_tag_blocked_for_one_project(self):
+        mri = "d:custom/page_size@byte"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        # Blocking a tag should not affect the querying, since we do not want to filter out the tag.
+        block_tags_of_metric(mri, {"transaction"}, [project_1])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {"transaction": "/hello"},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("sum", mri)
+
+        results = self.run_query(
+            mql_queries=[MQLQuery(query_1)],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, self.to_reference_unit(25.0, "byte"), None]
+        assert data[0][0]["totals"] == self.to_reference_unit(25.0, "byte")
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_invalid_syntax(
@@ -1609,3 +1652,335 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit_family"] == expected_unit_family
             assert meta[0][1]["unit"] == expected_unit
             assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_filter_project_mapping(self) -> None:
+        mql = self.mql("sum", TransactionMRI.DURATION.value, "project:bar")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(12.0),
+            self.to_reference_unit(9.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)
+
+    def setup_second_project(self):
+        self.new_project_1 = self.create_project(name="Bar Again")
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_1.organization.id,
+                self.new_project_1.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+    def setup_third_project(self):
+        self.new_project_2 = self.create_project(name="Bar Yet Again")
+
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_2.organization.id,
+                self.new_project_2.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_mapping(self) -> None:
+        self.setup_second_project()
+        mql = self.mql("avg", TransactionMRI.DURATION.value, group_by="project")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        data = sorted(data, key=lambda x: x["by"]["project"])
+        assert len(data) == 2
+        assert data[1]["by"] == {"project": self.new_project_1.slug}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_and_filter_project_mapping(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mqls = [
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:[bar,bar-again]",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="!project:bar-yet-again",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:bar or project:bar-again",
+            ),
+        ]
+        for mql in mqls:
+            query = MQLQuery(mql)
+
+            results = self.run_query(
+                mql_queries=[query],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project, self.new_project_1, self.new_project_2],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"][0]
+            assert len(data) == 2
+            data = sorted(data, key=lambda x: x["by"]["project"])
+            assert data[1]["by"] == {"project": self.new_project_1.slug}
+            assert data[1]["series"] == [
+                None,
+                self.to_reference_unit(3.0),
+                self.to_reference_unit(5.0),
+            ]
+            assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_id_is_not_unmapped(self) -> None:
+        self.setup_second_project()
+
+        mql = self.mql("avg", TransactionMRI.DURATION.value, group_by="project_id")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project_id"])
+        assert data[0]["by"] == {"project_id": self.project.id}
+        assert data[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_only_specific_queries_project_mapping(self) -> None:
+        self.setup_second_project()
+
+        mql_1 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project_id")
+        mql_2 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project")
+        query_1 = MQLQuery(mql_1)
+        query_2 = MQLQuery(mql_2)
+
+        results = self.run_query(
+            mql_queries=[query_1, query_2],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data_1 = results["data"][0]
+        data_1 = sorted(data_1, key=lambda x: x["by"]["project_id"])
+        data_2 = results["data"][1]
+        data_2 = sorted(data_2, key=lambda x: x["by"]["project"])
+
+        assert data_1[0]["by"] == {"project_id": self.project.id}
+        assert data_1[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data_2[0]["by"] == {"project": self.project.slug}
+        assert data_2[1]["by"] == {"project": self.new_project_1.slug}
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_id_and_filter_by_project(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project_id",
+            filters="project:[bar,bar-again]",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project_id"])
+        assert data[0]["by"] == {"project_id": self.project.id}
+        assert data[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_and_filter_by_project_id(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project",
+            filters=f"project_id:[{self.project.id},{self.new_project_1.id}]",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project"])
+        assert data[0]["by"] == {"project": self.project.slug}
+        assert data[1]["by"] == {"project": self.new_project_1.slug}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_and_filter_by_unknown_project_id(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_filter_by_unknown_project_slug(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            filters="project:unknown-project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None

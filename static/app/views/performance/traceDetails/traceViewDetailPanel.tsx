@@ -52,7 +52,7 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -507,7 +507,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (

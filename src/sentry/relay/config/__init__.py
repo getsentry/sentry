@@ -76,6 +76,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -169,7 +170,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
         error_messages += [
             "ChunkLoadError: Loading chunk *",
-            "Uncaught *: ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:

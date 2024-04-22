@@ -7,7 +7,7 @@ import abc
 
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 from .model import AuditLogEvent, UserIpEvent
 
@@ -38,6 +38,7 @@ class LogService(RpcService):
         organization_id: int | None,
         target_object_id: int | None,
         event: int | None,
+        data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         pass
 

@@ -470,6 +470,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -1221,12 +1227,6 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Option to enable orjson for JSON parsing
-register("sentry-metrics.indexer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "sentry-metrics.ingest-consumer.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1286,6 +1286,11 @@ register(
     "sentry-metrics.indexer.raise-validation-errors",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to enable orjson for JSON parsing in reconstruct_messages function
+register(
+    "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Global and per-organization limits on the writes to the string indexer's DB.
@@ -1802,18 +1807,8 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Webhook processing controls
 register(
-    "hybridcloud.webhookpayload.use_parallel",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.webhookpayload.use_mailbox_buckets",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1900,7 +1895,7 @@ register(
 # The flag activates whether to send group attributes messages to kafka
 register(
     "issues.group_attributes.send_kafka",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2374,6 +2369,24 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# list of project IDs we want to deny ingesting profiles
+# function metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# rollout rate: % of profiles for which we ingest the extracted profile
+# functions metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2384,6 +2397,12 @@ register(
     "standalone-spans.process-spans-consumer.project-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.process-spans-consumer.project-rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2413,6 +2432,63 @@ register(
 register(
     "traces.sample-list.sample-rate",
     type=Float,
-    default=100_000.0,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Options for setting LLM providers and usecases
+register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
+# Example provider:
+#     "openai": {
+#         "options": {
+#             "api_key": "",
+#         },
+#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
+#     }
+
+register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
+# Example usecase:
+#     "suggestedfix": {
+#         "provider": "openai",
+#         "options": {
+#             "model": "gpt-3.5-turbo",
+#         },
+#     }
+# }
+
+register(
+    "feedback.filter_garbage_messages",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organizations with increased rate limits for organization_events API
+register(
+    "api.organization_events.rate-limit-increased.orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Increased rate limits for organization_events API for the orgs above
+register(
+    "api.organization_events.rate-limit-increased.limits",
+    type=Dict,
+    default={"limit": 50, "window": 1, "concurrent_limit": 50},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Reduced rate limits for organization_events API for the orgs in LA/EA/GA rollout
+# Once GA'd, this will be the default rate limit for all orgs not on the increase list
+register(
+    "api.organization_events.rate-limit-reduced.limits",
+    type=Dict,
+    default={"limit": 1000, "window": 300, "concurrent_limit": 15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issue_platform.use_kafka_partition_key",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

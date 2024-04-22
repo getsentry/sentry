@@ -4,7 +4,7 @@ from django.test.utils import override_settings
 
 from sentry import newsletter
 from sentry.receivers import create_default_projects
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 

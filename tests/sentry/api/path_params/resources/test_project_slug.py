@@ -23,6 +23,21 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
+        # rename the project_slug
+        from sentry.models.projectredirect import ProjectRedirect
+
+        old_slug = self.project.slug
+
+        self.project.slug = "new-slug"
+        ProjectRedirect.record(self.project, old_slug)
+        slug_kwargs["project_slug"] = old_slug
+
+        _, converted_slugs = endpoint_class().convert_args(request=request, **slug_kwargs)
+
+        self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
+
+        self.project.slug = old_slug
+
     def project_alert_rule_endpoint_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}

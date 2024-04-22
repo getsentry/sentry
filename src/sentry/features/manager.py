@@ -129,6 +129,7 @@ class FeatureManager(RegisteredFeatureManager):
         super().__init__()
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
+        self.option_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
     def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
@@ -158,6 +159,12 @@ class FeatureManager(RegisteredFeatureManager):
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
+        if entity_feature_strategy == FeatureHandlerStrategy.OPTIONS:
+            if name.startswith("users:"):
+                raise NotImplementedError(
+                    "OPTIONS feature handler strategy only supports organizations (for now)"
+                )
+            self.option_features.add(name)
         self._feature_registry[name] = cls
 
     def _get_feature_class(self, name: str) -> type[Feature]:
@@ -214,7 +221,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         sample_rate = 0.01
         try:
-            with metrics.timer("features.has", tags={"name": name}, sample_rate=sample_rate):
+            with metrics.timer("features.has", tags={"feature": name}, sample_rate=sample_rate):
                 actor = kwargs.pop("actor", None)
                 feature = self.get(name, *args, **kwargs)
 
@@ -223,7 +230,7 @@ class FeatureManager(RegisteredFeatureManager):
                 if rv is not None:
                     metrics.incr(
                         "feature.has.result",
-                        tags={"name": name, "result": rv},
+                        tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
                     return rv
@@ -233,7 +240,7 @@ class FeatureManager(RegisteredFeatureManager):
                     if rv is not None:
                         metrics.incr(
                             "feature.has.result",
-                            tags={"name": name, "result": rv},
+                            tags={"feature": name, "result": rv},
                             sample_rate=sample_rate,
                         )
                         return rv
@@ -242,7 +249,7 @@ class FeatureManager(RegisteredFeatureManager):
                 if rv is not None:
                     metrics.incr(
                         "feature.has.result",
-                        tags={"name": name, "result": rv},
+                        tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
                     return rv
@@ -250,7 +257,7 @@ class FeatureManager(RegisteredFeatureManager):
                 # Features are by default disabled if no plugin or default enables them
                 metrics.incr(
                     "feature.has.result",
-                    tags={"name": name, "result": False},
+                    tags={"feature": name, "result": False},
                     sample_rate=sample_rate,
                 )
 

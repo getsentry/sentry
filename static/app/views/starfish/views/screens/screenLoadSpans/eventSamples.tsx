@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -53,9 +54,7 @@ export function ScreenLoadEventSamples({
 
   const deviceClass = decodeScalar(location.query['device.class']);
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??

@@ -7,14 +7,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
   index: number;
   onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
-  onDimensionChange: (index: number) => void;
   onInspectorExpanded: (
     index: number,
     path: string,
@@ -23,7 +21,6 @@ interface Props {
   ) => void;
   startTimestampMs: number;
   style: CSSProperties;
-  traces: ReplayTraceRow | undefined;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
 }
@@ -34,19 +31,14 @@ export default function BreadcrumbRow({
   frame,
   index,
   onClick,
-  onDimensionChange,
   onInspectorExpanded,
   startTimestampMs,
   style,
-  traces,
 }: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
-  const handleDimensionChange = useCallback(
-    () => onDimensionChange(index),
-    [onDimensionChange, index]
-  );
+
   const handleObjectInspectorExpanded = useCallback(
     (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
     [index, onInspectorExpanded]
@@ -66,14 +58,12 @@ export default function BreadcrumbRow({
       })}
       style={style}
       frame={frame}
-      traces={traces}
       extraction={extraction}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       expandPaths={expandPaths}
-      onDimensionChange={handleDimensionChange}
       onInspectorExpanded={handleObjectInspectorExpanded}
     />
   );

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry.api.serializers import serialize
 from sentry.models.group import Group
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import json
 from sentry.utils.cloudfunctions import publish_message

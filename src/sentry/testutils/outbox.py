@@ -9,7 +9,7 @@ from django.core.handlers.wsgi import WSGIRequest
 
 from sentry.hybridcloud.models.webhookpayload import THE_PAST, WebhookPayload
 from sentry.models.outbox import OutboxBase
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox_jobs_control
 from sentry.testutils.silo import assume_test_silo_mode
 

@@ -26,6 +26,8 @@ export enum GenericPerformanceWidgetDataType {
   PERFORMANCE_SCORE = 'performance_score',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
   PERFORMANCE_SCORE_LIST = 'performance_score_list',
+  SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
+  SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
 export type PerformanceWidgetProps = {

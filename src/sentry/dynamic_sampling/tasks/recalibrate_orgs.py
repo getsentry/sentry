@@ -29,7 +29,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 

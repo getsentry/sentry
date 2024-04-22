@@ -75,12 +75,12 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.actor import ActorTuple, get_actor_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -90,6 +90,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -800,11 +801,21 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.query == ""
 
     def test_delete_projects(self):
+        # Testing delete projects from update
         alert_rule = self.create_alert_rule(
             projects=[self.project, self.create_project(fire_project_created=True)]
         )
-        update_alert_rule(alert_rule, projects=[self.project])
-        assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
+        unaffected_alert_rule = self.create_alert_rule(
+            projects=[self.project, self.create_project(fire_project_created=True)]
+        )
+        with self.tasks():
+            update_alert_rule(alert_rule, projects=[self.project])
+        # NOTE: subscribing alert rule to projects creates a new subscription per project
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        assert subscriptions.count() == 1
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.projects.all().count() == 1
+        assert unaffected_alert_rule.projects.all().count() == 2
 
     def test_new_updated_deleted_projects(self):
         alert_rule = self.create_alert_rule(
@@ -812,11 +823,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
-        updated_projects = [self.project, new_project]
+        project_updates = [self.project, new_project]
         with self.tasks():
-            update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
+            update_alert_rule(alert_rule, projects=project_updates, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
-        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
+        updated_projects = alert_rule.projects.all()
+        assert {sub.project for sub in updated_subscriptions} == set(project_updates)
+        assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 

@@ -4,6 +4,7 @@ import type {RouteComponentProps} from 'react-router';
 import DetailedError from 'sentry/components/errors/detailedError';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import {useParams} from 'sentry/utils/useParams';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -20,11 +21,13 @@ type Props = RouteComponentProps<{}, {}>;
 function ProjectEventRedirect({router}: Props) {
   const [error, setError] = useState<string | null>(null);
 
+  const params = useParams();
+
   useEffect(() => {
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
     // Django view).
-    const endpoint = router.location.pathname;
+    const endpoint = `/organizations/${params.orgId}/projects/${params.projectId}/events/${params.eventId}/`;
 
     // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
@@ -55,7 +58,7 @@ function ProjectEventRedirect({router}: Props) {
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
     };
-  });
+  }, [params, router]);
 
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
