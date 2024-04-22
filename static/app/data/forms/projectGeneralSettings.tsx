@@ -117,9 +117,12 @@ export const fields: Record<string, Field> = {
     rows: 1,
     placeholder: t('{"browser": ["name", "version"], "my-context": ["my-custom-key"]}'),
     label: t('Highlighted Context'),
-    help: tct('[link:Structured Context] keys to promote for quick debugging', {
-      link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
-    }),
+    help: tct(
+      '[link:Structured Context] keys to promote to the top of each issue page for quick debugging.',
+      {
+        link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
+      }
+    ),
     getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
     setValue: (val: string) => {
       const schema = JSON.stringify(val, null, 2);
