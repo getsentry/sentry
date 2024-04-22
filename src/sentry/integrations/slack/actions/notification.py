@@ -4,9 +4,12 @@ from collections.abc import Generator, Sequence
 from logging import Logger, getLogger
 from typing import Any
 
+import orjson
+
 from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import (
@@ -33,6 +36,14 @@ from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
 
 _default_logger: Logger = getLogger(__name__)
+
+
+# TODO: remove this when orjson experiment is successful
+def dump_json(data) -> str | bytes:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        return orjson.dumps(data)
+    else:
+        return json.dumps(data)
 
 
 class SlackNotifyServiceAction(IntegrationEventAction):
@@ -97,7 +108,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             if payload_blocks := blocks.get("blocks"):
                 payload = {
                     "text": blocks.get("text"),
-                    "blocks": json.dumps(payload_blocks),
+                    "blocks": dump_json(payload_blocks),
                     "channel": channel,
                     "unfurl_links": False,
                     "unfurl_media": False,
@@ -180,7 +191,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "channel_name": self.get_option("channel"),
                 }
                 # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json.dumps(payload)
+                log_params["payload"] = dump_json(payload)
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -250,7 +261,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": dump_json(blocks.get("blocks")),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,

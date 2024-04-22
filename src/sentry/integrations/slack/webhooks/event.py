@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +12,7 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
@@ -27,6 +29,14 @@ from sentry.utils.urls import parse_link
 from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
+
+
+# TODO: remove this when orjson experiment is successful
+def dump_json(data) -> str | bytes:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        return orjson.dumps(data)
+    else:
+        return json.dumps(data)
 
 
 @all_silo_endpoint  # Only challenge verification is handled at control
@@ -156,7 +166,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args)))
+            seen_marker = hash(dump_json((link_type, args)))
             if seen_marker in links_seen:
                 continue
 
@@ -192,7 +202,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
+            "unfurls": dump_json(results),
         }
 
         client = SlackClient(integration_id=slack_request.integration.id)

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from logging import Logger, getLogger
 
+import orjson
+
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
@@ -201,7 +204,10 @@ class SlackService:
         )
         payload.update(slack_payload)
         # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
-        payload["blocks"] = json.dumps(payload.get("blocks"))
+        if in_random_rollout("integrations.slack.enable-orjson"):
+            payload["blocks"] = orjson.dumps(payload.get("blocks"))
+        else:
+            payload["blocks"] = json.dumps(payload.get("blocks"))
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except Exception as err:

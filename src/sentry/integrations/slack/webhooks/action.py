@@ -105,6 +105,14 @@ def load_json(data: Any) -> JSONData:
     return json.loads(data)
 
 
+# TODO: remove this when orjson experiment is successful
+def dump_json(data) -> str | bytes:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        return orjson.dumps(data)
+    else:
+        return json.dumps(data)
+
+
 def update_group(
     group: Group,
     user: RpcUser,
@@ -410,7 +418,7 @@ class SlackActionEndpoint(Endpoint):
         if use_block_kit and slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
             callback_id["rule"] = slack_request.callback_data.get("rule")
-        callback_id = json.dumps(callback_id)
+        callback_id = dump_json(callback_id)
 
         dialog = {
             "callback_id": callback_id,
@@ -420,7 +428,7 @@ class SlackActionEndpoint(Endpoint):
         }
 
         payload = {
-            "dialog": json.dumps(dialog),
+            "dialog": dump_json(dialog),
             "trigger_id": slack_request.data["trigger_id"],
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -430,11 +438,11 @@ class SlackActionEndpoint(Endpoint):
             modal_payload = self.build_resolve_modal_payload(callback_id)
             try:
                 payload = {
-                    "view": json.dumps(modal_payload),
+                    "view": dump_json(modal_payload),
                     "trigger_id": slack_request.data["trigger_id"],
                 }
                 headers = {"content-type": "application/json; charset=utf-8"}
-                slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+                slack_client.post("/views.open", data=dump_json(payload), headers=headers)
             except ApiError as e:
                 logger.exception(
                     "slack.action.response-error",
@@ -472,17 +480,17 @@ class SlackActionEndpoint(Endpoint):
 
         if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
-        callback_id = json.dumps(callback_id)
+        callback_id = dump_json(callback_id)
 
         slack_client = SlackClient(integration_id=slack_request.integration.id)
         modal_payload = self.build_archive_modal_payload(callback_id)
         try:
             payload = {
-                "view": json.dumps(modal_payload),
+                "view": dump_json(modal_payload),
                 "trigger_id": slack_request.data["trigger_id"],
             }
             headers = {"content-type": "application/json; charset=utf-8"}
-            slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+            slack_client.post("/views.open", data=dump_json(payload), headers=headers)
         except ApiError as e:
             logger.exception(
                 "slack.action.response-error",

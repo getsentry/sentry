@@ -5,8 +5,10 @@ from collections.abc import Iterable, Mapping
 from copy import copy
 from typing import Any
 
+import orjson
 import sentry_sdk
 
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.message_builder import SlackBlock
@@ -25,6 +27,14 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
+
+
+# TODO: remove this when orjson experiment is successful
+def dump_json(data) -> str | bytes:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        return orjson.dumps(data)
+    else:
+        return json.dumps(data)
 
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):
@@ -94,7 +104,7 @@ def _notify_recipient(
             "unfurl_links": False,
             "unfurl_media": False,
             "text": text if text else "",
-            "blocks": json.dumps(blocks),
+            "blocks": dump_json(blocks),
         }
         callback_id = local_attachments.get("callback_id")
         if callback_id:
@@ -102,7 +112,7 @@ def _notify_recipient(
             if isinstance(callback_id, str):
                 payload["callback_id"] = callback_id
             else:
-                payload["callback_id"] = json.dumps(local_attachments.get("callback_id"))
+                payload["callback_id"] = dump_json(local_attachments.get("callback_id"))
 
         post_message_task = post_message
         if SiloMode.get_current_mode() == SiloMode.CONTROL:

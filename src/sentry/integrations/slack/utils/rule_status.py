@@ -17,6 +17,14 @@ SLACK_FAILED_MESSAGE = (
 )
 
 
+# TODO: remove this when orjson experiment is successful
+def dump_json(data) -> str | bytes:
+    if in_random_rollout("integrations.slack.enable-orjson"):
+        return orjson.dumps(data)
+    else:
+        return json.dumps(data)
+
+
 class RedisRuleStatus:
     def __init__(self, uuid: str | None = None) -> None:
         self._uuid = uuid or self._generate_uuid()
@@ -51,7 +59,7 @@ class RedisRuleStatus:
         return uuid4().hex
 
     def _set_initial_value(self) -> None:
-        value = json.dumps({"status": "pending"})
+        value = dump_json({"status": "pending"})
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 
     def _get_redis_key(self) -> str:
@@ -71,4 +79,4 @@ class RedisRuleStatus:
         elif status == "failed":
             value["error"] = SLACK_FAILED_MESSAGE
 
-        return json.dumps(value)
+        return dump_json(value)

@@ -4,6 +4,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import orjson
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.features.rollout import in_random_rollout
 from sentry.integrations.message_builder import format_actor_options
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
@@ -94,12 +96,17 @@ class SlackOptionsLoadEndpoint(Endpoint):
         if not group or not features.has(
             "organizations:slack-block-kit", group.project.organization
         ):
+            if in_random_rollout("integrations.slack.enable-orjson"):
+                request_data = orjson.dumps(slack_request.data)
+            else:
+                request_data = json.dumps(slack_request.data)
+
             logger.exception(
                 "slack.options_load.request-error",
                 extra={
                     "group_id": group.id if group else None,
                     "organization_id": group.project.organization.id if group else None,
-                    "request_data": json.dumps(slack_request.data),
+                    "request_data": request_data,
                 },
             )
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
