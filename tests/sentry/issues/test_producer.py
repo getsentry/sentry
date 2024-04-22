@@ -124,7 +124,9 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         mock_produce.assert_called_once_with(
             ArroyoTopic(name="ingest-occurrences"),
             KafkaPayload(
-                occurrence.fingerprint[0], json.dumps({"mock_data": "great"}).encode("utf-8"), []
+                bytes(occurrence.fingerprint[0], "utf-8"),
+                json.dumps({"mock_data": "great"}).encode("utf-8"),
+                [],
             ),
         )
 
