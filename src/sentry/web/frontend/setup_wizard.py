@@ -154,15 +154,12 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
             return token
 
     # Otherwise, generate a user token
-    tokens = ApiToken.objects.filter(user_id=user.id)
-    token = next((token for token in tokens if "project:releases" in token.get_scopes()), None)
-    if token is None:
-        token = ApiToken.objects.create(
-            user_id=user.id,
-            scope_list=["project:releases"],
-            token_type=AuthTokenType.USER,
-            expires_at=None,
-        )
+    token = ApiToken.objects.create(
+        user_id=user.id,
+        scope_list=["project:releases"],
+        token_type=AuthTokenType.USER,
+        expires_at=None,
+    )
     return serialize(token)
 
 
