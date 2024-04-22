@@ -470,6 +470,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -1279,14 +1285,6 @@ register(
 register(
     "sentry-metrics.indexer.raise-validation-errors",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Option to drop any in-flight work in the multiprocesing strategy
-# of the indexer during consumer shutdowns, rebalances, etc.
-register(
-    "sentry-metrics.indexer.drop-work-in-multiprocessing",
-    default=True,  # False means we don't drop any work
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
