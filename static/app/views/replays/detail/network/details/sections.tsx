@@ -54,7 +54,9 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Request Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.request?.size ?? requestFrame?.data?.requestBodySize ?? 0
+          )}
         </SizeTooltip>
       ),
     },
@@ -62,7 +64,11 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Response Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.response?.size ??
+              requestFrame?.data?.responseBodySize ??
+              0
+          )}
         </SizeTooltip>
       ),
     },
