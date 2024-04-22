@@ -13,6 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
+import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/cache/settings';
 import {convertHitRateToMissRate} from 'sentry/views/performance/cache/utils';
@@ -35,6 +36,16 @@ export function CacheLandingPage() {
   } = useSpanMetricsSeries({
     yAxis: [`cache_hit_rate()`],
     search: MutableSearch.fromQueryObject(filters),
+    referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
+  });
+
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject(filters),
+    yAxis: ['spm()'],
     referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
   });
 
@@ -74,13 +85,20 @@ export function CacheLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-            <ModuleLayout.Full>
+            <ModuleLayout.Half>
               <CacheHitMissChart
-                series={[convertHitRateToMissRate(cacheHitRateData['cache_hit_rate()'])]}
+                series={convertHitRateToMissRate(cacheHitRateData['cache_hit_rate()'])}
                 isLoading={isCacheHitRateLoading}
                 error={cacheHitRateError}
               />
-            </ModuleLayout.Full>
+            </ModuleLayout.Half>
+            <ModuleLayout.Half>
+              <ThroughputChart
+                series={throughputData['spm()']}
+                isLoading={isThroughputDataLoading}
+                error={throughputError}
+              />
+            </ModuleLayout.Half>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

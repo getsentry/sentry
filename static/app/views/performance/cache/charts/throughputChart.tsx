@@ -1,25 +1,25 @@
 import type {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 
-type Props = {
+interface Props {
   isLoading: boolean;
   series: Series;
   error?: Error | null;
-};
+}
 
-export function CacheHitMissChart({series, isLoading, error}: Props) {
+export function ThroughputChart({series, isLoading, error}: Props) {
   return (
-    <ChartPanel title={DataTitles.cacheMissRate}>
+    <ChartPanel title={getThroughputChartTitle('cache.get_item')}>
       <Chart
-        showLegend
         height={CHART_HEIGHT}
         grid={{
-          left: '4px',
+          left: '0',
           right: '0',
           top: '8px',
           bottom: '0',
@@ -27,11 +27,12 @@ export function CacheHitMissChart({series, isLoading, error}: Props) {
         data={[series]}
         loading={isLoading}
         error={error}
-        chartColors={[AVG_COLOR]}
+        chartColors={[THROUGHPUT_COLOR]}
         type={ChartType.LINE}
-        aggregateOutputFormat="percentage"
+        aggregateOutputFormat="rate"
+        rateUnit={RateUnit.PER_MINUTE}
         tooltipFormatterOptions={{
-          valueFormatter: value => formatPercentage(1 - value), // Api returns hit rate, but we display miss rate
+          valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
         }}
       />
     </ChartPanel>
