@@ -1320,10 +1320,12 @@ class SnubaTestCase(BaseTestCase):
     def store_group(self, group):
         data = [self.__wrap_group(group)]
         assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/groupedmessage/insert",
-                data=json.dumps(data),
-            ).status_code
+            _snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/groupedmessage/insert",
+                body=json.dumps(data),
+                headers={},
+            ).status
             == 200
         )
 
@@ -2019,6 +2021,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "span.self_time": "metrics_distributions",
         "http.response_content_length": "metrics_distributions",
         "http.decoded_response_content_length": "metrics_distributions",
+        "cache.item_size": "metrics_distributions",
         "http.response_transfer_size": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",

@@ -1,5 +1,5 @@
 ---
-created: '2024-04-15T19:02:42.654156+00:00'
+created: '2024-04-18T18:27:17.605949+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -182,12 +182,12 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: HashObfuscatingComparator
     fields:
-    - hashed_refresh_token
-    - hashed_token
     - refresh_token
     - token
   - class: IgnoredComparator
     fields:
+    - hashed_refresh_token
+    - hashed_token
     - token_last_characters
   - class: UnorderedListComparator
     fields:

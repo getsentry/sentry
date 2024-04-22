@@ -70,10 +70,13 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
-  const supportedVideoTabs = [TabKey.TAGS, TabKey.ERRORS, TabKey.BREADCRUMBS];
 
-  const unsupportedVideoTab = tab => {
-    return isVideoReplay && !supportedVideoTabs.includes(tab);
+  const isTabDisabled = (tab: string) => {
+    return (
+      tab === TabKey.NETWORK &&
+      isVideoReplay &&
+      !organization.features.includes('session-replay-mobile-network-tab')
+    );
   };
 
   return (
@@ -81,10 +84,10 @@ function FocusTabs({className, isVideoReplay}: Props) {
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
-            disabled={unsupportedVideoTab(tab)}
+            disabled={isTabDisabled(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
-            isActive={() => (unsupportedVideoTab(tab) ? false : tab === activeTab)}
+            isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={e => {
               e.preventDefault();
@@ -96,9 +99,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            <Tooltip
-              title={unsupportedVideoTab(tab) ? t('This feature is coming soon') : null}
-            >
+            <Tooltip title={isTabDisabled(tab) ? t('This feature is coming soon') : null}>
               {label}
             </Tooltip>
           </ListLink>

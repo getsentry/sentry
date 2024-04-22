@@ -6,11 +6,12 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -46,7 +47,7 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
 
 
-DETECTOR_TYPE_TO_GROUP_TYPE = {
+DETECTOR_TYPE_TO_GROUP_TYPE: dict[DetectorType, type[GroupType]] = {
     DetectorType.SLOW_DB_QUERY: PerformanceSlowDBQueryGroupType,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: PerformanceRenderBlockingAssetSpanGroupType,
     DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
@@ -382,13 +383,13 @@ def get_span_evidence_value(
     value = "no value"
     if not span:
         return value
-    if not span.get("op") and span.get("description"):
-        value = cast(str, span["description"])
-    if span.get("op") and not span.get("description"):
-        value = cast(str, span["op"])
-    if span.get("op") and span.get("description"):
-        op = cast(str, span["op"])
-        desc = cast(str, span["description"])
+    op = span.get("op")
+    desc = span.get("description")
+    if not op and desc and isinstance(desc, str):
+        value = desc
+    elif not desc and op and isinstance(op, str):
+        value = op
+    elif op and isinstance(op, str) and desc and isinstance(desc, str):
         value = f"{op} - {desc}"
         if not include_op:
             value = desc
