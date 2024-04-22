@@ -108,6 +108,7 @@ export interface DeprecatedAssigneeSelectorDropdownProps {
 }
 
 type State = {
+  // How to handle state?
   loading: boolean;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
@@ -123,7 +124,9 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
 > {
   state = this.getInitialState();
 
+  // DONE
   getInitialState() {
+    // (like this? arrow functions? function declarations?)
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.state.loading
       ? undefined
