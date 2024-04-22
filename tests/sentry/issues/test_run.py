@@ -9,7 +9,7 @@ from arroyo.types import Topic as ArroyoTopic
 from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.run import OccurrenceStrategyFactory
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
@@ -99,7 +99,7 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         mock_save_issue_occurrence.assert_called_with(occurrence_data, mock.ANY)
 
 
-class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin):
+class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
     def build_mock_message(self, data, topic=None):
         message = mock.Mock()
         message.value.return_value = json.dumps(data)

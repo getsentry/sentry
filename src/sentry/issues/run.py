@@ -73,7 +73,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return self.crate_parallel_worker(commit)
 
     def shutdown(self) -> None:
-        self.pool.close()
+        if self.pool:
+            self.pool.close()
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
