@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';

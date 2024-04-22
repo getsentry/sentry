@@ -14,4 +14,4 @@ This is what you sent us. Maybe it'll help you sort this out.
 
 Need a little more help?
  - https://docs.sentry.io/ (Documentation)
- - https://help.sentry.io/ (FAQs)
+ - https://sentry.zendesk.com/hc/en-us (Help Center)

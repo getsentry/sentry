@@ -21,7 +21,7 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
@@ -505,16 +505,19 @@ function MonitorForm({
                 </AlertLink>
               )}
               <Observer>
-                {() => (
-                  <SentryMemberTeamSelectorField
-                    label={t('Notify')}
-                    help={t('Send notifications to a member or team.')}
-                    name="alertRule.targets"
-                    memberOfProjectSlug={form.current.getValue('project')?.toString()}
-                    multiple
-                    menuPlacement="auto"
-                  />
-                )}
+                {() => {
+                  const projectSlug = form.current.getValue('project')?.toString();
+                  return (
+                    <SentryMemberTeamSelectorField
+                      label={t('Notify')}
+                      help={t('Send notifications to a member or team.')}
+                      name="alertRule.targets"
+                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
+                      multiple
+                      menuPlacement="auto"
+                    />
+                  );
+                }}
               </Observer>
               <Observer>
                 {() => {

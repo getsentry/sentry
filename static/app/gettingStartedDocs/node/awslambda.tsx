@@ -100,7 +100,8 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/sourcemaps/',
+      guideLink:
+        'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/sourcemaps/',
       ...params,
     }),
   ],
@@ -170,7 +171,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],

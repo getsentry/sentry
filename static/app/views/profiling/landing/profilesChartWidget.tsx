@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';

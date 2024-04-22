@@ -1,4 +1,4 @@
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {MetricSeriesFilterUpdateType} from 'sentry/utils/metrics/types';
 
 import {updateQueryWithSeriesFilter} from './index';

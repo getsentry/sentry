@@ -76,6 +76,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1

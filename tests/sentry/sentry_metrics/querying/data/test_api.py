@@ -1087,7 +1087,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert len(data[0]) == 0
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
@@ -1126,7 +1127,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 2
-        assert len(data[0]) == 0
+        assert len(data[0][0]["series"]) == 3
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
         assert data[1][0]["totals"] == self.to_reference_unit(10.0)
@@ -1929,3 +1932,55 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(5.0),
         ]
         assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_groupby_project_and_filter_by_unknown_project_id(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_filter_by_unknown_project_slug(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            filters="project:unknown-project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None

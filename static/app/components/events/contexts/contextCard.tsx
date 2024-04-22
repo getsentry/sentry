@@ -10,8 +10,9 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
-import type {Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 

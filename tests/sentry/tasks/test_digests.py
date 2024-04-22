@@ -22,7 +22,7 @@ class DeliverDigestTest(TestCase):
         """Simple integration test to make sure that digests are firing as expected."""
         with mock.patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
-            digests.digest = backend.digest
+            digests.backend.digest = backend.digest
 
             rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
             ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

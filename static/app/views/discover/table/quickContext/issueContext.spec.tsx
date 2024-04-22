@@ -6,7 +6,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
