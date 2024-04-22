@@ -23,6 +23,8 @@ from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -47,6 +49,7 @@ from sentry.monitors.utils import (
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
+from sentry.utils.actor import parse_and_validate_actor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -74,6 +77,26 @@ def _ensure_monitor_with_config(
     if not config:
         return monitor
 
+    # The upsert payload doesn't quite match the api one. Pop out the owner here since
+    # it's not part of the monitor config
+    owner = config.pop("owner", None)
+    owner_user_id = None
+    owner_team_id = None
+    try:
+        owner_actor = parse_and_validate_actor(owner, project.organization_id)
+    except Exception:
+        extra = {
+            "slug": monitor_slug,
+            "owner": owner,
+        }
+        logger.info("monitors.consumer.owner_not_in_org", extra=extra)
+        logger.exception("Error attempting to resolve owner")
+    else:
+        if owner_actor and owner_actor.type == User:
+            owner_user_id = owner_actor.id
+        elif owner_actor and owner_actor.type == Team:
+            owner_team_id = owner_actor.id
+
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
@@ -99,6 +122,8 @@ def _ensure_monitor_with_config(
                 "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
+                "owner_user_id": owner_user_id,
+                "owner_team_id": owner_team_id,
             },
         )
         if created:
@@ -118,8 +143,13 @@ def _ensure_monitor_with_config(
             )
 
     # Update existing monitor
-    if monitor and not created and monitor.config != validated_config:
-        monitor.update_config(config, validated_config)
+    if monitor and not created:
+        if monitor.config != validated_config:
+            monitor.update_config(config, validated_config)
+        if (owner_user_id or owner_team_id) and (
+            owner_user_id != monitor.owner_user_id or owner_team_id != monitor.owner_team_id
+        ):
+            monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
     # When accepting for upsert attempt to assign a seat for the monitor,
     # otherwise the monitor is marked as disabled
