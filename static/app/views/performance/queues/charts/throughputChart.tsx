@@ -1,9 +1,6 @@
-import styled from '@emotion/styled';
-
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,25 +21,24 @@ export function ThroughputChart({error}: Props) {
   const chartSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const {data, isLoading} = useQueuesTimeSeriesQuery({destination});
   return (
-    <ChartPanel title={t('Published vs Processed')}>
-      <ChartSubtext>{chartSubtext}</ChartSubtext>
+    <ChartPanel title={t('Published vs Processed')} subtitle={chartSubtext}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: '12px',
           bottom: '0',
         }}
         data={
           [
             {
-              seriesName: 'Published',
-              data: data['count_op(queue.submit.celery)'],
+              seriesName: t('Published'),
+              data: data['count_op(queue.submit.celery)'].data,
             },
             {
-              seriesName: 'Processed',
-              data: data['count_op(queue.task.celery)'],
+              seriesName: t('Processed'),
+              data: data['count_op(queue.task.celery)'].data,
             },
           ] ?? []
         }
@@ -54,10 +50,3 @@ export function ThroughputChart({error}: Props) {
     </ChartPanel>
   );
 }
-
-const ChartSubtext = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
-`;

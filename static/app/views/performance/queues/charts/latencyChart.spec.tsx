@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
@@ -22,7 +22,7 @@ describe('latencyChart', () => {
       },
     });
   });
-  it('renders', () => {
+  it('renders', async () => {
     render(<LatencyChart />);
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -38,5 +38,6 @@ describe('latencyChart', () => {
         }),
       })
     );
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });
