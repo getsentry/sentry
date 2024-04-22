@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Union, cast
 from uuid import uuid4
 
+import orjson
+import sentry_sdk
 from django.conf import settings
 
+from sentry.features.rollout import in_random_rollout
 from sentry.utils import json
 from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
@@ -38,6 +41,10 @@ class RedisRuleStatus:
     def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
+        if in_random_rollout("integrations.slack.enable-orjson"):
+            # Span is required because `json.loads` calls it by default
+            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+                return orjson.loads(cast(Union[str, bytes], value))
         return json.loads(cast(Union[str, bytes], value))
 
     def _generate_uuid(self) -> str:
