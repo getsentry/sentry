@@ -17,7 +17,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -106,16 +105,15 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-export enum SeriesTypes {
+const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
   RESERVED = 'Reserved',
-  ON_DEMAND = 'OD Spent',
   FILTERED = 'Filtered',
 }
 
-export type UsageChartProps = {
+type UsageChartProps = {
   dataCategory: DataCategoryInfo['plural'];
 
   dataTransform: ChartDataTransform;
@@ -406,12 +404,6 @@ function UsageChartBody({
           },
     ];
 
-    if (chartData.onDemand && chartData.onDemand.length > 0) {
-      legend.push({
-        name: SeriesTypes.ON_DEMAND,
-      });
-    }
-
     if (chartData.filtered && chartData.filtered.length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
@@ -471,22 +463,6 @@ function UsageChartBody({
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
-      name: SeriesTypes.RESERVED,
-      data: chartData.reserved,
-      barMinHeight: 1,
-      stack: 'usage',
-      legendHoverLink: false,
-      color: CHART_PALETTE[5][0],
-    }),
-    barSeries({
-      name: SeriesTypes.ON_DEMAND,
-      data: chartData.onDemand,
-      barMinHeight: 1,
-      stack: 'usage',
-      legendHoverLink: false,
-      color: CHART_PALETTE[5][1],
-    }),
     // Additional series passed by parent component
     ...(chartSeries || []),
   ];
@@ -540,7 +516,7 @@ function UsageChartBody({
   );
 }
 
-interface UsageChartPanelProps extends UsageChartProps {
+export interface UsageChartPanelProps extends UsageChartProps {
   footer?: React.ReactNode;
   title?: React.ReactNode;
 }
