@@ -51,7 +51,9 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
 
     def test_trace_connected_errors(self) -> None:
         error, _ = self.load_errors()
-        self.group_id = error.group.id  # type: ignore[assignment]
+        groups = error.groups
+        assert groups is not None, len(groups) == 1
+        self.group_id = groups[0].id  # type: ignore[assignment]
 
         response = self.get_success_response()
         assert response.json() == {
