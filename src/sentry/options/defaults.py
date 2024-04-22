@@ -2452,7 +2452,7 @@ register(
 )
 
 register(
-    "issue_platform.kafka_partition_key",
+    "issue_platform.use_kafka_partition_key",
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

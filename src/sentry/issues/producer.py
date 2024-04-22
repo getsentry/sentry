@@ -66,7 +66,11 @@ def produce_occurrence_to_kafka(
         return
 
     partition_key = None
-    if options.get("issue_platform.kafka_partition_key") and occurrence and occurrence.fingerprint:
+    if (
+        options.get("issue_platform.use_kafka_partition_key")
+        and occurrence
+        and occurrence.fingerprint
+    ):
         partition_key = occurrence.fingerprint[0]
     payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
