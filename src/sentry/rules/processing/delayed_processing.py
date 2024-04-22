@@ -113,7 +113,8 @@ def get_condition_groups(
 
 
 def get_condition_group_results(
-    condition_groups: dict[UniqueCondition, DataAndGroups], project: Project, rule: Rule
+    condition_groups: dict[UniqueCondition, DataAndGroups],
+    project: Project,
 ) -> dict[UniqueCondition, dict[int, int]]:
     # XXX: Probably want to safe execute somewhere in this step before making
     # the query
@@ -126,7 +127,7 @@ def get_condition_group_results(
             return None
 
         condition_inst: BaseEventFrequencyCondition = condition_cls(
-            project=project, data=condition_data, rule=rule
+            project=project, data=condition_data
         )
         if not isinstance(condition_inst, EventCondition):
             logger.warning("Unregistered condition %r", condition_cls.id)
@@ -232,7 +233,7 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
 
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
-    condition_group_results = get_condition_group_results(condition_groups, project, alert_rules[0])
+    condition_group_results = get_condition_group_results(condition_groups, project)
 
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
