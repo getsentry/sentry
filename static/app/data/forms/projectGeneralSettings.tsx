@@ -2,10 +2,7 @@ import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
-import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import type {Field} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -92,57 +89,6 @@ export const fields: Record<string, Field> = {
       },
     }),
   },
-  highlightTags: {
-    name: 'highlightTags',
-    type: 'string',
-    multiline: true,
-    autosize: true,
-    rows: 1,
-    placeholder: t('handled, environment, release, my-tag'),
-    label: t('Highlighted Tags'),
-    help: tct(
-      '[link:Tags] to promote to the top of each issue page for quick debugging. Separate entries with a newline.',
-      {
-        link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
-      }
-    ),
-    getValue: val => extractMultilineFields(val),
-    setValue: val => convertMultilineFieldValue(val),
-  },
-  highlightContext: {
-    name: 'highlightContext',
-    type: 'textarea',
-    multiline: true,
-    autosize: true,
-    rows: 1,
-    placeholder: t('{"browser": ["name", "version"], "my-context": ["my-custom-key"]}'),
-    label: t('Highlighted Context'),
-    help: tct(
-      '[link:Structured Context] keys to promote to the top of each issue page for quick debugging.',
-      {
-        link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
-      }
-    ),
-    getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
-    setValue: (val: string) => {
-      const schema = JSON.stringify(val, null, 2);
-      if (schema === '{}') {
-        return '';
-      }
-      return schema;
-    },
-    validate: ({id, form}) => {
-      if (form.highlightContext) {
-        try {
-          JSON.parse(form.highlightContext);
-        } catch (e) {
-          return [[id, 'Invalid JSON']];
-        }
-      }
-      return [];
-    },
-  },
-
   subjectPrefix: {
     name: 'subjectPrefix',
     type: 'string',

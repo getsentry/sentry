@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
+import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -87,8 +88,15 @@ function ProjectTags(props: Props) {
   const isEmpty = !tags || !tags.length;
   return (
     <Fragment>
-      <SentryDocumentTitle title={routeTitleGen(t('Tags'), projectId, false)} />
-      <SettingsPageHeader title={t('Tags')} />
+      <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
+      <SettingsPageHeader title={t('Tags & Context')} />
+      <PermissionAlert project={project} />
+      <TextBlock>
+        {t(
+          `Setup Highlights to promot your event data to the top of the issue page for quicker debugging.`
+        )}
+      </TextBlock>
+      <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
@@ -98,8 +106,6 @@ function ProjectTags(props: Props) {
           }
         )}
       </TextBlock>
-
-      <PermissionAlert project={project} />
       <Panel>
         <PanelHeader>{t('Tags')}</PanelHeader>
         <PanelBody>
