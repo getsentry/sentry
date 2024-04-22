@@ -163,7 +163,7 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
             token_type=AuthTokenType.USER,
             expires_at=None,
         )
-    return serialize(token)
+    return token.plaintext_token
 
 
 def get_org_token(mapping: OrganizationMapping, user: User | RpcUser):
