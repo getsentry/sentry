@@ -94,14 +94,14 @@ class SentryAppSerializer(Serializer):
                 is_active_superuser(env.request) or is_active_staff(env.request)
             )
             if elevated_user or owner.id in user_org_ids:
-                has_secret = obj.date_added > timezone.now() - timedelta(days=1)
+                is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
                 client_secret = (
                     obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
                 )
                 data.update(
                     {
                         "clientId": obj.application.client_id,
-                        "clientSecret": client_secret if has_secret else None,
+                        "clientSecret": client_secret if is_secret_visible else None,
                         "owner": {"id": owner.id, "slug": owner.slug},
                     }
                 )
