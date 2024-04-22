@@ -390,8 +390,8 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                local_loggin_params = logging_params.copy()
-                local_loggin_params["group_owner_id"] = group_owner.id
+                local_logging_params = logging_params.copy()
+                local_logging_params["group_owner_id"] = group_owner.id
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -408,7 +408,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**local_loggin_params, "reason": "assignment_deleted"},
+                        extra={**local_logging_params, "reason": "assignment_deleted"},
                     )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
@@ -420,7 +420,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**local_loggin_params, "reason": "outdated_rule"},
+                        extra={**local_logging_params, "reason": "outdated_rule"},
                     )
                 else:
                     keeping_owners.add(lookup_key)
