@@ -32,7 +32,7 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     SnubaTSResult,
-    bulk_snql_query,
+    bulk_snuba_queries,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -335,7 +335,9 @@ def timeseries_query(
             )
             query_list.append(comparison_builder)
 
-        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
+        query_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in query_list], referrer
+        )
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
         results = []
@@ -495,7 +497,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
         )
-        result, other_result = bulk_snql_query(
+        result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
         )

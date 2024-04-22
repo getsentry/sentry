@@ -23,7 +23,7 @@ from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import clip
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 
 
 class TraceInterval(TypedDict):
@@ -225,7 +225,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 query.add_conditions([trace_id_condition])
 
             with handle_query_errors():
-                results = bulk_snql_query(
+                results = bulk_snuba_queries(
                     [query.get_snql_query() for query in queries],
                     Referrer.API_TRACE_EXPLORER_TRACES_META.value,
                 )

@@ -89,7 +89,7 @@ from sentry.snuba.metrics.utils import (
     get_intervals,
     to_intervals,
 )
-from sentry.utils.snuba import bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +409,7 @@ def get_stored_metrics_of_projects(
             use_case_id_to_index[use_case_id].append(len(requests) - 1)
 
     # We run the queries all in parallel.
-    results = bulk_snql_query(
+    results = bulk_snuba_queries(
         requests=requests,
         referrer="snuba.metrics.datasource.get_stored_metrics_of_projects",
         use_cache=True,
@@ -1228,11 +1228,13 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(
-            meta=meta,
-            alias_to_metric_field=converter._alias_to_metric_field,
-            alias_to_metric_group_by_field=groupby_aliases,
-        )
-        if include_meta
-        else [],
+        "meta": (
+            translate_meta_results(
+                meta=meta,
+                alias_to_metric_field=converter._alias_to_metric_field,
+                alias_to_metric_group_by_field=groupby_aliases,
+            )
+            if include_meta
+            else []
+        ),
     }

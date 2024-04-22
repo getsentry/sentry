@@ -31,7 +31,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -565,7 +565,7 @@ def query_trace_data(
             auto_fields=False,
         ),
     )
-    results = bulk_snql_query(
+    results = bulk_snuba_queries(
         [
             transaction_query.get_snql_query(),
             error_query.get_snql_query(),
@@ -744,7 +744,7 @@ def augment_transactions_with_spans(
         sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
         chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
-        results = bulk_snql_query(
+        results = bulk_snuba_queries(
             [query.get_snql_query() for query in queries],
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
         )

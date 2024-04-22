@@ -14,7 +14,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 is_filter_translation = {}
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
@@ -128,23 +128,27 @@ def timeseries_query(
             )
             query_list.append(comparison_builder)
 
-        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
+        query_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in query_list], referrer
+        )
 
     with sentry_sdk.start_span(op="errors", description="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
                 {
-                    "data": zerofill(
-                        result["data"],
-                        snql_query.params.start,
-                        snql_query.params.end,
-                        rollup,
-                        "time",
-                        time_col_name="events.time",
-                    )
-                    if zerofill_results
-                    else result["data"],
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                            time_col_name="events.time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
                     "meta": result["meta"],
                 }
             )
