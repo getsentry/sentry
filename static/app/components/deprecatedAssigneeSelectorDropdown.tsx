@@ -126,7 +126,6 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
 
   // DONE
   getInitialState() {
-    // (like this? arrow functions? function declarations?)
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.state.loading
       ? undefined
@@ -204,6 +203,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
     this.setState({memberList: members});
   };
 
+  // Renamed to currentMemberList
   memberList(): User[] | undefined {
     return this.props.memberList ?? this.state.memberList;
   }
@@ -236,6 +236,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
       }));
   }
 
+  // Renamed to handleUserAssign
   assignToUser(user: User | Actor) {
     const {organization} = this.props;
     assignToUser({
