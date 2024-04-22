@@ -7,7 +7,8 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/replay';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 

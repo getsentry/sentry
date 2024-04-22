@@ -1,12 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import type {EventsStats} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {EventsStats} from 'sentry/types/organization';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';

@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {CommonStoreDefinition} from 'sentry/stores/types';
-import type {SentryAppInstallation} from 'sentry/types';
+import type {SentryAppInstallation} from 'sentry/types/integrations';
 
 interface SentryAppInstallationStoreDefinition
   extends CommonStoreDefinition<SentryAppInstallation[]> {

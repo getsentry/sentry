@@ -12,7 +12,8 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

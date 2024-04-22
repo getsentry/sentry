@@ -6,7 +6,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import NoIssuesMatched from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 

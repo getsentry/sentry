@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 
 interface Props
   extends BaseAvatarProps,

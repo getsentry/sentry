@@ -11,11 +11,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {
   AppStoreConnectStatusData,
   CustomRepoAppStoreConnect,
 } from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import withApi from 'sentry/utils/withApi';
 

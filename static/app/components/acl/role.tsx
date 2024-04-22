@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, User} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withOrganization from 'sentry/utils/withOrganization';

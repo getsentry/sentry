@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import type {PageFilters, PinnedPageFilter} from 'sentry/types';
+import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 
 import type {CommonStoreDefinition} from './types';
 

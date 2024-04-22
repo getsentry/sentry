@@ -1,7 +1,8 @@
 import {createStore} from 'reflux';
 
-import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 

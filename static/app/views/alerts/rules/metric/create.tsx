@@ -1,6 +1,7 @@
 import type {RouteComponentProps} from 'react-router';
 
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

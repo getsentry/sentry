@@ -17,7 +17,8 @@ import {
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformKey, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';

@@ -2,7 +2,8 @@ import {createStore} from 'reflux';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
-import type {Project, Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import LatestContextStore from './latestContextStore';
 import type {CommonStoreDefinition} from './types';

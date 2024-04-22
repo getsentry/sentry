@@ -24,8 +24,9 @@ import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles'
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

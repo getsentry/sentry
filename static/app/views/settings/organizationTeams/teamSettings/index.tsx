@@ -17,7 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

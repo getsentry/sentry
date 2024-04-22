@@ -3,8 +3,6 @@ import {HealthFixture} from 'sentry-fixture/health';
 import type {Health, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 
-// import {Health, ReleaseStatus, ReleaseWithHealth} from 'sentry/types';
-
 export function ReleaseFixture(
   params?: Partial<ReleaseWithHealth>,
   healthParams?: Health
