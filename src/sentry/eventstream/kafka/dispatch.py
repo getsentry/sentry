@@ -8,7 +8,6 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
 from sentry import options
-from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
@@ -43,7 +42,6 @@ def dispatch_post_process_group_task(
     primary_hash: str | None,
     queue: str,
     skip_consume: bool = False,
-    group_states: GroupStates | None = None,
     occurrence_id: str | None = None,
     eventstream_type: str | None = None,
 ) -> None:
@@ -60,7 +58,6 @@ def dispatch_post_process_group_task(
                 "primary_hash": primary_hash,
                 "cache_key": cache_key,
                 "group_id": group_id,
-                "group_states": group_states,
                 "occurrence_id": occurrence_id,
                 "project_id": project_id,
                 "eventstream_type": eventstream_type,
