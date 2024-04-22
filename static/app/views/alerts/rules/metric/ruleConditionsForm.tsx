@@ -800,6 +800,7 @@ const MonitorCard = styled('div')<MonitorCardProps>`
   border-bottom-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
   border-top-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
   border-bottom-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
+  margin-right: ${p => (p.position === 'left' ? '1px' : 0)};
   outline: ${p => (p.isSelected ? `1px solid ${p.theme.purple400}` : 'none')};
 `;
 
