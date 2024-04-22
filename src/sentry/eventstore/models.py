@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
@@ -702,13 +702,6 @@ class Event(BaseEvent):
     def groups(self, values: Sequence[Group] | None):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
-
-    def build_group_events(self) -> Generator[GroupEvent, None, None]:
-        """
-        Yields a GroupEvent for each Group associated with this Event.
-        """
-        for group in self.groups:
-            yield GroupEvent.from_event(self, group)
 
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
