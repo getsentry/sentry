@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
+from unittest import mock
 from uuid import uuid4
 
 import petname
@@ -907,7 +908,27 @@ class Factories:
             errors = manager.get_data().get("errors")
             assert not errors, errors
 
-        event = manager.save(project_id)
+        normalized_data = manager.get_data()
+        event = None
+
+        # When fingerprint is present on transaction, inject performance problems
+        if (
+            normalized_data.get("type") == "transaction"
+            and normalized_data.get("fingerprint") is not None
+        ):
+            with mock.patch(
+                "sentry.event_manager._detect_performance_problems",
+                Factories.inject_performance_problems,
+            ):
+                event = manager.save(project_id)
+
+        else:
+            event = manager.save(project_id)
+
+        if event.groups:
+            for group in event.groups:
+                group.save()
+
         if event.group:
             event.group.save()
 
