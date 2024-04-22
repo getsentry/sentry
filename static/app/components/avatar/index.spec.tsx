@@ -10,7 +10,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import AvatarComponent from 'sentry/components/avatar';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Avatar} from 'sentry/types';
+import type {Avatar} from 'sentry/types/core';
 
 describe('Avatar', function () {
   const avatar: Avatar = {

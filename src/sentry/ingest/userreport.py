@@ -32,7 +32,8 @@ def save_userreport(
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
-
+        if is_org_in_denylist(project.organization):
+            return
         if should_filter_user_report(report["comments"]):
             return
 
@@ -129,4 +130,11 @@ def should_filter_user_report(comments: str):
         )
         return True
 
+    return False
+
+
+def is_org_in_denylist(organization):
+    if organization.slug in options.get("feedback.organizations.slug-denylist"):
+        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
+        return True
     return False

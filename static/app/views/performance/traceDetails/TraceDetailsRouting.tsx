@@ -3,7 +3,7 @@ import type {LocationDescriptorObject} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 

@@ -23,20 +23,21 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
-import {
-  DomainTransactionsTable,
-  isAValidSort,
-} from 'sentry/views/performance/http/domainTransactionsTable';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
+import {DomainStatusLink} from 'sentry/views/performance/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
-import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import {
+  DomainTransactionsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/tables/domainTransactionsTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -91,7 +92,7 @@ export function HTTPDomainSummaryPage() {
       'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
-    referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+    referrer: Referrer.DOMAIN_SUMMARY_METRICS_RIBBON,
   });
 
   const {
@@ -101,7 +102,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
   });
 
   const {
@@ -111,7 +112,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_DURATION_CHART,
   });
 
   const {
@@ -121,7 +122,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART,
   });
 
   const {
@@ -147,7 +148,7 @@ export function HTTPDomainSummaryPage() {
     sorts: [sort],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+    referrer: Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST,
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
