@@ -218,9 +218,6 @@ export type ChartStats = {
   projected: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
-  /**
-   * Reserved spend
-   */
   reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
