@@ -503,7 +503,7 @@ export class VirtualizedViewManager {
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
       if (
         event.shiftKey ||
-        (!event.shiftKey && Math.abs(event.deltaX) >= Math.abs(event.deltaY))
+        (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
       ) {
         event.preventDefault();
       }

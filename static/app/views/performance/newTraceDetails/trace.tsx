@@ -1886,7 +1886,7 @@ const TraceStylingWrapper = styled('div')`
       background-size: 9px 9px;
 
       &.performance_issue {
-        --pattern-odd: ${p => p.theme.surface300};
+        --pattern-odd: ${p => p.theme.surface400};
         --pattern-even: ${p => p.theme.blue300};
       }
     }
