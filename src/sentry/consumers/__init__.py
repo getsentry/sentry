@@ -61,6 +61,21 @@ def multiprocessing_options(
     ]
 
 
+def issue_occurrence_options() -> list[click.Option]:
+    """Return a list of issue-occurrence options."""
+    options = multiprocessing_options(default_max_batch_size=100)
+    return options.concat(
+        [
+            click.Option(
+                ["--mode", "mode"],
+                type=click.Choice(["batched-parallel", "parallel"]),
+                default="parallel",
+                help="The mode to process check-ins in. Batched-parallel uses batched in parallel, parallel uses multithreading.",
+            ),
+        ]
+    )
+
+
 def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
@@ -218,7 +233,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-occurrences": {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=20),
+        "click_options": issue_occurrence_options(default_max_batch_size=100),
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,

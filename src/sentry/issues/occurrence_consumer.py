@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any
 from uuid import UUID
 
 import jsonschema
 import sentry_sdk
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies.batching import ValuesBatch
+from arroyo.types import BrokerValue, Message
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
@@ -21,10 +26,14 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import metrics
+from sentry.monitors.types import CheckinItem
+from sentry.utils import json, metrics
 from sentry.utils.actor import parse_and_validate_actor
 
 logger = logging.getLogger(__name__)
+
+
+_occurrence_worker = ThreadPoolExecutor()
 
 
 class InvalidEventPayloadError(Exception):
@@ -356,3 +365,50 @@ def _process_message(
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
     return None
+
+
+def _process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+    """
+    Receives batches of check-in messages. This function will take the batch
+    and group them together by monitor ID (ensuring order is preserved) and
+    execute each group using a ThreadPoolWorker.
+
+    By batching we're able to process check-ins in parallel while guaranteeing
+    that no check-ins are processed out of order per monitor environment.
+    """
+    batch = message.payload
+
+    occcurrence_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
+
+    for item in batch:
+        assert isinstance(item, BrokerValue)
+
+        try:
+            payload = json.loads(item.payload.value, use_rapid_json=True)
+        except Exception:
+            logger.exception("Failed to unpack message payload")
+            continue
+        occcurrence_mapping[item.partition.index].append(payload)
+
+    # Number of check-ins that are being processed in this batch
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
+
+    # Number of check-in groups we've collected to be processed in parallel
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
+
+    # Submit check-in groups for processing
+    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+        futures = [
+            _occurrence_worker.submit(process_occurrence_group, group)
+            for group in occcurrence_mapping.values()
+        ]
+        wait(futures)
+
+
+def process_occurrence_group(items: list[any]):
+    """
+    Process a group of related occurrences (all part of the same group)
+    completely serially.
+    """
+    for item in items:
+        _process_message(item)
