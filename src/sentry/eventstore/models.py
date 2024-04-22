@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
@@ -17,8 +17,8 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.result import CalculatedHashes
-from sentry.grouping.variants import BaseVariant, KeyedVariants
+from sentry.grouping.result import CalculatedHashes, TreeLabel
+from sentry.grouping.variants import BaseVariant, ComponentVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -67,7 +67,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
         # again.  In particular if we were to pickle interfaces we would
@@ -181,13 +181,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return self._environment_cache
 
-    def get_minimal_user(self) -> User:
+    def get_minimal_user(self) -> Interface | None:
         """
         A minimal 'User' interface object that gives us enough information
         to render a user badge.
         """
-        from sentry.interfaces.user import User
-
         user_id_column = self._get_column_name(Columns.USER_ID)
         user_email_column = self._get_column_name(Columns.USER_EMAIL)
         user_username_column = self._get_column_name(Columns.USER_USERNAME)
@@ -284,10 +282,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        self.project_id = project.id
         self._project_cache = project
 
     def get_interfaces(self) -> Mapping[str, Interface]:
@@ -355,18 +350,18 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         # Create fresh hashes
         flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
-        flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
-        hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
+        flat_var_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_var_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
             hierarchical_variants
         )
 
-        if flat_hashes:
-            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0][0])
-        if hierarchical_hashes:
-            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0][0])
+        if flat_var_hashes:
+            sentry_sdk.set_tag("get_hashes.flat_variant", flat_var_hashes[0][0])
+        if hierarchical_var_hashes:
+            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_var_hashes[0][0])
 
-        flat_hashes = [hash_ for _, hash_ in flat_hashes]
-        hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
+        flat_hashes: list[str] = [str_tuple[1] for str_tuple in flat_var_hashes]
+        hierarchical_hashes: list[str] = [str_tuple[1] for str_tuple in hierarchical_var_hashes]
 
         return CalculatedHashes(
             hashes=flat_hashes,
@@ -387,11 +382,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
         variants: KeyedVariants,
-    ) -> tuple[list[str], list[Any]]:
+    ) -> tuple[list[tuple[str, str]], list[TreeLabel | None]]:
         """Create hashes from variants and filter out duplicates and None values"""
-
-        from sentry.grouping.variants import ComponentVariant
-
         filtered_hashes = []
         tree_labels = []
         seen_hashes = set()
@@ -459,8 +451,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Otherwise we just use the same grouping config as stored.  if
         # this is None we use the project's default config.
         else:
-            grouping_config = self.get_grouping_config()
-            loaded_grouping_config = load_grouping_config(grouping_config)
+            stored_config = self.get_grouping_config()
+            loaded_grouping_config = load_grouping_config(stored_config)
 
         if normalize_stacktraces:
             with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
@@ -513,47 +505,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def size(self) -> int:
         return len(json.dumps(dict(self.data)))
 
-    def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
-            template = EventSubjectTemplate("$shortID - $issueType")
-        else:
-            template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
-
-    def as_dict(self) -> Mapping[str, Any]:
-        """Returns the data in normalized form for external consumers."""
-        data: MutableMapping[str, Any] = {}
-        data["event_id"] = self.event_id
-        data["project"] = self.project_id
-        data["release"] = self.release
-        data["dist"] = self.dist
-        data["platform"] = self.platform
-        data["message"] = self.message
-        data["datetime"] = self.datetime
-        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(self.data.items()):
-            if k in data:
-                continue
-            if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
-            data[k] = v
-
-        # for a long time culprit was not persisted.  In those cases put
-        # the culprit in from the group.
-        if data.get("culprit") is None and self.group_id and self.group:
-            data["culprit"] = self.group.culprit
-
-        # Override title and location with dynamically generated data
-        data["title"] = self.title
-        data["location"] = self.location
-
-        return data
-
     @cached_property
     def search_message(self) -> str:
         """
@@ -565,7 +516,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         event_metadata = self.get_event_metadata()
 
-        if event_metadata is None:
+        if event_metadata == {}:
             event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
 
         message = ""
@@ -598,17 +549,17 @@ class Event(BaseEvent):
         self,
         project_id: int,
         event_id: str,
+        data: NodeData,
         group_id: int | None = None,
-        data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         groups: Sequence[Group] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
-        self.groups = groups
+        self.groups = groups or []
         self.data = data
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
@@ -692,7 +643,7 @@ class Event(BaseEvent):
         return groups
 
     @groups.setter
-    def groups(self, values: Sequence[Group] | None):
+    def groups(self, values: Sequence[Group]):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
@@ -722,12 +673,24 @@ class GroupEvent(BaseEvent):
         self.data = data
         self._occurrence = occurrence
 
-    def __eq__(self, other: BaseEvent) -> bool:
+    def get_email_subject(self) -> str:
+        template = self.project.get_option("mail:subject_template")
+        if template:
+            template = EventSubjectTemplate(template)
+        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return cast(
+            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+        )
+
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, GroupEvent):
             return False
         return other.event_id == self.event_id and other.group_id == self.group_id
 
-    def __hash__(self) -> str:
+    def __hash__(self) -> int:
         return hash((self.group_id, self.event_id))
 
     @property
@@ -778,7 +741,7 @@ class GroupEvent(BaseEvent):
     @property
     def occurrence_id(self) -> str | None:
         if self._occurrence:
-            return self.occurrence.id
+            return self._occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
         if column in self._snuba_data:
@@ -794,6 +757,35 @@ class GroupEvent(BaseEvent):
             message = augment_message_with_occurrence(message, self.occurrence)
 
         return message
+
+    def as_dict(self) -> dict[str, Any]:
+        """Returns the data in normalized form for external consumers."""
+        data: dict[str, Any] = {}
+        data["event_id"] = self.event_id
+        data["project"] = self.project_id
+        data["release"] = self.release
+        data["dist"] = self.dist
+        data["platform"] = self.platform
+        data["message"] = self.message
+        data["datetime"] = self.datetime
+        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
+        for k, v in sorted(self.data.items()):
+            if k in data:
+                continue
+            if k == "sdk":
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
+            data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get("culprit") is None and self.group_id and self.group:
+            data["culprit"] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data["title"] = self.title
+        data["location"] = self.location
+
+        return data
 
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
@@ -812,7 +804,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: GroupEvent):
         self.event = event
 
     def __getitem__(self, name: str) -> str:
@@ -835,7 +827,7 @@ class EventSubjectTemplateData:
             return self.event.organization.slug
         elif name == "title":
             if getattr(self.event, "occurrence", None):
-                return self.event.occurrence.issue_title
+                return self.event.occurrence.issue_title  # type: ignore[union-attr]
             else:
                 return self.event.title
 

@@ -36,7 +36,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import BaseEvent, Event
     from sentry.grouping.fingerprinting import FingerprintingRules
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
@@ -319,7 +319,7 @@ def _get_calculated_grouping_variants_for_event(
 
 
 def get_grouping_variants_for_event(
-    event: Event, config: StrategyConfiguration | None = None
+    event: BaseEvent, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this

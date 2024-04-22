@@ -260,7 +260,6 @@ module = [
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
-    "sentry.eventstore.models",
     "sentry.features.handler",
     "sentry.features.manager",
     "sentry.grouping.fingerprinting",
