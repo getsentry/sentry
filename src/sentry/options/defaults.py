@@ -1288,6 +1288,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to enable orjson for JSON parsing in reconstruct_messages function
+register(
+    "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
