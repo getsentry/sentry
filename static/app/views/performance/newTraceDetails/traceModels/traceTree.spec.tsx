@@ -1514,7 +1514,7 @@ describe('TraceTree', () => {
       const node = tree.list[0];
 
       const request = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/undefined:undefined/?averageColumn=span.self_time',
+        url: '/organizations/org-slug/events/undefined:undefined/?averageColumn=span.self_time&averageColumn=span.duration',
         method: 'GET',
         body: makeEvent(),
       });
