@@ -144,6 +144,8 @@ SPAN_COLUMN_MAP = {
     "category": "sentry_tags[category]",
     "span.category": "sentry_tags[category]",
     "span.status_code": "sentry_tags[status_code]",
+    "replay_id": "sentry_tags[replay_id]",
+    "replay.id": "sentry_tags[replay_id]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
