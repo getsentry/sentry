@@ -90,7 +90,7 @@ class RangeQuerySetWrapper:
         order_by="pk",
         callbacks=(),
         result_value_getter=None,
-        override_unique_safety_check=True,
+        override_unique_safety_check=False,
     ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (

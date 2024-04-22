@@ -60,7 +60,7 @@ class RangeQuerySetWrapperTest(TestCase):
     def test_order_by_non_unique_fails(self):
         qs = User.objects.all()
         with pytest.raises(InvalidQuerySetError):
-            self.range_wrapper(qs, order_by="name", override_unique_safety_check=False)
+            self.range_wrapper(qs, order_by="name")
 
         # Shouldn't error if the safety check is disabled
         self.range_wrapper(qs, order_by="name", override_unique_safety_check=True)
@@ -68,7 +68,7 @@ class RangeQuerySetWrapperTest(TestCase):
     def test_order_by_unique(self):
         self.create_user()
         qs = User.objects.all()
-        self.range_wrapper(qs, order_by="username", override_unique_safety_check=False)
+        self.range_wrapper(qs, order_by="username")
         assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
 
 
