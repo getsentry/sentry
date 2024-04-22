@@ -20,7 +20,8 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
+from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin

@@ -1,5 +1,5 @@
 ---
-created: '2024-04-18T18:27:17.605949+00:00'
+created: '2024-04-22T16:37:52.501407+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1333,6 +1333,8 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - environment_id
     - owner
+    - owner_team
+    - owner_user_id
     - project
   model_name: sentry.rule
 - comparators:

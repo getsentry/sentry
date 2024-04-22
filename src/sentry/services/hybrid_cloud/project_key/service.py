@@ -8,7 +8,7 @@ from abc import abstractmethod
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.services.hybrid_cloud.region import ByOrganizationId, ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class ProjectKeyService(RpcService):

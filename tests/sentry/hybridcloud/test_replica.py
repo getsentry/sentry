@@ -8,7 +8,7 @@ from sentry.models.outbox import outbox_context
 from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.replica import region_replica_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all

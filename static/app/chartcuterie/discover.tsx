@@ -6,7 +6,7 @@ import BarSeries from 'sentry/components/charts/series/barSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {EventsStats} from 'sentry/types';
+import type {EventsStats} from 'sentry/types/organization';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';

@@ -80,7 +80,7 @@ class OptionsStore:
     @classmethod
     def model_cls(cls):
         from sentry.models.options import ControlOption, Option
-        from sentry.silo import SiloMode
+        from sentry.silo.base import SiloMode
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return ControlOption

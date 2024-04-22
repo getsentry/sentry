@@ -1,3 +1,4 @@
+import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -29,7 +30,7 @@ class TraceInterval(TypedDict):
     project: str | None
     start: int
     end: int
-    kind: Literal["project", "missing", "unknown"]
+    kind: Literal["project", "missing", "other"]
 
 
 class TraceResult(TypedDict):
@@ -41,11 +42,14 @@ class TraceResult(TypedDict):
     end: int
     breakdowns: list[TraceInterval]
     spans: list[Mapping[str, Any]]
+    suggestedSpans: list[Mapping[str, Any]]
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.CharField(required=False)
+    suggestedQuery = serializers.CharField(required=False)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -84,53 +88,38 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     cast(ParamsType, params),
                     snuba_params=snuba_params,
                     query=serialized.get("query", ""),
-                    selected_columns=["trace", "timestamp"] + serialized["field"],
+                    selected_columns=["trace", "timestamp"],
                     # The orderby is intentionally `None` here as this query is much faster
                     # if we let Clickhouse decide which order to return the results in.
                     # This also means we cannot order by any columns or paginate.
                     orderby=None,
-                    limit=per_page * serialized["maxSpansPerTrace"],
-                    limitby=("trace", serialized["maxSpansPerTrace"]),
+                    limit=per_page,
+                    limitby=("trace", 1),
                     sample_rate=sample_rate,
                     config=QueryBuilderConfig(
                         transform_alias_to_input_format=True,
                     ),
                 )
-                span_results = builder.run_query(Referrer.API_TRACE_EXPLORER_SPANS_LIST.value)
-                span_results = builder.process_results(span_results)
+                trace_results = builder.run_query(Referrer.API_TRACE_EXPLORER_SPANS_LIST.value)
+                trace_results = builder.process_results(trace_results)
 
-            fields = span_results["meta"].pop("fields", {})
-            meta = {
-                **span_results["meta"],
-                "fields": {field: fields[field] for field in serialized["field"]},
-            }
+            if not trace_results["data"]:
+                return {"data": [], "meta": {"fields": {}}}
 
-            if not span_results["data"]:
-                return {"data": [], "meta": meta}
-
-            spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
-            for row in span_results["data"]:
-                spans_by_trace[row["trace"]].append(row)
-
-            trace_spans_count = sorted(
-                [(trace, len(spans)) for trace, spans in spans_by_trace.items()],
-                key=lambda item: item[0],
-                reverse=True,
-            )[:per_page]
-
-            spans_by_trace = {trace: spans_by_trace[trace] for trace, _ in trace_spans_count}
+            trace_ids: list[str] = []
 
             min_timestamp = snuba_params.end
             max_timestamp = snuba_params.start
             assert min_timestamp is not None
             assert max_timestamp is not None
-            for spans in spans_by_trace.values():
-                for span in spans:
-                    timestamp = datetime.fromisoformat(span["timestamp"])
-                    if timestamp < min_timestamp:
-                        min_timestamp = timestamp
-                    if timestamp > max_timestamp:
-                        max_timestamp = timestamp
+
+            for row in trace_results["data"]:
+                trace_ids.append(row["trace"])
+                timestamp = datetime.fromisoformat(row["timestamp"])
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp > max_timestamp:
+                    max_timestamp = timestamp
 
             # TODO: move to use `update_snuba_params_with_timestamp`
             time_buffer = options.get("performance.traces.trace-explorer-buffer-hours")
@@ -147,19 +136,20 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             )
-            snuba_params.projects = all_projects
-            params["projects"] = snuba_params.projects
-            params["projects_objects"] = snuba_params.projects
-            params["projects_id"] = snuba_params.project_ids
+            all_projects_snuba_params = dataclasses.replace(snuba_params, projects=all_projects)
+            all_projects_params = dict(params)
+            all_projects_params["projects"] = all_projects_snuba_params.projects
+            all_projects_params["projects_objects"] = all_projects_snuba_params.projects
+            all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
 
-            trace_condition = f"trace:[{', '.join(spans_by_trace.keys())}]"
+            trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
 
             with handle_query_errors():
                 breakdowns_query = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
-                    cast(ParamsType, params),
-                    snuba_params=snuba_params,
-                    query=f"{trace_condition}",
+                    cast(ParamsType, all_projects_params),
+                    snuba_params=all_projects_snuba_params,
+                    query="is_transaction:1",
                     selected_columns=[
                         "trace",
                         "project",
@@ -170,27 +160,21 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=["first_seen()", "last_seen()"],
                     # limit the number of segments we fetch per trace so a single
                     # large trace does not result in the rest being blank
-                    limitby=("trace", int(10_000 / len(spans_by_trace))),
+                    limitby=("trace", int(10_000 / len(trace_ids))),
                     limit=10_000,
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "first_seen", "last_seen"],
                         transform_alias_to_input_format=True,
                     ),
                 )
-                # TODO: this should be `is_transaction:1` but there's some
-                # boolean mapping that's not working for this field
-                breakdowns_query.add_conditions(
-                    [
-                        Condition(Column("is_segment"), Op.EQ, 1),
-                    ]
-                )
+                breakdowns_query.add_conditions([trace_id_condition])
 
             with handle_query_errors():
                 traces_meta_query = SpansIndexedQueryBuilder(
                     Dataset.SpansIndexed,
-                    cast(ParamsType, params),
-                    snuba_params=snuba_params,
-                    query=trace_condition,
+                    cast(ParamsType, all_projects_params),
+                    snuba_params=all_projects_snuba_params,
+                    query=None,
                     selected_columns=[
                         "trace",
                         "count()",
@@ -198,23 +182,75 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         "first_seen()",
                         "last_seen()",
                     ],
-                    limit=len(spans_by_trace),
+                    limit=len(trace_ids),
                     config=QueryBuilderConfig(
                         functions_acl=["trace_name", "first_seen", "last_seen"],
                         transform_alias_to_input_format=True,
                     ),
                 )
+                traces_meta_query.add_conditions([trace_id_condition])
+
+            sort = serialized.get("sort")
+            suggested_query = serialized.get("suggestedQuery", "")
+            user_query = serialized.get("query", "")
+            add_suggestions = user_query != suggested_query
+            with handle_query_errors():
+                query_strs = [user_query, suggested_query] if add_suggestions else [user_query]
+
+                spans_queries = [
+                    SpansIndexedQueryBuilder(
+                        Dataset.SpansIndexed,
+                        cast(ParamsType, params),
+                        snuba_params=snuba_params,
+                        query=query_str,
+                        selected_columns=["trace"] + serialized["field"],
+                        orderby=sort,
+                        limit=per_page * serialized["maxSpansPerTrace"],
+                        limitby=("trace", serialized["maxSpansPerTrace"]),
+                        sample_rate=sample_rate,
+                        config=QueryBuilderConfig(
+                            transform_alias_to_input_format=True,
+                        ),
+                    )
+                    for query_str in query_strs
+                ]
+                for spans_query in spans_queries:
+                    spans_query.add_conditions([trace_id_condition])
+
+            queries = [
+                breakdowns_query,
+                traces_meta_query,
+                *spans_queries,
+            ]
 
             with handle_query_errors():
                 results = bulk_snql_query(
-                    [
-                        breakdowns_query.get_snql_query(),
-                        traces_meta_query.get_snql_query(),
-                    ],
+                    [query.get_snql_query() for query in queries],
                     Referrer.API_TRACE_EXPLORER_TRACES_META.value,
                 )
-                breakdowns_results = breakdowns_query.process_results(results[0])
-                traces_meta_results = traces_meta_query.process_results(results[1])
+
+                all_results = [
+                    query.process_results(result) for query, result in zip(queries, results)
+                ]
+                breakdowns_results = all_results[0]
+                traces_meta_results = all_results[1]
+                spans_results = all_results[2]
+                suggested_spans_results = all_results[3] if len(all_results) > 3 else None
+
+            fields = spans_results["meta"].get("fields", {})
+            meta = {
+                **spans_results["meta"],
+                "fields": {field: fields[field] for field in serialized["field"]},
+            }
+
+            spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+            for row in spans_results["data"]:
+                spans_by_trace[row["trace"]].append(row)
+
+            suggested_spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+            if suggested_spans_results:
+                for row in suggested_spans_results["data"]:
+                    suggested_spans_by_trace[row["trace"]].append(row)
 
             try:
                 traces_range = {
@@ -242,6 +278,10 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         {field: span[field] for field in serialized["field"]}
                         for span in spans_by_trace[row["trace"]]
                     ],
+                    "suggestedSpans": [
+                        {field: span[field] for field in serialized["field"]}
+                        for span in suggested_spans_by_trace[row["trace"]]
+                    ],
                 }
                 for row in traces_meta_results["data"]
             ]
@@ -267,67 +307,57 @@ def process_breakdowns(data, traces_range):
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
     def breakdown_push(trace, interval):
-        trace_range = traces_range.get(trace)
-        if trace_range:
+        # Clip the intervals os that it is within range of the trace
+        if trace_range := traces_range.get(trace):
             left, right = trace_range
             interval["start"] = clip(interval["start"], left, right)
             interval["end"] = clip(interval["end"], left, right)
 
         breakdown = breakdowns[trace]
 
-        if breakdown:
+        # Find the last interval. If there is an interval on the stack, it
+        # should take priority over intervals in the breakdown because intervals
+        # on the stack are always active, where intervals on the breakdown are
+        # the most recently started, and it's possible older intervals end after
+        # the newer intervals
+        last_interval = stack_peek(trace)
+        if last_interval is None and breakdown:
             last_interval = breakdown[-1]
 
-            # An interval that overlaps with existing part of the breakdown was
-            # pushed, truncate it to remove the overlapping area.
-            if last_interval["end"] > interval["start"]:
-                interval["start"] = last_interval["end"]
-
-        # empty interval, skip it
-        if interval["start"] == interval["end"]:
-            return
-
-        if breakdown:
-            last_interval = breakdown[-1]
-
-            # A gap in the breakdown was found, fill it with an interval
-            if last_interval["end"] < interval["start"]:
-                last = stack_peek(trace)
-                if last:
-                    # Something is still on the stack, so attribute this gap to
-                    # that project
-                    breakdown.append(
-                        {
-                            "project": last["project"],
-                            "start": last_interval["end"],
-                            "end": interval["start"],
-                            "kind": "project",
-                        }
-                    )
-                else:
-                    # Nothing is found on the stack, so label it as missing
-                    breakdown.append(
-                        {
-                            "project": None,
-                            "start": last_interval["end"],
-                            "end": interval["start"],
-                            "kind": "missing",
-                        }
-                    )
+        if last_interval and last_interval["end"] < interval["start"]:
+            # A gap in the breakdown was found, fill it with a missing interval
+            breakdown.append(
+                {
+                    "project": None,
+                    "start": last_interval["end"],
+                    "end": interval["start"],
+                    "kind": "missing",
+                }
+            )
 
         breakdown.append(interval)
 
     def stack_push(trace, interval):
-        last = stack_peek(trace)
+        last_interval = stack_peek(trace)
         if (
-            last is not None
-            and last["project"] == interval["project"]
-            and last["end"] >= interval["start"]
+            last_interval
+            and last_interval["project"] == interval["project"]
+            and last_interval["end"] >= interval["start"]
         ):
-            # The new interval can be merged with last interval
-            last["end"] = max(interval["end"], last["end"])
-        else:
-            stacks[trace].append(interval)
+            # update the end of this interval and it will
+            # be updated in the breakdown as well
+            last_interval["end"] = max(interval["end"], last_interval["end"])
+            return
+
+        # Make sure to push the breakdown before the stack. This is because
+        # pushing the breakdown can fill in missing intervals but that needs
+        # to know what the current state of the stack is. If we push the
+        # interval onto the stack first, it would not generate the missing
+        # intervals correctly.
+        breakdown_push(trace, interval)
+
+        stack = stacks[trace]
+        stack.append(interval)
 
     def stack_peek(trace):
         if not stacks[trace]:
@@ -335,18 +365,13 @@ def process_breakdowns(data, traces_range):
         return stacks[trace][-1]
 
     def stack_pop(trace):
-        interval = stacks[trace].pop()
+        return stacks[trace].pop()
 
-        return interval
-
-    def stack_clear(trace, until=None, insert=True):
+    def stack_clear(trace, until=None):
         while stacks[trace]:
-            if until is not None and stack_peek(trace)["end"] > until:
+            if until is not None and stack_peek(trace)["end"] >= until:
                 break
-
-            interval = stack_pop(trace)
-            if insert:
-                breakdown_push(trace, interval)
+            stack_pop(trace)
 
     for row in data:
         trace = row["trace"]
@@ -358,68 +383,36 @@ def process_breakdowns(data, traces_range):
             "kind": "project",
         }
 
-        # Nothing on the stack yet, so directly push onto the stack and wait for
-        # next item to come so an interval can be determined
-        if not stack_peek(trace):
-            stack_push(trace, cur)
-            continue
-
         # Clear the stack of any intervals that end before the current interval
         # starts while pushing them to the breakdowns.
-        stack_clear(trace, until=cur["start"], insert=True)
+        stack_clear(trace, until=cur["start"])
 
-        # At this point, any interval remaining on the stack MUST overlap with
-        # the current interval we're working with because we've cleared the
-        # stack of all intervals that have ended.
-
-        # This is the last interval that is active during the current interval
-        prev = stack_peek(trace)
-
-        if prev is not None and prev["project"] == cur["project"]:
-            # Same project as the previous interval, so push it to the stack and
-            # let them merge.
-            stack_push(trace, cur)
-            continue
-
-        if prev is not None:
-            # This implies that there is some overlap between this transaction
-            # and the previous transaction. So we need push the interval up to
-            # the current item to the breakdown.
-
-            breakdown_push(
-                trace,
-                {
-                    "project": prev["project"],
-                    "start": prev["start"],
-                    "end": cur["start"],
-                    "kind": "project",
-                },
-            )
+        stack_push(trace, cur)
 
         # Clear the stack of any intervals that end before the current interval
         # ends. Here we do not need to push them to the breakdowns because
         # that time has already be attributed to the most recent interval.
-        stack_clear(trace, until=cur["end"], insert=False)
+        stack_clear(trace, until=cur["end"])
 
-        stack_push(trace, cur)
-
-    for trace in stacks:
-        stack_clear(trace, insert=True)
-
+    for trace, (trace_start, trace_end) in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
-        # with an unknown interval.
-        breakdown = breakdowns[trace]
-        trace_range = traces_range.get(trace)
-        if breakdown and trace_range:
-            left, right = trace_range
-            if breakdown[-1]["end"] < right:
-                breakdown.append(
-                    {
-                        "project": None,
-                        "start": breakdown[-1]["end"],
-                        "end": right,
-                        "kind": "unknown",
-                    }
-                )
+        # with an other interval.
+
+        other = {
+            "project": None,
+            "start": trace_start,
+            "end": trace_end,
+            "kind": "other",
+        }
+
+        # Clear the remaining intervals on the stack to find the latest end time
+        # of the intervals. This will be used to decide if there are any portion
+        # of the trace that was not covered by one of the intervals.
+        while stacks[trace]:
+            interval = stack_pop(trace)
+            other["start"] = max(other["start"], interval["end"])
+
+        if other["start"] < other["end"]:
+            breakdown_push(trace, other)
 
     return breakdowns

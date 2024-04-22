@@ -335,6 +335,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
+  'resource.http': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
 };
 
 const MAPPER_DEFAULT = (frame): Details => ({

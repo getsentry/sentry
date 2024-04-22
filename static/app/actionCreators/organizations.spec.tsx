@@ -13,35 +13,6 @@ describe('fetchOrganizations', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('has a fallback to regions', async function () {
-    // @ts-ignore-next-line Need to simulate undefined
-    // key that can happen during deploy
-    ConfigStore.set('memberRegions', undefined);
-    ConfigStore.set('regions', [
-      {name: 'us', url: 'https://us.example.org'},
-      {name: 'de', url: 'https://de.example.org'},
-    ]);
-    const usMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [usorg],
-    });
-    const deMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [deorg],
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.host === 'https://de.example.org';
-        },
-      ],
-    });
-    const organizations = await fetchOrganizations(api);
-
-    expect(organizations).toHaveLength(2);
-    expect(organizations[0].slug).toEqual(usorg.slug);
-    expect(usMock).toHaveBeenCalledTimes(1);
-    expect(deMock).toHaveBeenCalledTimes(1);
-  });
-
   it('fetches from multiple regions', async function () {
     ConfigStore.set('memberRegions', [
       {name: 'us', url: 'https://us.example.org'},

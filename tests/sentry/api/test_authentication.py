@@ -29,7 +29,7 @@ from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
     generate_request_signature,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner

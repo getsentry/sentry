@@ -1,12 +1,13 @@
 import logging
 import time
+from datetime import datetime
 
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
     queue="digests.scheduling",
     silo_mode=SiloMode.REGION,
 )
-def schedule_digests():
+def schedule_digests() -> None:
     from sentry import digests
 
     deadline = time.time()
@@ -32,9 +33,9 @@ def schedule_digests():
     # relatively high to avoid requeueing items before they even had a chance
     # to be processed.
     timeout = 300
-    digests.maintenance(deadline - timeout)
+    digests.backend.maintenance(deadline - timeout)
 
-    for entry in digests.schedule(deadline):
+    for entry in digests.backend.schedule(deadline):
         deliver_digest.delay(entry.key, entry.timestamp)
 
 
@@ -43,7 +44,11 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None = None):
+def deliver_digest(
+    key: str,
+    schedule_timestamp: datetime | None = None,
+    notification_uuid: str | None = None,
+) -> None:
     from sentry import digests
     from sentry.mail import mail_adapter
 
@@ -51,7 +56,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None =
         project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
         logger.info("Cannot deliver digest %s due to error: %s", key, error)
-        digests.delete(key)
+        digests.backend.delete(key)
         return
 
     minimum_delay = ProjectOption.objects.get_value(
@@ -60,7 +65,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None =
 
     with snuba.options_override({"consistent": True}):
         try:
-            with digests.digest(key, minimum_delay=minimum_delay) as records:
+            with digests.backend.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
 
                 if not notification_uuid:

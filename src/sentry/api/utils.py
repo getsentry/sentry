@@ -40,7 +40,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
@@ -487,19 +487,24 @@ class Timer:
 
 
 def id_or_slug_path_params_enabled(
-    convert_args_class: str, organization_slug: str | None = None
+    convert_args_class: str | None = None, organization_slug: str | None = None
 ) -> bool:
     # GA option
     if options.get("api.id-or-slug-enabled"):
         return True
+
+    # Apigateway
+    if not convert_args_class and organization_slug:
+        # Return True if the organization is in the list of enabled organizations and the apigateway option is enabled
+        return organization_slug in options.get("api.id-or-slug-enabled-ea-org")
 
     # EA option for endpoints where organization is available
     if organization_slug and organization_slug not in options.get("api.id-or-slug-enabled-ea-org"):
         return False
 
     # EA option for endpoints where organization is not available
-    if convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints"):
-        return True
+    if convert_args_class:
+        return convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints")
 
     return False
 
