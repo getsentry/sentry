@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import dataclasses
+from collections.abc import Mapping
+from typing import NamedTuple
+
 import sentry_sdk
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -8,6 +12,19 @@ from sentry import options
 from sentry.utils import json, redis
 
 SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
+
+
+@dataclasses.dataclass
+class ProcessSegmentsContext:
+    timestamp: int
+    partition: int
+    should_process_segments: bool
+
+
+class SegmentKey(NamedTuple):
+    segment_id: str
+    project_id: int
+    partition: int
 
 
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -29,6 +46,74 @@ def get_unprocessed_segments_key(partition_index: int) -> str:
 class RedisSpansBuffer:
     def __init__(self):
         self.client: RedisCluster | StrictRedis = get_redis_client()
+
+    def batch_write_and_check_processing(
+        self,
+        spans_map: Mapping[SegmentKey, list[bytes]],
+        segment_first_seen_ts: Mapping[SegmentKey, int],
+        latest_ts_by_partition: Mapping[int, int],
+    ) -> list[ProcessSegmentsContext]:
+        """
+        1. Pushes batches of spans to redis
+        2. Check if number of spans pushed == to the number of elements that exist on the key. This
+            tells us if it was the first time we see the key. This works fine because RPUSH is atomic.
+        3. If it is the first time we see a particular segment, push the segment id and first seen
+            timestamp to a bucket so we know when it is ready to be processed.
+        3. Checks if 1 second has passed since the last time segments were processed for a partition.
+        """
+        keys = list(spans_map.keys())
+        spans_written_per_segment = []
+
+        # Batch write spans in a segment
+        with self.client.pipeline() as p:
+            for key in keys:
+                segment_id, project_id, partition = key
+                spans = spans_map[key]
+                segment_key = get_segment_key(project_id, segment_id)
+                # RPUSH is atomic
+                p.rpush(segment_key, *spans)
+                spans_written_per_segment.append(len(spans))
+
+            results = p.execute()
+
+        partitions = list(latest_ts_by_partition.keys())
+        with self.client.pipeline() as p:
+            # Get last processed timestamp for each partition processed
+            # by consumer
+            for partition in partitions:
+                timestamp = latest_ts_by_partition[partition]
+                timestamp_key = get_last_processed_timestamp_key(partition)
+                # GETSET is atomic
+                p.getset(timestamp_key, timestamp)
+
+            for result in zip(keys, spans_written_per_segment, results):
+                # Check if this is a new segment, if yes, add to bucket to be processed
+                key, num_written, num_total = result
+                if num_written == num_total:
+                    segment_id, project_id, partition = key
+                    segment_key = get_segment_key(project_id, segment_id)
+                    bucket = get_unprocessed_segments_key(partition)
+
+                    timestamp = segment_first_seen_ts[key]
+                    p.expire(segment_key, SEGMENT_TTL)
+                    p.rpush(bucket, json.dumps([timestamp, segment_key]))
+
+            timestamp_results = p.execute()
+
+        # For each partition this consumer is assigned to, check if it should process segments
+        process_segments_contexts: list[ProcessSegmentsContext] = []
+        for value in zip(timestamp_results[: len(latest_ts_by_partition)], partitions):
+            last_ts, partition = value
+            should_process = last_ts is None or int(last_ts) < latest_ts_by_partition[partition]
+            process_segments_contexts.append(
+                ProcessSegmentsContext(
+                    timestamp=latest_ts_by_partition[partition],
+                    partition=partition,
+                    should_process_segments=should_process,
+                )
+            )
+
+        return process_segments_contexts
 
     def write_span_and_check_processing(
         self,
