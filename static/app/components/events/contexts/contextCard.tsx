@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import {
   getContextMeta,
@@ -10,9 +11,8 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {Group, KeyValueListDataItem, Project, Event} from 'sentry/types';
+
 import {defined, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,7 +25,71 @@ interface ContextCardProps {
   value?: Record<string, any>;
 }
 
-function ContextCard({alias, event, type, project, value = {}}: ContextCardProps) {
+interface ContextCardContentConfig {
+  disableErrors?: boolean;
+  includeAliasInSubject?: boolean;
+}
+
+export interface ContextCardContentProps {
+  item: KeyValueListDataItem;
+  meta: Record<string, any>;
+  alias?: string;
+  config?: ContextCardContentConfig;
+}
+
+export function ContextCardContent({
+  item,
+  alias,
+  meta,
+  config,
+  ...props
+}: ContextCardContentProps) {
+  const {key: contextKey, subject, value: contextValue, action = {}} = item;
+  if (contextKey === 'type') {
+    return null;
+  }
+  const contextMeta = meta?.[contextKey];
+  const contextErrors = contextMeta?.['']?.err ?? [];
+  const hasErrors = contextErrors.length > 0 && !config?.disableErrors;
+
+  const dataComponent = (
+    <StructuredData
+      value={contextValue}
+      depth={0}
+      maxDefaultDepth={0}
+      meta={contextMeta}
+      withAnnotatedText
+      withOnlyFormattedText
+    />
+  );
+
+  const contextSubject =
+    config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
+
+  return (
+    <ContextContent hasErrors={hasErrors} {...props}>
+      <ContextSubject>{contextSubject}</ContextSubject>
+      <ContextValue hasErrors={hasErrors} className="ctx-row-value">
+        {defined(action?.link) ? (
+          <Link to={action.link}>{dataComponent}</Link>
+        ) : (
+          dataComponent
+        )}
+      </ContextValue>
+      <ContextErrors>
+        <AnnotatedTextErrors errors={contextErrors} />
+      </ContextErrors>
+    </ContextContent>
+  );
+}
+
+export default function ContextCard({
+  alias,
+  event,
+  type,
+  project,
+  value = {},
+}: ContextCardProps) {
   const organization = useOrganization();
   if (objectIsEmpty(value)) {
     return null;
@@ -40,43 +104,9 @@ function ContextCard({alias, event, type, project, value = {}}: ContextCardProps
     project,
   });
 
-  const content = contextItems.map(
-    ({key, subject, value: contextValue, action = {}}, i) => {
-      if (key === 'type') {
-        return null;
-      }
-      const contextMeta = meta?.[key];
-      const contextErrors = contextMeta?.['']?.err ?? [];
-      const hasErrors = contextErrors.length > 0;
-
-      const dataComponent = (
-        <StructuredData
-          value={contextValue}
-          depth={0}
-          maxDefaultDepth={0}
-          meta={contextMeta}
-          withAnnotatedText
-          withOnlyFormattedText
-        />
-      );
-
-      return (
-        <ContextContent key={i} hasErrors={hasErrors}>
-          <ContextSubject>{subject}</ContextSubject>
-          <ContextValue hasErrors={hasErrors}>
-            {defined(action?.link) ? (
-              <Link to={action.link}>{dataComponent}</Link>
-            ) : (
-              dataComponent
-            )}
-          </ContextValue>
-          <ContextErrors>
-            <AnnotatedTextErrors errors={contextErrors} />
-          </ContextErrors>
-        </ContextContent>
-      );
-    }
-  );
+  const content = contextItems.map((item, i) => (
+    <ContextCardContent key={`context-card-${i}`} meta={meta} item={item} />
+  ));
 
   return (
     <Card>
@@ -128,10 +158,6 @@ const ContextSubject = styled('div')`
 const ContextValue = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: span ${p => (p.hasErrors ? 1 : 2)};
-  /* justify-content: space-between;
-  display: inline-flex; */
 `;
 
 const ContextErrors = styled('div')``;
-
-export default ContextCard;
