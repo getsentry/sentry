@@ -17,7 +17,11 @@ import {SelectContext} from 'sentry/components/compactSelect/control';
 import {SelectFilterContext} from 'sentry/components/compactSelect/list';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getHiddenOptions} from 'sentry/components/compactSelect/utils';
+import {
+  getDisabledOptions,
+  getEscapedKey,
+  getHiddenOptions,
+} from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -66,6 +70,11 @@ export function SearchQueryBuilderCombobox({
     return getHiddenOptions(items, inputValue, 10);
   }, [items, inputValue]);
 
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+    [hiddenOptions, items]
+  );
+
   const onSelectionChange = useCallback(
     (key: Key) => {
       const selectedOption = items.find(item => item.key === key);
@@ -85,6 +94,7 @@ export function SearchQueryBuilderCombobox({
     inputValue,
     onInputChange: setInputValue,
     onSelectionChange,
+    disabledKeys,
     onFocus: () => {
       state.open();
     },
