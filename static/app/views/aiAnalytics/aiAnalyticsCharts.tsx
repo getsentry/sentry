@@ -26,7 +26,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
     [
       {
         name: 'number',
-        mri: `d:spans/exclusive_time@millisecond`,
+        mri: `d:spans/exclusive_time_light@millisecond`,
         op: 'count',
         query,
       },
