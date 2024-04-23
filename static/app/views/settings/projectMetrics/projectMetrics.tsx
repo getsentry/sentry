@@ -39,7 +39,7 @@ type Props = {
 
 enum BlockingStatusTab {
   ACTIVE = 'active',
-  BLOCKED = 'blocked',
+  DISABLED = 'disabled',
 }
 
 function ProjectMetrics({project, location}: Props) {
@@ -117,7 +117,7 @@ function ProjectMetrics({project, location}: Props) {
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <TabList>
           <TabList.Item key={BlockingStatusTab.ACTIVE}>{t('Active')}</TabList.Item>
-          <TabList.Item key={BlockingStatusTab.BLOCKED}>{t('Blocked')}</TabList.Item>
+          <TabList.Item key={BlockingStatusTab.DISABLED}>{t('Disabled')}</TabList.Item>
         </TabList>
         <TabPanelsWrapper>
           <TabPanels.Item key={BlockingStatusTab.ACTIVE}>
@@ -130,7 +130,7 @@ function ProjectMetrics({project, location}: Props) {
               project={project}
             />
           </TabPanels.Item>
-          <TabPanels.Item key={BlockingStatusTab.BLOCKED}>
+          <TabPanels.Item key={BlockingStatusTab.DISABLED}>
             <MetricsTable
               metrics={metrics.filter(({blockingStatus}) => blockingStatus[0]?.isBlocked)}
               isLoading={isLoading}
