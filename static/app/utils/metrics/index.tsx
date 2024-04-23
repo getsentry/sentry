@@ -20,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   MetricMeta,
   MetricsDataIntervalLadder,

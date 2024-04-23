@@ -396,31 +396,33 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              router.replace({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
+        <SegmentedControl
+          size="md"
+          value={datatype}
+          aria-label={t('Data Type')}
+          onChange={newDataSet => {
+            // Reset pagination and sort when switching datatypes
+            router.replace({
+              ...location,
+              query: {
+                ...location.query,
+                sort: undefined,
+                cursor: undefined,
+                [DATATYPE_KEY]: newDataSet,
+              },
+            });
+          }}
+        >
+          <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
+            {t('Pageloads')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item
+            key={Datatype.INTERACTIONS}
+            aria-label={t('Interactions')}
           >
-            <SegmentedControl.Item key={Datatype.PAGELOADS}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        }
+            {t('Interactions')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
 
         <StyledSearchBar
           query={query}

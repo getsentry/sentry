@@ -2,7 +2,7 @@ import {render} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 
 import {ROOT_ELEMENT, USE_REACT_CONCURRENT_MODE} from 'sentry/constants';
-import type {PipelineInitialData} from 'sentry/types';
+import type {PipelineInitialData} from 'sentry/types/system';
 import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
 
 function renderDom(pipelineName: string, props: PipelineInitialData['props']) {

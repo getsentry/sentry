@@ -508,7 +508,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 from django.db.models import Model, QuerySet
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer

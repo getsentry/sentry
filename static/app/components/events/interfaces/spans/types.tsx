@@ -58,7 +58,10 @@ export type RawSpanType = {
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
-  'span.average_time'?: number;
+  'span.averageResults'?: {
+    'avg(span.duration)'?: number;
+    'avg(span.self_time)'?: number;
+  };
   status?: string;
   tags?: {[key: string]: string};
 };

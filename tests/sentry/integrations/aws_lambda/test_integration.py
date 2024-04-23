@@ -13,7 +13,7 @@ from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 

@@ -167,6 +167,7 @@ export const MetricChart = memo(
           showTimeInTooltip: true,
           addSecondsToTimeFormat: isSubMinuteBucket,
           limit: 10,
+          utc: !!dateTimeOptions.utc,
           filter: (_, seriesParam) => {
             return seriesParam?.axisId === MAIN_X_AXIS_ID;
           },
@@ -233,10 +234,12 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = defaultFormatAxisLabel(
+                const date = params[0].value[0];
+
+                defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
-                  false,
+                  timeseriesFormatters.utc,
                   timeseriesFormatters.showTimeInTooltip,
                   timeseriesFormatters.addSecondsToTimeFormat,
                   timeseriesFormatters.bucketSize

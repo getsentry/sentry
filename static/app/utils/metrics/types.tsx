@@ -1,4 +1,5 @@
-import type {DateString, MRI} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 
 export enum MetricDisplayType {
   LINE = 'line',

@@ -123,6 +123,23 @@ describe('Incident Rules Form', () => {
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
     });
+
+    it('renders time window', async () => {
+      createWrapper({rule});
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
+    });
+
+    it('renders time window for activated alerts', async () => {
+      createWrapper({
+        rule: {
+          ...rule,
+          monitorType: MonitorType.CONTINUOUS,
+        },
+      });
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
+    });
   });
 
   describe('Creating a new rule', () => {

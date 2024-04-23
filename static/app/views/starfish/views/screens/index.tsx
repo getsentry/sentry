@@ -4,14 +4,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';

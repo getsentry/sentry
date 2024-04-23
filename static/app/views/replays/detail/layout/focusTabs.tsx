@@ -17,18 +17,25 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
   isVideoReplay,
+  organization,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the console, a11y, trace, and memory tabs
-  // The console tab isn't useful for video replays; most of the useful logging
-  // context will come from breadcrumbs
+  // The console tab isn't useful for video replays (for now); most of the
+  // useful logging context will come from breadcrumbs
   // A11y, trace, and memory aren't applicable for mobile
+
+  // Show the console tab if 1) it's a video replay and we have the FF enabled
+  // or 2) it's not a video replay
+  const showConsoleTab = isVideoReplay
+    ? organization.features.includes('session-replay-mobile-network-tab')
+    : true;
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: isVideoReplay ? null : t('Console'),
+    [TabKey.CONSOLE]: showConsoleTab ? t('Console') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
