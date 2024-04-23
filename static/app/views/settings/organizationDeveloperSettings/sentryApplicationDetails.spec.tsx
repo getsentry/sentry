@@ -431,7 +431,11 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
+      renderGlobalModal();
+
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      // Confirm modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
