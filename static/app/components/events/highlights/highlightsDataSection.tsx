@@ -60,6 +60,13 @@ export default function HighlightsDataSection({
 
   const highlightContext = detailedProject?.highlightContext ?? {};
   const highlightTags = detailedProject?.highlightTags ?? [];
+
+  // The API will return default values for tags/context. The only way to have none is to set it to
+  // empty yourself, meaning the user does not want this section to appear.
+  if (Object.keys(highlightContext).length === 0 && highlightTags.length === 0) {
+    return null;
+  }
+
   const viewAllButton = viewAllRef ? (
     <Button
       onClick={() => viewAllRef?.current?.scrollIntoView({behavior: 'smooth'})}

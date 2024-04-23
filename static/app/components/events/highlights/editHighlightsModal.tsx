@@ -114,7 +114,13 @@ function EditPreviewHighlightSection({
   }
   return (
     <EditHighlightPreview columnCount={previewColumnCount}>
-      {columns}
+      {columns.length > 0 ? (
+        columns
+      ) : (
+        <EmptyHighlightMessage columnCount={previewColumnCount}>
+          {t('Promote tags or context keys to highlights for quicker debugging!')}
+        </EmptyHighlightMessage>
+      )}
     </EditHighlightPreview>
   );
 }
@@ -369,6 +375,13 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   align-items: start;
   margin: 0 -${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const EmptyHighlightMessage = styled('div')<{columnCount: number}>`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  grid-column: span ${p => p.columnCount};
+  text-align: center;
 `;
 
 const EditHighlightSection = styled('div')`
