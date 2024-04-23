@@ -18,7 +18,6 @@ from sentry.api.helpers.repos import get_repos_from_project_code_mappings
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 
@@ -185,15 +184,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 serialized_event,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
-            )
-
-            # Mark the task as completed after TIMEOUT_SECONDS
-            ai_autofix_check_for_timeout.apply_async(
-                kwargs={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                },
-                countdown=TIMEOUT_SECONDS,
             )
         except Exception as e:
             logger.exception(
