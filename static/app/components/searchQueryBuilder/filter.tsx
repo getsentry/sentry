@@ -1,8 +1,10 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/utils';
 import {
   TermOperator,
   type Token,
@@ -35,13 +37,37 @@ const getOpLabel = (token: TokenResult<Token.FILTER>) => {
 };
 
 function FilterOperator({token}: SearchQueryTokenProps) {
-  // TODO(malwilley): Add edit functionality
+  const {dispatch} = useSearchQueryBuilder();
+
+  const items: MenuItemProps[] = useMemo(() => {
+    return getValidOpsForFilter(token).map(op => ({
+      key: op,
+      label: OP_LABELS[op] ?? op,
+      onAction: val => {
+        dispatch({
+          type: 'UPDATE_FILTER_OP',
+          token,
+          op: val as TermOperator,
+        });
+      },
+    }));
+  }, [dispatch, token]);
 
   return (
-    <OpDiv tabIndex={-1} role="gridcell" aria-label={t('Edit token operator')}>
-      <InteractionStateLayer />
-      {getOpLabel(token)}
-    </OpDiv>
+    <DropdownMenu
+      trigger={triggerProps => (
+        <OpDiv
+          tabIndex={-1}
+          role="gridcell"
+          aria-label={t('Edit token operator')}
+          {...triggerProps}
+        >
+          <InteractionStateLayer />
+          {getOpLabel(token)}
+        </OpDiv>
+      )}
+      items={items}
+    />
   );
 }
 

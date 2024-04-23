@@ -142,7 +142,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -742,7 +742,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_repo(project, name=None, provider=None, integration_id=None, url=None):
+    def create_repo(
+        project, name=None, provider=None, integration_id=None, url=None, external_id=None
+    ):
         repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
@@ -750,6 +752,7 @@ class Factories:
             provider=provider,
             integration_id=integration_id,
             url=url,
+            external_id=external_id,
         )
         return repo
 

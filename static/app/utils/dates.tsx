@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 
 import type {TableDataRow} from './discover/discoverQuery';
 

@@ -42,7 +42,7 @@ from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_conte
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.region import find_regions_for_user
+from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -202,7 +202,7 @@ class User(BaseModel, AbstractBaseUser):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
-            for outbox in self.outboxes_for_update():
+            for outbox in self.outboxes_for_update(is_user_delete=True):
                 outbox.save()
             return super().delete()
 
@@ -305,13 +305,23 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
-    def outboxes_for_update(self) -> list[ControlOutboxBase]:
-        return User.outboxes_for_user_update(self.id)
+    def outboxes_for_update(self, is_user_delete: bool = False) -> list[ControlOutboxBase]:
+        return User.outboxes_for_user_update(self.id, is_user_delete=is_user_delete)
 
     @staticmethod
-    def outboxes_for_user_update(identifier: int) -> list[ControlOutboxBase]:
+    def outboxes_for_user_update(
+        identifier: int, is_user_delete: bool = False
+    ) -> list[ControlOutboxBase]:
+        # User deletions must fan out to all regions to ensure cascade behavior
+        # of anything with a HybridCloudForeignKey, even if the user is no longer
+        # a member of any organizations in that region.
+        if is_user_delete:
+            user_regions = set(find_all_region_names())
+        else:
+            user_regions = find_regions_for_user(identifier)
+
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            region_names=find_regions_for_user(identifier),
+            region_names=user_regions,
             object_identifier=identifier,
             shard_identifier=identifier,
         )

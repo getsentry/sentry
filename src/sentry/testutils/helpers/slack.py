@@ -10,7 +10,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json

@@ -1,4 +1,5 @@
-import type {DateString, MRI} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -80,6 +81,7 @@ export interface MetricsQueryParams {
   widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
+  interval?: string;
   project?: number[];
   start?: DateString;
   statsPeriod?: string | null;
