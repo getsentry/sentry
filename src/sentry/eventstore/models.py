@@ -246,8 +246,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
-        et = eventtypes.get(self.get_event_type())()
-        return cast(str, et.get_title(self.get_event_metadata()))
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return cast(str, event_type_instance.get_title(self.get_event_metadata()))
 
     @property
     def culprit(self) -> str | None:
