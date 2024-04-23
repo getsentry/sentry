@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -253,7 +253,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             projectID: event.projectID,
           })}
         >
-          {t('View Similar Spans')}
+          {t('View Span Summary')}
         </StyledButton>
       </ButtonGroup>
     );

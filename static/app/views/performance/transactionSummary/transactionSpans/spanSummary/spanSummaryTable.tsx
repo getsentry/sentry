@@ -30,6 +30,8 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type TableColumnKeys =
   | 'id'
@@ -47,25 +49,17 @@ type TableDataRow = Record<TableColumnKeys, any>;
 type Props = {
   examples: ExampleTransaction[];
   isLoading: boolean;
-  location: Location;
-  organization: Organization;
   transactionName: string;
   pageLinks?: string | null;
   project?: Project;
   suspectSpan?: SuspectSpan;
 };
 
-export default function SpanTable(props: Props) {
-  const {
-    location,
-    organization,
-    project,
-    examples,
-    suspectSpan,
-    isLoading,
-    pageLinks,
-    transactionName,
-  } = props;
+export default function SpanSummaryTable(props: Props) {
+  const {project, examples, suspectSpan, isLoading, pageLinks, transactionName} = props;
+
+  const location = useLocation();
+  const organization = useOrganization();
 
   if (!defined(examples)) {
     return null;
