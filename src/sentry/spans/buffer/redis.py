@@ -10,6 +10,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.utils import json, redis
+from sentry.utils.iterators import chunked
 
 SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
 
@@ -40,7 +41,7 @@ def get_last_processed_timestamp_key(partition_index: int) -> str:
 
 
 def get_unprocessed_segments_key(partition_index: int) -> str:
-    return f"performance-issues:unprocessed-segments:partition:{partition_index}"
+    return f"performance-issues:unprocessed-segments:partition-2:{partition_index}"
 
 
 class RedisSpansBuffer:
@@ -96,7 +97,7 @@ class RedisSpansBuffer:
 
                     timestamp = segment_first_seen_ts[key]
                     p.expire(segment_key, SEGMENT_TTL)
-                    p.rpush(bucket, json.dumps([timestamp, segment_key]))
+                    p.rpush(bucket, timestamp, segment_key)
 
             timestamp_results = p.execute()
 
@@ -168,19 +169,23 @@ class RedisSpansBuffer:
 
         buffer_window = options.get("standalone-spans.buffer-window.seconds")
 
-        ltrim_index = 0
         segment_keys = []
         processed_segment_ts = None
-        for result in results:
-            segment_timestamp, segment_key = json.loads(result)
-            if now - segment_timestamp < buffer_window:
+        for result in chunked(results, 2):
+            try:
+                segment_timestamp, segment_key = result
+                segment_timestamp = int(segment_timestamp)
+                if now - segment_timestamp < buffer_window:
+                    break
+
+                processed_segment_ts = segment_timestamp
+                segment_keys.append(segment_key.decode("utf-8"))
+            except Exception:
+                # Just in case something funky happens here
+                sentry_sdk.capture_exception()
                 break
 
-            processed_segment_ts = segment_timestamp
-            ltrim_index += 1
-            segment_keys.append(segment_key)
-
-        self.client.ltrim(key, ltrim_index, -1)
+        self.client.ltrim(key, len(segment_keys) * 2, -1)
 
         segment_context = {"current_timestamp": now, "segment_timestamp": processed_segment_ts}
         sentry_sdk.set_context("processed_segment", segment_context)
