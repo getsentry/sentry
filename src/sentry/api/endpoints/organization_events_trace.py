@@ -1523,10 +1523,6 @@ def find_errors_for_trace_id(
         if selected_columns is None
         else selected_columns
     )
-    # Required because of orderby usage
-    if "id" not in _columns:
-        _columns.append("id")
-
     return QueryBuilder(
         Dataset.Events,
         params,
