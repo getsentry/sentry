@@ -4,6 +4,7 @@
 from sentry.api.endpoints.organization_events_trace import find_errors_for_trace_id
 from sentry.api.utils import default_start_end_dates
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -14,19 +15,22 @@ def trace_connected_analysis(group: Group) -> list[int]:
         return []
 
     start, end = default_start_end_dates()  # Today to 90 days back
+    org_id = group.project.organization_id
+    # XXX: Test without a list and validate the data type
+    project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
     query = find_errors_for_trace_id(
-        params={
-            "start": start,
-            "end": end,
-            "organization_id": group.project.organization_id,
-        },
+        params={"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
         trace_id=event.trace_id,
-        selected_columns=["id", "project.id", "issue", "title"],
+        selected_columns=["issue.id"],
     )
     results = bulk_snuba_queries(
         [query.get_snql_query()], referrer=Referrer.API_ISSUES_RELATED_ISSUES.value
     )
-    transformed_results = [
-        query.process_results(result)["data"] for result, query in zip(results, [query])
-    ]
-    return transformed_results  # type: ignore[return-value]
+    transformed_results = list(
+        {
+            datum["issue.id"]
+            for datum in query.process_results(results[0])["data"]
+            if datum["issue.id"] != group.id  # Exclude itself
+        }
+    )
+    return transformed_results
