@@ -378,3 +378,49 @@ def test_cross_database_same_silo_deletion(task_runner):
             ),
         )
         assert ids == []
+
+
+@django_db_all
+@region_silo_test
+def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types():
+    data = setup_cross_db_deletion_data()
+
+    unaffected_data = []
+    for i in range(3):
+        unaffected_data.append(setup_cross_db_deletion_data())
+
+    # Pollute the tombstone data with references to relationships in other
+    # tables matching other User IDs just to ensure we are filtering on the
+    # correct table name.
+    for udata in unaffected_data:
+        unaffected_user = udata["user"]
+        RegionTombstone.objects.create(
+            table_name="something_table", object_identifier=unaffected_user.id
+        )
+
+    user = data["user"]
+    user_id = user.id
+    monitor = data["monitor"]
+    with assume_test_silo_mode_of(User), outbox_runner():
+        user.delete()
+
+    tombstone = RegionTombstone.objects.get(
+        object_identifier=user_id, table_name=User._meta.db_table
+    )
+
+    highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+
+    with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
+        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor.owner_user_id.field,
+            watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
