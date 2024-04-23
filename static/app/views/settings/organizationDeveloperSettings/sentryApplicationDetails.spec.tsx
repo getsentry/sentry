@@ -431,7 +431,11 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
+      renderGlobalModal();
+
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      // Confirm modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
@@ -626,6 +630,8 @@ describe('Sentry Application Details', function () {
         screen.getByRole('button', {name: 'Rotate client secret'})
       ).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Rotate client secret'}));
+      // Confirm modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(
         screen.getByText('This will be the only time your client secret is visible!')
