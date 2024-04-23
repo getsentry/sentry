@@ -1432,6 +1432,9 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
+    if event.occurrence.evidence_data.get("is_spam") is True:
+        return False
+
     feedback_source = event.occurrence.evidence_data.get("source")
 
     if feedback_source in FeedbackCreationSource.new_feedback_category_values():
