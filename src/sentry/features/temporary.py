@@ -166,6 +166,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-transaction-summary-cleanup", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-spans-new-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-streamed-spans-exp-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:performance-streamed-spans-exp-visible", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:process-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
