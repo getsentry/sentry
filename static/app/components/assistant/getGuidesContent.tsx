@@ -174,19 +174,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
-    {
-      guide: 'ddm_view',
-      requiredTargets: ['create_scratchpad'],
-      steps: [
-        {
-          title: t('Save your charts'),
-          target: 'create_scratchpad',
-          description: t(
-            `Scratchpads are stored locally on your device. If you want to share them, simply send the URL to your teammates.`
-          ),
-        },
-      ],
-    },
   ];
 }
 

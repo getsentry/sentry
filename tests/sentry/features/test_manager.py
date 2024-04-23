@@ -308,11 +308,10 @@ class FeatureManagerTest(TestCase):
     def test_option_features(self):
         manager = features.FeatureManager()
         manager.add("organizations:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-        assert manager.option_features == {"organizations:some-test"}
+        manager.add("projects:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+        assert manager.option_features == {"organizations:some-test", "projects:some-test"}
 
     def test_invalid_option_features(self):
         manager = features.FeatureManager()
-        with pytest.raises(NotImplementedError):
-            manager.add("projects:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
         with pytest.raises(NotImplementedError):
             manager.add("users:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)

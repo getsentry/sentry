@@ -18,6 +18,7 @@ SENTRY_LLM_SERVICE_ALIASES = {
 class LLMUseCase(Enum):
     EXAMPLE = "example"  # used in tests / examples
     SUGGESTED_FIX = "suggestedfix"  # OG version of suggested fix
+    SPAM_DETECTION = "spamdetection"
 
 
 llm_provider_backends: dict[str, LlmModelBase] = {}
@@ -47,12 +48,20 @@ def get_llm_provider_backend(usecase: LLMUseCase) -> LlmModelBase:
 def complete_prompt(
     *,
     usecase: LLMUseCase,
-    prompt: str,
+    prompt: str | None = None,
     message: str,
     temperature: float = 0.5,
     max_output_tokens: int = 1000,
 ) -> str | None:
     """
+    :param usecase: The usecase to use. see LLMUseCase
+    :param prompt: The prompt to complete.
+    prompt is the system message, it holds a special role in most LLM models and is treated differently.
+    It's optional and not required, only the initial user message is.
+    :param message: The message to complete the prompt with, generally the input that differs between calls
+    :param temperature: The temperature to use. Defaults to 0.5.
+    :param max_output_tokens: The maximum number of output tokens. Defaults to 1000.
+    :return: The completed prompt.
     Complete a prompt with a message using the specified usecase.
     Default temperature and max_output_tokens set to a hopefully
     reasonable value, but please consider what makes sense for

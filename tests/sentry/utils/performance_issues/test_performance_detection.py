@@ -519,7 +519,9 @@ class EventPerformanceProblemTest(TestCase):
         )
 
         EventPerformanceProblem(event, problem).save()
-        assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+        found = EventPerformanceProblem.fetch(event, problem.fingerprint)
+        assert found is not None
+        assert found.problem == problem
 
     def test_fetch_multi(self):
         event_1 = Event(self.project.id, "something")

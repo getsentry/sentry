@@ -212,13 +212,16 @@ export function useMetricChartSamples({
             if (!isChartHovered(chartRef?.current)) {
               return '';
             }
+            const baseFormatter = baseProps.tooltip?.formatter;
 
             // Hovering a single correlated sample datapoint
             if (params.seriesType === 'scatter') {
-              return getFormatter(formatterOptions)(params, asyncTicket);
+              return getFormatter({...formatterOptions, utc: !!baseProps.utc})(
+                params,
+                asyncTicket
+              );
             }
 
-            const baseFormatter = baseProps.tooltip?.formatter;
             if (typeof baseFormatter === 'string') {
               return baseFormatter;
             }

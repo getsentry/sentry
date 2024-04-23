@@ -13,7 +13,7 @@ class PreviewLLM(LlmModelBase):
         self,
         *,
         usecase_config: UseCaseConfig,
-        prompt: str,
+        prompt: str | None = None,
         message: str,
         temperature: float = 0.7,
         max_output_tokens: int = 1000,

@@ -23,14 +23,16 @@ class VertexProvider(LlmModelBase):
         self,
         *,
         usecase_config: UseCaseConfig,
-        prompt: str,
+        prompt: str | None = None,
         message: str,
         temperature: float,
         max_output_tokens: int,
     ) -> str | None:
 
+        content = f"{prompt} {message}" if prompt else message
+
         payload = {
-            "instances": [{"content": f"{prompt} {message}"}],
+            "instances": [{"content": content}],
             "parameters": {
                 "candidateCount": self.candidate_count,
                 "maxOutputTokens": max_output_tokens,

@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -56,7 +57,11 @@ class Rule(Model):
         default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
+    # Deprecated. Use owner_user_id or owner_team instead.
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -66,6 +71,16 @@ class Rule(Model):
         db_table = "sentry_rule"
         app_label = "sentry"
         indexes = (models.Index(fields=("project", "status", "owner")),)
+        constraints = (
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
+                    | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
+                    | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)
+                ),
+                name="rule_owner_user_or_team_check",
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "label")
 
@@ -97,10 +112,15 @@ class Rule(Model):
         return rv
 
     def save(self, *args, **kwargs):
+        self._validate_owner()
         rv = super().save(*args, **kwargs)
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
         return rv
+
+    def _validate_owner(self):
+        if self.owner_id is not None and self.owner_team_id is None and self.owner_user_id is None:
+            raise ValueError("Rule with owner requires either owner_team or owner_user_id")
 
     def get_audit_log_data(self):
         return {

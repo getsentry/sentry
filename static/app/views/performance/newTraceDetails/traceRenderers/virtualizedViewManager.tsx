@@ -219,7 +219,9 @@ export class VirtualizedViewManager {
     this.dividerScale = this.trace_view.width === this.trace_space.width ? 1 : undefined;
     this.dividerStartVec = [event.clientX, event.clientY];
     this.previousDividerClientVec = [event.clientX, event.clientY];
-    this.container.style.userSelect = 'none';
+
+    document.body.style.cursor = 'ew-resize !important';
+    document.body.style.userSelect = 'none';
 
     document.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
     document.addEventListener('mousemove', this.onDividerMouseMove, {
@@ -239,7 +241,8 @@ export class VirtualizedViewManager {
     this.columns.list.width = this.columns.list.width + distancePercentage;
     this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
 
-    this.container.style.userSelect = 'auto';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
 
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
@@ -446,7 +449,7 @@ export class VirtualizedViewManager {
   }
 
   onWheel(event: WheelEvent) {
-    if (event.metaKey) {
+    if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
       if (!this.onWheelEndRaf) {
         this.onWheelStart();
@@ -484,7 +487,10 @@ export class VirtualizedViewManager {
 
       // Holding shift key allows for horizontal scrolling
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
-      if (event.shiftKey || Math.abs(event.deltaX) !== 0) {
+      if (
+        event.shiftKey ||
+        (!event.shiftKey && Math.abs(event.deltaX) >= Math.abs(event.deltaY))
+      ) {
         event.preventDefault();
       }
 

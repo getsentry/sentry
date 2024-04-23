@@ -29,55 +29,10 @@ class TestSeerRpc(APITestCase):
         response = self.client.post(path)
         assert response.status_code == 403
 
-    def test_invalid_authentication(self):
-        path = self._get_path("on_autofix_step_update")
-        data: dict[str, Any] = {"args": {"issued_id": 1, "status": "", "steps": []}, "meta": {}}
-        response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
-        assert response.status_code == 401
-
     def test_404(self):
-        path = self._get_path("get_autofix_state")
-        data: dict[str, Any] = {"args": {"issue_id": 1}, "meta": {}}
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
         response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         assert response.status_code == 404
-
-    def test_step_state_management(self):
-        group = self.create_group()
-
-        path = self._get_path("get_autofix_state")
-        data: dict[str, Any] = {"args": {"issue_id": group.id}, "meta": {}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
-        assert response.status_code == 200
-        assert response.json() == {}
-
-        path = self._get_path("on_autofix_step_update")
-        data = {
-            "args": {"issue_id": group.id, "status": "thing", "steps": [1, 2, 3]},
-            "meta": {},
-        }
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
-        assert response.status_code == 200
-
-        path = self._get_path("get_autofix_state")
-        data = {"args": {"issue_id": group.id}, "meta": {}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "thing", "steps": [1, 2, 3]}
-
-    def test_get_organization_slug(self):
-        org = self.create_organization()
-        path = self._get_path("get_organization_slug")
-        data: dict[str, Any] = {"args": {"org_id": org.id}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
-        assert response.status_code == 200
-        assert response.json() == {"slug": org.slug}

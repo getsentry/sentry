@@ -827,15 +827,27 @@ def update_alert_rule(
                     sub for sub in existing_subs if sub.project_id in excluded_project_ids
                 ]
         elif projects is not None:
+            # All project slugs that currently exist for the alert rule
             existing_project_slugs = {sub.project.slug for sub in existing_subs}
-            # Determine whether we've added any new projects as part of this update
+
+            # All project slugs being provided as part of the update
+            updated_project_slugs = {project.slug for project in projects}
+
+            # Set of projects provided in the update, but don't already exist
             new_projects = [
                 project for project in projects if project.slug not in existing_project_slugs
             ]
-            updated_project_slugs = {project.slug for project in projects}
 
-            AlertRuleProjects.objects.exclude(project__slug__in=updated_project_slugs).delete()
-            for project in projects:
+            # Delete any projects for the alert rule that were removed as part of this update
+            AlertRuleProjects.objects.filter(
+                alert_rule_id=alert_rule.id,  # for the alert rule
+                project__slug__in=existing_project_slugs,  # that are in the existing project slugs
+            ).exclude(
+                project__slug__in=updated_project_slugs  # but not included with the updated project slugs
+            ).delete()
+
+            # Add any new projects to the alert rule
+            for project in new_projects:
                 alert_rule.projects.add(project)
             # Find any subscriptions that were removed as part of this update
             deleted_subs = [

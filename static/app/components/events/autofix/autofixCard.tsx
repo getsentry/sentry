@@ -2,13 +2,18 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import {AutofixResult} from 'sentry/components/events/autofix/fixResult';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => void}) {
+type AutofixCardProps = {
+  data: AutofixData;
+  groupId: string;
+  onRetry: () => void;
+};
+
+export function AutofixCard({data, onRetry, groupId}: AutofixCardProps) {
   return (
     <AutofixPanel>
       <AutofixHeader>
@@ -17,8 +22,7 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
           Start Over
         </Button>
       </AutofixHeader>
-      <AutofixSteps data={data} />
-      <AutofixResult autofixData={data} onRetry={onRetry} />
+      <AutofixSteps data={data} runId={data.run_id} groupId={groupId} onRetry={onRetry} />
     </AutofixPanel>
   );
 }

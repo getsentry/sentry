@@ -17,7 +17,7 @@ import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span';
-import {TransactionNodeDetails} from '../details/transaction';
+import {TransactionNodeDetails} from '../details/transaction/index';
 
 export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;

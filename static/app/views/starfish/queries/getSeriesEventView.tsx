@@ -1,6 +1,6 @@
 import sortBy from 'lodash/sortBy';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction} from 'sentry/utils/discover/fields';

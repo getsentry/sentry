@@ -1,6 +1,6 @@
 import type {RouteComponentProps} from 'react-router';
 
-import type {SavedSearch} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';

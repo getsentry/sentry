@@ -8,7 +8,7 @@ from datetime import datetime
 
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class OrgAuthTokenService(RpcService):

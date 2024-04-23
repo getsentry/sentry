@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {
@@ -19,8 +19,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
-import type {Order} from 'sentry/views/dashboards/metrics/types';
-import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
+import type {
+  DashboardMetricsExpression,
+  Order,
+} from 'sentry/views/dashboards/metrics/types';
+import {
+  expressionsToApiQueries,
+  getMetricWidgetTitle,
+  toMetricDisplayType,
+} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -29,7 +36,7 @@ import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
-import {getChartTimeseries, getWidgetTitle} from 'sentry/views/metrics/widget';
+import {getChartTimeseries} from 'sentry/views/metrics/widget';
 
 function useFocusedSeries({
   timeseriesData,
@@ -105,15 +112,15 @@ function useFocusedSeries({
 
 interface MetricVisualizationProps {
   displayType: DisplayType;
+  expressions: DashboardMetricsExpression[];
   interval: string;
   onDisplayTypeChange: (displayType: DisplayType) => void;
-  queries: MetricsQueryApiQueryParams[];
   onIntervalChange?: (interval: string) => void;
   onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 export function MetricVisualization({
-  queries,
+  expressions,
   displayType,
   onDisplayTypeChange,
   onOrderChange,
@@ -132,6 +139,8 @@ export function MetricVisualization({
     isCustomMetricsOnly: false,
   });
 
+  const queries = useMemo(() => expressionsToApiQueries(expressions), [expressions]);
+
   const {
     data: timeseriesData,
     isLoading,
@@ -141,7 +150,7 @@ export function MetricVisualization({
     interval: validatedInterval,
   });
 
-  const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
+  const widgetMQL = useMemo(() => getMetricWidgetTitle(expressions), [expressions]);
 
   const isChartDisplay = useMemo(
     () => [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType),

@@ -28,6 +28,7 @@ jest.mock('sentry/utils/analytics', () => ({
 
 describe('Incident Rules Form', () => {
   let organization, project, routerContext, location;
+  // create wrapper
   const createWrapper = props =>
     render(
       <RuleFormContainer
@@ -121,6 +122,23 @@ describe('Incident Rules Form', () => {
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+    });
+
+    it('renders time window', async () => {
+      createWrapper({rule});
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
+    });
+
+    it('renders time window for activated alerts', async () => {
+      createWrapper({
+        rule: {
+          ...rule,
+          monitorType: MonitorType.CONTINUOUS,
+        },
+      });
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
     });
   });
 
@@ -255,6 +273,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
+    // Activation condition
     it('creates a rule with an activation condition', async () => {
       organization.features = [
         ...organization.features,
@@ -264,6 +283,44 @@ describe('Incident Rules Form', () => {
       const rule = MetricRuleFixture({
         monitorType: MonitorType.ACTIVATED,
         activationCondition: ActivationConditionType.RELEASE_CREATION,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
+    });
+
+    it('creates a continuous rule with activated rules enabled', async () => {
+      organization.features = [
+        ...organization.features,
+        'mep-rollout-flag',
+        'activated-alert-rules',
+      ];
+      const rule = MetricRuleFixture({
+        monitorType: MonitorType.CONTINUOUS,
       });
       createWrapper({
         rule: {
