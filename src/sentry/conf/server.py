@@ -736,7 +736,6 @@ CELERY_IMPORTS = (
     "sentry.monitors.tasks.check_missed",
     "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
