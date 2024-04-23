@@ -625,6 +625,7 @@ const TabsHeightContainer = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   absolute?: boolean;
 }>`
+  background: ${p => p.theme.backgroundSecondary};
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
@@ -637,7 +638,6 @@ const TabsHeightContainer = styled('div')<{
 
 const TabsLayout = styled('div')`
   display: grid;
-  background: ${p => p.theme.backgroundSecondary};
   grid-template-columns: auto 1fr auto;
   padding-left: ${space(0.25)};
   padding-right: ${space(0.5)};
