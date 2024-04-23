@@ -26,7 +26,7 @@ export function CacheLandingPage() {
   const organization = useOrganization();
 
   const filters: SpanMetricsQueryFilters = {
-    'span.op': 'cache.get_item',
+    'span.module': 'cache',
   }; // TODO - make sure to add more ops here as they become available
 
   const {
