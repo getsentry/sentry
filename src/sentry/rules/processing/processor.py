@@ -298,6 +298,8 @@ class RuleProcessor(RuleProcessorBase):
                 )
                 return
 
+        # TODO: move the below to it's own function so the delayed processor can call it
+
         updated = (
             GroupRuleStatus.objects.filter(id=status.id)
             .exclude(last_active__gt=freq_offset)
@@ -326,16 +328,17 @@ class RuleProcessor(RuleProcessorBase):
         notification_uuid: str | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
-        state = self.get_state()
+        # state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_inst = instantiate_action(rule, action, rule_fire_history)
             if not action_inst:
                 continue
 
+            # XXX(CEO): do we NEED to be passing `state` to after? I didn't see any paths that use it, and it'd help with the delayed processor if I didn't need to pass it
             results = safe_execute(
                 action_inst.after,
                 event=self.event,
-                state=state,
+                # state=state,
                 _with_transaction=False,
                 notification_uuid=notification_uuid,
             )
