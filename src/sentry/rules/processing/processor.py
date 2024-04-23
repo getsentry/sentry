@@ -169,29 +169,6 @@ class RuleProcessorBase:
 
         return self.grouped_futures.values()
 
-    def condition_matches(
-        self,
-        condition: MutableMapping[str, Any],
-        state: EventState,
-        rule: Rule,
-    ) -> bool | None:
-        condition_cls = rules.get(condition["id"])
-        if condition_cls is None:
-            logger.warning("Unregistered condition %r", condition["id"])
-            return None
-
-        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
-        if not isinstance(condition_inst, (EventCondition, EventFilter)):
-            logger.warning("Unregistered condition %r", condition["id"])
-            return None
-        passes: bool = safe_execute(
-            condition_inst.passes,
-            self.event,
-            state,
-            _with_transaction=False,
-        )
-        return passes
-
     def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
         rule_cls = rules.get(condition["id"])
         if rule_cls is None:
@@ -227,6 +204,29 @@ class RuleProcessor(RuleProcessorBase):
             has_reappeared=self.has_reappeared,
             has_escalated=self.has_escalated,
         )
+
+    def condition_matches(
+        self,
+        condition: MutableMapping[str, Any],
+        state: EventState,
+        rule: Rule,
+    ) -> bool | None:
+        condition_cls = rules.get(condition["id"])
+        if condition_cls is None:
+            logger.warning("Unregistered condition %r", condition["id"])
+            return None
+
+        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
+        if not isinstance(condition_inst, (EventCondition, EventFilter)):
+            logger.warning("Unregistered condition %r", condition["id"])
+            return None
+        passes: bool = safe_execute(
+            condition_inst.passes,
+            self.event,
+            state,
+            _with_transaction=False,
+        )
+        return passes
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
