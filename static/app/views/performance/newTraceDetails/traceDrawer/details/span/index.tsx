@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {Button} from 'sentry/components/button';
+import {EventContexts} from 'sentry/components/events/contexts';
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -120,6 +121,7 @@ export function SpanNodeDetails({
                     startTimestamp={node.value.start_timestamp}
                   />
                 ) : null}
+                <EventContexts event={event} />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
