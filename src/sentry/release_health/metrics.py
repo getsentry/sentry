@@ -171,8 +171,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     )
             except Exception as e:
                 logger.exception("Unable to log; %s", e)
-            assert totals is not None
-            ret_val[project_id] = totals * 100
+
+            if totals is not None:
+                ret_val[project_id] = totals * 100
+            else:
+                ret_val[project_id] = None
 
         return ret_val
 
