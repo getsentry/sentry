@@ -1,25 +1,28 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import useDismissAlertImport from 'sentry/utils/useDismissAlert';
+import {usePrompt as usePromptImport} from 'sentry/actionCreators/prompts';
 
 import ReplayInlineOnboardingPanel from './replayInlineOnboardingPanel';
 
-jest.mock('sentry/utils/localStorage');
-jest.mock('sentry/utils/useDismissAlert');
-const useDismissAlert = jest.mocked(useDismissAlertImport);
+jest.mock('sentry/actionCreators/prompts');
+const usePrompt = jest.mocked(usePromptImport);
 
 describe('replayInlineOnboardingPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useDismissAlert.mockClear();
+    usePrompt.mockClear();
   });
 
   it('should render if not dismissed', async () => {
-    const dismiss = jest.fn();
-    useDismissAlert.mockImplementation(() => {
+    const dismissPrompt = jest.fn();
+    const snoozePrompt = jest.fn();
+    usePrompt.mockImplementation(() => {
       return {
-        dismiss,
-        isDismissed: false,
+        isPromptDismissed: false,
+        isLoading: false,
+        isError: false,
+        snoozePrompt,
+        dismissPrompt,
       };
     });
     render(<ReplayInlineOnboardingPanel platform="react" projectId="123" />);
@@ -29,11 +32,15 @@ describe('replayInlineOnboardingPanel', () => {
   });
 
   it('should not render if dismissed', async () => {
-    const dismiss = jest.fn();
-    useDismissAlert.mockImplementation(() => {
+    const dismissPrompt = jest.fn();
+    const snoozePrompt = jest.fn();
+    usePrompt.mockImplementation(() => {
       return {
-        dismiss,
-        isDismissed: true,
+        isPromptDismissed: true,
+        isLoading: false,
+        isError: false,
+        snoozePrompt,
+        dismissPrompt,
       };
     });
     render(<ReplayInlineOnboardingPanel platform="react" projectId="123" />);
