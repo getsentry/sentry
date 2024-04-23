@@ -8,8 +8,10 @@ from uuid import uuid4
 
 import jsonschema
 
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
+from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -54,7 +56,7 @@ class FeedbackCreationSource(Enum):
         }
 
 
-def make_evidence(feedback, source: FeedbackCreationSource):
+def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
     if feedback.get("contact_email"):
@@ -73,6 +75,12 @@ def make_evidence(feedback, source: FeedbackCreationSource):
 
     evidence_data["source"] = source.value
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
+
+    if is_message_spam is True:
+        evidence_data["is_spam"] = str(is_message_spam)
+        evidence_display.append(
+            IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
+        )
 
     return evidence_data, evidence_display
 
@@ -169,11 +177,23 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     if should_filter_feedback(event, project_id, source):
         return
 
+    project = Project.objects.get_from_cache(id=project_id)
+
+    is_message_spam = None
+    if features.has("organizations:user-feedback-spam-filter-ingest", project.organization):
+        try:
+            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
+        except Exception:
+            # until we have LLM error types ironed out, just catch all exceptions
+            logger.exception("Error checking if message is spam")
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
+    evidence_data, evidence_display = make_evidence(
+        event["contexts"]["feedback"], source, is_message_spam
+    )
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -203,8 +223,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
-
-    project = Project.objects.get_from_cache(id=project_id)
 
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)

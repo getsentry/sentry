@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getTimeFormat, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';

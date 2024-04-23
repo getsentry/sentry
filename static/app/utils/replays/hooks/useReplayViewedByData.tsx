@@ -1,4 +1,4 @@
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

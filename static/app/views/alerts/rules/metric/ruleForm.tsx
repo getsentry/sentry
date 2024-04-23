@@ -604,10 +604,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
     return (
       !hasActivatedAlerts ||
-      (hasActivatedAlerts &&
-        monitorType &&
-        activationCondition !== undefined &&
-        timeWindow)
+      monitorType !== MonitorType.ACTIVATED ||
+      (activationCondition !== undefined && timeWindow)
     );
   }
 

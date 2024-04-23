@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';

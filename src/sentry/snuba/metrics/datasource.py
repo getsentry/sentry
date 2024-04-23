@@ -764,6 +764,15 @@ def get_all_tags(
             start=start,
             end=end,
         )
+        # Manually add the project key to enable grouping by project in the Metrics UI.
+        # There is a need to group metrics by project, cf. this PR:
+        # https://github.com/getsentry/sentry/commit/778000463605258a122be5de907513a8cc73f584
+        # The retrieval logic for tags will soon be changed, therefore this quick insertion should
+        # not live for long.
+        extended_tags = list(copy(tags))
+        extended_tags.append(Tag(key="project"))
+        tags = extended_tags
+
     except InvalidParams as e:
         sentry_sdk.capture_exception(e)
         return []

@@ -63,7 +63,7 @@ import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
-import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
+import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   displayType: MetricDisplayType;
@@ -259,7 +259,7 @@ export const MetricWidget = memo(
                   focusAreaProps={focusAreaProps}
                   samples={isSelected ? samples : undefined}
                   chartHeight={chartHeight}
-                  chartGroup={DDM_CHART_GROUP}
+                  chartGroup={METRIC_CHART_GROUP}
                   queries={queries}
                   filters={filters}
                   displayType={displayType}
@@ -420,7 +420,7 @@ const MetricWidgetBody = memo(
         }
 
         if (isMetricFormula(queryToUpdate)) {
-          // TODO(ddm): filtering on an equation series should extend all conditions of all queries in the equation
+          // TODO(metrics): filtering on an equation series should extend all conditions of all queries in the equation
           return;
         }
 
@@ -571,11 +571,11 @@ export function getChartTimeseries(
   data: MetricsQueryApiResponse,
   queries: MetricsQueryApiQueryParams[],
   {
-    getChartPalette,
+    getChartPalette = createChartPalette,
     focusedSeries,
   }: {
-    getChartPalette: (seriesNames: string[]) => Record<string, string>;
     focusedSeries?: Set<string>;
+    getChartPalette?: (seriesNames: string[]) => Record<string, string>;
     showQuerySymbol?: boolean;
   }
 ) {

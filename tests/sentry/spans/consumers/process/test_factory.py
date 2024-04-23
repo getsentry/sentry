@@ -161,6 +161,44 @@ def test_produces_valid_segment_to_kafka():
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("buffered-segments")
 
 
+@django_db_all
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [1],
+    }
+)
+def test_rejects_large_message_size_to_kafka():
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    factory = process_spans_strategy()
+    with mock.patch.object(
+        factory,
+        "producer",
+        new=mock.Mock(),
+    ) as mock_producer:
+        strategy = factory.create_with_partitions(
+            commit=mock.Mock(),
+            partitions={},
+        )
+
+        span_data = build_mock_span(
+            project_id=1, is_segment=True, description="a" * 1000 * 1000 * 10
+        )
+        message1 = build_mock_message(span_data, topic)
+        strategy.submit(make_payload(message1, partition, 1, datetime.now() - timedelta(minutes=3)))
+
+        span_data = build_mock_span(project_id=1)
+        message2 = build_mock_message(span_data, topic)
+        strategy.submit(make_payload(message2, partition))
+
+        strategy.poll()
+        strategy.join(1)
+        strategy.terminate()
+
+        mock_producer.produce.assert_not_called()
+
+
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": False,
@@ -194,12 +232,36 @@ def test_option_disabled(mock_buffer):
     mock_commit.assert_has_calls(calls=calls, any_order=True)
 
 
+@django_db_all
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [
-            ("project_id", b"1"),
-        ],
+        "standalone-spans.process-spans-consumer.project-rollout": 1.0,
+    }
+)
+@mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
+def test_option_project_rollout_rate_discard(mock_buffer):
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    strategy = process_spans_strategy().create_with_partitions(
+        commit=mock.Mock(),
+        partitions={},
+    )
+
+    span_data = build_mock_span(project_id=1)
+    message = build_mock_message(span_data, topic)
+    strategy.submit(make_payload(message, partition))
+
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+    mock_buffer.assert_called()
+
+
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [2],
     }
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")

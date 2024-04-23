@@ -6,7 +6,7 @@ from datetime import datetime
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 

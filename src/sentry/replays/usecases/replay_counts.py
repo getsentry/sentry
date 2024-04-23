@@ -9,8 +9,8 @@ from typing import Any
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
-from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import SnubaParams
+from sentry.snuba import discover, issue_platform
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -20,7 +20,7 @@ MAX_VALS_PROVIDED = {
     "replay_id": 100,
 }
 
-FILTER_HAS_A_REPLAY = " AND !replayId:''"
+FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
 
 
 def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
@@ -30,6 +30,7 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
     - If the identifier is 'replay_id', the returned count is always 1. Use this to check the existence of replay_ids
     - Set the flag 'return_ids' to get the replay_ids (32 char hex strings) for each identifier
     """
+
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
@@ -62,6 +63,12 @@ def _get_replay_id_mappings(
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
+
+    if data_source == Dataset.Discover:
+        search_query_func = discover.query
+    elif data_source == Dataset.IssuePlatform:
+        search_query_func = issue_platform.query  # type: ignore[assignment]
+
     select_column, column_value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
@@ -95,27 +102,21 @@ def _get_replay_id_mappings(
             projects=[group.project for group in groups],
         )
 
-    builder = QueryBuilder(
-        dataset=data_source,
+    results = search_query_func(
         params={},
         snuba_params=snuba_params,
-        selected_columns=["group_uniq_array(100,replayId)", select_column],
+        selected_columns=["group_uniq_array(100,replay.id)", select_column],
         query=query,
         limit=25,
         offset=0,
-        config=QueryBuilderConfig(
-            functions_acl=["group_uniq_array"],
-        ),
-    )
-
-    discover_results = builder.run_query(
-        referrer="api.organization-issue-replay-count", use_cache=True
+        functions_acl=["group_uniq_array"],
+        referrer="api.organization-issue-replay-count",
     )
 
     replay_id_to_issue_map = defaultdict(list)
 
-    for row in discover_results["data"]:
-        for replay_id in row["group_uniq_array_100_replayId"]:
+    for row in results["data"]:
+        for replay_id in row["group_uniq_array_100_replay_id"]:
             # When no replay exists these strings are provided in their empty
             # state rather than null. This can cause downstream problems so
             # we filter them out.

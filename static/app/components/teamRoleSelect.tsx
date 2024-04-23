@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {space} from 'sentry/styles/space';
-import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types';
+import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types/organization';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,

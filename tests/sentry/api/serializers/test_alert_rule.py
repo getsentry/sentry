@@ -9,6 +9,7 @@ from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
+    AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -154,6 +155,28 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, alert_rule2])
         assert len(result[0]["activations"]) == 10
         assert len(result[1]["activations"]) == 6
+
+    def test_projects(self):
+        regular_alert_rule = self.create_alert_rule()
+        activated_alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule_no_projects = self.create_alert_rule()
+
+        AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()
+
+        assert activated_alert_rule.projects
+        assert regular_alert_rule.projects
+        assert not alert_rule_no_projects.projects.exists()
+        result = serialize([regular_alert_rule, activated_alert_rule, alert_rule_no_projects])
+
+        assert result[0]["projects"] == [
+            project.slug for project in regular_alert_rule.projects.all()
+        ]
+        assert result[1]["projects"] == [
+            project.slug for project in activated_alert_rule.projects.all()
+        ]
+        assert result[2]["projects"] == [
+            project.slug for project in activated_alert_rule.projects.all()
+        ]
 
     def test_environment(self):
         alert_rule = self.create_alert_rule(environment=self.environment)

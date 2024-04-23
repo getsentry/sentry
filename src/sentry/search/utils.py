@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
@@ -711,7 +712,10 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 
 
 def parse_query(
-    projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
+    projects: Sequence[Project],
+    query: str,
+    user: User | AnonymousUser,
+    environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:
     | Required:

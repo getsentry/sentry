@@ -6,8 +6,7 @@ import EventTagsTreeRow, {
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
-import type {EventTag} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;

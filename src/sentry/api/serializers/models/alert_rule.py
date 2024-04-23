@@ -148,17 +148,18 @@ class AlertRuleSerializer(Serializer):
 
         alert_rule_projects = set()
         for alert_rule in alert_rules.values():
-            try:
-                alert_rule_projects.add([alert_rule.id, alert_rule.projects.get().slug])
-            except Exception:
-                pass
+            if alert_rule.projects.exists():
+                for project in alert_rule.projects.all():
+                    alert_rule_projects.add((alert_rule.id, project.slug))
 
         # TODO - Cleanup Subscription Project Mapping
         snuba_alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
 
-        alert_rule_projects.update(snuba_alert_rule_projects)
+        alert_rule_projects.update(
+            [(id, project_slug) for id, project_slug in snuba_alert_rule_projects if project_slug]
+        )
 
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])

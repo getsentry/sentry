@@ -128,17 +128,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "meta": {
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
-                "fields": {
-                    "id": "string",
-                    "parent_span": "string",
-                },
+                "fields": {},
                 "isMetricsData": False,
                 "isMetricsExtractedData": False,
                 "tips": {},
-                "units": {
-                    "id": None,
-                    "parent_span": None,
-                },
+                "units": {},
             },
         }
 
@@ -172,8 +166,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 parent_span_id=span_ids[0],
                 timestamp=timestamps[-1],
                 transaction="bar",
-                duration=30_000,
-                exclusive_time=30_000,
+                duration=30_000 + i,
+                exclusive_time=30_000 + i,
                 tags={"foo": "bar" if idx != 0 else "baz"},
             )
 
@@ -199,16 +193,18 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 parent_span_id=span_ids[4],
                 timestamp=timestamps[-1],
                 transaction="baz",
-                duration=20_000,
-                exclusive_time=20_000,
+                duration=20_000 + i,
+                exclusive_time=20_000 + i,
                 tags={"foo": "bar"},
             )
 
         query = {
             "project": [project_2.id],
-            "field": ["id", "parent_span"],
+            "field": ["id", "parent_span", "span.duration"],
             "query": "foo:bar",
+            "suggestedQuery": "foo:baz",
             "maxSpansPerTrace": 2,
+            "sort": ["-span.duration"],
         }
 
         response = self.do_request(query)
@@ -220,6 +216,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "fields": {
                 "id": "string",
                 "parent_span": "string",
+                "span.duration": "duration",
             },
             "isMetricsData": False,
             "isMetricsExtractedData": False,
@@ -227,12 +224,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "units": {
                 "id": None,
                 "parent_span": None,
+                "span.duration": "millisecond",
             },
         }
 
         result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
-        for row in result_data:
-            row["spans"].sort(key=lambda span: span["id"])
 
         assert result_data == sorted(
             [
@@ -247,30 +243,25 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         {
                             "project": project_1.slug,
                             "start": int(timestamps[0].timestamp() * 1000),
-                            "end": int(timestamps[1].timestamp() * 1000),
+                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                             "kind": "project",
                         },
                         {
                             "project": project_2.slug,
                             "start": int(timestamps[1].timestamp() * 1000),
-                            "end": int(timestamps[3].timestamp() * 1000) + 30_000,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[3].timestamp() * 1000) + 30_000,
-                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                            "end": int(timestamps[3].timestamp() * 1000) + 30_003,
                             "kind": "project",
                         },
                     ],
-                    "spans": sorted(
-                        [
-                            # span_ids[1] does not match
-                            {"id": span_ids[2], "parent_span": span_ids[0]},
-                            {"id": span_ids[3], "parent_span": span_ids[0]},
-                        ],
-                        key=lambda span: span["id"],
-                    ),
+                    "spans": [
+                        {"id": span_ids[3], "parent_span": span_ids[0], "span.duration": 30_003.0},
+                        {"id": span_ids[2], "parent_span": span_ids[0], "span.duration": 30_002.0},
+                        # span_ids[1] does not match the user query
+                    ],
+                    "suggestedSpans": [
+                        # span_ids[1] matchees the suggested query
+                        {"id": span_ids[1], "parent_span": span_ids[0], "span.duration": 30_001.0},
+                    ],
                 },
                 {
                     "trace": trace_id_2,
@@ -283,29 +274,21 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         {
                             "project": project_1.slug,
                             "start": int(timestamps[4].timestamp() * 1000),
-                            "end": int(timestamps[5].timestamp() * 1000),
+                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                             "kind": "project",
                         },
                         {
                             "project": project_2.slug,
                             "start": int(timestamps[5].timestamp() * 1000),
-                            "end": int(timestamps[6].timestamp() * 1000) + 20_000,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[6].timestamp() * 1000) + 20_000,
-                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                            "end": int(timestamps[6].timestamp() * 1000) + 20_006,
                             "kind": "project",
                         },
                     ],
-                    "spans": sorted(
-                        [
-                            {"id": span_ids[5], "parent_span": span_ids[4]},
-                            {"id": span_ids[6], "parent_span": span_ids[4]},
-                        ],
-                        key=lambda span: span["id"],
-                    ),
+                    "spans": [
+                        {"id": span_ids[6], "parent_span": span_ids[4], "span.duration": 20_006.0},
+                        {"id": span_ids[5], "parent_span": span_ids[4], "span.duration": 20_005.0},
+                    ],
+                    "suggestedSpans": [],
                 },
             ],
             key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
@@ -363,19 +346,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 25,
                         "end": 75,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 75,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -413,13 +390,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 25,
-                        "end": 50,
+                        "end": 75,
                         "kind": "project",
                     },
                     {
@@ -611,31 +588,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
-                        "end": 40,
+                        "end": 80,
                         "kind": "project",
                     },
                     {
                         "project": "baz",
                         "start": 40,
                         "end": 60,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "bar",
-                        "start": 60,
-                        "end": 80,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 80,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -673,7 +638,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 25,
+                        "end": 100,
                         "kind": "project",
                     },
                     {
@@ -686,12 +651,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": "baz",
                         "start": 50,
                         "end": 75,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 75,
-                        "end": 100,
                         "kind": "project",
                     },
                 ],
@@ -729,19 +688,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
                         "end": 30,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 30,
-                        "end": 50,
                         "kind": "project",
                     },
                     {
@@ -785,19 +738,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 20,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 20,
                         "end": 30,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 30,
-                        "end": 40,
                         "kind": "project",
                     },
                     {
@@ -841,19 +788,13 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     {
                         "project": "foo",
                         "start": 0,
-                        "end": 10,
+                        "end": 50,
                         "kind": "project",
                     },
                     {
                         "project": "bar",
                         "start": 10,
                         "end": 20,
-                        "kind": "project",
-                    },
-                    {
-                        "project": "foo",
-                        "start": 20,
-                        "end": 50,
                         "kind": "project",
                     },
                 ],
@@ -908,11 +849,11 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": None,
                         "start": 50,
                         "end": 100,
-                        "kind": "unknown",
+                        "kind": "other",
                     },
                 ],
             },
-            id="adds unknown interval at end",
+            id="adds other interval at end",
         ),
     ],
 )

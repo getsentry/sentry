@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
-import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types';
+import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

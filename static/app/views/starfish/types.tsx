@@ -53,6 +53,7 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.group'
+  | 'span.category'
   | 'transaction'
   | 'transaction.method'
   | 'release'
@@ -74,6 +75,8 @@ export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
 export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
 
 export type Aggregate = (typeof AGGREGATES)[number];
+
+export type ConditionalAggregate = `avg_if` | `count_op`;
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -117,6 +120,11 @@ export type MetricsResponse = {
   [Function in RegressionFunctions]: number;
 } & {
   [Function in SpanAnyFunction]: string;
+} & {
+  [Property in ConditionalAggregate as
+    | `${Property}(${string})`
+    | `${Property}(${string},${string})`
+    | `${Property}(${string},${string},${string})`]: number;
 };
 
 export type MetricsFilters = {
@@ -157,6 +165,9 @@ export enum SpanIndexedField {
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
+  MESSAGE_ID = 'message.id',
+  MESSAGE_SIZE = 'message.size',
+  MESSAGE_STATUS = 'message.status',
 }
 
 export type IndexedResponse = {
@@ -191,6 +202,9 @@ export type IndexedResponse = {
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
+  [SpanIndexedField.MESSAGE_ID]: string;
+  [SpanIndexedField.MESSAGE_SIZE]: number;
+  [SpanIndexedField.MESSAGE_STATUS]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;

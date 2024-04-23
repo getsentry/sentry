@@ -24,6 +24,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
@@ -906,6 +907,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
                     "processing_issues": processing_issues_by_project.get(item.id, 0),
+                    "highlight_preset": get_highlight_preset_for_project(item),
                 }
             )
         return attrs
@@ -945,6 +947,14 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
                 "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+                "highlightTags": attrs["options"].get(
+                    "sentry:highlight_tags",
+                    attrs["highlight_preset"].get("tags", []),
+                ),
+                "highlightContext": attrs["options"].get(
+                    "sentry:highlight_context",
+                    attrs["highlight_preset"].get("context", {}),
+                ),
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
                 "groupingEnhancements": self.get_value_with_default(
                     attrs, "sentry:grouping_enhancements"

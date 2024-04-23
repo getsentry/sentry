@@ -12,7 +12,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import toPercent from 'sentry/utils/number/toPercent';

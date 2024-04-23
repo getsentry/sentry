@@ -5,7 +5,7 @@ export const MODULE_TITLE = t('Requests');
 
 export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
-export const RELEASE_LEVEL: BadgeType = 'beta';
+export const RELEASE_LEVEL: BadgeType = 'new';
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {
@@ -14,4 +14,5 @@ export const releaseLevelAsBadgeProps = {
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
 
+export const CHART_HEIGHT = 160;
 export const SPAN_ID_DISPLAY_LENGTH = 16;
