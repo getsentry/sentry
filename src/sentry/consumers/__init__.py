@@ -64,16 +64,18 @@ def multiprocessing_options(
 def issue_occurrence_options() -> list[click.Option]:
     """Return a list of issue-occurrence options."""
     options = multiprocessing_options(default_max_batch_size=100)
-    return options.concat(
-        [
-            click.Option(
-                ["--mode", "mode"],
-                type=click.Choice(["batched-parallel", "parallel"]),
-                default="parallel",
-                help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
-            ),
-        ]
-    )
+    return options + [
+        (
+            [
+                click.Option(
+                    ["--mode", "mode"],
+                    type=click.Choice(["batched-parallel", "parallel"]),
+                    default="parallel",
+                    help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
+                ),
+            ]
+        )
+    ]
 
 
 def ingest_replay_recordings_options() -> list[click.Option]:
