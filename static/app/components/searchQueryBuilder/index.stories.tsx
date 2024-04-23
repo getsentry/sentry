@@ -42,7 +42,7 @@ export default storyBook(SearchQueryBuilder, story => {
         <Alert type="warning">This component and story is a WIP.</Alert>
         <MinHeightSizingWindow>
           <SearchQueryBuilder
-            initialQuery="browser.name:Firefox assigned:me"
+            initialQuery="browser.name:Firefox assigned:me custom_tag_name:123"
             supportedKeys={SUPPORTED_KEYS}
             getTagValues={getTagValues}
           />
