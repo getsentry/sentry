@@ -26,7 +26,6 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.monitors.types import CheckinItem
 from sentry.utils import json, metrics
 from sentry.utils.actor import parse_and_validate_actor
 
@@ -375,7 +374,7 @@ def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload
     """
     batch = message.payload
 
-    occcurrence_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
+    occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -401,7 +400,7 @@ def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload
         wait(futures)
 
 
-def process_occurrence_group(items: list[any]):
+def process_occurrence_group(items: list[Mapping[str, Any]]):
     """
     Process a group of related occurrences (all part of the same group)
     completely serially.
