@@ -60,7 +60,7 @@ SnubaTransaction = TypedDict(
         "project.id": int,
         "project": str,
         "issue.ids": list[int],
-        "id_to_issue_id_map": dict[str, list[int]],
+        "occurrence_to_issue_id": dict[str, list[int]],
     },
 )
 SnubaError = TypedDict(
@@ -197,22 +197,20 @@ class TraceEvent:
         self, light: bool, snuba_params: ParamsType
     ) -> None:
         """Rewriting load_performance_issues from scratch so the logic is more independent"""
-        for group_id in self.event["issue.ids"]:
-            group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
-            if group is None:
-                continue
-
+        memoized_groups = {}
+        for event_span in self.event["occurrence_spans"]:
             unique_spans: set[str] = set()
             start: float | None = None
             end: float | None = None
             suspect_spans: list[str] = []
-            for event_span in self.event["occurrence_spans"]:
-                # Filter for the occurrence_spans that correspond to the current issue
-                if group_id not in self.event["id_to_issue_id_map"][event_span["problem"].id]:
-                    continue
-
-                problem = event_span["problem"]
-                offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+            problem = event_span["problem"]
+            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+            for group_id in self.event["occurrence_to_issue_id"][problem.id]:
+                if group_id not in memoized_groups:
+                    memoized_groups[group_id] = Group.objects.filter(
+                        id=group_id, project=self.event["project.id"]
+                    ).first()
+                group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span.get("precise.start_ts"))
                     if start is None:
@@ -229,30 +227,31 @@ class TraceEvent:
                 parent_span_ids = problem.evidence_data.get("parent_span_ids")
                 if parent_span_ids is not None:
                     unique_spans = unique_spans.union(parent_span_ids)
-            # Logic for qualified_short_id is copied from property on the Group model
-            # to prevent an N+1 query from accessing project.slug everytime
-            qualified_short_id = None
-            project_slug = self.event["project"]
-            if group.short_id is not None:
-                qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
 
-            self.performance_issues.append(
-                {
-                    "event_id": self.event["id"],
-                    "issue_id": group_id,
-                    "issue_short_id": qualified_short_id,
-                    "span": list(unique_spans),
-                    "suspect_spans": suspect_spans,
-                    "project_id": self.event["project.id"],
-                    "project_slug": self.event["project"],
-                    "title": group.title,
-                    "level": constants.LOG_LEVELS[group.level],
-                    "culprit": group.culprit,
-                    "type": group.type,
-                    "start": start,
-                    "end": end,
-                }
-            )
+                # Logic for qualified_short_id is copied from property on the Group model
+                # to prevent an N+1 query from accessing project.slug everytime
+                qualified_short_id = None
+                project_slug = self.event["project"]
+                if group.short_id is not None:
+                    qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
+
+                self.performance_issues.append(
+                    {
+                        "event_id": self.event["id"],
+                        "issue_id": group_id,
+                        "issue_short_id": qualified_short_id,
+                        "span": list(unique_spans),
+                        "suspect_spans": suspect_spans,
+                        "project_id": self.event["project.id"],
+                        "project_slug": self.event["project"],
+                        "title": group.title,
+                        "level": constants.LOG_LEVELS[group.level],
+                        "culprit": group.culprit,
+                        "type": group.type,
+                        "start": start,
+                        "end": end,
+                    }
+                )
 
     def load_performance_issues(self, light: bool, snuba_params: ParamsType | None) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
@@ -632,10 +631,12 @@ def query_trace_data(
         occurrence_ids[row["event_id"]].append(row["occurrence_id"])
 
     for result in transformed_results[0]:
-        result["id_to_issue_id_map"] = {}
+        result["occurrence_to_issue_id"] = {}
         for occurrence in transformed_results[2]:
             if occurrence["event_id"] == result["id"]:
-                result["id_to_issue_id_map"][occurrence["occurrence_id"]] = occurrence["issue.ids"]
+                result["occurrence_to_issue_id"][occurrence["occurrence_id"]] = occurrence[
+                    "issue.ids"
+                ]
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], [])
         result["occurrence_id"] = occurrence_ids.get(result["id"], [])
         result["trace.parent_transaction"] = None
