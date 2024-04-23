@@ -12,16 +12,20 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
+from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
+    WatermarkBatch,
+    get_ids_for_tombstone_cascade_cross_db,
     get_watermark,
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -315,16 +319,29 @@ def setup_cross_db_deletion_data():
 @region_silo_test
 def test_cross_database_same_silo_deletion(task_runner):
     data = setup_cross_db_deletion_data()
-    user = data["user"]
-    monitor = data["monitor"]
 
+    unaffected_data = []
+    for i in range(3):
+        unaffected_data.append(setup_cross_db_deletion_data())
+
+    user = data["user"]
+    user_id = user.id
+    monitor = data["monitor"]
     with assume_test_silo_mode_of(User), outbox_runner():
         user.delete()
 
-    with BurstTaskRunner() as burst:
-        schedule_hybrid_cloud_foreign_key_jobs()
+    tombstone = RegionTombstone.objects.get(
+        object_identifier=user_id, table_name=User._meta.db_table
+    )
 
-    burst()
-    updated_monitor = Monitor.objects.get(id=monitor.id)
-
-    assert updated_monitor.owner_user_id is None
+    with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
+        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor.owner_user_id.field,
+            watermark_batch=WatermarkBatch(
+                low=0, up=tombstone.id + 1, has_more=False, transaction_id="foobar"
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at

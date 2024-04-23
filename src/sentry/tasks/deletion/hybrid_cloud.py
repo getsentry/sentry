@@ -250,7 +250,7 @@ def _process_tombstone_reconciliation(
     )
     has_more = watermark_batch.has_more
     if watermark_batch.low < watermark_batch.up:
-        to_delete_ids, oldest_seen = _get_ids_to_delete(
+        to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
             tombstone_cls=tombstone_cls,
             model=model,
             field=field,
@@ -294,13 +294,13 @@ def _process_tombstone_reconciliation(
     return has_more
 
 
-def _get_ids_to_delete(
+def _get_model_ids_for_tombstone_cascade(
     tombstone_cls: type[TombstoneBase],
     model: type[Model],
     field: HybridCloudForeignKey,
     watermark_target,
     watermark_batch: WatermarkBatch,
-) -> tuple[list[int], datetime]:
+) -> tuple[list[int], datetime.datetime]:
     """
     Queries the database or databases if spanning multiple), and returns
      a tuple with a list of row IDs to delete, and the oldest
@@ -314,10 +314,10 @@ def _get_ids_to_delete(
     """
 
     to_delete_ids = []
-    oldest_seen: datetime.datetime = timezone.now()
-    models_belong_to_same_database = router.db_for_read(model) == router.db_for_read(tombstone_cls)
+    oldest_seen = timezone.now()
+    tombstone_and_model_in_same_db = router.db_for_read(model) == router.db_for_read(tombstone_cls)
 
-    if models_belong_to_same_database:
+    if tombstone_and_model_in_same_db:
         with connections[router.db_for_read(model)].cursor() as conn:
             conn.execute(
                 f"""
@@ -340,15 +340,27 @@ def _get_ids_to_delete(
 
             return to_delete_ids, oldest_seen
 
+    return get_ids_for_tombstone_cascade_cross_db(
+        tombstone_cls=tombstone_cls, model=model, field=field, watermark_batch=watermark_batch
+    )
+
+
+def get_ids_for_tombstone_cascade_cross_db(
+    tombstone_cls: type[TombstoneBase],
+    model: type[Model],
+    field: HybridCloudForeignKey,
+    watermark_batch: WatermarkBatch,
+) -> tuple[list[int], datetime.datetime]:
     if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
         raise Exception("Cannot process tombstones due to model living in separate database.")
 
+    oldest_seen = timezone.now()
     # Because tombstones can span multiple databases, we can't always rely on
     # the join code above. Instead, we have to manually query the tombstone IDs
     # first, then query the model for matching rows.
     tombstone_entries = tombstone_cls.objects.filter(
-        id_lte=watermark_batch.up, id_gt=watermark_batch.low
-    ).values_list("object_identifier", "created_at", flat=True)
+        id__lte=watermark_batch.up, id__gt=watermark_batch.low
+    ).values_list("object_identifier", "created_at")
 
     ids_to_check = []
     for object_id, created_at in tombstone_entries:
@@ -357,6 +369,6 @@ def _get_ids_to_delete(
 
     field_name = f"{field.name}__in"
     query_kwargs = {field_name: ids_to_check}
-    rows_to_delete = list(model.objects.filter(**query_kwargs))
+    rows_to_delete = list(model.objects.filter(**query_kwargs).values_list("id", flat=True))
 
     return rows_to_delete, oldest_seen
