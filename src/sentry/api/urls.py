@@ -2830,59 +2830,59 @@ SENTRY_APP_URLS = [
         name="sentry-api-0-sentry-apps",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/$",
         SentryAppDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-details",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/features/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/features/$",
         SentryAppFeaturesEndpoint.as_view(),
         name="sentry-api-0-sentry-app-features",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/components/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/components/$",
         SentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-components",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/avatar/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/avatar/$",
         SentryAppAvatarEndpoint.as_view(),
         name="sentry-api-0-sentry-app-avatar",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/api-tokens/$",
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/rotate-secret/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/rotate-secret/$",
         SentryAppRotateSecretEndpoint.as_view(),
         name="sentry-api-0-sentry-app-rotate-secret",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/stats/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/stats/$",
         SentryAppStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-stats",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
     ),
     # The following a region endpoints as interactions and request logs
     # are per-region.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/requests/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/requests/$",
         SentryAppRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-requests",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/interaction/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
     ),
