@@ -2708,11 +2708,23 @@ class PostProcessGroupFeedbackTest(
         project_id,
         assert_no_errors=True,
         feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        is_spam=False,
     ):
         data["type"] = "generic"
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
+
+        evidence_data = {
+            "Test": 123,
+            "source": feedback_type.value,
+        }
+        evidence_display = [
+            {"name": "hi", "value": "bye", "important": True},
+            {"name": "what", "value": "where", "important": False},
+        ]
+        if is_spam:
+            evidence_data["is_spam"] = True
 
         occurrence_data = self.build_occurrence_data(
             event_id=event.event_id,
@@ -2724,14 +2736,8 @@ class PostProcessGroupFeedbackTest(
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
-                "evidence_data": {
-                    "Test": 123,
-                    "source": feedback_type.value,
-                },
-                "evidence_display": [
-                    {"name": "hi", "value": "bye", "important": True},
-                    {"name": "what", "value": "where", "important": False},
-                ],
+                "evidence_data": evidence_data,
+                "evidence_display": evidence_display,
                 "type": FeedbackGroup.type_id,
                 "detection_time": datetime.now().timestamp(),
                 "level": "info",
@@ -2765,6 +2771,31 @@ class PostProcessGroupFeedbackTest(
             data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        assert mock_process_func.call_count == 0
+
+    def test_not_ran_if_spam(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+            is_spam=True,
         )
         mock_process_func = Mock()
         with patch(
