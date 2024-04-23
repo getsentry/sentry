@@ -19,6 +19,7 @@ def get_repos_from_project_code_mappings(project: Project) -> list[dict]:
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
+                "external_id": repo.external_id,
             }
             repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
