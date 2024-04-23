@@ -583,13 +583,17 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        conditions.append(
-            Condition(
-                self.column("project_id"),
-                Op.IN,
-                self.params.project_ids,
+        # The clause will prevent calling Snuba with an empty list of projects, thus, returning
+        # no data. It will not instead complain with:
+        # sentry.utils.snuba.UnqualifiedQueryError: validation failed for entity events: missing required conditions for project_id
+        if self.params.project_ids:
+            conditions.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params.project_ids,
+                )
             )
-        )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(
