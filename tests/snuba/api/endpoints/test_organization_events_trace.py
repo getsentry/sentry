@@ -1008,7 +1008,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors(self):
         self.load_trace()
-        error, error1 = self.load_errors()
+        error, error1, _ = self.load_errors()
 
         with self.feature(self.FEATURES):
             response = self.client_get(
