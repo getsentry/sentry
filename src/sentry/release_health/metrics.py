@@ -45,9 +45,8 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.utils import json
 from sentry.utils.dates import to_datetime
-from sentry.utils.safe import get_path
+from sentry.utils.safe import PathSearchable, get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
 
 SMALLEST_METRICS_BUCKET = 10
@@ -122,6 +121,24 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return projects, org_ids.pop()
 
     @staticmethod
+    def _extract_crash_free_rate_from_result_groups(
+        result_groups: list[PathSearchable],
+    ) -> dict[int, float | None]:
+        crash_free_rates: dict[int, float | None] = {}
+        for result_group in result_groups:
+            project_id = get_path(result_group, "by", "project_id")
+            if project_id is None:
+                continue
+
+            totals = get_path(result_group, "totals", "rate", should_log=True)
+            if totals is not None:
+                crash_free_rates[project_id] = totals * 100
+            else:
+                crash_free_rates[project_id] = None
+
+        return crash_free_rates
+
+    @staticmethod
     def _get_crash_free_rate_data(
         org_id: int,
         projects: Sequence[Project],
@@ -151,33 +168,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             include_totals=True,
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
-
-        groups = get_path(result, "groups", default=[])
-        ret_val = {}
-        for group in groups:
-            project_id = get_path(group, "by", "project_id")
-            assert project_id is not None
-            totals = get_path(group, "totals", "rate", should_log=True)
-            try:
-                if totals is None:
-                    logger.info(
-                        "sentry.release_health.metrics._get_crash_free_rate_data.totals_is_none",
-                        extra={
-                            "group": json.dumps(group),
-                            "project_id": json.dumps(project_id),
-                            "organization_id": org_id,
-                            "timeseries_for_query": json.dumps(result),
-                        },
-                    )
-            except Exception as e:
-                logger.exception("Unable to log; %s", e)
-
-            if totals is not None:
-                ret_val[project_id] = totals * 100
-            else:
-                ret_val[project_id] = None
-
-        return ret_val
+        result_groups = get_path(result, "groups", default=[])
+        return MetricsReleaseHealthBackend._extract_crash_free_rate_from_result_groups(
+            result_groups=result_groups
+        )
 
     def is_metrics_based(self) -> bool:
         return True

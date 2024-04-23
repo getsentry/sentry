@@ -995,6 +995,31 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
             },
         }
 
+    def test_extract_crash_free_rate_from_result_groups(self):
+        result_groups = [
+            {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
+            {"by": {"project_id": 2}, "totals": {"rate": 0.8}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rate_from_result_groups(result_groups)
+        assert crash_free_rates[1] == 0.66 * 100
+        assert crash_free_rates[2] == 0.8 * 100
+
+    def test_extract_crash_free_rate_from_result_groups_with_none(self):
+        result_groups = [
+            {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
+            {"by": {"project_id": 2}, "totals": {"rate": None}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rate_from_result_groups(result_groups)
+        assert crash_free_rates[1] == 0.66 * 100
+        assert crash_free_rates[2] is None
+
+    def test_extract_crash_free_rate_from_result_groups_only_none(self):
+        result_groups = [
+            {"by": {"project_id": 2}, "totals": {"rate": None}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rate_from_result_groups(result_groups)
+        assert crash_free_rates[2] is None
+
 
 class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
