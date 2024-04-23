@@ -63,6 +63,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sentry-app.remove",
             "sentry-app.install",
             "sentry-app.uninstall",
+            "integration.rotate-client-secret",
             "sampling_priority.enabled",
             "sampling_priority.disabled",
             "monitor.add",

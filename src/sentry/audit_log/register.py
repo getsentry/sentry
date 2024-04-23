@@ -250,6 +250,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=118,
+        name="INTEGRATION_ROTATE_CLIENT_SECRET",
+        api_name="integration.rotate-client-secret",
+        template="rotated a client secret for {status} integration {sentry_app}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
     )
 )
