@@ -303,10 +303,9 @@ def _get_ids_to_delete(
 ) -> tuple[list[int], datetime]:
     """
     Queries the database or databases if spanning multiple), and returns
-     a list of tuples containing row ids and tombstone creation time for
-     any rows requiring cleanup.
+     a tuple with a list of row IDs to delete, and the oldest
+     tombstone timestamp for the batch.
 
-    :param self:
     :param tombstone_cls: Either a RegionTombstone or ControlTombstone, depending on
      which silo the tombstone process is running.
     :param model: The model with a HybridCloudForeignKey.
