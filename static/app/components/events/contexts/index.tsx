@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
@@ -15,13 +15,29 @@ type Props = {
   group?: Group;
 };
 
-type ContextValueType = any;
+interface UnknownContextValue {
+  [key: string]: any;
+  type: 'default';
+}
 
-export function getOrderedContextItems(event): [string, ContextValueType][] {
+/**
+ * Catch-all for context values, known and unknown
+ */
+export type ContextValue =
+  | EventContextValues[keyof EventContextValues]
+  | UnknownContextValue;
+
+export interface ContextItem {
+  alias: string;
+  type: string;
+  value: ContextValue;
+}
+
+export function getOrderedContextItems(event): ContextItem[] {
   const {user, contexts} = event;
 
   const {feedback, response, ...otherContexts} = contexts ?? {};
-  const orderedContext: [string, ContextValueType][] = [
+  const orderedContext: [ContextItem['alias'], ContextValue][] = [
     ['response', response],
     ['feedback', feedback],
     ['user', user],
@@ -30,8 +46,8 @@ export function getOrderedContextItems(event): [string, ContextValueType][] {
   // For these context keys, use 'key' as 'type' rather than 'value.type'
   const overrideTypes = new Set(['response', 'feedback', 'user']);
   const items = orderedContext
-    .filter(([_k, v]) => {
-      const contextKeys = Object.keys(v ?? {});
+    .filter(([_k, ctxValue]) => {
+      const contextKeys = Object.keys(ctxValue ?? {});
       const isInvalid =
         // Empty context
         contextKeys.length === 0 ||
@@ -39,10 +55,11 @@ export function getOrderedContextItems(event): [string, ContextValueType][] {
         (contextKeys.length === 1 && contextKeys[0] === 'type');
       return !isInvalid;
     })
-    .map<[string, ContextValueType]>(([alias, ctx]) => [
+    .map<ContextItem>(([alias, ctx]) => ({
       alias,
-      {...ctx, type: overrideTypes.has(ctx.type) ? ctx : ctx?.type ?? alias},
-    ]);
+      type: overrideTypes.has(ctx.type) ? ctx : ctx?.type,
+      value: ctx,
+    }));
 
   return items;
 }

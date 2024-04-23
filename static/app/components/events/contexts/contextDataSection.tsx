@@ -21,7 +21,7 @@ function ContextDataSection({event, group, project}: ContextDataSectionProps) {
   const columnCount = useIssueDetailsColumnCount(containerRef);
   const columns: React.ReactNode[] = [];
 
-  const cards = getOrderedContextItems(event).map(([alias, contextValue]) => (
+  const cards = getOrderedContextItems(event).map(({alias, value: contextValue}) => (
     <ContextCard
       key={alias}
       type={contextValue.type}

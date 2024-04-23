@@ -2,6 +2,7 @@ import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextMeta,
   getContextTitle,
@@ -11,8 +12,7 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
-import type {Group, KeyValueListDataItem, Project, Event} from 'sentry/types';
-
+import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,7 +22,7 @@ interface ContextCardProps {
   type: string;
   group?: Group;
   project?: Project;
-  value?: Record<string, any>;
+  value?: ContextValue;
 }
 
 interface ContextCardContentConfig {
@@ -69,13 +69,13 @@ export function ContextCardContent({
   return (
     <ContextContent hasErrors={hasErrors} {...props}>
       <ContextSubject>{contextSubject}</ContextSubject>
-      <ContextValue hasErrors={hasErrors} className="ctx-row-value">
+      <ContextValueWrapper hasErrors={hasErrors} className="ctx-row-value">
         {defined(action?.link) ? (
           <Link to={action.link}>{dataComponent}</Link>
         ) : (
           dataComponent
         )}
-      </ContextValue>
+      </ContextValueWrapper>
       <ContextErrors>
         <AnnotatedTextErrors errors={contextErrors} />
       </ContextErrors>
@@ -155,7 +155,7 @@ const ContextSubject = styled('div')`
   word-wrap: break-word;
 `;
 
-const ContextValue = styled(ContextSubject)<{hasErrors: boolean}>`
+const ContextValueWrapper = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: span ${p => (p.hasErrors ? 1 : 2)};
 `;

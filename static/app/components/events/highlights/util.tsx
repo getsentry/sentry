@@ -1,5 +1,11 @@
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {getFormattedContextData} from 'sentry/components/events/contexts/utils';
+import {
+  type ContextItem,
+  getOrderedContextItems,
+} from 'sentry/components/events/contexts';
+import {
+  getContextTitle,
+  getFormattedContextData,
+} from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import type {
   Event,
@@ -12,7 +18,11 @@ import type {
 export type HighlightTags = Required<Project>['highlightTags'];
 export type HighlightContext = Required<Project>['highlightContext'];
 
-export function getHighlightContextItems({
+interface ContextData extends ContextItem {
+  data: KeyValueListData;
+}
+
+export function getHighlightContextData({
   event,
   highlightContext,
   project,
@@ -23,7 +33,7 @@ export function getHighlightContextItems({
   organization: Organization;
   project: Project;
 }) {
-  const highlightContextSets: Record<string, Set<string>> = Object.entries(
+  const highlightContextSets: Record<ContextData['type'], Set<string>> = Object.entries(
     highlightContext
   ).reduce(
     (hcSets, [contextType, contextKeys]) => ({
@@ -32,40 +42,46 @@ export function getHighlightContextItems({
     }),
     {}
   );
-  const allContextDataMap: Record<string, {contextType: string; data: KeyValueListData}> =
-    getOrderedContextItems(event).reduce((ctxMap, [alias, contextValue]) => {
-      ctxMap[alias] = {
-        contextType: contextValue.type,
-        data: getFormattedContextData({
-          event,
-          contextType: contextValue.type,
-          contextValue,
-          organization,
-          project,
-        }),
-      };
-      return ctxMap;
-    }, {});
-  // 2D Array of highlighted context data. We flatten it because
-  const highlightContextDataItems: [alias: string, KeyValueListData][] = Object.entries(
-    allContextDataMap
-  ).map(([alias, {contextType, data}]) => {
-    // Find the key set from highlight preferences
-    const highlightContextKeys =
-      highlightContextSets[alias] ?? highlightContextSets[contextType] ?? new Set([]);
-    // Filter to only items from that set
-    const highlightContextData: KeyValueListData = data.filter(
-      ({key, subject}) =>
-        // Need to do both since they differ
-        highlightContextKeys.has(key) || highlightContextKeys.has(subject)
-    );
-    return [alias, highlightContextData];
-  });
 
-  return highlightContextDataItems;
+  const allContextData: ContextData[] = getOrderedContextItems(event).map(
+    ({alias, type, value}) => ({
+      alias,
+      type,
+      value,
+      data: getFormattedContextData({
+        event,
+        contextType: type,
+        contextValue: value,
+        organization,
+        project,
+      }),
+    })
+  );
+
+  const highlightContextData: ContextData[] = allContextData
+    .map(({alias, type: contextType, value, data}) => {
+      // Find the highlight key set for this type of context
+      // We match on alias (e.g. 'client_os'), type (e.g. 'os') and title (e.g. 'Operating System')
+      const highlightContextKeys =
+        highlightContextSets[alias] ??
+        highlightContextSets[contextType] ??
+        highlightContextSets[getContextTitle({alias, type: contextType, value})] ??
+        new Set([]);
+      // Filter data to only items from that set
+      const highlightContextItems: KeyValueListData = data.filter(
+        ({key, subject}) =>
+          // We match on key (e.g. 'trace_id') and subject (e.g. 'Trace ID')
+          highlightContextKeys.has(key) || highlightContextKeys.has(subject)
+      );
+      return {alias, type: contextType, data: highlightContextItems, value: value};
+    })
+    // Retain only entries with highlights
+    .filter(({data}) => data.length > 0);
+
+  return highlightContextData;
 }
 
-export function getHighlightTagItems({
+export function getHighlightTagData({
   event,
   highlightTags,
 }: {
