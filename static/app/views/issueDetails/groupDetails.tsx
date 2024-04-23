@@ -47,6 +47,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -407,6 +408,21 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   );
 
+  /**
+   * Allows the GroupEventHeader to display the previous event while the new event is loading.
+   * This is not closer to the GroupEventHeader because it is unmounted
+   * between route changes like latest event => eventId
+   */
+  const previousEvent = useMemoWithPrevious<typeof event | null>(
+    previousInstance => {
+      if (event) {
+        return event;
+      }
+      return previousInstance;
+    },
+    [event]
+  );
+
   const group = groupData ?? null;
 
   useEffect(() => {
@@ -528,7 +544,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     loadingEvent,
     group,
-    event: event ?? null,
+    // Allow previous event to be displayed while new event is loading
+    event: (loadingEvent ? event ?? previousEvent : event) ?? null,
     errorType,
     error: isGroupError,
     eventError: isError,
