@@ -1,5 +1,4 @@
 from datetime import datetime
-from time import sleep
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -207,8 +206,6 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
                     )
                 )
             )
-
-            sleep(2)
 
             strategy.poll()
             strategy.join(1)
