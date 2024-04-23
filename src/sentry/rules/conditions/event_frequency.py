@@ -141,7 +141,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
-        comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
+        comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
+        _, duration = self.intervals[interval]
         try:
             current_value = self.get_rate(duration, comparison_interval, event, self.rule.environment_id, comparison_type)  # type: ignore[arg-type, union-attr]
         # XXX(CEO): once inc-666 work is concluded, rm try/except
@@ -232,6 +234,28 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
+<<<<<<< HEAD
+=======
+        return option_override_cm
+
+    def get_comparison_start_end(
+        self, interval: timedelta, duration: timedelta
+    ) -> tuple[datetime, datetime]:
+        end = timezone.now() - interval
+        start = end - duration
+        return (start, end)
+
+    def get_rate(
+        self,
+        duration: timedelta,
+        interval: timedelta,
+        event: GroupEvent,
+        environment_id: int,
+        comparison_type: str,
+    ) -> int:
+        start, end = self.get_comparison_start_end(timedelta(), duration)
+        option_override_cm = self.get_option_override(duration)
+>>>>>>> b3304fb0b21 (nuke get_start_end_from_duration, add a default value for comparison interval)
         with option_override_cm:
             start = end - duration
             if event:
@@ -276,6 +300,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         start: datetime,
         end: datetime,
         environment_id: int,
+<<<<<<< HEAD
     ) -> int:
         return self.batch_query(
             group_ids=group_ids,
@@ -283,6 +308,32 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             end=end,
             environment_id=environment_id,
         )
+=======
+        comparison_type: str,
+    ) -> dict[int, int]:
+        start, end = self.get_comparison_start_end(timedelta(), duration)
+        option_override_cm = self.get_option_override(duration)
+        with option_override_cm:
+            result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+            )
+        if comparison_type == ComparisonType.PERCENT:
+            start, comparison_end = self.get_comparison_start_end(interval, duration)
+            comparison_result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=comparison_end,
+                environment_id=environment_id,
+            )
+            result = {
+                group_id: percent_increase(result[group_id], comparison_result[group_id])
+                for group_id in group_ids
+            }
+        return result
+>>>>>>> b3304fb0b21 (nuke get_start_end_from_duration, add a default value for comparison interval)
 
     def get_snuba_query_result(
         self,
