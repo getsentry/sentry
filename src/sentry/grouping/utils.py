@@ -15,18 +15,18 @@ def parse_fingerprint_var(value):
         return match.group(1)
 
 
-def is_default_fingerprint_var(value):
+def is_default_fingerprint_var(value) -> bool:
     return parse_fingerprint_var(value) == "default"
 
 
-def hash_from_values(values):
+def hash_from_values(values) -> str:
     result = md5()
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
 
 
-def get_rule_bool(value):
+def get_rule_bool(value: str):
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):

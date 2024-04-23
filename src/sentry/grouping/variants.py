@@ -26,7 +26,7 @@ class BaseVariant:
         rv.update(self._get_metadata_as_dict())
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
@@ -43,7 +43,7 @@ class ChecksumVariant(BaseVariant):
         self.hashed = hashed
 
     @property
-    def description(self):
+    def description(self) -> str:
         if self.hashed:
             return "hashed legacy checksum"
         return "legacy checksum"
@@ -147,7 +147,7 @@ class CustomFingerprintVariant(BaseVariant):
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "custom fingerprint"
 
     def get_hash(self) -> str | None:
@@ -163,7 +163,7 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
     type = "built-in-fingerprint"
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "Sentry defined fingerprint"
 
 

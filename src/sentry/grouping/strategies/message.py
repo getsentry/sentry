@@ -8,6 +8,7 @@ from re import Match
 from typing import Any
 
 import tiktoken
+from tiktoken.core import Encoding
 
 from sentry import analytics
 from sentry.eventstore.models import Event
@@ -167,7 +168,7 @@ _parameterization_regex = re.compile(_parameterization_regex_str)
 
 # UniqID logic
 @lru_cache(maxsize=1)
-def tiktoken_encoding():
+def tiktoken_encoding() -> Encoding:
     return tiktoken.get_encoding("cl100k_base")
 
 

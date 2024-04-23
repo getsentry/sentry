@@ -18,7 +18,7 @@ from sentry.tasks.base import instrumented_task, retry
     silo_mode=SiloMode.REGION,
 )
 @retry(on=(Commit.DoesNotExist,))
-def code_owners_auto_sync(commit_id: int, **kwargs):
+def code_owners_auto_sync(commit_id: int, **kwargs) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
     from sentry.api.endpoints.organization_code_mapping_codeowners import get_codeowner_contents

@@ -27,7 +27,7 @@ def record_hash_calculation_metrics(
     primary_hashes: CalculatedHashes,
     secondary_config: GroupingConfig,
     secondary_hashes: CalculatedHashes,
-):
+) -> None:
     has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     if has_secondary_hashes:
@@ -93,7 +93,7 @@ def record_calculation_metric_with_result(
     metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
 
 
-def record_new_group_metrics(event: Event):
+def record_new_group_metrics(event: Event) -> None:
     metrics.incr(
         "group.created",
         skip_internal=True,

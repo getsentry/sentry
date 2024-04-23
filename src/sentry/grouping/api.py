@@ -96,7 +96,7 @@ class GroupingConfigLoader:
             "enhancements": self._get_enhancements(project),
         }
 
-    def _get_enhancements(self, project) -> str:
+    def _get_enhancements(self, project: Project) -> str:
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -121,14 +121,14 @@ class GroupingConfigLoader:
         cache.set(cache_key, rv)
         return rv
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project):
         raise NotImplementedError
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project):
         return project.get_option(
             self.option_name,
             validate=lambda x: x in CONFIGURATIONS,
@@ -154,7 +154,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
     cache_prefix = "background-grouping-enhancements:"
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project):
         return options.get("store.background-grouping-config-id")
 
 
@@ -176,7 +176,7 @@ def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None) -> str:
+def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -200,7 +200,7 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
+def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -257,7 +257,7 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(event, config, allow_custom_title=True) -> None:
     client_fingerprint = event.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
@@ -419,7 +419,9 @@ def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVaria
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
+def detect_synthetic_exception(
+    event_data: NodeData, loaded_grouping_config: StrategyConfiguration
+) -> None:
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so

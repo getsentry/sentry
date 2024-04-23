@@ -293,7 +293,7 @@ def _group_attributes_side_query(
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ):
+    ) -> None:
         from sentry.utils import metrics
 
         try:

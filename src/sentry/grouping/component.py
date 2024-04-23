@@ -176,5 +176,5 @@ class GroupingComponent:
                 rv["values"].append(value)
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"

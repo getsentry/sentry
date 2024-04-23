@@ -304,7 +304,7 @@ class CallerMatch(Match):
     def description(self) -> str:
         return f"[ {self.inner.description} ] |"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version) -> str:
         return f"[{self.inner._to_config_structure(version)}]|"
 
     def matches_frame(self, frames, idx, exception_data, cache):
@@ -319,7 +319,7 @@ class CalleeMatch(Match):
     def description(self) -> str:
         return f"| [ {self.inner.description} ]"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version) -> str:
         return f"|[{self.inner._to_config_structure(version)}]"
 
     def matches_frame(self, frames, idx, exception_data, cache):

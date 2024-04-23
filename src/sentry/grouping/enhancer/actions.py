@@ -40,7 +40,7 @@ class Action:
     ) -> None:
         pass
 
-    def modify_stacktrace_state(self, state, rule):
+    def modify_stacktrace_state(self, state, rule) -> None:
         pass
 
     @property

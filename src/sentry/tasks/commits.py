@@ -28,7 +28,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-def generate_invalid_identity_email(identity, commit_failure=False):
+def generate_invalid_identity_email(identity, commit_failure=False) -> MessageBuilder:
     new_context = {
         "identity": identity,
         "auth_url": absolute_uri(reverse("socialauth_associate", args=[identity.provider])),
@@ -43,7 +43,7 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     )
 
 
-def generate_fetch_commits_error_email(release, repo, error_message):
+def generate_fetch_commits_error_email(release, repo, error_message) -> MessageBuilder:
     new_context = {"release": release, "error_message": error_message, "repo": repo}
 
     return MessageBuilder(
@@ -57,7 +57,7 @@ def generate_fetch_commits_error_email(release, repo, error_message):
 # we're future proofing this function a bit so it could be used with other code
 
 
-def handle_invalid_identity(identity, commit_failure=False):
+def handle_invalid_identity(identity, commit_failure=False) -> None:
     # email the user
     msg = generate_invalid_identity_email(identity, commit_failure)
     msg.send_async(to=[identity.user.email])
@@ -74,7 +74,7 @@ def handle_invalid_identity(identity, commit_failure=False):
     silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
-def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):
+def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs) -> None:
     # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []
 
@@ -252,11 +252,11 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
             Deploy.notify_if_ready(deploy_id, fetch_complete=True)
 
 
-def is_integration_provider(provider):
+def is_integration_provider(provider: str):
     return provider and provider.startswith("integrations:")
 
 
-def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
+def get_emails_for_user_or_org(user: RpcUser | None, orgId: int) -> list[str]:
     emails: list[str] = []
     if not user:
         return []

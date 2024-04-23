@@ -10,5 +10,5 @@ from sentry.tasks.base import instrumented_task
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
 )
-def auto_remove_inbox():
+def auto_remove_inbox() -> None:
     BulkDeleteQuery(model=GroupInbox, days=7, dtfield="date_added").execute()
