@@ -22,7 +22,7 @@ import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/starfish/colours';
+} from 'sentry/views/starfish/colors';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
