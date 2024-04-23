@@ -2199,19 +2199,25 @@ def _process_existing_aggregate(
 
     is_regression = _handle_regression(group, event, release)
 
-    # Merge new data with existing data
+    existing_data = group.data
+    existing_metadata = group.data.get("metadata", {})
+
     incoming_data = incoming_group_values["data"]
     incoming_metadata = incoming_group_values["data"].get("metadata", {})
 
-    existing_data = group.data
-    # Grab a reference to this before it gets clobbered when we update `existing_data`
-    existing_metadata = group.data.get("metadata", {})
-
-    existing_data.update(incoming_data)
-    existing_metadata.update(incoming_metadata)
-
-    updated_group_values["data"] = existing_data
-    updated_group_values["data"]["metadata"] = existing_metadata
+    # Merge old and new data/metadata, keeping the existing title if the incoming title is a
+    # placeholder (`<unlabeled event`, `<untitled>`, etc.) and the existing one isn't. See
+    # `_get_updated_group_title` docstring.
+    updated_group_values["data"] = {
+        **existing_data,
+        **incoming_data,
+        "title": _get_updated_group_title(existing_data, incoming_data),
+    }
+    updated_group_values["data"]["metadata"] = {
+        **existing_metadata,
+        **incoming_metadata,
+        "title": _get_updated_group_title(existing_metadata, incoming_metadata),
+    }
 
     update_kwargs = {"times_seen": 1}
 
