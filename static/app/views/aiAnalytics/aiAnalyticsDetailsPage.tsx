@@ -67,6 +67,17 @@ export default function AiAnalyticsPage({params}: Props) {
   });
   const spanMetrics = data[0] ?? {};
 
+  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics({
+    search: MutableSearch.fromQueryObject({
+      'span.category': 'ai',
+      'span.ai.pipeline.group': groupId,
+    }),
+    fields: ['ai_total_tokens_used()'],
+    enabled: Boolean(groupId),
+    referrer: 'api.ai-pipelines.view',
+  });
+  const tokenUsedMetric = totalTokenData[0] ?? {};
+
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle
@@ -108,6 +119,13 @@ export default function AiAnalyticsPage({params}: Props) {
                             value={spanMetrics['count()']}
                             unit={'count'}
                             isLoading={areSpanMetricsLoading}
+                          />
+
+                          <MetricReadout
+                            title={t('Total Tokens Used')}
+                            value={tokenUsedMetric['ai_total_tokens_used()']}
+                            unit={'count'}
+                            isLoading={isTotalTokenDataLoading}
                           />
 
                           <MetricReadout
