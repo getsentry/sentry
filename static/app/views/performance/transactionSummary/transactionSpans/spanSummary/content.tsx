@@ -135,21 +135,11 @@ function SpanSummaryContent(props: ContentProps) {
       </Feature>
       <SpanSummaryHeader />
       <SpanSummaryCharts />
-      {/* <SpanSummaryTable
+      <SpanSummaryTable
         project={project}
         suspectSpan={suspectSpan}
         transactionName={transactionName}
-      /> */}
-      {/* <SpanTable
-        location={location}
-        organization={organization}
-        project={project}
-        suspectSpan={suspectSpan}
-        transactionName={transactionName}
-        isLoading={spanExamplesResults.isLoading}
-        examples={examples ?? []}
-        pageLinks={spanExamplesResults.pageLinks}
-      /> */}
+      />
     </Fragment>
   );
 }
