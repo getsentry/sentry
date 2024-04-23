@@ -230,6 +230,9 @@ SPAN_METRICS_NAMES = {
     "g:spans/self_time@millisecond": PREFIX + 419,
     "g:spans/self_time_light@millisecond": PREFIX + 420,
     "g:spans/total_time@millisecond": PREFIX + 421,
+    "g:spans/mobile.slow_frames@none": PREFIX + 422,
+    "g:spans/mobile.frozen_frames@none": PREFIX + 423,
+    "g:spans/mobile.total_frames@none": PREFIX + 424,
     # Last possible index: 499
 }
 
