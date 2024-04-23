@@ -12,12 +12,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
-import type {EventAttachment} from 'sentry/types';
-
-import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
+import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
   const contexts = {

@@ -792,3 +792,101 @@ def test_good_user_custom_ordinal():
     findings = out.findings
 
     assert len(findings) == 0
+
+
+# TODO(azaslavsky): This is a temporary fix. Remove it once we have a more sustainable export-side
+# solution.
+def test_good_user_option_temp_fix():
+    left = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 3,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 5,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 8,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
+                    }
+                }
+            ]
+        """
+    )
+
+    right = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 11,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 21,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "3"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 22,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
+                    }
+                }
+            ]
+        """
+    )
+    out = validate(left, right)
+    findings = out.findings
+
+    assert len(findings) == 0

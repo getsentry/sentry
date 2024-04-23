@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 

@@ -23,7 +23,7 @@ from sentry.services.hybrid_cloud.user.model import (
     RpcVerifyUserEmail,
     UserIdEmailArgs,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class UserService(RpcService):

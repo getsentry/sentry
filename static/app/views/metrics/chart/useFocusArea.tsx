@@ -11,7 +11,7 @@ import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {ValueRect} from 'sentry/views/metrics/chart/chartUtils';

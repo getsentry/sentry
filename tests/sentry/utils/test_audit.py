@@ -7,7 +7,7 @@ from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -49,7 +49,7 @@ class CreateAuditEntryTest(TestCase):
         req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req)
+        entry = create_audit_entry(req, organization_id=org.id)
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
@@ -57,8 +57,10 @@ class CreateAuditEntryTest(TestCase):
         self.assert_no_delete_log_created()
 
     def test_audit_entry_frontend(self):
+        org = self.create_organization()
+
         req = fake_http_request(self.create_user())
-        entry = create_audit_entry(req)
+        entry = create_audit_entry(req, organization_id=org.id)
 
         assert entry.actor == req.user
         assert entry.actor_key is None

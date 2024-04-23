@@ -1,6 +1,6 @@
 import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
-import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
+import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types/group';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 

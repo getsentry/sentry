@@ -56,6 +56,16 @@ urlpatterns = [
         RegionEndpoint.as_view(),
         name="region-endpoint",
     ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/control/$",
+        ControlEndpoint.as_view(),
+        name="control-endpoint-id-or-slug",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/region/$",
+        RegionEndpoint.as_view(),
+        name="region-endpoint-id-or-slug",
+    ),
 ] + api_urls.urlpatterns
 
 
