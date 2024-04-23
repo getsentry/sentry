@@ -359,7 +359,7 @@ def get_ids_for_tombstone_cascade_cross_db(
     # the join code above. Instead, we have to manually query the tombstone IDs
     # first, then query the model for matching rows.
     tombstone_entries = tombstone_cls.objects.filter(
-        id__lte=watermark_batch.up, id__gt=watermark_batch.low
+        id__lte=watermark_batch.up, id__gt=watermark_batch.low, table_name=field.foreign_table_name
     ).values_list("object_identifier", "created_at")
 
     ids_to_check = []

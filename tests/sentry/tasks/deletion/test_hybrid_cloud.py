@@ -350,3 +350,31 @@ def test_cross_database_same_silo_deletion(task_runner):
         )
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
+
+        # Validate lower watermark bound
+        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor.owner_user_id.field,
+            watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] - 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == []
+
+        # Validate upper watermark bound
+        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor.owner_user_id.field,
+            watermark_batch=WatermarkBatch(
+                low=highest_tombstone_id["id__max"] + 1,
+                up=highest_tombstone_id["id__max"] + 5,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == []
