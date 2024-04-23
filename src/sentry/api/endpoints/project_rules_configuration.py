@@ -79,6 +79,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 if not has_high_priority_issue_alerts(project=project) and context["id"] in (
                     "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
                     "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
+                    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
                 ):
                     continue
                 condition_list.append(context)
