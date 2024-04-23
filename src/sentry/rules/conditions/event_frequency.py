@@ -229,6 +229,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_comparison_start_end(
         self, interval: timedelta, duration: timedelta
     ) -> tuple[datetime, datetime]:
+        """
+        Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition
+        as the '5 minutes' in The issue affects more than 100 percent of sessions in 5 minutes, otherwise it's the current time.
+        `duration` is the time frame in which the condition is measuring counts, e.g. the '10 minutes' in
+        "The issue is seen more than 100 times in 10 minutes"
+        """
         end = timezone.now() - interval
         start = end - duration
         return (start, end)
@@ -249,7 +255,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
                 start, end = self.get_comparison_start_end(comparison_interval, duration)
-                comparison_result = self.get_rate_single(event, start, end, environment_id)
+                comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
         return result
