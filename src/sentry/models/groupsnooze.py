@@ -67,7 +67,7 @@ class GroupSnooze(Model):
     def get_cache_key(cls, group_id):
         return "groupsnooze_group_id:1:%s" % (group_id)
 
-    def is_valid_no_cache(self, group=None, test_rates=False, use_pending_data=False):
+    def is_valid(self, group=None, test_rates=False, use_pending_data=False):
         if group is None:
             group = self.group
         elif group.id != self.group_id:
