@@ -152,3 +152,33 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.post(self.url, data="")
             assert response.status_code == 404
+
+    @patch("sentry.replays.endpoints.project_replay_viewed_by.publish_replay_event")
+    def test_post_replay_viewed_by_not_in_org(self, publish_replay_event):
+        with self.feature(REPLAYS_FEATURES):
+            finished_at_dt = datetime.datetime.now() - datetime.timedelta(seconds=20)
+            self.store_replays(mock_replay(finished_at_dt, self.project.id, self.replay_id))
+            self.login_as(user=self.create_user(is_superuser=True, is_staff=True), superuser=True)
+            response = self.client.post(self.url, data="")
+            assert response.status_code == 204
+            assert not publish_replay_event.called
+
+    def test_get_replay_viewed_by_user_in_other_org(self):
+        other_org_member = self.create_member(
+            organization=self.create_organization(), user=self.create_user()
+        )
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
+
+        self.store_replays(
+            mock_replay_viewed(
+                time.time(), self.project.id, self.replay_id, other_org_member.user_id
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert len(response.data["data"]["viewed_by"]) == 0
