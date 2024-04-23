@@ -70,7 +70,7 @@ def issue_occurrence_options() -> list[click.Option]:
                 ["--mode", "mode"],
                 type=click.Choice(["batched-parallel", "parallel"]),
                 default="parallel",
-                help="The mode to process check-ins in. Batched-parallel uses batched in parallel, parallel uses multithreading.",
+                help="The mode to process occurrences in. Batched-parallel uses batched in parallel, parallel uses multi-processing.",
             ),
         ]
     )

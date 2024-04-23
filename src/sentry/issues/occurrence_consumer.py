@@ -387,12 +387,12 @@ def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload
             continue
         occcurrence_mapping[item.partition.index].append(payload)
 
-    # Number of check-ins that are being processed in this batch
+    # Number of occurrences that are being processed in this batch
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
 
-    # Number of check-in groups we've collected to be processed in parallel
+    # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
-    # Submit check-in groups for processing
+    # Submit occurrences for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
         futures = [
             _occurrence_worker.submit(process_occurrence_group, group)
