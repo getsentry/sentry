@@ -9,6 +9,7 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import type {
@@ -92,6 +93,21 @@ function computeNextIndexFromAction(
     default:
       throw new TypeError(`Invalid or not implemented reducer action - ${action}`);
   }
+}
+
+function getMaxErrorSeverity(errors: TraceTree.TraceError[]) {
+  return errors.reduce((acc, error) => {
+    if (error.level === 'fatal') {
+      return 'fatal';
+    }
+    if (error.level === 'error') {
+      return acc === 'fatal' ? 'fatal' : 'error';
+    }
+    if (error.level === 'warning') {
+      return acc === 'fatal' || acc === 'error' ? acc : 'warning';
+    }
+    return acc;
+  }, 'default');
 }
 
 const RIGHT_COLUMN_EVEN_CLASSNAME = `TraceRightColumn`;
@@ -451,7 +467,11 @@ export function Trace({
   return (
     <TraceStylingWrapper
       ref={manager.registerContainerRef}
-      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}`}
+      className={`
+        ${trace?.root?.space?.[1] === 0 ? 'Empty' : ''}
+        ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
+        ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}
+        ${ConfigStore.get('theme')}`}
     >
       <div
         className="TraceScrollbarContainer"
@@ -876,14 +896,11 @@ function RenderRow(props: {
           className={spanColumnClassName}
           onDoubleClick={onSpanRowDoubleClick}
         >
-          <TraceBar
+          <MissingInstrumentationTraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
-            performance_issues={NO_PERFORMANCE_ISSUES}
-            profiles={NO_PROFILES}
-            errors={NO_ERRORS}
           />
           <button
             ref={registerSpanArrowRef}
@@ -1243,24 +1260,35 @@ function TraceBar(props: TraceBarProps) {
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
         {props.profiles.length > 0 ? (
-          <Profiles
+          <ProfileIcons
             node_space={props.node_space}
             profiles={props.profiles}
             manager={props.manager}
           />
         ) : null}
         {props.errors.size > 0 ? (
-          <Errors
+          <ErrorIcons
             node_space={props.node_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
         {props.performance_issues.size > 0 ? (
-          <BackgroundPatterns
-            manager={props.manager}
+          <PerformanceIssueIcons
             node_space={props.node_space}
             performance_issues={props.performance_issues}
+            manager={props.manager}
+          />
+        ) : null}
+        {props.performance_issues.size > 0 ||
+        props.errors.size > 0 ||
+        props.profiles.length > 0 ? (
+          <BackgroundPatterns
+            node_space={props.node_space}
+            performance_issues={props.performance_issues}
+            profiles={props.profiles}
+            errors={props.errors}
+            manager={props.manager}
           />
         ) : null}
       </div>
@@ -1268,6 +1296,51 @@ function TraceBar(props: TraceBarProps) {
         {duration}
       </div>
     </Fragment>
+  );
+}
+
+interface MissingInstrumentationTraceBarProps {
+  color: string;
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  virtualized_index: number;
+}
+function MissingInstrumentationTraceBar(props: MissingInstrumentationTraceBarProps) {
+  const duration = props.node_space ? formatTraceDuration(props.node_space[1]) : null;
+
+  const registerSpanBarRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      props.manager.registerSpanBarRef(
+        ref,
+        props.node_space!,
+        props.color,
+        props.virtualized_index
+      );
+    },
+    [props.manager, props.node_space, props.color, props.virtualized_index]
+  );
+
+  const registerSpanBarTextRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      props.manager.registerSpanBarTextRef(
+        ref,
+        duration!,
+        props.node_space!,
+        props.virtualized_index
+      );
+    },
+    [props.manager, props.node_space, props.virtualized_index, duration]
+  );
+  return (
+    <div ref={registerSpanBarRef} className="TraceBar">
+      <div ref={registerSpanBarTextRef} className="TraceBarDuration">
+        {duration}
+      </div>
+
+      <div className="TracePatternContainer">
+        <div className="TracePattern missing_instrumentation" />
+      </div>
+    </div>
   );
 }
 
@@ -1314,64 +1387,99 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
 }
 
 interface BackgroundPatternsProps {
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  profiles: TraceTree.Profile[];
 }
 
 function BackgroundPatterns(props: BackgroundPatternsProps) {
   const performance_issues = useMemo(() => {
+    if (!props.performance_issues.size) return [];
     return [...props.performance_issues];
   }, [props.performance_issues]);
 
-  if (!props.performance_issues.size) {
+  const errors = useMemo(() => {
+    if (!props.errors.size) return [];
+    return [...props.errors];
+  }, [props.errors]);
+
+  const severity = useMemo(() => {
+    return getMaxErrorSeverity(errors);
+  }, [errors]);
+
+  if (!props.performance_issues.size && !props.errors.size && !props.profiles.length) {
     return null;
   }
 
+  // If there is an error, render the error pattern across the entire width.
+  // Else if there is a performance issue, render the performance issue pattern
+  // for the duration of the performance issue. If there is a profile, render
+  // the profile pattern for entire duration (we do not have profile durations here)
   return (
     <Fragment>
-      {performance_issues.map((issue, _i) => {
-        const timestamp = issue.start * 1e3;
-        // Clamp the issue timestamp to the span's timestamp
-        const left = props.manager.computeRelativeLeftPositionFromOrigin(
-          clamp(
-            timestamp,
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
-          ),
-          props.node_space!
-        );
+      {errors.length > 0 ? (
+        <div
+          className="TracePatternContainer"
+          style={{
+            left: 0,
+            width: '100%',
+          }}
+        >
+          <div className={`TracePattern ${severity}`} />
+        </div>
+      ) : performance_issues.length > 0 ? (
+        <Fragment>
+          {performance_issues.map((issue, _i) => {
+            const timestamp = issue.start * 1e3;
+            // Clamp the issue timestamp to the span's timestamp
+            const left = props.manager.computeRelativeLeftPositionFromOrigin(
+              clamp(
+                timestamp,
+                props.node_space![0],
+                props.node_space![0] + props.node_space![1]
+              ),
+              props.node_space!
+            );
 
-        const iconProps = {left: left * 100 + '%'};
-
-        return (
-          <Fragment key={issue.event_id}>
-            <div
-              className="TracePatternContainer"
-              style={{
-                left: left * 100 + '%',
-                width: (1 - left) * 100 + '%',
-              }}
-            >
-              <div className="TracePattern performance_issue" />
-            </div>
-            <div className="TraceIcon performance_issue" style={iconProps}>
-              <TraceIcons.Icon event={issue} />
-            </div>
-          </Fragment>
-        );
-      })}
+            return (
+              <Fragment key={issue.event_id}>
+                <div
+                  className="TracePatternContainer"
+                  style={{
+                    left: left * 100 + '%',
+                    width: (1 - left) * 100 + '%',
+                  }}
+                >
+                  <div className="TracePattern performance_issue" />
+                </div>
+              </Fragment>
+            );
+          })}
+        </Fragment>
+      ) : props.profiles.length > 0 ? (
+        <div
+          className="TracePatternContainer"
+          style={{
+            left: 0,
+            width: '100%',
+          }}
+        >
+          <div className="TracePattern profile" />
+        </div>
+      ) : null}
     </Fragment>
   );
 }
 
-interface ErrorsProps {
+interface ErrorIconsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
 }
 
-function Errors(props: ErrorsProps) {
+function ErrorIcons(props: ErrorIconsProps) {
   const errors = useMemo(() => {
     return [...props.errors];
   }, [props.errors]);
@@ -1408,13 +1516,60 @@ function Errors(props: ErrorsProps) {
   );
 }
 
-interface ProfilesProps {
+interface PerformanceIssueIconsProps {
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+}
+
+function PerformanceIssueIcons(props: PerformanceIssueIconsProps) {
+  const performance_issues = useMemo(() => {
+    return [...props.performance_issues];
+  }, [props.performance_issues]);
+
+  if (!props.performance_issues.size) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      {performance_issues.map((issue, _i) => {
+        const timestamp = issue.timestamp
+          ? issue.timestamp * 1e3
+          : issue.start
+            ? issue.start * 1e3
+            : props.node_space![0];
+        // Clamp the issue timestamp to the span's timestamp
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clamp(
+            timestamp,
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
+          ),
+          props.node_space!
+        );
+
+        return (
+          <div
+            key={issue.event_id}
+            className={`TraceIcon performance_issue`}
+            style={{left: left * 100 + '%'}}
+          >
+            <TraceIcons.Icon event={issue} />
+          </div>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+interface ProfileIconsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   profiles: TraceTree.Profile[];
 }
 
-function Profiles(props: ProfilesProps) {
+function ProfileIcons(props: ProfileIconsProps) {
   if (!props.profiles.length) {
     return null;
   }
@@ -1522,22 +1677,24 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             />
           );
         })}
+        {/* Autogrouped bars only render icons. That is because in the case of multiple bars
+            with tiny gaps, the background pattern looks broken as it does not repeat nicely */}
         {props.profiles.length > 0 ? (
-          <Profiles
+          <ProfileIcons
             node_space={props.entire_space}
             profiles={props.profiles}
             manager={props.manager}
           />
         ) : null}
         {props.errors.size > 0 ? (
-          <Errors
+          <ErrorIcons
             node_space={props.entire_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
         {props.performance_issues.size > 0 ? (
-          <BackgroundPatterns
+          <PerformanceIssueIcons
             node_space={props.entire_space}
             performance_issues={props.performance_issues}
             manager={props.manager}
@@ -1567,7 +1724,6 @@ const TraceStylingWrapper = styled('div')`
   width: 100%;
   height: 100%;
   grid-area: trace;
-
   padding-top: 26px;
 
   &.WithIndicators {
@@ -1616,6 +1772,12 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceDivider {
       pointer-events: none;
+    }
+  }
+
+  &.Empty {
+    .TraceIcon {
+      left: 50%;
     }
   }
 
@@ -1757,6 +1919,86 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  &.light {
+    .TracePattern {
+      &.info {
+        --pattern-odd: #d1dff9;
+        --pattern-even: ${p => p.theme.blue300};
+      }
+      &.warning {
+        --pattern-odd: #a5752c;
+        --pattern-even: ${p => p.theme.yellow300};
+      }
+      &.performance_issue {
+        --pattern-odd: #063690;
+        --pattern-even: ${p => p.theme.blue300};
+      }
+
+      &.profile {
+        --pattern-odd: rgba(58, 17, 95, 0.55);
+        --pattern-even: transparent;
+      }
+
+      &.missing_instrumentation {
+        --pattern-odd: #4b4550;
+        --pattern-even: rgb(128, 112, 143);
+      }
+
+      &.error,
+      &.fatal {
+        --pattern-odd: #872d32;
+        --pattern-even: ${p => p.theme.red300};
+      }
+
+      /* false positive for grid layout */
+      /* stylelint-disable */
+      &.default {
+      }
+      &.unknown {
+      }
+      /* stylelint-enable */
+    }
+  }
+
+  &.dark {
+    .TracePattern {
+      &.info {
+        --pattern-odd: #d1dff9;
+        --pattern-even: ${p => p.theme.blue300};
+      }
+      &.warning {
+        --pattern-odd: #a5752c;
+        --pattern-even: ${p => p.theme.yellow300};
+      }
+      &.performance_issue {
+        --pattern-odd: #063690;
+        --pattern-even: ${p => p.theme.blue300};
+      }
+
+      &.profile {
+        --pattern-odd: rgba(58, 17, 95, 0.55);
+        --pattern-even: transparent;
+      }
+
+      &.missing_instrumentation {
+        --pattern-odd: #4b4550;
+        --pattern-even: #1c1521;
+      }
+
+      &.error,
+      &.fatal {
+        --pattern-odd: #510d10;
+        --pattern-even: ${p => p.theme.red300};
+      }
+      /* stylelint-disable */
+      &.default {
+      }
+      &.unknown {
+      }
+      /* stylelint-enable */
+    }
+  }
+
   .TraceRow {
     display: flex;
     align-items: center;
@@ -1765,6 +2007,7 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
+    transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.translucentSurface100};
     --row-background-hover: ${p => p.theme.translucentSurface100};
@@ -1772,7 +2015,7 @@ const TraceStylingWrapper = styled('div')`
     --row-outline: ${p => p.theme.blue300};
     --row-children-button-border-color: ${p => p.theme.border};
 
-    /* false positive for grid layout */
+    /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
     /* stylelint-disable */
     &.info {
     }
@@ -1781,6 +2024,7 @@ const TraceStylingWrapper = styled('div')`
     &.error,
     &.fatal,
     &.performance_issue {
+      color: ${p => p.theme.errorText};
       --autogrouped: ${p => p.theme.error};
       --row-children-button-border-color: ${p => p.theme.error};
       --row-outline: ${p => p.theme.error};
@@ -1807,7 +2051,7 @@ const TraceStylingWrapper = styled('div')`
     .TraceIcon {
       position: absolute;
       top: 50%;
-      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
       background-color: ${p => p.theme.background};
       width: 18px !important;
       height: 18px !important;
@@ -1815,6 +2059,7 @@ const TraceStylingWrapper = styled('div')`
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 1;
 
       &.info {
         background-color: var(--info);
@@ -1868,27 +2113,36 @@ const TraceStylingWrapper = styled('div')`
     }
 
     .TracePattern {
-      width: 9999999%;
+      left: 0;
+      width: 1000000px;
       height: 100%;
       position: absolute;
       transform-origin: left center;
-      transform: scaleX(var(--inverse-span-scale));
+      transform: scaleX(var(--inverse-span-scale)) translateZ(0);
       background-image: linear-gradient(
         135deg,
-        var(--pattern-odd) 25%,
-        var(--pattern-even) 25%,
-        var(--pattern-even) 50%,
-        var(--pattern-odd) 50%,
-        var(--pattern-odd) 75%,
-        var(--pattern-even) 75%,
-        var(--pattern-even) 100%
+        var(--pattern-even) 1%,
+        var(--pattern-even) 11%,
+        var(--pattern-odd) 11%,
+        var(--pattern-odd) 21%,
+        var(--pattern-even) 21%,
+        var(--pattern-even) 31%,
+        var(--pattern-odd) 31%,
+        var(--pattern-odd) 41%,
+        var(--pattern-even) 41%,
+        var(--pattern-even) 51%,
+        var(--pattern-odd) 51%,
+        var(--pattern-odd) 61%,
+        var(--pattern-even) 61%,
+        var(--pattern-even) 71%,
+        var(--pattern-odd) 71%,
+        var(--pattern-odd) 81%,
+        var(--pattern-even) 81%,
+        var(--pattern-even) 91%,
+        var(--pattern-odd) 91%,
+        var(--pattern-odd) 101%
       );
-      background-size: 9px 9px;
-
-      &.performance_issue {
-        --pattern-odd: ${p => p.theme.surface400};
-        --pattern-even: ${p => p.theme.blue300};
-      }
+      background-size: 25.5px 17px;
     }
 
     .TracePerformanceIssue {
@@ -2088,7 +2342,7 @@ const TraceStylingWrapper = styled('div')`
     padding: 0px 4px;
     transition: all 0.15s ease-in-out;
     background: ${p => p.theme.background};
-    border: 2px solid var(--row-children-button-border-color);
+    border: 1.5px solid var(--row-children-button-border-color);
     line-height: 0;
     z-index: 1;
     font-size: 10px;

@@ -1416,8 +1416,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     | TraceTreeNode<T>
     | ParentAutogroupNode
     | SiblingAutogroupNode
-    | NoDataNode {
-    let clone: TraceTreeNode<T> | ParentAutogroupNode | SiblingAutogroupNode | NoDataNode;
+    | NoDataNode
+    | MissingInstrumentationNode {
+    let clone:
+      | TraceTreeNode<T>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | NoDataNode
+      | MissingInstrumentationNode;
 
     if (isParentAutogroupedNode(this)) {
       clone = new ParentAutogroupNode(
@@ -1433,6 +1439,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       clone.groupCount = this.groupCount;
     } else if (isNoDataNode(this)) {
       clone = new NoDataNode(this.parent);
+    } else if (isMissingInstrumentationNode(this)) {
+      clone = new MissingInstrumentationNode(
+        this.parent!,
+        this.value,
+        this.metadata,
+        this.previous,
+        this.next
+      );
     } else {
       clone = new TraceTreeNode(this.parent, this.value, this.metadata);
     }

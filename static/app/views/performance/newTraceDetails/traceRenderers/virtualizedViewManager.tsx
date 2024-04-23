@@ -2,10 +2,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
-import {
-  cancelAnimationTimeout,
-  requestAnimationTimeout,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -361,7 +358,9 @@ export class VirtualizedViewManager {
     color: string,
     index: number
   ) {
-    this.span_bars[index] = ref ? {ref, space, color} : undefined;
+    if (ref) {
+      this.span_bars[index] = {ref, space, color};
+    }
 
     if (ref) {
       this.drawSpanBar(this.span_bars[index]!);
@@ -370,7 +369,9 @@ export class VirtualizedViewManager {
   }
 
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
-    this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
+    if (ref) {
+      this.span_arrows[index] = {ref, space, visible: false, position: 0};
+    }
   }
 
   registerSpanBarTextRef(
@@ -379,9 +380,8 @@ export class VirtualizedViewManager {
     space: [number, number],
     index: number
   ) {
-    this.span_text[index] = ref ? {ref, text, space} : undefined;
-
     if (ref) {
+      this.span_text[index] = {ref, text, space};
       this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
     }
   }
@@ -391,7 +391,18 @@ export class VirtualizedViewManager {
     space: [number, number],
     index: number
   ) {
-    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+    if (ref) {
+      this.invisible_bars[index] = ref ? {ref, space} : undefined;
+
+      const span_transform = this.computeSpanCSSMatrixTransform(space);
+      ref.style.transform = `matrix(${span_transform.join(',')}`;
+      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+      ref.style.setProperty(
+        '--inverse-span-scale',
+        // @ts-expect-error this is a number
+        isNaN(inverseScale) ? 1 : inverseScale
+      );
+    }
   }
 
   registerColumnRef(
@@ -414,8 +425,10 @@ export class VirtualizedViewManager {
       ref.addEventListener('wheel', this.onWheel, {passive: false});
     }
 
-    this.columns[column].column_refs[index] = ref ?? undefined;
-    this.columns[column].column_nodes[index] = node ?? undefined;
+    if (ref && node) {
+      this.columns[column].column_refs[index] = ref;
+      this.columns[column].column_nodes[index] = node;
+    }
   }
 
   registerIndicatorRef(
@@ -428,7 +441,6 @@ export class VirtualizedViewManager {
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-      this.indicators[index] = undefined;
     } else {
       this.indicators[index] = {ref, indicator};
     }
@@ -450,8 +462,6 @@ export class VirtualizedViewManager {
     if (ref) {
       this.timeline_indicators[index] = ref;
       this.drawTimelineInterval(ref, index);
-    } else {
-      this.timeline_indicators[index] = undefined;
     }
   }
 
@@ -679,7 +689,7 @@ export class VirtualizedViewManager {
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
       ref.style.width = Math.round(this.columns.list.width * 100) + '%';
-      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
     } else {
       if (this.horizontal_scrollbar_container) {
         this.horizontal_scrollbar_container.removeEventListener(
@@ -724,16 +734,16 @@ export class VirtualizedViewManager {
     this.enqueueOnScrollEndOutOfBoundsCheck();
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list?.children?.[0]) {
-        (list.children[0] as HTMLElement).style.transform =
-          `translateX(${this.columns.list.translate[0]}px)`;
-      }
+    const rows = Array.from(
+      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+    ) as HTMLElement[];
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
   }
 
-  scrollSyncRaf: number | null = null;
+  syncedRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'list';
@@ -746,7 +756,7 @@ export class VirtualizedViewManager {
     // Holding shift key allows for horizontal scrolling
     const distance = event.shiftKey ? event.deltaY : event.deltaX;
 
-    if (Math.abs(distance) !== 0) {
+    if (Math.abs(event.deltaX) !== 0) {
       // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
@@ -769,22 +779,17 @@ export class VirtualizedViewManager {
     }
 
     this.columns.list.translate[0] = newTransform;
-    if (this.scrollSyncRaf) {
-      window.cancelAnimationFrame(this.scrollSyncRaf);
-    }
 
-    this.scrollSyncRaf = window.requestAnimationFrame(() => {
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform =
-            `translateX(${this.columns.list.translate[0]}px)`;
-        }
-      }
-      this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
-        this.columns.list.translate[0]
-      );
-    });
+    const rows = Array.from(
+      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+    ) as HTMLElement[];
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+    }
+    this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
+      this.columns.list.translate[0]
+    );
   }
 
   clampRowTransform(transform: number): number {
@@ -816,9 +821,8 @@ export class VirtualizedViewManager {
       // Dont enqueue updates while view is scrolling
       return;
     }
-    if (this.scrollEndSyncRaf !== null) {
-      cancelAnimationTimeout(this.scrollEndSyncRaf);
-    }
+
+    window.cancelAnimationFrame(this.scrollEndSyncRaf?.id ?? 0);
 
     this.scrollEndSyncRaf = requestAnimationTimeout(() => {
       this.onScrollEndOutOfBoundsCheck();
@@ -898,12 +902,12 @@ export class VirtualizedViewManager {
     const distance = x - startPosition;
 
     if (duration === 0) {
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform =
-            `translateX(${this.columns.list.translate[0]}px)`;
-        }
+      const rows = Array.from(
+        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+      ) as HTMLElement[];
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
       this.columns.list.translate[0] = x;
@@ -921,11 +925,12 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform = `translateX(${pos}px)`;
-        }
+      const rows = Array.from(
+        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+      ) as HTMLElement[];
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
       if (progress < 1) {
@@ -1046,6 +1051,7 @@ export class VirtualizedViewManager {
       (node.profiles.length > 0 ||
         node.errors.size > 0 ||
         node.performance_issues.size > 0);
+
     const has_icons = has_profiles || has_error_icons;
 
     const node_width = span_space[1] / this.span_to_px[0];
@@ -1201,6 +1207,8 @@ export class VirtualizedViewManager {
       this.drawSpanArrow(this.span_bars[i], this.span_arrows[i]);
     }
 
+    this.drawInvisibleBars();
+
     let start_indicator = 0;
     let end_indicator = this.indicators.length;
 
@@ -1300,7 +1308,12 @@ export class VirtualizedViewManager {
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-    span_bar.ref.style.setProperty('--inverse-span-scale', 1 / span_transform[0] + '');
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    span_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error we set number value type on purpose
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
   }
 
   drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
@@ -1465,7 +1478,14 @@ export class VirtualizedViewManager {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
       if (invisible_bar) {
-        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
+        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
+        invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+        invisible_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          // @ts-expect-error we set number value type on purpose
+          isNaN(inverseScale) ? 1 : inverseScale
+        );
       }
     }
   }
