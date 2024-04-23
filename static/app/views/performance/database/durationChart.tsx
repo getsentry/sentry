@@ -1,7 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
 import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 

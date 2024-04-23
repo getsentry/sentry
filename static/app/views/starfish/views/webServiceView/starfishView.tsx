@@ -14,7 +14,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
