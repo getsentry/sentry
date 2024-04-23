@@ -265,14 +265,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_regression=False,
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
-                group_states=[
-                    {
-                        "id": event.group_id,
-                        "is_new": True,
-                        "is_regression": False,
-                        "is_new_group_environment": False,
-                    }
-                ],
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
