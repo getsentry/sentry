@@ -136,7 +136,7 @@ def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
 def loads(
     value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
 ) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore[attr-defined]
+    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():
         if use_rapid_json is True:
             return rapidjson.loads(value)
         else:
@@ -149,7 +149,9 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore[attr-defined]
+        with sentry_sdk.start_span(
+            op="sentry.utils.json.loads"
+        ) if not skip_trace else nullcontext():
             return orjson.loads(data)
     else:
         return loads(data, skip_trace)
@@ -161,7 +163,7 @@ def dumps_experimental(option_name: str, data: JSONData) -> str:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return orjson.dumps(data).decode("utf-8")
+        return orjson.dumps(data).decode()
     else:
         return dumps(data)
 
