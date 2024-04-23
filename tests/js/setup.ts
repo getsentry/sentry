@@ -226,7 +226,6 @@ window.IntersectionObserver = class IntersectionObserver {
   thresholds = [];
   takeRecords = jest.fn();
 
-  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}

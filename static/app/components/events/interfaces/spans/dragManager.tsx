@@ -10,8 +10,8 @@ import {setBodyUserSelect} from 'sentry/utils/userselect';
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size
 
 enum ViewHandleType {
-  LEFT,
-  RIGHT,
+  LEFT = 0,
+  RIGHT = 1,
 }
 
 export type DragManagerChildrenProps = {

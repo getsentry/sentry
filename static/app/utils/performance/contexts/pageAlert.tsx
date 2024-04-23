@@ -9,7 +9,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 type PageAlertType = keyof Theme['alert'];
 
 export enum DismissId {
-  RESOURCE_SIZE_ALERT,
+  RESOURCE_SIZE_ALERT = 0,
 }
 
 export type PageAlertOptions = {

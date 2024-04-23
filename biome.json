@@ -21,13 +21,17 @@
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
         "useIsNan": "error",
-        "noUnusedPrivateClassMembers": "error"
+        "noUnusedPrivateClassMembers": "error",
+        "noInvalidUseBeforeDeclaration": "error"
       },
       "complexity": {
         "useFlatMap": "error",
         "useOptionalChain": "error",
         "noEmptyTypeParameters": "error",
-        "noUselessLoneBlockStatements": "error"
+        "noUselessLoneBlockStatements": "error",
+        "noUselessEmptyExport": "error",
+        "noUselessConstructor": "error",
+        "noUselessTypeConstraint": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
@@ -53,7 +57,9 @@
         "noUnsafeNegation": "error",
         "useIsArray": "error",
         "noApproximativeNumericConstant": "error",
-        "noMisrefactoredShorthandAssign": "error"
+        "noMisrefactoredShorthandAssign": "error",
+        "useAwait": "error",
+        "useNamespaceKeyword": "error"
       },
       "style": {
         "noCommaOperator": "error",
@@ -64,7 +70,10 @@
         "useShorthandFunctionType": "error",
         "useExportType": "error",
         "useImportType": "error",
-        "useNodejsImportProtocol": "error"
+        "useNodejsImportProtocol": "error",
+        "useLiteralEnumMembers": "error",
+        "useEnumInitializers": "error",
+        "useAsConstAssertion": "error"
       }
     }
   },
@@ -108,12 +117,7 @@
   },
   "overrides": [
     {
-      "include": [
-        "biome.json",
-        "config/tsconfig.*",
-        "tsconfig.json",
-        ".vscode/*"
-      ],
+      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
       "json": {
         "parser": {
           "allowComments": true,

@@ -72,9 +72,9 @@ function getRelocationOnboardingSteps(): StepDescriptor[] {
 }
 
 enum LoadingState {
-  FETCHED,
-  FETCHING,
-  ERROR,
+  FETCHED = 0,
+  FETCHING = 1,
+  ERROR = 2,
 }
 
 function RelocationOnboarding(props: Props) {
