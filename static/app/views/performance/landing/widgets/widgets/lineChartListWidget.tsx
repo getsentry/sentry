@@ -305,10 +305,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
-            !provided.widgetData.list.data[selectedListIndex][
+            !provided.widgetData.list.data[selectedListIndex]?.[
               SpanMetricsField.SPAN_DESCRIPTION
             ] &&
-            !provided.widgetData.list.data[selectedListIndex][
+            !provided.widgetData.list.data[selectedListIndex]?.[
               SpanMetricsField.SPAN_DOMAIN
             ]
           ) {
