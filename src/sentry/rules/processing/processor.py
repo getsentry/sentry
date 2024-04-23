@@ -55,7 +55,7 @@ def is_condition_slow(
 
 def split_conditions_and_filters(
     data: list[Mapping[str, Any]],
-) -> tuple[list[MutableMapping[str, Any]], list[Mapping[str, Any]]]:
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
     conditions = []
     filters = []
     for condition_or_filter in data:
@@ -150,25 +150,6 @@ class RuleProcessorBase:
 
         return rule_statuses
 
-    def apply(
-        self,
-    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
-        # we should only apply rules on unresolved issues
-        if not self.event.group.is_unresolved():
-            return {}.values()
-
-        self.grouped_futures.clear()
-        rules = self.get_rules()
-        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
-            "rule", flat=True
-        )
-        rule_statuses = self.bulk_get_rule_status(rules)
-        for rule in rules:
-            if rule.id not in snoozed_rules:
-                self.apply_rule(rule, rule_statuses[rule.id])
-
-        return self.grouped_futures.values()
-
     def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
         rule_cls = rules.get(condition["id"])
         if rule_cls is None:
@@ -227,6 +208,25 @@ class RuleProcessor(RuleProcessorBase):
             _with_transaction=False,
         )
         return passes
+
+    def apply(
+        self,
+    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
+        # we should only apply rules on unresolved issues
+        if not self.event.group.is_unresolved():
+            return {}.values()
+
+        self.grouped_futures.clear()
+        rules = self.get_rules()
+        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
+            "rule", flat=True
+        )
+        rule_statuses = self.bulk_get_rule_status(rules)
+        for rule in rules:
+            if rule.id not in snoozed_rules:
+                self.apply_rule(rule, rule_statuses[rule.id])
+
+        return self.grouped_futures.values()
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
