@@ -333,6 +333,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "ai_total_tokens_used",
+                    optional_args=[
+                        fields.with_default(
+                            "c:spans/ai.total_tokens.used@none",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
+                                allow_custom_measurements=False,
+                                allow_mri=True,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "http_response_rate",
                     required_args=[
                         SnQLStringArg("code"),
