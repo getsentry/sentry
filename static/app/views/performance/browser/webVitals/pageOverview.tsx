@@ -140,7 +140,7 @@ export default function PageOverview() {
     <ModulePageProviders
       title={[t('Performance'), t('Web Vitals')].join(' — ')}
       baseURL="/performance/browser/pageloads"
-      features="starfish-browser-webvitals"
+      features="spans-first-ui"
     >
       <Tabs
         value={tab}

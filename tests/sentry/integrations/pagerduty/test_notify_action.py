@@ -5,7 +5,7 @@ import responses
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE

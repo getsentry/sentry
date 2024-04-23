@@ -34,6 +34,7 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
     parse_backfill_sources,
@@ -120,6 +121,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
+        "highlightContext",
+        "highlightTags",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -179,6 +182,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
+    highlightContext = HighlightContextField(required=False)
+    highlightTags = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
@@ -639,6 +644,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
+        if features.has("organizations:event-tags-tree-ui", project.organization):
+            if result.get("highlightContext") is not None:
+                if project.update_option("sentry:highlight_context", result["highlightContext"]):
+                    changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
+            if result.get("highlightTags") is not None:
+                if project.update_option("sentry:highlight_tags", result["highlightTags"]):
+                    changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
         if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]

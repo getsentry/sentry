@@ -1,4 +1,4 @@
-import {MissingMember} from 'sentry/types';
+import type {MissingMember} from 'sentry/types/organization';
 
 export function MissingMembersFixture(params = []): MissingMember[] {
   return [

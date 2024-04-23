@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
 import type {RouteWithName} from './types';

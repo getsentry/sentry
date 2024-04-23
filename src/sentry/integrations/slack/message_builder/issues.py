@@ -28,7 +28,6 @@ from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
-    SlackAttachment,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -38,7 +37,6 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -57,9 +55,11 @@ from sentry.notifications.utils.participants import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -101,7 +101,9 @@ def get_approx_start_time(group: Group):
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(),
+    "Users Affected": lambda group: group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
+    ),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
     "Approx. Start Time": get_approx_start_time,
@@ -506,7 +508,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")

@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';

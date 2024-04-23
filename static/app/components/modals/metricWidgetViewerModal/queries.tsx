@@ -1,15 +1,20 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Input, {type InputProps} from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {
   IconAdd,
   IconClose,
   IconCopy,
+  IconDelete,
+  IconEdit,
   IconEllipsis,
   IconSettings,
   IconSiren,
@@ -23,15 +28,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import type {
   DashboardMetricsEquation,
+  DashboardMetricsExpression,
   DashboardMetricsQuery,
 } from 'sentry/views/dashboards/metrics/types';
 import {
   filterEquationsByDisplayType,
   filterQueriesByDisplayType,
+  getMetricQueryName,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {FormulaInput as EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
@@ -76,15 +83,35 @@ export function Queries({
     [metricEquations, displayType]
   );
 
+  const handleEditQueryAlias = useCallback(
+    (index: number) => {
+      const query = metricQueries[index];
+      const alias = getMetricQueryName(query);
+
+      onQueryChange({alias}, index);
+    },
+    [metricQueries, onQueryChange]
+  );
+
+  const handleEditEquationAlias = useCallback(
+    (index: number) => {
+      const equation = metricEquations[index];
+      const alias = getMetricQueryName(equation);
+
+      onEquationChange({alias: alias ?? ''}, index);
+    },
+    [metricEquations, onEquationChange]
+  );
+
   const showQuerySymbols = filteredQueries.length + filteredEquations.length > 1;
   const visibleExpressions = [...filteredQueries, ...filteredEquations].filter(
     expression => !expression.isHidden
   );
 
   return (
-    <QueriesWrapper>
+    <ExpressionsWrapper>
       {filteredQueries.map((query, index) => (
-        <QueryWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
@@ -94,22 +121,36 @@ export function Queries({
               type={MetricExpressionType.QUERY}
             />
           )}
-          <QueryBuilder
-            onChange={data => onQueryChange(data, index)}
-            metricsQuery={query}
-            projects={selection.projects}
-          />
-          <QueryContextMenu
-            canRemoveQuery={filteredQueries.length > 1}
-            removeQuery={removeQuery}
-            addQuery={addQuery}
-            queryIndex={index}
-            metricsQuery={query}
-          />
-        </QueryWrapper>
+          <ExpressionFormWrapper>
+            <ExpressionFormRowWrapper>
+              <QueryBuilder
+                onChange={data => onQueryChange(data, index)}
+                metricsQuery={query}
+                projects={selection.projects}
+              />
+              <QueryContextMenu
+                canRemoveQuery={filteredQueries.length > 1}
+                removeQuery={removeQuery}
+                addQuery={addQuery}
+                editAlias={handleEditQueryAlias}
+                queryIndex={index}
+                metricsQuery={query}
+              />
+            </ExpressionFormRowWrapper>
+            {query.alias !== undefined && (
+              <ExpressionFormRowWrapper>
+                <ExpressionAliasForm
+                  expression={query}
+                  onChange={alias => onQueryChange({alias}, index)}
+                  hasContextMenu
+                />
+              </ExpressionFormRowWrapper>
+            )}
+          </ExpressionFormWrapper>
+        </ExpressionWrapper>
       ))}
       {filteredEquations.map((equation, index) => (
-        <QueryWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+        <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}
@@ -119,13 +160,29 @@ export function Queries({
               type={MetricExpressionType.EQUATION}
             />
           )}
-          <FormulaInput
-            onChange={formula => onEquationChange({formula}, index)}
-            value={equation.formula}
-            availableVariables={availableVariables}
-          />
-          <EquationContextMenu removeEquation={removeEquation} equationIndex={index} />
-        </QueryWrapper>
+          <ExpressionFormWrapper>
+            <ExpressionFormRowWrapper>
+              <EquationInputWrapper>
+                <EquationInput
+                  onChange={formula => onEquationChange({formula}, index)}
+                  value={equation.formula}
+                  availableVariables={availableVariables}
+                />
+              </EquationInputWrapper>
+              {equation.alias !== undefined && (
+                <ExpressionAliasForm
+                  expression={equation}
+                  onChange={alias => onEquationChange({alias}, index)}
+                />
+              )}
+              <EquationContextMenu
+                removeEquation={removeEquation}
+                editAlias={handleEditEquationAlias}
+                equationIndex={index}
+              />
+            </ExpressionFormRowWrapper>
+          </ExpressionFormWrapper>
+        </ExpressionWrapper>
       ))}
       {displayType !== DisplayType.BIG_NUMBER && (
         <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
@@ -137,13 +194,14 @@ export function Queries({
           </Button>
         </ButtonBar>
       )}
-    </QueriesWrapper>
+    </ExpressionsWrapper>
   );
 }
 
 interface QueryContextMenuProps {
   addQuery: (index: number) => void;
   canRemoveQuery: boolean;
+  editAlias: (index: number) => void;
   metricsQuery: DashboardMetricsQuery;
   queryIndex: number;
   removeQuery: (index: number) => void;
@@ -155,6 +213,7 @@ function QueryContextMenu({
   addQuery,
   canRemoveQuery,
   queryIndex,
+  editAlias,
 }: QueryContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
@@ -193,6 +252,14 @@ function QueryContextMenu({
         removeQuery(queryIndex);
       },
     };
+    const aliasItem = {
+      leadingItems: [<IconEdit key="icon" />],
+      key: 'alias',
+      label: t('Add Alias'),
+      onAction: () => {
+        editAlias(queryIndex);
+      },
+    };
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
@@ -207,13 +274,14 @@ function QueryContextMenu({
     };
 
     return customMetric
-      ? [duplicateQueryItem, addAlertItem, removeQueryItem, settingsItem]
-      : [duplicateQueryItem, addAlertItem, removeQueryItem];
+      ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
+      : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
   }, [
     createAlert,
     metricsQuery.mri,
     removeQuery,
     addQuery,
+    editAlias,
     canRemoveQuery,
     queryIndex,
     router,
@@ -234,17 +302,47 @@ function QueryContextMenu({
 }
 
 interface EquationContextMenuProps {
+  editAlias: (index: number) => void;
   equationIndex: number;
   removeEquation: (index: number) => void;
 }
 
-function EquationContextMenu({equationIndex, removeEquation}: EquationContextMenuProps) {
+function EquationContextMenu({
+  equationIndex,
+  editAlias,
+  removeEquation,
+}: EquationContextMenuProps) {
+  const items = useMemo<MenuItemProps[]>(() => {
+    const removeEquationItem = {
+      leadingItems: [<IconClose key="icon" />],
+      key: 'delete',
+      label: t('Remove Equation'),
+      onAction: () => {
+        removeEquation(equationIndex);
+      },
+    };
+    const aliasItem = {
+      leadingItems: [<IconEdit key="icon" />],
+      key: 'alias',
+      label: t('Add Alias'),
+      onAction: () => {
+        editAlias(equationIndex);
+      },
+    };
+
+    return [aliasItem, removeEquationItem];
+  }, [editAlias, equationIndex, removeEquation]);
+
   return (
-    <Button
-      aria-label={t('Remove Equation')}
-      onClick={() => removeEquation(equationIndex)}
-      size="md"
-      icon={<IconClose size="sm" key="icon" />}
+    <DropdownMenu
+      items={items}
+      triggerProps={{
+        'aria-label': t('Equation actions'),
+        size: 'md',
+        showChevron: false,
+        icon: <IconEllipsis direction="down" size="sm" />,
+      }}
+      position="bottom-end"
     />
   );
 }
@@ -297,21 +395,86 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
   );
 }
 
-const QueriesWrapper = styled('div')`
+function ExpressionAliasForm({
+  expression,
+  onChange,
+  hasContextMenu,
+}: {
+  expression: DashboardMetricsExpression;
+  onChange: (alias: string | undefined) => void;
+  hasContextMenu?: boolean;
+}) {
+  return (
+    <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
+      <StyledLabel>as</StyledLabel>
+      <StyledDebouncedInput
+        type="text"
+        value={expression.alias}
+        onChange={e => onChange(e.target.value)}
+        placeholder={t('Add alias')}
+      />
+      <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
+        <StyledButton
+          icon={<IconDelete size="xs" />}
+          aria-label="Clear Alias"
+          onClick={() => onChange(undefined)}
+        />
+      </Tooltip>
+    </ExpressionAliasWrapper>
+  );
+}
+
+// TODO: Move this to a shared component
+function DebouncedInput({
+  onChange,
+  wait = DEFAULT_DEBOUNCE_DURATION,
+  ...inputProps
+}: InputProps & {wait?: number}) {
+  const [value, setValue] = useState<string | number | readonly string[] | undefined>(
+    inputProps.value
+  );
+
+  const handleChange = useMemo(
+    () =>
+      debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange?.(e);
+      }, wait),
+    [onChange, wait]
+  );
+
+  return (
+    <Input
+      {...inputProps}
+      value={value}
+      onChange={e => {
+        setValue(e.target.value);
+        handleChange(e);
+      }}
+    />
+  );
+}
+
+const ExpressionsWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const QueryWrapper = styled('div')<{hasQuerySymbol: boolean}>`
-  display: grid;
+const ExpressionWrapper = styled('div')`
+  display: flex;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
-  grid-template-columns: 1fr max-content;
+`;
 
-  ${p =>
-    p.hasQuerySymbol &&
-    `
-  grid-template-columns: max-content 1fr max-content;
-  `}
+const ExpressionFormWrapper = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+
+  gap: ${space(1)};
+`;
+
+const ExpressionFormRowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
@@ -324,13 +487,50 @@ const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  padding-top: ${space(0.5)};
   gap: ${space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
     padding-left: ${space(1)};
-    margin-left: ${space(2)};
+    margin-left: 38px;
   `}
+`;
+
+const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
+  display: flex;
+  flex-basis: 50%;
+  align-items: center;
+  padding-bottom: ${space(1)};
+
+  /* Add padding for the context menu */
+  ${p => p.hasOwnRow && `padding-right: 56px;`}
+  ${p => p.hasOwnRow && `flex-grow: 1;`}
+`;
+
+const StyledLabel = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)} ${space(1.5)};
+
+  color: ${p => p.theme.subText};
+
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+`;
+
+const EquationInputWrapper = styled('div')`
+  width: 100%;
+`;
+
+const StyledDebouncedInput = styled(DebouncedInput)`
+  border-radius: 0;
+  z-index: 1;
+`;
+
+const StyledButton = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
 `;

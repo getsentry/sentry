@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';

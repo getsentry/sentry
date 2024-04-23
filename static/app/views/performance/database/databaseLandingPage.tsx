@@ -260,7 +260,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
       baseURL="/performance/database"
-      features="performance-database-view"
+      features="spans-first-ui"
     >
       <DatabaseLandingPage />
     </ModulePageProviders>

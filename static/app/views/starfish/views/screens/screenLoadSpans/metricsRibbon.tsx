@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -60,9 +61,7 @@ export function MetricsRibbon({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??

@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple, get_actor_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -30,6 +30,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.actor import ActorTuple
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -233,15 +234,25 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule1 = Rule.objects.create(
+            label="another test rule", project=project, owner=team.actor, owner_team=team
+        )
         rule2 = Rule.objects.create(
-            label="rule4", project=project, owner=get_actor_for_user(from_user)
+            label="rule4",
+            project=project,
+            owner=get_actor_for_user(from_user),
+            owner_user_id=from_user.id,
         )
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule3 = Rule.objects.create(
+            label="rule2", project=project, owner=to_team.actor, owner_team=to_team
+        )
         rule4 = Rule.objects.create(
-            label="rule3", project=project, owner=get_actor_for_user(to_user)
+            label="rule3",
+            project=project,
+            owner=get_actor_for_user(to_user),
+            owner_user_id=to_user.id,
         )
 
         assert EnvironmentProject.objects.count() == 1

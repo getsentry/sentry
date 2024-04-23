@@ -1,9 +1,9 @@
 import type {
   Integration,
-  Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 
 interface RepositoryProjectPathConfigArgs extends Partial<RepositoryProjectPathConfig> {
   integration: Pick<Integration, 'id' | 'provider'>;

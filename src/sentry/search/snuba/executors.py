@@ -1119,7 +1119,7 @@ class InvalidQueryForExecutor(Exception):
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     def get_basic_group_snuba_condition(
-        self, search_filter: SearchFilter, joined_entitity: Entity
+        self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
@@ -1131,22 +1131,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
     def get_basic_event_snuba_condition(
-        self, search_filter: SearchFilter, joined_entitity: Entity
+        self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
         """
 
-        dataset = Dataset.Events if joined_entitity.alias == "e" else Dataset.IssuePlatform
+        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
 
         query_builder = UnresolvedQuery(
             dataset=dataset,
-            entity=joined_entitity,
+            entity=joined_entity,
             params={},
         )
         return query_builder.default_filter_converter(search_filter)
 
-    def get_assigned(self, search_filter: SearchFilter, joined_entitity: Entity) -> Condition:
+    def get_assigned(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         """
         Returns the assigned lookup for a search filter.
         """
@@ -1182,7 +1182,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         return BooleanCondition(op=BooleanOp.OR, conditions=conditions)
 
-    def get_suggested(self, search_filter: SearchFilter, joined_entitity: Entity) -> Condition:
+    def get_suggested(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         """
         Returns the suggested lookup for a search filter.
         """
@@ -1253,13 +1253,13 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
     def get_assigned_or_suggested(
-        self, search_filter: SearchFilter, joined_entitity: Entity
+        self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
         return BooleanCondition(
             op=BooleanOp.OR,
             conditions=[
-                self.get_assigned(search_filter, joined_entitity),
-                self.get_suggested(search_filter, joined_entitity),
+                self.get_assigned(search_filter, joined_entity),
+                self.get_suggested(search_filter, joined_entity),
             ],
         )
 
@@ -1430,8 +1430,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 orderby=[OrderBy(sort_func, direction=Direction.DESC)],
                 limit=Limit(limit + 1),
             )
+            dataset = (
+                Dataset.Events.value if joined_entity.alias == "e" else Dataset.IssuePlatform.value
+            )
             request = Request(
-                dataset="events",
+                dataset=dataset,
                 app_id="group_attributes",
                 query=query,
                 tenant_ids=tenant_ids,
@@ -1447,7 +1450,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     where=where_conditions,
                 )
                 request = Request(
-                    dataset="events",
+                    dataset=dataset,
                     app_id="group_attributes",
                     query=hits_query,
                     tenant_ids=tenant_ids,

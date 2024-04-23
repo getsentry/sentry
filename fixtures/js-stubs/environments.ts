@@ -1,4 +1,4 @@
-import {Environment} from 'sentry/types';
+import {Environment} from 'sentry/types/project';
 
 export function EnvironmentsFixture(): Environment[] {
   return [

@@ -18,7 +18,7 @@ import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

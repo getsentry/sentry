@@ -22,7 +22,6 @@ class UseCaseID(Enum):
     ESCALATING_ISSUES = "escalating_issues"
     CUSTOM = "custom"
     PROFILES = "profiles"
-    BUNDLE_ANALYSIS = "bundle_analysis"
     METRIC_STATS = "metric_stats"
 
 
@@ -33,7 +32,6 @@ USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
     UseCaseID.ESCALATING_ISSUES: UseCaseIDAPIAccess.PRIVATE,
     UseCaseID.CUSTOM: UseCaseIDAPIAccess.PUBLIC,
     UseCaseID.PROFILES: UseCaseIDAPIAccess.PRIVATE,
-    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDAPIAccess.PRIVATE,
     UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,
 }
 
@@ -44,7 +42,6 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
-    UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
     UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
     UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }

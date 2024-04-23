@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DDM_CHART_GROUP} from 'sentry/views/metrics/constants';
+import {METRIC_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {FormulaInput} from 'sentry/views/metrics/formulaInput';
@@ -48,7 +48,7 @@ export function Queries() {
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
-    echarts.connect(DDM_CHART_GROUP);
+    echarts.connect(METRIC_CHART_GROUP);
   }, [widgets]);
 
   const handleChange = useCallback(
@@ -364,14 +364,13 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
   padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
   gap: ${space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
     padding-left: ${space(1)};
-    margin-left: ${space(2)};
+    margin-left: 38px;
   `}
 `;
 

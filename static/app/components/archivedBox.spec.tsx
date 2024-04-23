@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupSubstatus} from 'sentry/types';
+import {GroupSubstatus} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 
 import ArchivedBox from './archivedBox';

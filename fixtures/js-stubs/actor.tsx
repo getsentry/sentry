@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 
 export function ActorFixture(params: Partial<Actor> = {}): Actor {
   return {

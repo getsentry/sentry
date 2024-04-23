@@ -24,7 +24,6 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
-    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -168,6 +167,7 @@ class SpanMRI(Enum):
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
     RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
 
     # Derived
@@ -181,10 +181,6 @@ class SpanMRI(Enum):
 
 class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
-
-
-class BundleAnalysisMRI(Enum):
-    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
 
 
 @dataclass

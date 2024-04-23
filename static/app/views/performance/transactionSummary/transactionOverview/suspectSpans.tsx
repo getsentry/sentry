@@ -9,7 +9,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';

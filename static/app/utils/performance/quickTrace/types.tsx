@@ -19,6 +19,7 @@ export type EventLite = {
   project_id: number;
   project_slug: string;
   span_id: string;
+  timestamp: number;
   transaction: string;
   'transaction.duration': number;
 };

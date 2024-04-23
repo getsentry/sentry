@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_s
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocated, relocation_redeem_promo_code
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
@@ -81,7 +81,7 @@ MAX_VALIDATION_RUNS = 3
 
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
-MAX_USERS_PER_RELOCATION = 200
+MAX_USERS_PER_RELOCATION = 2000
 
 RELOCATION_FILES_TO_BE_VALIDATED = [
     RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,

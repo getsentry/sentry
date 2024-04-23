@@ -240,8 +240,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -735,7 +734,9 @@
   "sentry.rule": [
     "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",
@@ -763,7 +764,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -823,7 +823,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [

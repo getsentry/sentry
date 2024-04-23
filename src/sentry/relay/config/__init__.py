@@ -76,6 +76,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -169,7 +170,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
         error_messages += [
             "ChunkLoadError: Loading chunk *",
-            "Uncaught *: ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:
@@ -340,8 +341,6 @@ def get_project_config(
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"version": 2, "rules": generate_rules(project)}
 
     return None

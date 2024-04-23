@@ -4,8 +4,8 @@ import omit from 'lodash/omit';
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 

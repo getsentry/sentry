@@ -20,7 +20,12 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 type RelatedIssuesResponse = {
-  same_root_cause: number[];
+  data: [
+    {
+      data: number[];
+      type: string;
+    },
+  ];
 };
 
 function GroupRelatedIssues({params}: Props) {
@@ -39,11 +44,13 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
+  const sameRootCauseIssues = relatedIssues?.data
+    .filter(item => item.type === 'same_root_cause')
+    .map(item => item.data);
   // If the group we're looking related issues for shows up in the table,
-  // it will trigger a bug in getGroupReprocessingStatus because activites would be empty
-  const groups = relatedIssues?.same_root_cause
-    ?.filter(id => id.toString() !== groupId)
-    ?.join(',');
+  // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
+  // thus, we excude it from the list of related issues
+  const groups = sameRootCauseIssues?.filter(id => id.toString() !== groupId)?.join(',');
 
   return (
     <Layout.Body>

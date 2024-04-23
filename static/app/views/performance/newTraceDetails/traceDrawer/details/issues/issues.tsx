@@ -201,6 +201,9 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                       start: dateSelection.start,
                       end: dateSelection.end,
                       statsPeriod: dateSelection.statsPeriod,
+                      // If we don't pass the project param, the issues page will filter by the last selected project.
+                      // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
+                      project: -1,
                     },
                   }}
                 >

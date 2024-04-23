@@ -5,7 +5,8 @@ import omit from 'lodash/omit';
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import _Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,

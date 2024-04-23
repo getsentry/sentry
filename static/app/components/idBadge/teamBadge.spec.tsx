@@ -12,7 +12,7 @@ describe('TeamBadge', function () {
 
   it('renders with Avatar and team name', function () {
     render(<TeamBadge team={TeamFixture()} />);
-    expect(screen.getByTestId('badge-styled-avatar')).toBeInTheDocument();
+    expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByText(/#team-slug/)).toBeInTheDocument();
   });
 

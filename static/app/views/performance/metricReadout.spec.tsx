@@ -41,6 +41,13 @@ describe('MetricReadout', function () {
     expect(screen.getByText('17.8/min')).toBeInTheDocument();
   });
 
+  it('limits smallest rate', () => {
+    render(<MetricReadout title="Rate" unit={RateUnit.PER_MINUTE} value={0.0002441} />);
+
+    expect(screen.getByRole('heading', {name: 'Rate'})).toBeInTheDocument();
+    expect(screen.getByText('<0.01/min')).toBeInTheDocument();
+  });
+
   it('renders milliseconds', () => {
     render(
       <MetricReadout title="Duration" unit={DurationUnit.MILLISECOND} value={223142123} />
@@ -62,6 +69,13 @@ describe('MetricReadout', function () {
 
     expect(screen.getByRole('heading', {name: 'Percentage'})).toBeInTheDocument();
     expect(screen.getByText('23.52%')).toBeInTheDocument();
+  });
+
+  it('limits smallest percentage', () => {
+    render(<MetricReadout title="Percentage" unit="percentage" value={0.000022317} />);
+
+    expect(screen.getByRole('heading', {name: 'Percentage'})).toBeInTheDocument();
+    expect(screen.getByText('<0.01%')).toBeInTheDocument();
   });
 
   it('renders counts', () => {

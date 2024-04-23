@@ -1,6 +1,6 @@
 import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
-import type {DetailedOrganization} from 'sentry/types';
+import type {DetailedOrganization} from 'sentry/types/organization';
 
 export function OrganizationFixture(
   params: Partial<DetailedOrganization> = {}

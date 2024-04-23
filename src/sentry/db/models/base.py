@@ -18,7 +18,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.json import JSONData
 
 from .fields.bounded import BoundedBigAutoField
@@ -195,7 +195,7 @@ class BaseModel(models.Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, _j: JSONData, _s: Sanitizer, _m: NormalizedModelName | None = None
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         """
         Takes the export JSON representation of this model, and "sanitizes" any data that might be
@@ -206,6 +206,27 @@ class BaseModel(models.Model):
         and 2. to avoid risky situations where a model is modified in-place and then saved to the
         production database by some far flung code that touches it later.
         """
+
+        model_name = get_model_name(cls) if model_name is None else model_name
+        fields = cls._meta.get_fields()
+        field_names = [f.name for f in fields]
+
+        # All `models.CharField` fields called "slug" and "name" can be auto-sanitized as strings.
+        if "name" in field_names and "slug" in field_names:
+            sanitizer.set_name_and_slug_pair(
+                json, SanitizableField(model_name, "name"), SanitizableField(model_name, "slug")
+            )
+        elif "name" in field_names:
+            sanitizer.set_name(json, SanitizableField(model_name, "name"))
+
+        for f in fields:
+            # Auto-sanitize all `models.DateTimeField` fields on this class.
+            if isinstance(f, models.DateTimeField):
+                sanitizer.set_datetime(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all `models.EmailField` fields on this class.
+            if isinstance(f, models.EmailField):
+                sanitizer.set_email(json, SanitizableField(model_name, f.name))
 
         return None
 
@@ -281,15 +302,6 @@ class DefaultFieldsModel(Model):
 
     class Meta:
         abstract = True
-
-    @classmethod
-    def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
-    ) -> None:
-        model_name = get_model_name(cls) if model_name is None else model_name
-        sanitizer.set_datetime(json, SanitizableField(model_name, "date_added"))
-        sanitizer.set_datetime(json, SanitizableField(model_name, "date_updated"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:

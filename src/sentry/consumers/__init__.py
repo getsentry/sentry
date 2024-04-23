@@ -349,6 +349,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -402,10 +403,13 @@ def get_stream_processor(
 
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
-    cluster = topic_defn["cluster"]
+    cluster_from_config = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
+
+    if cluster is None:
+        cluster = cluster_from_config
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())

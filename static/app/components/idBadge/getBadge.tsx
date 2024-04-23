@@ -1,3 +1,4 @@
+import ActorBadge, {type ActorBadgeProps} from './actorBadge';
 import type {BaseBadgeProps} from './baseBadge';
 import MemberBadge, {type MemberBadgeProps} from './memberBadge';
 import OrganizationBadge, {type OrganizationBadgeProps} from './organizationBadge';
@@ -5,11 +6,10 @@ import ProjectBadge, {type ProjectBadgeProps} from './projectBadge';
 import {TeamBadge, type TeamBadgeProps} from './teamBadge';
 import UserBadge, {type UserBadgeProps} from './userBadge';
 
-type DisplayName = BaseBadgeProps['displayName'];
-
 interface AddedBaseBadgeProps {
-  displayName?: DisplayName;
+  displayName?: React.ReactNode;
 }
+
 interface GetOrganizationBadgeProps
   extends AddedBaseBadgeProps,
     Omit<BaseBadgeProps, 'displayName' | 'organization'>,
@@ -35,12 +35,18 @@ interface GetProjectBadgeProps
     ProjectBadgeProps,
     AddedBaseBadgeProps {}
 
+interface GetActorBadgeProps
+  extends Omit<BaseBadgeProps, 'displayName' | 'actor'>,
+    ActorBadgeProps,
+    AddedBaseBadgeProps {}
+
 export type GetBadgeProps =
   | GetOrganizationBadgeProps
   | GetTeamBadgeProps
   | GetProjectBadgeProps
   | GetUserBadgeProps
-  | GetMemberBadgeProps;
+  | GetMemberBadgeProps
+  | GetActorBadgeProps;
 
 function getBadge(props): React.ReactElement | null {
   if (props.organization) {
@@ -54,6 +60,9 @@ function getBadge(props): React.ReactElement | null {
   }
   if (props.user) {
     return <UserBadge {...props} />;
+  }
+  if (props.actor) {
+    return <ActorBadge {...props} />;
   }
   if (props.member) {
     return <MemberBadge {...props} />;

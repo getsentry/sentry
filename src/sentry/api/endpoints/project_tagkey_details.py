@@ -23,9 +23,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(1, 1),
-            RateLimitCategory.USER: RateLimit(1, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(1, 1),
+            RateLimitCategory.IP: RateLimit(limit=1, window=1),
+            RateLimitCategory.USER: RateLimit(limit=1, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
         },
     }
 

@@ -19,6 +19,17 @@ const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
 
+// Best-effort region name prettification.
+function prettyRegionName(name: string): string {
+  if (name === 'de') {
+    return '🇪🇺 European Union (EU)';
+  }
+  if (name === 'us') {
+    return '🇺🇸 United States of America (US)';
+  }
+  return name;
+}
+
 function GetStarted({relocationState, onUpdateRelocationState, onComplete}: StepProps) {
   const api = useApi();
   const {orgSlugs, regionUrl, promoCode} = relocationState;
@@ -80,7 +91,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             name="region"
             aria-label="region"
             placeholder="Select Location"
-            options={regions.map(r => ({label: r.name, value: r.url}))}
+            options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
             onChange={opt => {
               onUpdateRelocationState({regionUrl: opt.value});
             }}
@@ -117,7 +128,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             </div>
           ) : (
             <TogglePromoCode onClick={() => setShowPromoCode(true)}>
-              Got a promo code? <u>Redeem</u>
+              Got a promo code? <u>Click here to redeem it!</u>
             </TogglePromoCode>
           )}
           <ContinueButton
