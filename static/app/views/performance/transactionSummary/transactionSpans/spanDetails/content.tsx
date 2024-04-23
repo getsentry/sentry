@@ -54,7 +54,11 @@ export default function SpanDetailsContentWrapper(props: Props) {
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
 
-  return <SpanSummary {...props} />;
+  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+
+  if (hasNewSpansUIFlag) {
+    return <SpanSummary {...props} />;
+  }
 
   return (
     <Fragment>
