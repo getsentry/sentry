@@ -106,6 +106,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
+        self.get_error_response(str(self.relocation.uuid), status_code=403)
 
     def test_bad_superuser_disabled(self):
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
@@ -114,6 +115,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
+        self.get_error_response(str(self.relocation.uuid), status_code=403)
 
     @override_options({"staff.ga-rollout": True})
     def test_bad_staff_disabled(self):
@@ -123,6 +125,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
+        self.get_error_response(str(self.relocation.uuid), status_code=403)
 
     def test_bad_has_superuser_but_no_relocation_admin_permission(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -133,6 +136,10 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
+        response = self.get_error_response(str(self.relocation.uuid), status_code=403)
+
+        assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
+
     @override_options({"staff.ga-rollout": True})
     def test_bad_has_staff_but_no_relocation_admin_permission(self):
         self.login_as(user=self.staff_user, staff=True)
@@ -140,6 +147,10 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
         response = self.get_error_response(str(does_not_exist_uuid), status_code=403)
+
+        assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
+
+        response = self.get_error_response(str(self.relocation.uuid), status_code=403)
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
