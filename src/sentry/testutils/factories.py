@@ -897,7 +897,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def store_event(data, project_id, assert_no_errors=True, sent_at=None) -> Event:
+    def store_event(
+        data: dict[str, Any],
+        project_id: int,
+        assert_no_errors: bool = True,
+        sent_at: datetime | None = None,
+    ) -> Event:
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data, sent_at=sent_at)
@@ -923,7 +928,6 @@ class Factories:
         else:
             event = manager.save(project_id)
 
-        # Performance groups
         if event.groups:
             for group in event.groups:
                 group.save()

@@ -50,10 +50,11 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         }
 
     def test_trace_connected_errors(self) -> None:
-        error, _ = self.load_errors()
-        groups = error.groups
-        assert groups is not None, len(groups) == 1
-        self.group_id = groups[0].id  # type: ignore[assignment]
+        error_event, _, proj2_error_event = self.load_errors()
+        self.group_id = error_event.group_id  # type: ignore[assignment]
+        assert error_event.group_id != proj2_error_event.group_id
+        assert error_event.project.id != proj2_error_event.project.id
+        assert error_event.trace_id == proj2_error_event.trace_id
 
         response = self.get_success_response()
         assert response.json() == {
@@ -62,3 +63,10 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
                 {"type": "trace_connected", "data": [[]]},
             ],
         }
+
+    def test_foo(self) -> None:
+        from sentry.models.group import Group
+        from sentry.models.project import Project
+
+        assert Project.objects.all() == []
+        assert Group.objects.all() == []

@@ -3262,6 +3262,7 @@ class TraceTestCase(SpanTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.trace_id = uuid4().hex
+        self.gen2_project = self.create_project(organization=self.organization)
 
     def get_start_end_from_day_ago(self, milliseconds: int) -> tuple[datetime, datetime]:
         return self.day_ago, self.day_ago + timedelta(milliseconds=milliseconds)
@@ -3404,7 +3405,6 @@ class TraceTestCase(SpanTestCase):
 
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
-        self.gen2_project = self.create_project(organization=self.organization)
 
         # Intentially pick a span id that starts with 0s
         self.gen2_span_id = "0011" * 4
@@ -3469,7 +3469,7 @@ class TraceTestCase(SpanTestCase):
             )
         ]
 
-    def load_errors(self) -> tuple[Event, Event]:
+    def load_errors(self) -> tuple[Event, Event, Event]:
         """Generates trace with errors."""
         if not hasattr(self, "gen1_project"):
             self.populate_project1()
@@ -3487,7 +3487,9 @@ class TraceTestCase(SpanTestCase):
         error = self.store_event(error_data, project_id=self.gen1_project.id)
         error_data["level"] = "warning"
         error1 = self.store_event(error_data, project_id=self.gen1_project.id)
-        return error, error1
+
+        gen2_proj_error = self.store_event(error_data, project_id=self.gen2_project.id)
+        return error, error1, gen2_proj_error
 
     def load_default(self) -> Event:
         start, _ = self.get_start_end_from_day_ago(1000)

@@ -91,6 +91,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         pass
 
     @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
+
+    @property
     def platform(self) -> str | None:
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
@@ -745,10 +752,6 @@ class GroupEvent(BaseEvent):
     @data.setter
     def data(self, value: NodeData) -> None:
         self._data = value
-
-    @property
-    def trace_id(self) -> str | None:
-        return self.data.get("contexts", {}).get("trace", {}).get("trace_id")
 
     @classmethod
     def from_event(cls, event: Event, group: Group) -> GroupEvent:

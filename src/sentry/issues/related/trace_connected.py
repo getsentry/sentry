@@ -12,11 +12,8 @@ def trace_connected_analysis(group: Group) -> list[int]:
     event = group.get_recommended_event_for_environments()
     if not event or event.trace_id is None:
         return []
-    start, end = default_start_end_dates()
-    # project.id is an integer representing the project an issue belongs to
-    # issue is the short slug represenging an issue
-    # title is the title of the issue
-    columns = ["id", "project.id", "issue", "title"]
+
+    start, end = default_start_end_dates()  # Today to 90 days back
     query = find_errors_for_trace_id(
         params={
             "start": start,
@@ -24,11 +21,10 @@ def trace_connected_analysis(group: Group) -> list[int]:
             "organization_id": group.project.organization_id,
         },
         trace_id=event.trace_id,
-        selected_columns=columns,
+        selected_columns=["id", "project.id", "issue", "title"],
     )
     results = bulk_snuba_queries(
-        [query.get_snql_query()],
-        referrer=Referrer.API_ISSUES_RELATED_ISSUES.value,
+        [query.get_snql_query()], referrer=Referrer.API_ISSUES_RELATED_ISSUES.value
     )
     transformed_results = [
         query.process_results(result)["data"] for result, query in zip(results, [query])
