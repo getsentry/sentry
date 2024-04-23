@@ -334,13 +334,18 @@ def test_cross_database_same_silo_deletion(task_runner):
         object_identifier=user_id, table_name=User._meta.db_table
     )
 
+    highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+
     with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
         ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
             tombstone_cls=RegionTombstone,
             model=Monitor,
             field=Monitor.owner_user_id.field,
             watermark_batch=WatermarkBatch(
-                low=0, up=tombstone.id + 1, has_more=False, transaction_id="foobar"
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
             ),
         )
         assert ids == [monitor.id]
