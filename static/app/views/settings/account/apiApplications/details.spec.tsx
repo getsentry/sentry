@@ -103,6 +103,8 @@ describe('ApiApplications', function () {
       screen.getByRole('button', {name: 'Rotate client secret'})
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Rotate client secret'}));
+    // Confirm modal
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(
       screen.getByText('This will be the only time your client secret is visible!')
