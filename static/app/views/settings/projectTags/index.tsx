@@ -91,11 +91,6 @@ function ProjectTags(props: Props) {
       <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
       <SettingsPageHeader title={t('Tags & Context')} />
       <PermissionAlert project={project} />
-      <TextBlock>
-        {t(
-          `Setup Highlights to promot your event data to the top of the issue page for quicker debugging.`
-        )}
-      </TextBlock>
       <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(
