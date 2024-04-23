@@ -145,7 +145,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
         try:
-            current_value = self.get_rate(duration, comparison_interval, event, self.rule.environment_id, comparison_type)  # type: ignore[arg-type, union-attr]
+            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[arg-type, union-attr]
         # XXX(CEO): once inc-666 work is concluded, rm try/except
         except RateLimitExceeded:
             metrics.incr("rule.event_frequency.snuba_query_limit")
@@ -218,24 +218,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_rate(
-        self,
-        interval: str,
-        environment_id: int,
-        comparison_type: str,
-        comparison_interval: timedelta | None = None,
-        event: GroupEvent | None = None,
-        group_ids: set[int] | None = None,
-    ) -> int | dict[int, int]:
-        _, duration = self.intervals[interval]
-        end = timezone.now()
+    def get_option_override(self, duration: timedelta) -> contextlib.AbstractContextManager[object]:
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
-<<<<<<< HEAD
-=======
         return option_override_cm
 
     def get_comparison_start_end(
@@ -248,72 +236,34 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate(
         self,
         duration: timedelta,
-        interval: timedelta,
+        comparison_interval: timedelta,
         event: GroupEvent,
         environment_id: int,
         comparison_type: str,
     ) -> int:
         start, end = self.get_comparison_start_end(timedelta(), duration)
-        option_override_cm = self.get_option_override(duration)
->>>>>>> b3304fb0b21 (nuke get_start_end_from_duration, add a default value for comparison interval)
-        with option_override_cm:
-            start = end - duration
-            if event:
-                result = self.get_rate_single(event, start, end, environment_id)
-            elif group_ids:
-                result = self.get_rate_bulk(group_ids, start, end, environment_id)
+        with self.get_option_override(duration):
+            result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
-                comparison_end = end - comparison_interval
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                start = comparison_end - duration
-                comparison_end = end - comparison_interval
-                if event:
-                    comparison_result = self.get_rate_single(
-                        event, start, comparison_end, environment_id
-                    )
-                    result = percent_increase(result, comparison_result)
-                elif group_ids:
-                    comparison_result = self.get_rate_bulk(
-                        group_ids, start, comparison_end, environment_id
-                    )
-                    result = {
-                        group_id: percent_increase(result[group_id], comparison_result[group_id])
-                        for group_id in group_ids
-                    }
+                start, end = self.get_comparison_start_end(comparison_interval, duration)
+                comparison_result = self.get_rate_single(event, start, end, environment_id)
+                result = percent_increase(result, comparison_result)
 
         return result
 
-    def get_rate_single(
-        self,
-        event: GroupEvent,
-        start: datetime,
-        end: datetime,
-        environment_id: int,
-    ) -> int:
-        return self.query(event, start, end, environment_id=environment_id)
-
     def get_rate_bulk(
         self,
+        duration: timedelta,
+        comparison_interval: timedelta,
         group_ids: set[int],
-        start: datetime,
-        end: datetime,
         environment_id: int,
-<<<<<<< HEAD
-    ) -> int:
-        return self.batch_query(
-            group_ids=group_ids,
-            start=start,
-            end=end,
-            environment_id=environment_id,
-        )
-=======
         comparison_type: str,
     ) -> dict[int, int]:
         start, end = self.get_comparison_start_end(timedelta(), duration)
-        option_override_cm = self.get_option_override(duration)
-        with option_override_cm:
+        with self.get_option_override(duration):
             result = self.batch_query(
                 group_ids=group_ids,
                 start=start,
@@ -321,7 +271,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 environment_id=environment_id,
             )
         if comparison_type == ComparisonType.PERCENT:
-            start, comparison_end = self.get_comparison_start_end(interval, duration)
+            start, comparison_end = self.get_comparison_start_end(comparison_interval, duration)
             comparison_result = self.batch_query(
                 group_ids=group_ids,
                 start=start,
@@ -333,7 +283,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 for group_id in group_ids
             }
         return result
->>>>>>> b3304fb0b21 (nuke get_start_end_from_duration, add a default value for comparison interval)
 
     def get_snuba_query_result(
         self,
