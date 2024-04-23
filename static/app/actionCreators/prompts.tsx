@@ -204,10 +204,10 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const soozedTs = new Date().getTime() / 1000;
+        const snoozedTs = new Date().getTime() / 1000;
         return {
-          data: {snoozed_ts: soozedTs},
-          features: {[feature]: {snoozed_ts: soozedTs}},
+          data: {snoozed_ts: snoozedTs},
+          features: {[feature]: {snoozed_ts: snoozedTs}},
         };
       }
     );
