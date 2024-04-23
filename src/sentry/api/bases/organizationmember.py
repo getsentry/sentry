@@ -53,7 +53,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_slug: int | str | None = None,
         member_id: str = "me",
         *args: Any,
         **kwargs: Any,
