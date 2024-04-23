@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
