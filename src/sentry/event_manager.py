@@ -147,7 +147,7 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
@@ -2364,11 +2364,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         title = event.title
 
     # If the event hasn't yet been given a helpful title, attempt to calculate one
-    if title in NON_TITLE_EVENT_TITLES:
+    if title in PLACEHOLDER_EVENT_TITLES:
         title = event_type.get_title(metadata)
 
     # If there's still nothing helpful to be had, bail
-    if title in NON_TITLE_EVENT_TITLES:
+    if title in PLACEHOLDER_EVENT_TITLES:
         logger_data.update(
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
         )
