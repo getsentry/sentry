@@ -149,12 +149,8 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        if skip_trace:
+        with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore[attr-defined]
             return orjson.loads(data)
-        else:
-            # manually create the span
-            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-                return orjson.loads(data)
     else:
         return loads(data, skip_trace)
 
