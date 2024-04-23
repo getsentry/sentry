@@ -472,11 +472,11 @@ def _get_outcomes_mql_string(query: QueryDict) -> str:
     aggregate = "sum(c:metric_stats/volume@none)"
 
     # TODO(metrics): add support for reason tag
-    group_by = query.getlist("groupBy", [])
-    if "outcome" in group_by:
+    group_by = []
+    if "outcome" in query.getlist("groupBy", []):
         group_by.append("outcome.id")
-    if "project" in group_by:
-        group_by.append("project")
+    if "project" in query.getlist("groupBy", []):
+        group_by.append("project_id")
 
     if group_by:
         return f"{aggregate} by ({', '.join(group_by)})"
