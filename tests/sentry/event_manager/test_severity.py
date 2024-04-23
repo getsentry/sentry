@@ -11,7 +11,7 @@ from urllib3.exceptions import MaxRetryError
 
 from sentry import options
 from sentry.event_manager import (
-    NON_TITLE_EVENT_TITLES,
+    PLACEHOLDER_EVENT_TITLES,
     SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
@@ -207,7 +207,7 @@ class TestGetEventSeverity(TestCase):
         mock_logger_warning: MagicMock,
         mock_urlopen: MagicMock,
     ) -> None:
-        for title in NON_TITLE_EVENT_TITLES:
+        for title in PLACEHOLDER_EVENT_TITLES:
             manager = EventManager(make_event(exception={"values": []}, platform="python"))
             event = manager.save(self.project.id)
             # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
