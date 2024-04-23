@@ -27,7 +27,7 @@ export function CacheLandingPage() {
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': 'cache',
-  }; // TODO - make sure to add more ops here as they become available
+  };
 
   const {
     isLoading: isCacheHitRateLoading,
